@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# 환경설정
+.env
+*.local
+
+# 기타
+*.class
+*.jar
+*.war
+*.ear
+
+# 테스트 리포트
+test-results/
+test-output/

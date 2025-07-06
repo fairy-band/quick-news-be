@@ -1,0 +1,19 @@
+package com.nexters.newsletterfeeder
+
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
+import org.springframework.boot.runApplication
+import org.springframework.integration.annotation.IntegrationComponentScan
+import org.springframework.scheduling.annotation.EnableScheduling
+
+@SpringBootApplication
+@EnableScheduling
+@IntegrationComponentScan
+@ConfigurationPropertiesScan
+class NewsletterFeederApplication
+
+fun main(args: Array<String>) {
+    runApplication<NewsletterFeederApplication>(*args)
+}
+
+// 추천

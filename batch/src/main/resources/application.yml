@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: newsletter-feeder-batch
+  mail:
+    host: pop.gmail.com
+    port: 995
+    username: newsletter.feeding@gmail.com
+    password: pgsixcjmsuapircm # 배포 이후 github secret으로 대체
+    protocol: pop3s
+    properties:
+      mail:
+        pop3s:
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
+            port: 995
+        store:
+          protocol: pop3s
+        debug: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.integration: WARN
+    org.springframework.mail: WARN
+    jakarta.mail: WARN
+    com.nexters.newsletterfeeder: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" 

@@ -1,0 +1,96 @@
+[versions]
+# Core versions
+kotlin = "1.9.25"
+java = "17"
+
+# Spring versions
+spring-boot = "3.5.3"
+spring-dependency-management = "1.1.7"
+spring-integration = "6.2.0"
+
+# Library versions
+jackson = "2.17.0"
+jakarta-activation = "2.1.2"
+junit = "5.10.0"
+
+# Code Quality
+ktlint = "12.1.1"
+
+[libraries]
+# Spring Boot starters
+spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-starter" }
+spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-boot-starter-web" }
+spring-boot-starter-mail = { group = "org.springframework.boot", name = "spring-boot-starter-mail" }
+spring-boot-starter-data-jpa = { group = "org.springframework.boot", name = "spring-boot-starter-data-jpa" }
+spring-boot-starter-jdbc = { group = "org.springframework.boot", name = "spring-boot-starter-jdbc" }
+spring-boot-starter-logging = { group = "org.springframework.boot", name = "spring-boot-starter-logging" }
+spring-boot-starter-integration = { group = "org.springframework.boot", name = "spring-boot-starter-integration" }
+spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
+
+# Spring Integration
+spring-integration-core = { group = "org.springframework.integration", name = "spring-integration-core", version.ref = "spring-integration" }
+spring-integration-mail = { group = "org.springframework.integration", name = "spring-integration-mail", version.ref = "spring-integration" }
+spring-integration-http = { group = "org.springframework.integration", name = "spring-integration-http", version.ref = "spring-integration" }
+
+# Kotlin
+kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
+kotlin-stdlib-jdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8" }
+
+# Jackson
+jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
+
+# Jakarta
+jakarta-activation-api = { group = "jakarta.activation", name = "jakarta.activation-api", version.ref = "jakarta-activation" }
+
+# Test dependencies
+spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+spring-integration-test = { group = "org.springframework.integration", name = "spring-integration-test" }
+kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+
+[bundles]
+# Spring Boot web bundle (for API module)
+spring-boot-web = [
+    "spring-boot-starter",
+    "spring-boot-starter-web",
+    "jackson-module-kotlin",
+    "kotlin-reflect"
+]
+
+# Spring Boot data bundle (for API module)
+spring-boot-data = [
+    "spring-boot-starter-data-jpa",
+    "spring-boot-starter-jdbc"
+]
+
+# Spring Boot batch bundle (통합된 batch + mail 기능)
+spring-boot-batch = [
+    "spring-boot-starter-integration",
+    "spring-boot-starter-mail",
+    "spring-boot-starter-web",
+    "jackson-module-kotlin",
+    "kotlin-reflect",
+    "spring-integration-core",
+    "spring-integration-mail",
+    "spring-integration-http"
+]
+
+# Test bundle
+testing = [
+    "spring-boot-starter-test",
+    "kotlin-test-junit5",
+    "junit-platform-launcher"
+]
+
+[plugins]
+# Kotlin plugins
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
+
+# Spring plugins
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+
+# Code Quality
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
