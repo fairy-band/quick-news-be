@@ -5,6 +5,9 @@ dependencies {
     // Jakarta Activation API for Spring Boot 3.x compatibility
     implementation(libs.jakarta.activation.api)
 
+    // Google Cloud Vertex AI
+    implementation(libs.google.genai)
+
     // Logging
     implementation(libs.spring.boot.starter.logging)
 
