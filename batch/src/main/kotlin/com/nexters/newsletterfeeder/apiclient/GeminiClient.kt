@@ -25,7 +25,7 @@ class GeminiClient(
         inputKeywords: List<String>,
         model: GeminiModel,
         content: String
-    ): GenerateContentResponse? {
+    ): GenerateContentResponse? { // 제공된 토큰을 초과해서 생성할 경우 null을 반환함.
         val prompt = buildKeywordAnalysisPrompt(inputKeywords, content)
 
         return try {
@@ -33,7 +33,7 @@ class GeminiClient(
                 model.modelName,
                 prompt,
                 GenerateContentConfig.builder()
-                    .temperature(0.3f)
+                    .temperature(0.3f) // 창의성
                     .maxOutputTokens(2000)
                     .topP(0.8f)
                     .topK(40f)
@@ -51,7 +51,7 @@ class GeminiClient(
     fun requestSummary(
         model: GeminiModel,
         content: String
-    ): GenerateContentResponse? {
+    ): GenerateContentResponse? { // 제공된 토큰을 초과해서 생성할 경우 null을 반환함.
         val prompt = buildSummaryPrompt(content)
 
         return try {
@@ -59,7 +59,7 @@ class GeminiClient(
                 model.modelName,
                 prompt,
                 GenerateContentConfig.builder()
-                    .temperature(0.4f)
+                    .temperature(0.4f) // 창의성
                     .maxOutputTokens(1500)
                     .topP(0.8f)
                     .topK(40f)
