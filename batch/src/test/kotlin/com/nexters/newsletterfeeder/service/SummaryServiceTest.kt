@@ -32,7 +32,7 @@ class SummaryServiceTest {
         val result = sut.getSummary(content)
 
         assertEquals("테스트 요약", result.summary)
-        assertEquals(listOf("대박", "미쳤다"), result.proactiveKeywords)
+        assertEquals(listOf("대박", "미쳤다"), result.provocativeKeywords)
     }
 
     @Test
@@ -44,7 +44,7 @@ class SummaryServiceTest {
         val result = sut.getSummary(content)
 
         assertEquals("", result.summary)
-        assertEquals(emptyList<String>(), result.proactiveKeywords)
+        assertEquals(emptyList<String>(), result.provocativeKeywords)
 
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH_LITE, content) }
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH, content) }
@@ -63,7 +63,7 @@ class SummaryServiceTest {
         val result = sut.getSummary(content)
 
         assertEquals("첫 번째 요약", result.summary)
-        assertEquals(listOf("레전드"), result.proactiveKeywords)
+        assertEquals(listOf("레전드"), result.provocativeKeywords)
 
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH_LITE, content) }
         verify(exactly = 0) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH, content) }
