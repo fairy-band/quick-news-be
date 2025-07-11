@@ -13,12 +13,11 @@ class MailChannelHandler(
 ) {
     @Bean
     @ServiceActivator(inputChannel = "mailChannel")
-    fun mailMessageHandler(): MessageHandler {
-        return MessageHandler { message ->
+    fun mailMessageHandler(): MessageHandler =
+        MessageHandler { message ->
             val emailMessage = message.payload as EmailMessage
             mailProcessor.processEmail(emailMessage)
         }
-    }
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(MailChannelHandler::class.java)

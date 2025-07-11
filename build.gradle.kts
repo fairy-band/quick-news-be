@@ -20,13 +20,13 @@ subprojects {
     apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
-    
+
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_17
     }
-    
+
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-        version.set("1.0.1")
+        version.set("1.4.1")
         android.set(false)
         outputToConsole.set(true)
         outputColorName.set("RED")
@@ -54,4 +54,4 @@ subprojects {
     tasks.withType<Test> {
         useJUnitPlatform()
     }
-} 
+}

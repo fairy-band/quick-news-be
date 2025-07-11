@@ -12,16 +12,15 @@ enum class EmailCharset(
     US_ASCII("US-ASCII", listOf("US-ASCII"));
 
     companion object {
-        fun findByName(charsetName: String): EmailCharset? {
-            return values().find { charset ->
+        fun findByName(charsetName: String): EmailCharset? =
+            values().find { charset ->
                 charset.aliases.any { alias ->
                     alias.equals(charsetName, ignoreCase = true)
                 }
             }
-        }
 
-        fun getCharset(charsetName: String): Charset {
-            return findByName(charsetName)?.let { emailCharset ->
+        fun getCharset(charsetName: String): Charset =
+            findByName(charsetName)?.let { emailCharset ->
                 try {
                     Charset.forName(emailCharset.javaCharsetName)
                 } catch (e: Exception) {
@@ -34,6 +33,5 @@ enum class EmailCharset(
                     Charset.forName("UTF-8")
                 }
             }
-        }
     }
 }

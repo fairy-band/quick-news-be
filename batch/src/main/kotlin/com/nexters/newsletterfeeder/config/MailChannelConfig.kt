@@ -15,7 +15,9 @@ import java.util.Properties
 
 @Configuration
 @EnableIntegration
-class MailChannelConfig(val mailProperties: MailProperties) {
+class MailChannelConfig(
+    val mailProperties: MailProperties
+) {
     @Bean
     fun mailMessageSource(): MessageSource<*> {
         val protocol = mailProperties.protocol
@@ -25,9 +27,7 @@ class MailChannelConfig(val mailProperties: MailProperties) {
         val port = mailProperties.port
         val authenticator =
             object : Authenticator() {
-                override fun getPasswordAuthentication(): PasswordAuthentication {
-                    return PasswordAuthentication(userName, password)
-                }
+                override fun getPasswordAuthentication(): PasswordAuthentication = PasswordAuthentication(userName, password)
             }
         // SSL 설정을 위한 Properties 객체 생성
         val properties =
@@ -57,9 +57,7 @@ class MailChannelConfig(val mailProperties: MailProperties) {
     }
 
     @Bean
-    fun mailChannel(): MessageChannel {
-        return PublishSubscribeChannel()
-    }
+    fun mailChannel(): MessageChannel = PublishSubscribeChannel()
 
     companion object {
         private const val DEFAULT_FETCH_MAIL_SIZE = 10

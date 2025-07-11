@@ -58,21 +58,24 @@ class MailReaderTest {
     }
 
     // 테스트용 MessageSource 구현체
-    class TestMessageSource(private val message: Message<MimeMessage>?) : MessageSource<MimeMessage> {
+    class TestMessageSource(
+        private val message: Message<MimeMessage>?
+    ) : MessageSource<MimeMessage> {
         private var consumed = false
 
-        override fun receive(): Message<MimeMessage>? {
-            return if (!consumed && message != null) {
+        override fun receive(): Message<MimeMessage>? =
+            if (!consumed && message != null) {
                 consumed = true
                 message
             } else {
                 null
             }
-        }
     }
 
     // 테스트용 MessageChannel 구현체
-    class TestMessageChannel(private val messageCaptor: TestMessageCaptor) : MessageChannel {
+    class TestMessageChannel(
+        private val messageCaptor: TestMessageCaptor
+    ) : MessageChannel {
         override fun send(message: Message<*>): Boolean {
             messageCaptor.captureMessage(message)
             return true
@@ -81,9 +84,7 @@ class MailReaderTest {
         override fun send(
             message: Message<*>,
             timeout: Long
-        ): Boolean {
-            return send(message)
-        }
+        ): Boolean = send(message)
     }
 
     // 간단한 메시지 캡처 클래스
@@ -94,8 +95,6 @@ class MailReaderTest {
             capturedMessage = message
         }
 
-        fun getCapturedMessage(): Message<*>? {
-            return capturedMessage
-        }
+        fun getCapturedMessage(): Message<*>? = capturedMessage
     }
 }

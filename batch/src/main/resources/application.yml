@@ -28,4 +28,9 @@ logging:
     jakarta.mail: WARN
     com.nexters.newsletterfeeder: INFO
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" 
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+
+ai:
+  gemini:
+    key: ${GEMINI_API_KEY:}

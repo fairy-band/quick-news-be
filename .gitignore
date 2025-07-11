@@ -16,7 +16,7 @@ out/
 *.log
 
 # 환경설정
-.env
+batch/.env
 *.local
 
 # 기타

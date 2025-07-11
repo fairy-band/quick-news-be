@@ -6,7 +6,9 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
-class ScheduledMailReader(val mailReader: MailReader) {
+class ScheduledMailReader(
+    val mailReader: MailReader
+) {
     // 매일 아침 8시에 실행 (cron: 초 분 시 일 월 요일)
     @Scheduled(cron = "0 0 8 * * *")
     fun triggerMorningSchedule() {

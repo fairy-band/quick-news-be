@@ -175,11 +175,13 @@ sealed class EmailMessage(
             val from = mimeMessage.from?.map { it.toString() } ?: emptyList()
             val subject = mimeMessage.subject
             val receivedDate =
-                mimeMessage.receivedDate?.toInstant()
+                mimeMessage.receivedDate
+                    ?.toInstant()
                     ?.atZone(ZoneId.systemDefault())
                     ?.toLocalDateTime()
             val sentDate =
-                mimeMessage.sentDate?.toInstant()
+                mimeMessage.sentDate
+                    ?.toInstant()
                     ?.atZone(ZoneId.systemDefault())
                     ?.toLocalDateTime()
             val contentType = mimeMessage.contentType
@@ -198,8 +200,16 @@ sealed class EmailMessage(
                                 else -> extractedContent to null
                             }
                         StringContent(
-                            from, subject, receivedDate, sentDate, contentType, extractedContent,
-                            textContent, htmlContent, emptyList(), content
+                            from,
+                            subject,
+                            receivedDate,
+                            sentDate,
+                            contentType,
+                            extractedContent,
+                            textContent,
+                            htmlContent,
+                            emptyList(),
+                            content
                         )
                     }
                     is Multipart -> {
@@ -211,8 +221,15 @@ sealed class EmailMessage(
                                 extractedContentResult.attachments.forEach { append("Attachment: ${it.fileName ?: "unnamed"}\n") }
                             }
                         MultipartContent(
-                            from, subject, receivedDate, sentDate, contentType, extractedContent,
-                            extractedContentResult.textContent, extractedContentResult.htmlContent, extractedContentResult.attachments
+                            from,
+                            subject,
+                            receivedDate,
+                            sentDate,
+                            contentType,
+                            extractedContent,
+                            extractedContentResult.textContent,
+                            extractedContentResult.htmlContent,
+                            extractedContentResult.attachments
                         )
                     }
                     is InputStream -> {
@@ -221,8 +238,16 @@ sealed class EmailMessage(
                         val bytes = content.readBytes()
                         val newInputStream = bytes.inputStream()
                         StreamContent(
-                            from, subject, receivedDate, sentDate, contentType, extractedContent,
-                            extractedContent, null, emptyList(), newInputStream
+                            from,
+                            subject,
+                            receivedDate,
+                            sentDate,
+                            contentType,
+                            extractedContent,
+                            extractedContent,
+                            null,
+                            emptyList(),
+                            newInputStream
                         )
                     }
                     else -> {
@@ -230,8 +255,17 @@ sealed class EmailMessage(
                         val extractedContent =
                             "Unknown content type: ${content?.javaClass?.simpleName}, content: $contentInfo..."
                         UnknownContent(
-                            from, subject, receivedDate, sentDate, contentType, extractedContent,
-                            null, null, emptyList(), content, content?.javaClass?.simpleName
+                            from,
+                            subject,
+                            receivedDate,
+                            sentDate,
+                            contentType,
+                            extractedContent,
+                            null,
+                            null,
+                            emptyList(),
+                            content,
+                            content?.javaClass?.simpleName
                         )
                     }
                 }
@@ -240,8 +274,17 @@ sealed class EmailMessage(
                 // content 추출 실패 시 UnknownContent로 처리
                 val extractedContent = "Error extracting content: ${e.message}"
                 UnknownContent(
-                    from, subject, receivedDate, sentDate, contentType, extractedContent,
-                    null, null, emptyList(), null, "ContentExtractionFailed"
+                    from,
+                    subject,
+                    receivedDate,
+                    sentDate,
+                    contentType,
+                    extractedContent,
+                    null,
+                    null,
+                    emptyList(),
+                    null,
+                    "ContentExtractionFailed"
                 )
             }
         }
@@ -249,15 +292,14 @@ sealed class EmailMessage(
         private fun extractInputStreamContent(
             inputStream: InputStream,
             contentType: String?
-        ): String {
-            return try {
+        ): String =
+            try {
                 val charset = getCharsetFromContentType(contentType)
                 inputStream.bufferedReader(charset).use { it.readText() }
             } catch (e: Exception) {
                 LOGGER.error("Error extracting InputStream content", e)
                 "Error extracting content: ${e.message}"
             }
-        }
 
         private fun extractMultipartContent(multipart: Multipart): ExtractedContent {
             val textParts = mutableListOf<String>()
@@ -307,8 +349,8 @@ sealed class EmailMessage(
             )
         }
 
-        private fun extractTextContent(part: BodyPart): String {
-            return try {
+        private fun extractTextContent(part: BodyPart): String =
+            try {
                 when (val content = part.content) {
                     is String -> {
                         decodeText(content, part.contentType)
@@ -325,13 +367,12 @@ sealed class EmailMessage(
                 LOGGER.warn("Error extracting text content: ${e.message}")
                 "Error extracting text content"
             }
-        }
 
         private fun decodeText(
             text: String,
             contentType: String?
-        ): String {
-            return try {
+        ): String =
+            try {
                 val decodedText = MimeUtility.decodeText(text)
 
                 val charset = getCharsetFromContentType(contentType)
@@ -344,10 +385,9 @@ sealed class EmailMessage(
                 LOGGER.warn("Error decoding text: ${e.message}")
                 text
             }
-        }
 
-        private fun getCharsetFromContentType(contentType: String?): Charset {
-            return try {
+        private fun getCharsetFromContentType(contentType: String?): Charset =
+            try {
                 if (contentType != null) {
                     val matchResult = CHARSET_PATTERN.find(contentType)
                     if (matchResult != null) {
@@ -364,7 +404,6 @@ sealed class EmailMessage(
                 LOGGER.warn("Error parsing charset from content type: $contentType, using UTF-8")
                 Charset.forName("UTF-8")
             }
-        }
 
         private fun extractAttachmentInfo(part: BodyPart): AttachmentInfo {
             val fileName = part.fileName

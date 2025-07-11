@@ -1,6 +1,6 @@
 [versions]
 # Core versions
-kotlin = "1.9.25"
+kotlin = "2.1.0"
 java = "17"
 
 # Spring versions
@@ -12,6 +12,8 @@ spring-integration = "6.2.0"
 jackson = "2.17.0"
 jakarta-activation = "2.1.2"
 junit = "5.10.0"
+google-genai = "1.0.0"
+mockk = "1.13.8"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -42,11 +44,15 @@ jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackso
 # Jakarta
 jakarta-activation-api = { group = "jakarta.activation", name = "jakarta.activation-api", version.ref = "jakarta-activation" }
 
+# Google  AI
+google-genai = { group = "com.google.genai", name = "google-genai", version.ref = "google-genai" }
+
 # Test dependencies
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
 spring-integration-test = { group = "org.springframework.integration", name = "spring-integration-test" }
 kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 [bundles]
 # Spring Boot web bundle (for API module)
@@ -79,7 +85,8 @@ spring-boot-batch = [
 testing = [
     "spring-boot-starter-test",
     "kotlin-test-junit5",
-    "junit-platform-launcher"
+    "junit-platform-launcher",
+    "mockk"
 ]
 
 [plugins]

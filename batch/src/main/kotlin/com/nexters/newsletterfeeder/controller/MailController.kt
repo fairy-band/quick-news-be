@@ -24,13 +24,12 @@ class MailController(
     }
 
     @GetMapping("/status")
-    fun getStatus(): Map<String, String> {
-        return mapOf(
+    fun getStatus(): Map<String, String> =
+        mapOf(
             "status" to "running",
             "service" to "Newsletter Feeder",
             "description" to "POP3 email reader using Spring Integration"
         )
-    }
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(MailController::class.java)
