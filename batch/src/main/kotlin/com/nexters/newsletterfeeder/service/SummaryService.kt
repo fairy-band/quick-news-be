@@ -57,7 +57,7 @@ class SummaryService(
 
             SummaryResult(
                 summary = summary,
-                proactiveKeywords = provocativeKeywords,
+                provocativeKeywords = provocativeKeywords,
             )
         } catch (e: JsonSyntaxException) {
             logger.error("Failed to parse JSON response: $responseText", e)
