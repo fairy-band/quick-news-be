@@ -1,5 +1,4 @@
 dependencies {
-    implementation(libs.bundles.spring.boot.data)
     implementation(libs.spring.boot.starter.web)
     implementation(libs.jackson.module.kotlin)
     implementation(libs.kotlin.reflect)
