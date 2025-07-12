@@ -15,5 +15,3 @@ class NewsletterFeederApplication
 fun main(args: Array<String>) {
     runApplication<NewsletterFeederApplication>(*args)
 }
-
-// 추천
