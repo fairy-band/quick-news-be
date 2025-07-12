@@ -1,40 +1,37 @@
-package com.nexters.newsletterfeeder.service
+package com.nexters.external.service
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import com.nexters.newsletterfeeder.apiclient.GeminiClient
-import com.nexters.newsletterfeeder.dto.GeminiModel
-import com.nexters.newsletterfeeder.dto.KeywordResult
+import com.nexters.external.apiclient.GeminiClient
+import com.nexters.external.dto.GeminiModel
+import com.nexters.external.dto.SummaryResult
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
-class KeywordService(
+class SummaryService(
     private val geminiClient: GeminiClient,
-    private val gson: Gson = Gson()
+    private val gson: Gson = Gson(),
 ) {
-    private val logger = LoggerFactory.getLogger(KeywordService::class.java)
+    private val logger = LoggerFactory.getLogger(SummaryService::class.java)
 
-    fun extractKeywords(
-        inputKeywords: List<String>,
-        content: String
-    ): KeywordResult {
+    fun getSummary(content: String): SummaryResult {
         val models = GeminiModel.entries
 
         for (model in models) {
             try {
-                logger.info("Trying to extract keywords with model: ${model.modelName}")
+                logger.info("Trying to get summary with model: ${model.modelName}")
 
-                val response = geminiClient.requestKeywords(inputKeywords, model, content)
+                val response = geminiClient.requestSummary(model, content)
 
                 if (response != null) {
                     val responseText = response.text()
                     logger.info("Got response from ${model.modelName}: $responseText")
 
-                    val keywordResponse = parseJsonResponse(responseText)
-                    if (keywordResponse != null) {
+                    val summaryResponse = parseJsonResponse(responseText)
+                    if (summaryResponse != null) {
                         logger.info("Successfully parsed response from ${model.modelName}")
-                        return keywordResponse
+                        return summaryResponse
                     } else {
                         logger.warn("Failed to parse JSON response from ${model.modelName}")
                     }
@@ -46,27 +43,20 @@ class KeywordService(
             }
         }
 
-        logger.error("All models failed to extract keywords")
-        return KeywordResult(emptyList(), emptyList(), emptyList())
+        logger.error("All models failed to generate summary")
+        return SummaryResult("", listOf())
     }
 
-    private fun parseJsonResponse(responseText: String?): KeywordResult? =
+    private fun parseJsonResponse(responseText: String?): SummaryResult? =
         try {
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
-
-            val matchedKeywords =
-                (jsonResponse["matchedKeywords"] as? List<*>)
-                    ?.filterIsInstance<String>() ?: emptyList()
-            val suggestedKeywords =
-                (jsonResponse["suggestedKeywords"] as? List<*>)
-                    ?.filterIsInstance<String>() ?: emptyList()
+            val summary = jsonResponse["summary"] as? String ?: ""
             val provocativeKeywords =
                 (jsonResponse["provocativeKeywords"] as? List<*>)
                     ?.filterIsInstance<String>() ?: emptyList()
 
-            KeywordResult(
-                matchedKeywords = matchedKeywords,
-                suggestedKeywords = suggestedKeywords,
+            SummaryResult(
+                summary = summary,
                 provocativeKeywords = provocativeKeywords,
             )
         } catch (e: JsonSyntaxException) {

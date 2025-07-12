@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 
 include("api")
 include("batch")
+include("external")

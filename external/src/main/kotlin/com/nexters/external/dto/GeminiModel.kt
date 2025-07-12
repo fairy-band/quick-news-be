@@ -1,4 +1,4 @@
-package com.nexters.newsletterfeeder.dto
+package com.nexters.external.dto
 
 enum class GeminiModel(
     val modelName: String

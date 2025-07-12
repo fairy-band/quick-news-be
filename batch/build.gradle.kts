@@ -1,12 +1,10 @@
 dependencies {
+    implementation(project(":external"))
     implementation(libs.bundles.spring.boot.batch)
     implementation(libs.kotlin.stdlib.jdk8)
 
     // Jakarta Activation API for Spring Boot 3.x compatibility
     implementation(libs.jakarta.activation.api)
-
-    // Google Cloud Vertex AI
-    implementation(libs.google.genai)
 
     // Logging
     implementation(libs.spring.boot.starter.logging)
@@ -15,5 +13,6 @@ dependencies {
 
     testImplementation(libs.bundles.testing)
     testImplementation(libs.spring.integration.test)
+    testImplementation(libs.google.genai) // Needed for mocking GenerateContentResponse
     testRuntimeOnly(libs.junit.platform.launcher)
 }

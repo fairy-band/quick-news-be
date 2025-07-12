@@ -1,8 +1,9 @@
 package com.nexters.newsletterfeeder.service
 
 import com.google.genai.types.GenerateContentResponse
-import com.nexters.newsletterfeeder.apiclient.GeminiClient
-import com.nexters.newsletterfeeder.dto.GeminiModel
+import com.nexters.external.apiclient.GeminiClient
+import com.nexters.external.dto.GeminiModel
+import com.nexters.external.service.SummaryService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
