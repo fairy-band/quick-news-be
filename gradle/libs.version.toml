@@ -15,6 +15,7 @@ junit = "5.10.0"
 google-genai = "1.0.0"
 gson = "2.10.1"
 mockk = "1.13.8"
+micrometer = "1.13.2"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -29,6 +30,8 @@ spring-boot-starter-jdbc = { group = "org.springframework.boot", name = "spring-
 spring-boot-starter-logging = { group = "org.springframework.boot", name = "spring-boot-starter-logging" }
 spring-boot-starter-integration = { group = "org.springframework.boot", name = "spring-boot-starter-integration" }
 spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
+spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator" }
+spring-boot-starter-aop = { group = "org.springframework.boot", name = "spring-boot-starter-aop" }
 
 # Spring Integration
 spring-integration-core = { group = "org.springframework.integration", name = "spring-integration-core", version.ref = "spring-integration" }
@@ -50,6 +53,9 @@ google-genai = { group = "com.google.genai", name = "google-genai", version.ref 
 
 # Gson
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# Micrometer
+micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
 
 # Test dependencies
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
@@ -82,7 +88,9 @@ spring-boot-batch = [
     "kotlin-reflect",
     "spring-integration-core",
     "spring-integration-mail",
-    "spring-integration-http"
+    "spring-integration-http",
+    "spring-boot-starter-actuator",
+    "spring-boot-starter-aop",
 ]
 
 # Test bundle
