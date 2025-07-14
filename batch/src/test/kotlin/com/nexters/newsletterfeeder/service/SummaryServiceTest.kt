@@ -23,7 +23,7 @@ class SummaryServiceTest {
     @Test
     fun `첫 번째 모델이 null을 반환하면 두 번째 모델로 재시도한다`() {
         val content = "테스트 콘텐츠"
-        val validJsonResponse = """{"summary":"테스트 요약","provocativeKeywords":["대박","미쳤다"]}"""
+        val validJsonResponse = """{"summary":"테스트 요약","provocativeHeadlines":["충격! 이것만 알면 성공한다","당신이 몰랐던 비밀 공개"]}"""
         val mockResponse = mockk<GenerateContentResponse>()
 
         every { mockResponse.text() } returns validJsonResponse
@@ -33,7 +33,7 @@ class SummaryServiceTest {
         val result = sut.getSummary(content)
 
         assertEquals("테스트 요약", result.summary)
-        assertEquals(listOf("대박", "미쳤다"), result.provocativeKeywords)
+        assertEquals(listOf("충격! 이것만 알면 성공한다", "당신이 몰랐던 비밀 공개"), result.provocativeHeadlines)
     }
 
     @Test
@@ -45,7 +45,7 @@ class SummaryServiceTest {
         val result = sut.getSummary(content)
 
         assertEquals("", result.summary)
-        assertEquals(emptyList<String>(), result.provocativeKeywords)
+        assertEquals(emptyList<String>(), result.provocativeHeadlines)
 
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH_LITE, content) }
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH, content) }
@@ -55,7 +55,7 @@ class SummaryServiceTest {
     @Test
     fun `첫 번째 모델이 정상 응답하면 재시도하지 않는다`() {
         val content = "테스트 콘텐츠"
-        val validJsonResponse = """{"summary":"첫 번째 요약","provocativeKeywords":["레전드"]}"""
+        val validJsonResponse = """{"summary":"첫 번째 요약","provocativeHeadlines":["전문가들도 놀란 비밀 공개"]}"""
         val mockResponse = mockk<GenerateContentResponse>()
 
         every { mockResponse.text() } returns validJsonResponse
@@ -64,7 +64,7 @@ class SummaryServiceTest {
         val result = sut.getSummary(content)
 
         assertEquals("첫 번째 요약", result.summary)
-        assertEquals(listOf("레전드"), result.provocativeKeywords)
+        assertEquals(listOf("전문가들도 놀란 비밀 공개"), result.provocativeHeadlines)
 
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH_LITE, content) }
         verify(exactly = 0) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH, content) }
