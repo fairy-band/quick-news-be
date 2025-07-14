@@ -1,4 +1,4 @@
-package com.nexters.newsletterfeeder.dto
+package com.nexters.external.dto
 
 data class KeywordResult(
     val matchedKeywords: List<String>,

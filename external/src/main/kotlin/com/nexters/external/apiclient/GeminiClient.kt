@@ -1,11 +1,11 @@
-package com.nexters.newsletterfeeder.apiclient
+package com.nexters.external.apiclient
 
 import com.google.genai.Client
 import com.google.genai.types.GenerateContentConfig
 import com.google.genai.types.GenerateContentResponse
 import com.google.genai.types.Schema
 import com.google.genai.types.Type
-import com.nexters.newsletterfeeder.dto.GeminiModel
+import com.nexters.external.dto.GeminiModel
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
