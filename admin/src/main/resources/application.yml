@@ -1,0 +1,54 @@
+server:
+  port: 8081
+
+spring:
+  config:
+    import: gemini.yml
+  application:
+    name: newsletter-feeder-admin
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+  mail:
+    host: pop.gmail.com
+    port: 995
+    username: newsletter.feeding@gmail.com
+    password: pgsixcjmsuapircm # 배포 이후 github secret으로 대체
+    protocol: pop3s
+    properties:
+      mail:
+        pop3s:
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
+            port: 995
+        store:
+          protocol: pop3s
+        debug: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      access: read_only
+  health:
+    mail:
+      enabled: false
+  metrics:
+    distribution:
+      percentiles-histogram:
+        gemini.api.request.duration: true
+      percentiles:
+        gemini.api.request.duration: 0.5,0.75,0.9,0.95,0.99
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:local}
