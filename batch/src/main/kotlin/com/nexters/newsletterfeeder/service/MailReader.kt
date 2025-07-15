@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service
 @Service
 class MailReader(
     val mailMessageSource: MessageSource<*>,
-    val mailChannel: MessageChannel,
+    val mailChannel: MessageChannel
 ) {
     fun read() {
         try {
@@ -38,7 +38,6 @@ class MailReader(
             }
 
             LOGGER.info("=== 총 ${count}개 메일 처리 완료 ===")
-
         } catch (e: Exception) {
             LOGGER.error("메일 읽기 중 오류 발생", e)
         }

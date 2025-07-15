@@ -1,11 +1,13 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: newsletter-feeder-batch
   mail:
     host: pop.gmail.com
     port: 995
-    username: newsletter.feeding@gmail.com
-    password: pgsixcjmsuapircm # 배포 이후 github secret으로 대체
+    username: ${MAIL_USER_NAME:}
+    password: ${MAIL_PASSWORD:}
     protocol: pop3s
     properties:
       mail:

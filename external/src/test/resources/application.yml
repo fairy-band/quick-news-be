@@ -1,0 +1,18 @@
+spring:
+  data:
+    mongodb:
+      # EmbeddedMongo가 자동으로 설정합니다
+      auto-index-creation: true
+      port: 0  # 랜덤 포트 사용
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.0
+
+logging:
+  level:
+    org.springframework.data.mongodb: WARN
+    de.flapdoodle.embed: INFO
+    org.mongodb.driver: WARN 
