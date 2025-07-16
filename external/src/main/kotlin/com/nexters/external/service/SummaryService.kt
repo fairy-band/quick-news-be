@@ -51,13 +51,13 @@ class SummaryService(
         try {
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
             val summary = jsonResponse["summary"] as? String ?: ""
-            val provocativeKeywords =
-                (jsonResponse["provocativeKeywords"] as? List<*>)
+            val provocativeHeadlines =
+                (jsonResponse["provocativeHeadlines"] as? List<*>)
                     ?.filterIsInstance<String>() ?: emptyList()
 
             SummaryResult(
                 summary = summary,
-                provocativeKeywords = provocativeKeywords,
+                provocativeHeadlines = provocativeHeadlines,
             )
         } catch (e: JsonSyntaxException) {
             logger.error("Failed to parse JSON response: $responseText", e)
