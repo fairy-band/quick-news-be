@@ -28,3 +28,7 @@ batch/.env
 # 테스트 리포트
 test-results/
 test-output/
+
+# Data directories
+data/
+*.log

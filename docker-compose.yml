@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    container_name: newsletter-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://newsletter:newsletter123@localhost:27017/newsletter?authSource=newsletter}
+    networks:
+      - newsletter-network
+
+  batch:
+    build:
+      context: .
+      target: batch
+    container_name: newsletter-batch
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://newsletter:newsletter123@localhost:27017/newsletter?authSource=newsletter}
+      # Mail 설정
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    networks:
+      - newsletter-network
+
+networks:
+  newsletter-network:
+    driver: bridge
