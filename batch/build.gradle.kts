@@ -1,6 +1,7 @@
 dependencies {
     implementation(project(":external"))
     implementation(libs.bundles.spring.boot.batch)
+    implementation(libs.spring.boot.starter.actuator)
     implementation(libs.kotlin.stdlib.jdk8)
 
     // Jakarta Activation API for Spring Boot 3.x compatibility

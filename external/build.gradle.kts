@@ -9,6 +9,7 @@ tasks.jar {
 dependencies {
     implementation(libs.kotlin.stdlib.jdk8)
     implementation(libs.spring.boot.starter)
+    implementation(libs.spring.boot.starter.aop)
 
     // Google Cloud Vertex AI
     implementation(libs.google.genai)
@@ -18,6 +19,8 @@ dependencies {
 
     // Logging
     implementation(libs.spring.boot.starter.logging)
+
+    implementation(libs.micrometer.core)
 
     testImplementation(libs.bundles.testing)
     testRuntimeOnly(libs.junit.platform.launcher)
