@@ -1,37 +1,37 @@
 package com.nexters.newsletterfeeder.controller
 
-import com.nexters.newsletterfeeder.scheduler.ScheduledMailReader
-import org.slf4j.LoggerFactory
+import com.nexters.newsletterfeeder.service.MailTriggerService
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/mail")
 class MailController(
-    private val scheduledMailReader: ScheduledMailReader
+    private val mailTriggerService: MailTriggerService
 ) {
-    @GetMapping("/read")
-    fun readMails(): Map<String, String> {
-        LOGGER.info("Manual email reading requested via API")
-        return try {
-            scheduledMailReader.triggerMorningSchedule()
-            mapOf("status" to "success", "message" to "Email reading completed successfully")
-        } catch (e: Exception) {
-            LOGGER.error("Error reading emails via API", e)
-            mapOf("status" to "error", "message" to "Failed to read emails: ${e.message}")
-        }
+    @PostMapping("/read")
+    fun triggerMailReading(): ResponseEntity<Map<String, String>> {
+        mailTriggerService.triggerManualMailReading()
+        return ResponseEntity.ok(
+            mapOf(
+                "status" to "success",
+                "message" to "메일 읽기 작업이 트리거되었습니다.",
+                "timestamp" to System.currentTimeMillis().toString()
+            )
+        )
     }
 
     @GetMapping("/status")
-    fun getStatus(): Map<String, String> =
-        mapOf(
-            "status" to "running",
-            "service" to "Newsletter Feeder",
-            "description" to "POP3 email reader using Spring Integration"
+    fun getMailStatus(): ResponseEntity<Map<String, Any>> =
+        ResponseEntity.ok(
+            mapOf(
+                "status" to "active",
+                "service" to "Newsletter Integration",
+                "description" to "Spring Integration Kotlin DSL 기반 메일 처리 서비스",
+                "timestamp" to System.currentTimeMillis()
+            )
         )
-
-    companion object {
-        private val LOGGER = LoggerFactory.getLogger(MailController::class.java)
-    }
 }
