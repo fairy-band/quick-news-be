@@ -34,42 +34,23 @@ services:
     networks:
       - newsletter-network
 
-  api:
-    build:
-      context: .
-      target: api
-    container_name: newsletter-api
-    restart: always
+  postgres:
+    image: postgres:15-alpine
+    container_name: newsletter-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-newsletter}
     ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USERNAME:-newsletter}:${MONGO_PASSWORD:-newsletter123}@mongodb:27017/${MONGO_DATABASE:-newsletter}?authSource=${MONGO_DATABASE:-newsletter}
-    depends_on:
-      - mongodb
-    networks:
-      - newsletter-network
-
-  batch:
-    build:
-      context: .
-      target: batch
-    container_name: newsletter-batch
-    restart: always
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USERNAME:-newsletter}:${MONGO_PASSWORD:-newsletter123}@mongodb:27017/${MONGO_DATABASE:-newsletter}?authSource=${MONGO_DATABASE:-newsletter}
-      # Mail 설정
-      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-    depends_on:
-      - mongodb
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - newsletter-network
 
 networks:
   newsletter-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  postgres_data: 

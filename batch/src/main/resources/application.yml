@@ -22,6 +22,18 @@ spring:
           protocol: pop3s
         debug: false
 
+management:
+  health:
+    mail:
+      enabled: false
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
 logging:
   level:
     root: INFO
