@@ -7,6 +7,7 @@ java = "21"
 spring-boot = "3.5.3"
 spring-dependency-management = "1.1.7"
 spring-integration = "6.2.0"
+kotlin-coroutines = "1.8.0"
 
 # Library versions
 jackson = "2.17.0"
@@ -45,6 +46,8 @@ spring-integration-http = { group = "org.springframework.integration", name = "s
 # Kotlin
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
 kotlin-stdlib-jdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8" }
+kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
+kotlin-coroutines-reactor = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-reactor", version.ref = "kotlin-coroutines" }
 
 # Jackson
 jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
@@ -102,6 +105,8 @@ spring-boot-batch = [
     "spring-integration-core",
     "spring-integration-mail",
     "spring-integration-http",
+    "kotlin-coroutines-core",
+    "kotlin-coroutines-reactor",
     "spring-boot-starter-actuator",
     "spring-boot-starter-aop",
 ]

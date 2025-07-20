@@ -8,25 +8,55 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.ZoneId
 
+data class MailProcessingResult(
+    val success: Boolean,
+    val emailMessage: EmailMessage,
+    val newsletterId: String? = null,
+    val errorMessage: String? = null,
+    val processingTime: Long = System.currentTimeMillis(),
+)
+
 @Service
 class MailProcessor(
     private val newsletterSourceService: NewsletterSourceService,
 ) {
-    fun processEmail(emailMessage: EmailMessage) {
+    fun processEmail(emailMessage: EmailMessage): MailProcessingResult {
+        val startTime = System.currentTimeMillis()
+
         try {
             logger.info("Processing email from: ${emailMessage.from.joinToString(", ")}")
             logger.info("Subject: ${emailMessage.subject}")
             logger.info("Sent Date: ${emailMessage.sentDate}")
 
-            val newsletterSource = convertToNewsletterSource(emailMessage)
-
-            val savedNewsletter = newsletterSourceService.save(newsletterSource)
-            logger.info("Newsletter saved successfully with ID: ${savedNewsletter.id}")
+            return MailProcessingResult(
+                success = true,
+                emailMessage = emailMessage,
+                processingTime = System.currentTimeMillis() - startTime,
+            )
         } catch (e: IllegalArgumentException) {
             logger.warn("Newsletter already exists: ${e.message}")
+            return MailProcessingResult(
+                success = false,
+                emailMessage = emailMessage,
+                errorMessage = "Newsletter already exists: ${e.message}",
+                processingTime = System.currentTimeMillis() - startTime,
+            )
         } catch (e: Exception) {
             logger.error("Error processing email", e)
+            return MailProcessingResult(
+                success = false,
+                emailMessage = emailMessage,
+                errorMessage = "Error processing email: ${e.message}",
+                processingTime = System.currentTimeMillis() - startTime,
+            )
         }
+    }
+
+    fun saveNewsletterSource(emailMessage: EmailMessage): NewsletterSource {
+        val newsletterSource = convertToNewsletterSource(emailMessage)
+        val savedNewsletter = newsletterSourceService.save(newsletterSource)
+        logger.info("Newsletter saved successfully with ID: ${savedNewsletter.id}")
+        return savedNewsletter
     }
 
     private fun convertToNewsletterSource(emailMessage: EmailMessage): NewsletterSource {
