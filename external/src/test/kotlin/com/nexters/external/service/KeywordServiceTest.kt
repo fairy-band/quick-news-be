@@ -1,22 +1,34 @@
-package com.nexters.newsletterfeeder.service
+package com.nexters.external.service
 
 import com.google.genai.types.GenerateContentResponse
 import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.GeminiModel
-import com.nexters.external.service.KeywordService
+import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ReservedKeywordRepository
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
+import org.springframework.test.context.jdbc.Sql
+import kotlin.test.assertEquals
 
+@DataJpaTest
 class KeywordServiceTest {
+    @Autowired
+    lateinit var reservedKeywordRepository: ReservedKeywordRepository
+
+    @Autowired
+    lateinit var candidateKeywordRepository: CandidateKeywordRepository
+
     private val geminiClient = mockk<GeminiClient>()
-    private val sut = KeywordService(geminiClient)
+    private val sut by lazy { KeywordService(geminiClient, reservedKeywordRepository, candidateKeywordRepository) }
 
     @BeforeEach
     fun setUp() {
-        io.mockk.clearMocks(geminiClient)
+        clearMocks(geminiClient)
     }
 
     @Test
@@ -66,5 +78,21 @@ class KeywordServiceTest {
         assertEquals(listOf("AI"), result.matchedKeywords)
         assertEquals(listOf("머신러닝"), result.suggestedKeywords)
         assertEquals(listOf("레전드"), result.provocativeKeywords)
+    }
+
+    @Test
+    @Sql(
+        scripts = ["/sql/candidate-keywords-reserved-keywords-test-data.sql"],
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD,
+    )
+    fun promoteKeyword() {
+        // given
+        val expected = "Swift"
+
+        // when
+        val actual = sut.promoteCandidateKeyword(1L).name
+
+        // then
+        assertEquals(expected, actual)
     }
 }

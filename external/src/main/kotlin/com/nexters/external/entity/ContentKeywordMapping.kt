@@ -17,10 +17,10 @@ class ContentKeywordMapping(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "content_id", nullable = false)
     val content: Content,
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "keyword_id", nullable = false)
     val keyword: ReservedKeyword,
     @Column(nullable = false)
