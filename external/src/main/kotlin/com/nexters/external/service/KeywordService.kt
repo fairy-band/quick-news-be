@@ -5,19 +5,25 @@ import com.google.gson.JsonSyntaxException
 import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.dto.KeywordResult
+import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ReservedKeywordRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class KeywordService(
     private val geminiClient: GeminiClient,
-    private val gson: Gson = Gson()
+    private val reservedKeywordRepository: ReservedKeywordRepository,
+    private val candidateKeywordRepository: CandidateKeywordRepository,
+    private val gson: Gson = Gson(),
 ) {
     private val logger = LoggerFactory.getLogger(KeywordService::class.java)
 
     fun extractKeywords(
         inputKeywords: List<String>,
-        content: String
+        content: String,
     ): KeywordResult {
         val models = GeminiModel.entries
 
@@ -48,6 +54,24 @@ class KeywordService(
 
         logger.error("All models failed to extract keywords")
         return KeywordResult(emptyList(), emptyList(), emptyList())
+    }
+
+    @Transactional
+    fun promoteCandidateKeyword(candidateKeywordId: Long): ReservedKeyword {
+        val candidateKeyword =
+            candidateKeywordRepository
+                .findById(candidateKeywordId)
+                .orElseThrow { NoSuchElementException("CandidateKeyword not found with id: $candidateKeywordId") }
+
+        val reservedKeyword =
+            reservedKeywordRepository.findByName(candidateKeyword.name)
+                ?: ReservedKeyword(name = candidateKeyword.name).also {
+                    reservedKeywordRepository.save(it)
+                }
+
+        candidateKeywordRepository.delete(candidateKeyword)
+
+        return reservedKeyword
     }
 
     private fun parseJsonResponse(responseText: String?): KeywordResult? =
