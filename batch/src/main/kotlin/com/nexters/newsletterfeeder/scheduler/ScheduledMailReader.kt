@@ -10,7 +10,7 @@ class ScheduledMailReader(
     val mailReader: MailReader
 ) {
     // 매일 아침 8시에 실행 (cron: 초 분 시 일 월 요일)
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 08 21 * * *")
     fun triggerMorningSchedule() {
         LOGGER.info("Starting scheduled email reading at 8:00 AM")
         mailReader.read()

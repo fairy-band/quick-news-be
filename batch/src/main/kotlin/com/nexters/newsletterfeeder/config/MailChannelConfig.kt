@@ -21,13 +21,13 @@ class MailChannelConfig(
     @Bean
     fun mailMessageSource(): MessageSource<*> {
         val protocol = mailProperties.protocol
-        val userName = mailProperties.userName
+        val username = mailProperties.username // userName -> username으로 변경
         val password = mailProperties.password
         val host = mailProperties.host
         val port = mailProperties.port
         val authenticator =
             object : Authenticator() {
-                override fun getPasswordAuthentication(): PasswordAuthentication = PasswordAuthentication(userName, password)
+                override fun getPasswordAuthentication(): PasswordAuthentication = PasswordAuthentication(username, password) // userName -> username으로 변경
             }
         // SSL 설정을 위한 Properties 객체 생성
         val properties =
@@ -45,7 +45,7 @@ class MailChannelConfig(
             }
 
         return MailReceivingMessageSource(
-            Pop3MailReceiver("$protocol://${URLEncoder.encode(userName, "UTF-8")}:$password@$host/INBOX")
+            Pop3MailReceiver("$protocol://${URLEncoder.encode(username, "UTF-8")}:$password@$host/INBOX") // userName -> username으로 변경
                 .apply {
                     setShouldDeleteMessages(false) // 기본 POP3 프로토콜은 메일을 삭제한다. 옵션을 켜서 메일을 삭제하지 않는다.
                     setMaxFetchSize(DEFAULT_FETCH_MAIL_SIZE)

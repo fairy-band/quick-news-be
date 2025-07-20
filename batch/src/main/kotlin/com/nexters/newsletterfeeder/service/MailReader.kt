@@ -22,15 +22,20 @@ class MailReader(
 
             repeat(maxFetchSize) { index ->
                 val message = mailMessageSource.receive()
+                LOGGER.debug("메일 수신 결과: ${if (message != null) "성공" else "null"}")
 
                 if (message != null) {
                     count++
                     LOGGER.info("[$count] 메일 처리 중...")
+                    LOGGER.debug("메일 페이로드 타입: ${message.payload.javaClass.simpleName}")
 
                     val emailMessage = EmailMessage.fromMimeMessage(message.payload as MimeMessage)
                     LOGGER.info("[$count] 제목: ${emailMessage.subject}")
+                    LOGGER.debug("[$count] 내용: ${emailMessage.textContent}")
+                    LOGGER.debug("[$count] html 내용: ${emailMessage.htmlContent}")
 
                     mailChannel.send(GenericMessage(emailMessage, message.headers))
+                    LOGGER.debug("[$count] 메일 채널로 전송 완료")
                 } else {
                     LOGGER.info("${index + 1}번째 시도에서 메일 없음 - 중단")
                     return@repeat
@@ -40,6 +45,8 @@ class MailReader(
             LOGGER.info("=== 총 ${count}개 메일 처리 완료 ===")
         } catch (e: Exception) {
             LOGGER.error("메일 읽기 중 오류 발생", e)
+            LOGGER.error("오류 상세: ${e.message}")
+            e.printStackTrace()
         }
     }
 

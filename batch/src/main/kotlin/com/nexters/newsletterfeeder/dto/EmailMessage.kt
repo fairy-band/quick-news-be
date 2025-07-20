@@ -371,23 +371,30 @@ sealed class EmailMessage(
         private fun decodeText(
             text: String,
             contentType: String?
-        ): String =
-            try {
+        ): String {
+            return try {
                 val decodedText = MimeUtility.decodeText(text)
-
                 val charset = getCharsetFromContentType(contentType)
-                if (charset != Charset.defaultCharset()) {
-                    decodedText
-                } else {
-                    decodedText
+                
+                // HTML 엔티티 디코딩 및 정리
+                val cleanedText = cleanHtmlEntities(decodedText)
+                
+                // 인코딩 문제가 있는지 확인
+                if (hasEncodingIssues(cleanedText)) {
+                    LOGGER.warn("Encoding issues detected in text, attempting to fix...")
+                    return fixEncodingIssues(cleanedText)
                 }
+                
+                cleanedText
             } catch (e: Exception) {
                 LOGGER.warn("Error decoding text: ${e.message}")
-                text
+                // 디코딩 실패 시 원본 텍스트 반환하되 인코딩 문제 수정
+                fixEncodingIssues(cleanHtmlEntities(text))
             }
+        }
 
-        private fun getCharsetFromContentType(contentType: String?): Charset =
-            try {
+        private fun getCharsetFromContentType(contentType: String?): Charset {
+            return try {
                 if (contentType != null) {
                     val matchResult = CHARSET_PATTERN.find(contentType)
                     if (matchResult != null) {
@@ -404,6 +411,7 @@ sealed class EmailMessage(
                 LOGGER.warn("Error parsing charset from content type: $contentType, using UTF-8")
                 Charset.forName("UTF-8")
             }
+        }
 
         private fun extractAttachmentInfo(part: BodyPart): AttachmentInfo {
             val fileName = part.fileName
@@ -443,6 +451,135 @@ sealed class EmailMessage(
                 size = size,
                 data = data
             )
+        }
+
+        /**
+         * 인코딩 문제가 있는지 확인합니다.
+         */
+        private fun hasEncodingIssues(text: String): Boolean {
+            val controlChars = text.count { it.code in 0..31 || it.code in 127..159 }
+            val replacementChars = text.count { it == '\uFFFD' }
+            val totalChars = text.length
+
+            if (totalChars == 0) return false
+
+            val controlRatio = controlChars.toDouble() / totalChars
+            val replacementRatio = replacementChars.toDouble() / totalChars
+
+            return controlRatio > 0.05 || replacementRatio > 0.05
+        }
+
+        /**
+         * 인코딩 문제를 수정합니다.
+         */
+        private fun fixEncodingIssues(text: String): String {
+            return text
+                .replace(Regex("[\u0000-\u001F\u007F-\u009F]"), "") // 제어 문자 제거
+                .replace(Regex("[\uFFFD]"), "?") // 대체 문자를 물음표로 변경
+                .replace(Regex("&[a-zA-Z]+;"), " ") // HTML 엔티티 정리
+                .replace(Regex("\\s+"), " ") // 연속된 공백 정리
+                .trim()
+        }
+
+        /**
+         * HTML 엔티티를 정리합니다.
+         */
+        private fun cleanHtmlEntities(text: String): String {
+            return text
+                // HTML 엔티티 디코딩
+                .replace("&nbsp;", " ")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&#160;", " ")
+                .replace("&#173;", "") // soft hyphen 제거
+                .replace("&#8199;", "") // thin space 제거
+                .replace("&#847;", "") // combining breve 제거
+                .replace("&#8203;", "") // zero width space 제거
+                .replace("&#8204;", "") // zero width non-joiner 제거
+                .replace("&#8205;", "") // zero width joiner 제거
+                .replace("&#8206;", "") // left-to-right mark 제거
+                .replace("&#8207;", "") // right-to-left mark 제거
+                .replace("&#65279;", "") // zero width no-break space 제거
+                .replace("&#65533;", "") // replacement character 제거
+                .replace("&#65532;", "") // object replacement character 제거
+                // 유니코드 제어 문자 제거
+                .replace(Regex("[\u0000-\u001F\u007F-\u009F]"), "")
+                // 대체 문자 제거
+                .replace(Regex("[\uFFFD]"), "")
+                // 연속된 공백 정리
+                .replace(Regex("\\s+"), " ")
+                .trim()
+        }
+
+        /**
+         * 텍스트에서 불필요한 문자들을 제거합니다.
+         */
+        private fun removeUnwantedCharacters(text: String): String {
+            return text
+                // 제어 문자 제거
+                .replace(Regex("[\u0000-\u001F\u007F-\u009F]"), "")
+                // 대체 문자 제거
+                .replace(Regex("[\uFFFD]"), "")
+                // HTML 엔티티 정리
+                .replace(Regex("&#\\d+;"), "")
+                .replace(Regex("&[a-zA-Z]+;"), "")
+                // 연속된 공백 정리
+                .replace(Regex("\\s+"), " ")
+                .trim()
+        }
+
+        private fun cleanHtmlContentForNewsletter(html: String): String {
+            return html
+                .replace(Regex("<script[^>]*>.*?</script>", RegexOption.DOT_MATCHES_ALL), "") // 스크립트 제거
+                .replace(Regex("<style[^>]*>.*?</style>", RegexOption.DOT_MATCHES_ALL), "") // 스타일 제거
+                .replace(Regex("<meta[^>]*>"), "") // 메타 태그 제거
+                .replace(Regex("<link[^>]*>"), "") // 링크 태그 제거
+                .replace(Regex("<head[^>]*>.*?</head>", RegexOption.DOT_MATCHES_ALL), "") // 헤드 제거
+                .replace(Regex("<body[^>]*>"), "") // body 태그 시작 제거
+                .replace(Regex("</body>"), "") // body 태그 끝 제거
+                .replace(Regex("<html[^>]*>"), "") // html 태그 시작 제거
+                .replace(Regex("</html>"), "") // html 태그 끝 제거
+                .replace(Regex("<div[^>]*class=\"[^\"]*header[^\"]*\"[^>]*>.*?</div>", RegexOption.DOT_MATCHES_ALL), "") // 헤더 영역 제거
+                .replace(Regex("<div[^>]*class=\"[^\"]*footer[^\"]*\"[^>]*>.*?</div>", RegexOption.DOT_MATCHES_ALL), "") // 푸터 영역 제거
+                .replace(Regex("<div[^>]*class=\"[^\"]*nav[^\"]*\"[^>]*>.*?</div>", RegexOption.DOT_MATCHES_ALL), "") // 네비게이션 제거
+                .replace(Regex("<a[^>]*href=\"[^\"]*unsubscribe[^\"]*\"[^>]*>.*?</a>", RegexOption.DOT_MATCHES_ALL), "") // 구독해제 링크 제거
+                .replace(Regex("<a[^>]*href=\"[^\"]*preferences[^\"]*\"[^>]*>.*?</a>", RegexOption.DOT_MATCHES_ALL), "") // 설정 링크 제거
+                .replace(Regex("<img[^>]*>"), "") // 이미지 제거
+                .replace(Regex("<br\\s*/?>"), "\n") // br 태그를 줄바꿈으로 변환
+                .replace(Regex("<p[^>]*>"), "\n") // p 태그 시작을 줄바꿈으로 변환
+                .replace(Regex("</p>"), "\n") // p 태그 끝을 줄바꿈으로 변환
+                .replace(Regex("<h[1-6][^>]*>"), "\n") // 헤딩 태그를 줄바꿈으로 변환
+                .replace(Regex("</h[1-6]>"), "\n") // 헤딩 태그 끝을 줄바꿈으로 변환
+                .replace(Regex("<[^>]*>"), "") // 나머지 HTML 태그 제거
+                .let { cleanHtmlEntities(it) } // HTML 엔티티 디코딩 및 정리
+                .replace(Regex("\\n\\s*\\n"), "\n") // 연속된 줄바꿈 정리
+                .replace(Regex("\\s+"), " ") // 연속된 공백 제거
+                .trim()
+        }
+
+        private fun cleanTextContentForNewsletter(text: String): String {
+            return text
+                .let { removeUnwantedCharacters(it) } // 불필요한 문자 제거
+                .replace(Regex("\\n\\s*\\n"), "\n") // 연속된 줄바꿈 제거
+                .replace(Regex("\\s+"), " ") // 연속된 공백 제거
+                .replace(Regex("(?i)unsubscribe"), "") // 구독해제 텍스트 제거
+                .replace(Regex("(?i)preferences"), "") // 설정 텍스트 제거
+                .trim()
+        }
+
+        private fun cleanExtractedContentForNewsletter(content: String): String {
+            return content
+                .let { removeUnwantedCharacters(it) } // 불필요한 문자 제거
+                .replace(Regex("Plain Text: "), "")
+                .replace(Regex("HTML: "), "")
+                .replace(Regex("Attachment: [^\\n]*\\n"), "")
+                .replace(Regex("(?i)unsubscribe"), "")
+                .replace(Regex("(?i)preferences"), "")
+                .replace(Regex("\\s+"), " ")
+                .trim()
         }
     }
 }
