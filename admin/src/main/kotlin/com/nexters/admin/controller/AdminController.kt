@@ -10,4 +10,7 @@ class AdminController {
 
     @GetMapping("/metrics")
     fun metrics(): String = "metrics"
+
+    @GetMapping("/keywords")
+    fun keywords(): String = "keywords"
 }
