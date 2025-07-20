@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API Metrics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .refresh-btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .metric-icon.duration {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .metric-icon.requests {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+
+        .metric-icon.tokens {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+        }
+
+        .metric-icon.cost {
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+        }
+
+        .metric-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffffff, #a0aec0);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-details {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .metric-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .metric-detail-label {
+            color: #a0aec0;
+        }
+
+        .metric-detail-value {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .success-rate {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .success-rate-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #43e97b, #38f9d7);
+            transition: width 0.5s ease;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.healthy {
+            background: #43e97b;
+        }
+
+        .status-dot.warning {
+            background: #ffd700;
+        }
+
+        .status-dot.error {
+            background: #ff4757;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .header-left {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <h1 class="logo">📊 Gemini API Metrics</h1>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">🏠 홈</a>
+                    <a href="/metrics" class="nav-link active">📊 메트릭</a>
+                    <a href="/keywords" class="nav-link">🔑 키워드</a>
+                </div>
+            </div>
+            <button class="refresh-btn" onclick="refreshMetrics()">🔄 새로고침</button>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- 응답 시간 카드 -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon duration">⚡</div>
+                    <div class="metric-title">API 응답 시간</div>
+                </div>
+                <div class="metric-value" id="duration-value">0ms</div>
+                <div class="metric-details">
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">평균 응답 시간</span>
+                        <span class="metric-detail-value" id="avg-duration">0ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 요청 통계 카드 -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon requests">📡</div>
+                    <div class="metric-title">API 요청 통계</div>
+                </div>
+                <div class="metric-value" id="total-requests">0</div>
+                <div class="metric-details">
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">성공한 요청</span>
+                        <span class="metric-detail-value" id="successful-requests">0</span>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">실패한 요청</span>
+                        <span class="metric-detail-value" id="failed-requests">0</span>
+                    </div>
+                </div>
+                <div class="success-rate">
+                    <div class="success-rate-fill" id="success-rate-fill"></div>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot healthy" id="api-status"></div>
+                    <span id="api-status-text">API 상태 양호</span>
+                </div>
+            </div>
+
+            <!-- 토큰 사용량 카드 -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon tokens">🎯</div>
+                    <div class="metric-title">토큰 사용량</div>
+                </div>
+                <div class="metric-value" id="total-tokens">0</div>
+                <div class="metric-details">
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">입력 토큰</span>
+                        <span class="metric-detail-value" id="prompt-tokens">0</span>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">출력 토큰</span>
+                        <span class="metric-detail-value" id="candidate-tokens">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 비용 카드 -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon cost">💰</div>
+                    <div class="metric-title">API 비용</div>
+                </div>
+                <div class="metric-value" id="total-cost">$0.00</div>
+                <div class="metric-details">
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">입력 비용</span>
+                        <span class="metric-detail-value" id="input-cost">$0.00</span>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="metric-detail-label">출력 비용</span>
+                        <span class="metric-detail-value" id="output-cost">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="last-updated">
+            마지막 업데이트: <span id="last-updated">-</span>
+        </div>
+    </div>
+
+    <script>
+        // 별 배경 생성
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        createStars();
+
+        // 메트릭 데이터 가져오기
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/api/metrics/gemini');
+                const data = await response.json();
+                updateDashboard(data);
+            } catch (error) {
+                console.error('메트릭 로딩 실패:', error);
+            }
+        }
+
+        // 대시보드 업데이트
+        function updateDashboard(data) {
+            // 응답 시간
+            document.getElementById('duration-value').textContent =
+                data.requestDuration > 0 ? `${data.requestDuration.toFixed(0)}ms` : '0ms';
+            document.getElementById('avg-duration').textContent =
+                data.requestDuration > 0 ? `${data.requestDuration.toFixed(0)}ms` : '0ms';
+
+            // 요청 통계
+            document.getElementById('total-requests').textContent = Math.floor(data.totalRequests);
+            document.getElementById('successful-requests').textContent = Math.floor(data.successfulRequests);
+            document.getElementById('failed-requests').textContent = Math.floor(data.failedRequests);
+
+            // 성공률 계산
+            const successRate = data.totalRequests > 0 ?
+                (data.successfulRequests / data.totalRequests) * 100 : 100;
+            document.getElementById('success-rate-fill').style.width = `${successRate}%`;
+
+            // API 상태
+            const statusDot = document.getElementById('api-status');
+            const statusText = document.getElementById('api-status-text');
+            if (data.failedRequests === 0) {
+                statusDot.className = 'status-dot healthy';
+                statusText.textContent = 'API 상태 양호';
+            } else if (successRate > 90) {
+                statusDot.className = 'status-dot warning';
+                statusText.textContent = 'API 상태 주의';
+            } else {
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'API 상태 위험';
+            }
+
+            // 토큰 사용량
+            document.getElementById('total-tokens').textContent = Math.floor(data.totalTokens).toLocaleString();
+            document.getElementById('prompt-tokens').textContent = Math.floor(data.promptTokens).toLocaleString();
+            document.getElementById('candidate-tokens').textContent = Math.floor(data.candidateTokens).toLocaleString();
+
+            // 비용
+            document.getElementById('total-cost').textContent = `$${data.totalCost.toFixed(4)}`;
+            document.getElementById('input-cost').textContent = `$${data.inputCost.toFixed(4)}`;
+            document.getElementById('output-cost').textContent = `$${data.outputCost.toFixed(4)}`;
+
+            // 마지막 업데이트 시간
+            document.getElementById('last-updated').textContent = new Date().toLocaleString('ko-KR');
+        }
+
+        // 메트릭 새로고침
+        function refreshMetrics() {
+            fetchMetrics();
+        }
+
+        // 초기 로딩 및 자동 새로고침
+        fetchMetrics();
+        setInterval(fetchMetrics, 30000); // 30초마다 자동 새로고침
+    </script>
+</body>
+</html>

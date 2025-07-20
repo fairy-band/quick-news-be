@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>키워드 관리 - Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+
+        .keyword-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .keyword-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .keyword-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: #fff;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .form-select, .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus, .form-control:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .form-select option {
+            background-color: #16213e;
+            color: #ffffff;
+        }
+
+        .row {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .col-md-6 {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">🏠 홈</a>
+                    <a href="/metrics" class="nav-link">📊 메트릭</a>
+                    <a href="/keywords" class="nav-link active">🔑 키워드</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Candidate Keywords Section -->
+            <div class="col-md-6">
+                <div class="section">
+                    <h2>후보 키워드</h2>
+                    <div id="candidate-keywords-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                        <h3>새 후보 키워드 추가</h3>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div style="flex: 3;">
+                                <input type="text" id="new-candidate-name" class="form-control" placeholder="키워드 이름">
+                            </div>
+                            <div>
+                                <button id="add-candidate-keyword-btn" class="btn btn-primary">추가</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reserved Keywords Section -->
+            <div class="col-md-6">
+                <div class="section">
+                    <h2>예약 키워드</h2>
+                    <div id="reserved-keywords-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                        <h3>새 예약 키워드 추가</h3>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div style="flex: 3;">
+                                <input type="text" id="new-keyword-name" class="form-control" placeholder="키워드 이름">
+                            </div>
+                            <div>
+                                <button id="add-reserved-keyword-btn" class="btn btn-primary">추가</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>카테고리</h2>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                <div style="flex: 3;">
+                    <select id="category-select" class="form-select">
+                        <option value="">카테고리 선택</option>
+                        <!-- Will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div style="flex: 3;">
+                    <input type="text" id="new-category-name" class="form-control" placeholder="새 카테고리 이름">
+                </div>
+                <div>
+                    <button id="add-category-btn" class="btn btn-primary">카테고리 추가</button>
+                </div>
+            </div>
+            
+            <div id="category-keywords" class="mt-4">
+                <h3>카테고리 키워드</h3>
+                <div id="category-keywords-list">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    <h3>키워드 추가</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="flex: 2;">
+                            <select id="keyword-select" class="form-select">
+                                <option value="">키워드 선택</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="number" id="keyword-weight" class="form-control" placeholder="가중치" step="0.1" min="0" max="1">
+                        </div>
+                        <div>
+                            <button id="add-keyword-btn" class="btn btn-primary">추가</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Create stars
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 100;
+            
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            
+            // Fetch all candidate keywords
+            fetchCandidateKeywords();
+            
+            // Fetch all reserved keywords
+            fetchReservedKeywords();
+            
+            // Fetch all categories
+            fetchCategories();
+            
+            // Set up category select change event
+            document.getElementById('category-select').addEventListener('change', function() {
+                const categoryId = this.value;
+                if (categoryId) {
+                    fetchCategoryKeywords(categoryId);
+                } else {
+                    document.getElementById('category-keywords-list').innerHTML = '<p>카테고리를 선택하세요</p>';
+                }
+            });
+            
+            // Set up add keyword button
+            document.getElementById('add-keyword-btn').addEventListener('click', function() {
+                const categoryId = document.getElementById('category-select').value;
+                const keywordId = document.getElementById('keyword-select').value;
+                const weight = document.getElementById('keyword-weight').value;
+                
+                if (!categoryId || !keywordId || !weight) {
+                    alert('카테고리, 키워드, 가중치를 모두 입력해주세요');
+                    return;
+                }
+                
+                addKeywordToCategory(categoryId, keywordId, weight);
+            });
+            
+            // Set up add reserved keyword button
+            document.getElementById('add-reserved-keyword-btn').addEventListener('click', function() {
+                const keywordName = document.getElementById('new-keyword-name').value.trim();
+                
+                if (!keywordName) {
+                    alert('키워드 이름을 입력해주세요');
+                    return;
+                }
+                
+                createReservedKeyword(keywordName);
+            });
+            
+            // Set up add candidate keyword button
+            document.getElementById('add-candidate-keyword-btn').addEventListener('click', function() {
+                const candidateName = document.getElementById('new-candidate-name').value.trim();
+                
+                if (!candidateName) {
+                    alert('후보 키워드 이름을 입력해주세요');
+                    return;
+                }
+                
+                createCandidateKeyword(candidateName);
+            });
+            
+            // Set up add category button
+            document.getElementById('add-category-btn').addEventListener('click', function() {
+                const categoryName = document.getElementById('new-category-name').value.trim();
+                
+                if (!categoryName) {
+                    alert('카테고리 이름을 입력해주세요');
+                    return;
+                }
+                
+                createCategory(categoryName);
+            });
+        });
+        
+        function fetchCandidateKeywords() {
+            fetch('/api/keywords/candidate')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('candidate-keywords-list');
+                    container.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '<p>후보 키워드가 없습니다</p>';
+                        return;
+                    }
+                    
+                    data.forEach(keyword => {
+                        const item = document.createElement('div');
+                        item.className = 'keyword-item';
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = keyword.name;
+                        
+                        const actions = document.createElement('div');
+                        actions.className = 'keyword-actions';
+                        
+                        const promoteBtn = document.createElement('button');
+                        promoteBtn.className = 'btn btn-success';
+                        promoteBtn.textContent = '승격';
+                        promoteBtn.addEventListener('click', () => promoteCandidateKeyword(keyword.id));
+                        
+                        actions.appendChild(promoteBtn);
+                        item.appendChild(nameSpan);
+                        item.appendChild(actions);
+                        container.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Error fetching candidate keywords:', error));
+        }
+        
+        function fetchReservedKeywords() {
+            fetch('/api/keywords/reserved')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('reserved-keywords-list');
+                    const select = document.getElementById('keyword-select');
+                    
+                    container.innerHTML = '';
+                    // Clear previous options but keep the first one
+                    select.innerHTML = '<option value="">키워드 선택</option>';
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '<p>예약 키워드가 없습니다</p>';
+                        return;
+                    }
+                    
+                    data.forEach(keyword => {
+                        const item = document.createElement('div');
+                        item.className = 'keyword-item';
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = keyword.name;
+                        
+                        item.appendChild(nameSpan);
+                        container.appendChild(item);
+                        
+                        // Add to select dropdown
+                        const option = document.createElement('option');
+                        option.value = keyword.id;
+                        option.textContent = keyword.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching reserved keywords:', error));
+        }
+        
+        function fetchCategories() {
+            fetch('/api/keywords/categories')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('category-select');
+                    
+                    // Clear previous options but keep the first one
+                    select.innerHTML = '<option value="">카테고리 선택</option>';
+                    
+                    data.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching categories:', error));
+        }
+        
+        function fetchCategoryKeywords(categoryId) {
+            fetch(`/api/keywords/categories/${categoryId}/keywords`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('category-keywords-list');
+                    container.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '<p>이 카테고리에 키워드가 없습니다</p>';
+                        return;
+                    }
+                    
+                    data.forEach(keyword => {
+                        const item = document.createElement('div');
+                        item.className = 'keyword-item';
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = keyword.name;
+                        
+                        const actions = document.createElement('div');
+                        actions.className = 'keyword-actions';
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'btn btn-danger';
+                        removeBtn.textContent = '삭제';
+                        removeBtn.addEventListener('click', () => removeKeywordFromCategory(categoryId, keyword.id));
+                        
+                        actions.appendChild(removeBtn);
+                        item.appendChild(nameSpan);
+                        item.appendChild(actions);
+                        container.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Error fetching category keywords:', error));
+        }
+        
+        function promoteCandidateKeyword(candidateId) {
+            fetch(`/api/keywords/candidate/${candidateId}/promote`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to promote keyword');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // Refresh both lists
+                fetchCandidateKeywords();
+                fetchReservedKeywords();
+            })
+            .catch(error => console.error('Error promoting keyword:', error));
+        }
+        
+        function addKeywordToCategory(categoryId, keywordId, weight) {
+            fetch(`/api/keywords/categories/${categoryId}/keywords`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    keywordId: keywordId,
+                    weight: parseFloat(weight)
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add keyword to category');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // Refresh category keywords list
+                fetchCategoryKeywords(categoryId);
+                
+                // Clear inputs
+                document.getElementById('keyword-select').value = '';
+                document.getElementById('keyword-weight').value = '';
+            })
+            .catch(error => {
+                console.error('Error adding keyword to category:', error);
+                alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
+            });
+        }
+        
+        function removeKeywordFromCategory(categoryId, keywordId) {
+            fetch(`/api/keywords/categories/${categoryId}/keywords/${keywordId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to remove keyword from category');
+                }
+                // Refresh category keywords list
+                fetchCategoryKeywords(categoryId);
+            })
+            .catch(error => console.error('Error removing keyword from category:', error));
+        }
+        
+        function createReservedKeyword(keywordName) {
+            fetch('/api/keywords/reserved', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: keywordName
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create reserved keyword');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // Refresh reserved keywords list
+                fetchReservedKeywords();
+                
+                // Clear input
+                document.getElementById('new-keyword-name').value = '';
+            })
+            .catch(error => {
+                console.error('Error creating reserved keyword:', error);
+                alert('예약 키워드 생성에 실패했습니다.');
+            });
+        }
+
+        function createCandidateKeyword(keywordName) {
+            fetch('/api/keywords/candidate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: keywordName
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create candidate keyword');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // Refresh candidate keywords list
+                fetchCandidateKeywords();
+                
+                // Clear input
+                document.getElementById('new-candidate-name').value = '';
+            })
+            .catch(error => {
+                console.error('Error creating candidate keyword:', error);
+                alert('후보 키워드 생성에 실패했습니다.');
+            });
+        }
+        
+        function createCategory(categoryName) {
+            fetch('/api/keywords/categories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: categoryName
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create category');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // Refresh categories list
+                fetchCategories();
+                
+                // Clear input
+                document.getElementById('new-category-name').value = '';
+            })
+            .catch(error => {
+                console.error('Error creating category:', error);
+                alert('카테고리 생성에 실패했습니다.');
+            });
+        }
+    </script>
+</body>
+</html> 

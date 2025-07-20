@@ -16,8 +16,8 @@ class Category(
     val id: Long? = null,
     @Column(nullable = false, unique = true)
     val name: String,
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 )

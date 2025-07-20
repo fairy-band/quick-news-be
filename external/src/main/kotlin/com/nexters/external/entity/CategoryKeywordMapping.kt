@@ -25,8 +25,8 @@ class CategoryKeywordMapping(
     val keyword: ReservedKeyword,
     @Column(nullable = false)
     val weight: Double,
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 )
