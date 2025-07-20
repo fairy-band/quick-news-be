@@ -18,14 +18,12 @@ import org.springframework.integration.mail.MailReceivingMessageSource
 import org.springframework.integration.mail.Pop3MailReceiver
 import org.springframework.integration.support.MessageBuilder
 import org.springframework.messaging.MessageChannel
-import org.springframework.scheduling.annotation.EnableScheduling
 import java.net.URLEncoder
 import java.util.Properties
 import kotlin.toString
 
 @Configuration
 @EnableIntegration
-@EnableScheduling
 class MailIntegrationConfig(
     private val mailProperties: MailProperties,
     private val mailProcessor: MailProcessor,
@@ -53,12 +51,11 @@ class MailIntegrationConfig(
 
     @Bean
     fun scheduledTriggerFlow(
+        scheduleTriggerChannel: MessageChannel,
         mailInputChannel: MessageChannel,
-        mailOutputChannel: MessageChannel
+        mailOutputChannel: MessageChannel,
     ): IntegrationFlow =
-        integrationFlow {
-            from("scheduleTriggerChannel")
-
+        integrationFlow(scheduleTriggerChannel) {
             handle<Any> { payload, _ ->
                 logger.info("스케줄링된 메일 읽기 시작: $payload")
 
@@ -68,7 +65,7 @@ class MailIntegrationConfig(
                         .withPayload("TRIGGER_MAIL_READING")
                         .setHeader("source", "scheduler")
                         .setHeader("timestamp", System.currentTimeMillis())
-                        .build()
+                        .build(),
                 )
 
                 "메일 읽기 요청 전송 완료"
@@ -80,12 +77,11 @@ class MailIntegrationConfig(
     @Bean
     fun mailInboundFlow(
         mailReader: MailReader,
+        mailInputChannel: MessageChannel,
         mailErrorChannel: MessageChannel,
-        mailSaveChannel: MessageChannel
+        mailSaveChannel: MessageChannel,
     ): IntegrationFlow =
-        integrationFlow {
-            from("mailInputChannel")
-
+        integrationFlow(mailInputChannel) {
             transform<Any> { _ ->
                 logger.info("메일 수신 시작")
                 // MailReader를 사용하여 메일 수신
@@ -111,7 +107,7 @@ class MailIntegrationConfig(
                             .copyHeaders(headers)
                             .setHeader("failedSubject", payload.subject)
                             .setHeader("stage", "preprocessing")
-                            .build()
+                            .build(),
                     )
                 }
             }
@@ -126,9 +122,7 @@ class MailIntegrationConfig(
         mailSavedChannel: MessageChannel,
         mailErrorChannel: MessageChannel
     ): IntegrationFlow =
-        integrationFlow {
-            from(mailSaveChannel)
-
+        integrationFlow(mailSaveChannel) {
             handle<EmailMessage> { payload, headers ->
                 try {
                     logger.info("메일 저장: ${payload.subject}")
@@ -165,9 +159,7 @@ class MailIntegrationConfig(
         mailSavedChannel: MessageChannel,
         mailOutputChannel: MessageChannel
     ): IntegrationFlow =
-        integrationFlow {
-            from(mailSavedChannel)
-
+        integrationFlow(mailSavedChannel) {
             handle<Any> { payload, headers ->
                 val subject = headers["savedSubject"] ?: "알 수 없는 제목"
                 logger.info("메일 저장 완료: $subject")
@@ -231,7 +223,7 @@ class MailIntegrationConfig(
                 setMaxFetchSize(MAX_FETCH_SIZE)
                 setJavaMailAuthenticator(mailAuthenticator())
                 setJavaMailProperties(mailProperties())
-            }
+            },
         )
 
     companion object {
