@@ -3,6 +3,7 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.jackson.module.kotlin)
     implementation(libs.kotlin.reflect)
+    implementation(libs.springdoc.openapi.starter.webmvc.ui)
 
     annotationProcessor(libs.spring.boot.configuration.processor)
 
