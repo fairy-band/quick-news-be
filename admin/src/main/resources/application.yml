@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import:
+      - gemini.yml
+      - postgresql.yml
+  application:
+    name: newsletter-feeder-admin
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      access: read_only
+  health:
+    mail:
+      enabled: false
+  metrics:
+    distribution:
+      percentiles-histogram:
+        gemini.api.request.duration: true
+      percentiles:
+        gemini.api.request.duration: 0.5,0.75,0.9,0.95,0.99
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:local}

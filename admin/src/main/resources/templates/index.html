@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-link {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(45deg, #00d4ff, #5a67d8);
+            border-color: #00d4ff;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            flex: 1;
+        }
+
+        .input-section, .output-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            color: #ffffff;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        textarea::placeholder {
+            color: #718096;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover:before {
+            left: 100%;
+        }
+
+        .btn-summary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-keywords {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .keyword-group {
+            margin-bottom: 1rem;
+        }
+
+        .keyword-label {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .keyword {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: #000;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .error {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="logo">🤖 AI Newsletter Processor</h1>
+            <p class="subtitle">뉴스레터 컨텐츠를 AI로 똑똑하게 분석해보세요</p>
+            <div class="ai-badge">✨ Powered by Gemini AI</div>
+        </header>
+
+        <nav class="nav-menu">
+            <a href="/" class="nav-link active">
+                🏠 홈
+            </a>
+            <a href="/metrics" class="nav-link">
+                📊 메트릭 대시보드
+            </a>
+        </nav>
+
+        <main class="main-content">
+            <section class="input-section">
+                <h2 class="section-title">
+                    <span class="section-icon">📝</span>
+                    콘텐츠 입력
+                </h2>
+                <textarea
+                    id="contentInput"
+                    placeholder="분석하고 싶은 뉴스레터 콘텐츠를 여기에 입력해주세요...&#10;&#10;AI가 자동으로 요약하고 키워드를 추출해드립니다!"></textarea>
+
+                <div class="button-group">
+                    <button class="btn btn-summary" onclick="generateSummary()">
+                        🧠 AI 요약 생성
+                    </button>
+                    <button class="btn btn-keywords" onclick="extractKeywords()">
+                        🏷️ 키워드 추출
+                    </button>
+                </div>
+            </section>
+
+            <section class="output-section">
+                <h2 class="section-title">
+                    <span class="section-icon">🎯</span>
+                    AI 분석 결과
+                </h2>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>AI가 열심히 분석 중입니다...</p>
+                </div>
+
+                <div id="results"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // 별 배경 생성
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        createStars();
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+            disableButtons(true);
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            disableButtons(false);
+        }
+
+        function disableButtons(disabled) {
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.disabled = disabled;
+            });
+        }
+
+        function showError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        async function generateSummary() {
+            const content = document.getElementById('contentInput').value.trim();
+            if (!content) {
+                showError('분석할 콘텐츠를 입력해주세요.');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/summary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content: content })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (data.success) {
+                    let html = `
+                        <div class="result-card">
+                            <div class="result-title">📋 AI 요약</div>
+                            <p>${data.summary}</p>
+                    `;
+
+                    if (data.provocativeKeywords && data.provocativeKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">🔥 자극적인 키워드</div>
+                                <div class="keywords">
+                                    ${data.provocativeKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('results').innerHTML = html;
+                } else {
+                    showError(data.error || '요약 생성에 실패했습니다.');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        async function extractKeywords() {
+            const content = document.getElementById('contentInput').value.trim();
+            if (!content) {
+                showError('분석할 콘텐츠를 입력해주세요.');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/keywords', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content: content })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (data.success) {
+                    let html = '<div class="result-card"><div class="result-title">🏷️ 키워드 분석 결과</div>';
+
+                    if (data.matchedKeywords && data.matchedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">📌 매칭된 키워드</div>
+                                <div class="keywords">
+                                    ${data.matchedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.suggestedKeywords && data.suggestedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">💡 추천 키워드</div>
+                                <div class="keywords">
+                                    ${data.suggestedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.provocativeKeywords && data.provocativeKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">🔥 자극적인 키워드</div>
+                                <div class="keywords">
+                                    ${data.provocativeKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('results').innerHTML = html;
+                } else {
+                    showError(data.error || '키워드 추출에 실패했습니다.');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 엔터키 처리
+        document.getElementById('contentInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateSummary();
+            } else if (e.shiftKey && e.key === 'Enter') {
+                extractKeywords();
+            }
+        });
+    </script>
+</body>
+</html>

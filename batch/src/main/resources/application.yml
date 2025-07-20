@@ -3,6 +3,8 @@ spring:
     active: dev
   application:
     name: newsletter-feeder-batch
+  config:
+    import: gemini.yml
   mail:
     host: pop.gmail.com
     port: 995
@@ -43,8 +45,3 @@ logging:
     com.nexters.newsletterfeeder: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
-
-ai:
-  gemini:
-    key: ${GEMINI_API_KEY:}

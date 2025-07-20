@@ -1,4 +1,4 @@
-rootProject.name = "newsletter-feeder" 
+rootProject.name = "newsletter-feeder"
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 include("api")
 include("batch")
 include("external")
+include("admin")
