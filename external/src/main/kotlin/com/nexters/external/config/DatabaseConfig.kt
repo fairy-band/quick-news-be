@@ -18,7 +18,7 @@ import javax.sql.DataSource
 
 @Configuration
 @EnableTransactionManagement
-@EnableJpaRepositories
+@EnableJpaRepositories(basePackages = ["com.nexters.external.repository"])
 class DatabaseConfig {
     @Value("\${spring.datasource.url}")
     private lateinit var url: String
