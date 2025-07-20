@@ -1,7 +1,17 @@
 dependencies {
     implementation(project(":external"))
-    implementation(libs.bundles.spring.boot.batch)
+    implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.boot.starter.mail)
+    implementation(libs.spring.boot.starter.integration)
     implementation(libs.spring.boot.starter.actuator)
+    
+    // Spring Integration Mail 명시적 추가
+    implementation(libs.spring.integration.mail)
+    
+    // JPA 의존성 추가
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation("org.postgresql:postgresql")
+    
     implementation(libs.kotlin.stdlib.jdk8)
 
     // Jakarta Activation API for Spring Boot 3.x compatibility

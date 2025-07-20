@@ -1,5 +1,8 @@
 spring:
   config:
-    import:
+    import: 
       - mongo-dev.yml
-      - postgresql.yml
+      - postgres-dev.yml
+
+server:
+  port: 8085

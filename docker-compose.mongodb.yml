@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: newsletter-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-newsletter}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-newsletter123}
+      POSTGRES_DB: ${DB_NAME:-newsletter}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgresql.sql:/docker-entrypoint-initdb.d/init-postgresql.sql:ro
+    networks:
+      - newsletter-network
+
   mongodb:
     image: mongo:7.0
     container_name: newsletter-mongodb
@@ -36,4 +52,7 @@ services:
 
 networks:
   newsletter-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  postgres_data: 

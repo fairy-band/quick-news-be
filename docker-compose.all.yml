@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: newsletter-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-newsletter}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-newsletter123}
+      POSTGRES_DB: ${DB_NAME:-newsletter}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgresql.sql:/docker-entrypoint-initdb.d/init-postgresql.sql:ro
+    networks:
+      - newsletter-network
+
   mongodb:
     image: mongo:7.0
     container_name: newsletter-mongodb
@@ -34,17 +50,47 @@ services:
     networks:
       - newsletter-network
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: newsletter-postgres
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-newsletter}
+  api:
+    build:
+      context: .
+      target: api
+    container_name: newsletter-api
+    restart: always
     ports:
-      - "${DB_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USERNAME:-newsletter}:${MONGO_PASSWORD:-newsletter123}@mongodb:27017/${MONGO_DATABASE:-newsletter}?authSource=${MONGO_DATABASE:-newsletter}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-newsletter}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-newsletter}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-newsletter123}
+    depends_on:
+      - mongodb
+      - postgres
+    networks:
+      - newsletter-network
+
+  batch:
+    build:
+      context: .
+      target: batch
+    container_name: newsletter-batch
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USERNAME:-newsletter}:${MONGO_PASSWORD:-newsletter123}@mongodb:27017/${MONGO_DATABASE:-newsletter}?authSource=${MONGO_DATABASE:-newsletter}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-newsletter}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-newsletter}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-newsletter123}
+      # Mail 설정
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      - mongodb
+      - postgres
     networks:
       - newsletter-network
 

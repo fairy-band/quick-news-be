@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: newsletter-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-newsletter}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-newsletter123}
+      POSTGRES_DB: ${DB_NAME:-newsletter}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgresql.sql:/docker-entrypoint-initdb.d/init-postgresql.sql:ro
+    networks:
+      - newsletter-network
+
   api:
     build:
       context: .
@@ -12,6 +28,11 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://newsletter:newsletter123@localhost:27017/newsletter?authSource=newsletter}
+      SPRING_DATASOURCE_URL: ${POSTGRES_URL:-jdbc:postgresql://localhost:5432/newsletter}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-newsletter}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-newsletter123}
+    depends_on:
+      - postgres
     networks:
       - newsletter-network
 
@@ -24,26 +45,17 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://newsletter:newsletter123@localhost:27017/newsletter?authSource=newsletter}
+      SPRING_DATASOURCE_URL: ${POSTGRES_URL:-jdbc:postgresql://localhost:5432/newsletter}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-newsletter}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-newsletter123}
       # Mail 설정
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-    networks:
-      - newsletter-network
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: newsletter-postgres
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-newsletter}
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    depends_on:
+      - postgres
     networks:
       - newsletter-network
 

@@ -6,8 +6,8 @@ spring:
   mail:
     host: pop.gmail.com
     port: 995
-    username: ${MAIL_USER_NAME:}
-    password: ${MAIL_PASSWORD:}
+    username: 'newsletter.feeding@gmail.com'
+    password: 'jelvyhsyacxgmyqt'
     protocol: pop3s
     properties:
       mail:
@@ -37,10 +37,10 @@ management:
 logging:
   level:
     root: INFO
-    org.springframework.integration: WARN
-    org.springframework.mail: WARN
-    jakarta.mail: WARN
-    com.nexters.newsletterfeeder: INFO
+    org.springframework.integration: DEBUG
+    org.springframework.mail: DEBUG
+    jakarta.mail: DEBUG
+    com.nexters.newsletterfeeder: DEBUG
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
