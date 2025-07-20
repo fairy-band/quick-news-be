@@ -15,7 +15,7 @@ class Content(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
     @Column(nullable = false)
-    val mongoId: String,
+    val newsletterSourceId: String,
     @Column(nullable = false)
     val title: String,
     @Column(nullable = false, columnDefinition = "TEXT")
