@@ -17,6 +17,8 @@ gson = "2.10.1"
 mockk = "1.13.8"
 micrometer = "1.13.2"
 mongodb = "5.3.0"
+springdoc-openapi = "2.8.9"
+rest-assured = "5.4.0"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -62,6 +64,9 @@ micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.r
 # MongoDB
 mongodb-driver-sync = { group = "org.mongodb", name = "mongodb-driver-sync", version.ref = "mongodb" }
 
+# Springdoc OpenAPI (Swagger)
+springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
+
 # Test dependencies
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
 spring-integration-test = { group = "org.springframework.integration", name = "spring-integration-test" }
@@ -69,6 +74,8 @@ kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 de-flapdoodle-embed-mongo-spring = { group = "de.flapdoodle.embed", name = "de.flapdoodle.embed.mongo.spring30x", version = "4.11.0" }
+rest-assured = { group = "io.rest-assured", name = "rest-assured", version.ref = "rest-assured" }
+rest-assured-kotlin = { group = "io.rest-assured", name = "kotlin-extensions", version.ref = "rest-assured" }
 
 [bundles]
 # Spring Boot web bundle (for API module)
@@ -104,7 +111,9 @@ testing = [
     "spring-boot-starter-test",
     "kotlin-test-junit5",
     "junit-platform-launcher",
-    "mockk"
+    "mockk",
+    "rest-assured",
+    "rest-assured-kotlin"
 ]
 
 [plugins]
