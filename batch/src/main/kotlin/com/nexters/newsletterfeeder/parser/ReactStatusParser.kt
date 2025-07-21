@@ -3,7 +3,10 @@ package com.nexters.newsletterfeeder.parser
 class ReactStatusParser : MailParser {
     override fun isTarget(sender: String): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
-            sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
+            sender.contains(
+                NEWSLETTER_MAIL_ADDRESS,
+                ignoreCase = true
+            )
 
     override fun parse(content: String): List<MailContent> {
         val normalized = content.normalizeContent()
@@ -64,12 +67,11 @@ class ReactStatusParser : MailParser {
         val sectionPositions = findSectionPositions(content)
         if (sectionPositions.isEmpty()) return emptyList()
 
-        return sectionPositions
-            .flatMapIndexed { index, (section, start) ->
-                val end = sectionPositions.getOrNull(index + 1)?.second ?: content.length
-                val sectionContent = content.substring(start, end)
-                parseSection(section, sectionContent, issueInfo)
-            }
+        return sectionPositions.flatMapIndexed { index, (section, start) ->
+            val end = sectionPositions.getOrNull(index + 1)?.second ?: content.length
+            val sectionContent = content.substring(start, end)
+            parseSection(section, sectionContent, issueInfo)
+        }
     }
 
     private fun findSectionPositions(content: String): List<Pair<Section, Int>> {
@@ -82,18 +84,16 @@ class ReactStatusParser : MailParser {
         }
 
         // 다른 섹션들 찾기
-        Section.entries
-            .filter { it != Section.MAIN }
-            .forEach { section ->
-                val position =
-                    section.pattern
-                        .find(content)
-                        ?.range
-                        ?.first
-                if (position != null) {
-                    positions.add(section to position)
-                }
+        Section.entries.filter { it != Section.MAIN }.forEach { section ->
+            val position =
+                section.pattern
+                    .find(content)
+                    ?.range
+                    ?.first
+            if (position != null) {
+                positions.add(section to position)
             }
+        }
 
         return positions.sortedBy { it.second }
     }
@@ -138,27 +138,23 @@ class ReactStatusParser : MailParser {
         issueInfo: IssueInfo
     ): List<MailContent> {
         val sectionContent = extractSectionContent(rawSectionText)
-        return extractSectionItems(sectionContent)
-            .map { (title, itemText) ->
-                val url = extractUrlFromText(itemText)
-                val contentText = "[${section.label}] Issue #${issueInfo.number} (${issueInfo.date}): $itemText"
-                MailContent(
-                    title = title,
-                    content = contentText,
-                    link = url,
-                    section = section.label
-                )
-            }
+        return extractSectionItems(sectionContent).map { (title, itemText) ->
+            val url = extractUrlFromText(itemText)
+            val contentText = "[${section.label}] Issue #${issueInfo.number} (${issueInfo.date}): $itemText"
+            MailContent(
+                title = title,
+                content = contentText,
+                link = url,
+                section = section.label
+            )
+        }
     }
 
     private fun extractSectionContent(rawSectionText: String): String {
         val lines = rawSectionText.lines()
         return lines
             .dropWhile { line ->
-                line.trim().isEmpty() ||
-                    line.contains("--") ||
-                    line.contains("🛠") ||
-                    line.contains("📢")
+                line.trim().isEmpty() || line.contains("--") || line.contains("🛠") || line.contains("📢")
             }.joinToString("\n")
     }
 
@@ -180,8 +176,7 @@ class ReactStatusParser : MailParser {
             ?.substringBefore("–")
             ?.substringBefore("—")
             ?.trim()
-            ?.take(100)
-            ?: ""
+            ?.take(100) ?: ""
 
     private fun extractUrlFromText(text: String): String {
         val normalized = text.normalizeContent()
@@ -197,19 +192,12 @@ class ReactStatusParser : MailParser {
                 ?.groupValues
                 ?.get(1)
                 ?.trim()
-                ?.cleanUrl()
-            ?: DEFAULT_URL
+                ?.cleanUrl() ?: DEFAULT_URL
     }
 
-    private fun String.normalizeContent(): String =
-        replace("\r\n", "\n")
-            .replace("\r", "\n")
+    private fun String.normalizeContent(): String = replace("\r\n", "\n").replace("\r", "\n")
 
-    private fun String.cleanUrl(): String =
-        replace("\n", "")
-            .replace("\r", "")
-            .replace(" ", "")
-            .trim()
+    private fun String.cleanUrl(): String = replace("\n", "").replace("\r", "").replace(" ", "").trim()
 
     companion object {
         private const val NEWSLETTER_NAME = "React Status"
