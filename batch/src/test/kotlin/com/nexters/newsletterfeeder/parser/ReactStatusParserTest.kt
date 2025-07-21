@@ -1,13 +1,10 @@
 package com.nexters.newsletterfeeder.parser
 
-import com.nexters.newsletterfeeder.dto.EmailMessage
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ReactStatusParserTest {
-
     private val parser = ReactStatusParser()
 
     @Test
@@ -72,85 +69,46 @@ class ReactStatusParserTest {
 
             * How well do you know JavaScript's Date class and how date
             parsing works in JavaScript? Find out with this quiz.
-        """.trimIndent()
-
-        val emailMessage = EmailMessage.MultipartContent(
-            emailFrom = listOf("React Status <react@cooperpress.com>"),
-            emailSubject = "Node-API support in React Native",
-            emailReceivedDate = LocalDateTime.now(),
-            emailSentDate = LocalDateTime.now(),
-            emailContentType = "multipart/alternative",
-            emailExtractedContent = emailContent,
-            emailTextContent = emailContent,
-            emailHtmlContent = null,
-            emailAttachments = emptyList()
-        )
+            """.trimIndent()
 
         // When
-        val result = parser.parse(emailMessage)
+        val result = parser.parse(emailContent)
 
         // Then
-        assertEquals("React Status", result.source.sender)
-        assertEquals("react@cooperpress.com", result.source.senderEmail)
-        assertEquals("Node-API support in React Native", result.source.subject)
-        assertTrue(result.contents.isNotEmpty())
+        assertTrue(result.isNotEmpty())
 
         // 메인 기사들이 파싱되었는지 확인
-        val mainArticles = result.contents.filter {
-            !it.title.contains("Brief:") &&
-            !it.title.contains("Tool:") &&
-            !it.title.contains("JS News:")
-        }
+        val mainArticles = result.filter { it.section == "Main" }
         assertTrue(mainArticles.isNotEmpty())
 
         // 특정 기사가 파싱되었는지 확인
-        val historyArticle = result.contents.find {
-            it.title.contains("THE HISTORY OF REACT THROUGH CODE")
-        }
+        val historyArticle = result.find { it.title.contains("THE HISTORY OF REACT THROUGH CODE") }
         assertTrue(historyArticle != null)
-        assertTrue(historyArticle!!.originalUrl.contains("playfulprogramming.com"))
+        assertTrue(historyArticle!!.link.contains("playfulprogramming.com"))
 
-        val nodeApiArticle = result.contents.find {
-            it.title.contains("ANNOUNCING NODE-API SUPPORT")
-        }
+        val nodeApiArticle = result.find { it.title.contains("ANNOUNCING NODE-API SUPPORT") }
         assertTrue(nodeApiArticle != null)
-        assertTrue(nodeApiArticle!!.originalUrl.contains("callstack.com"))
+        assertTrue(nodeApiArticle!!.link.contains("callstack.com"))
 
         // IN BRIEF 섹션이 파싱되었는지 확인
-        val briefItems = result.contents.filter { it.title.contains("Brief:") }
+        val briefItems = result.filter { it.section == "Brief" }
         assertTrue(briefItems.isNotEmpty())
 
         // TOOLS 섹션이 파싱되었는지 확인
-        val toolItems = result.contents.filter { it.title.contains("Tool:") }
-        assertTrue(toolItems.isEmpty())
+        val toolItems = result.filter { it.section == "Tool" }
+        assertTrue(toolItems.isNotEmpty())
 
         // ELSEWHERE 섹션이 파싱되었는지 확인
-        val elsewhereItems = result.contents.filter { it.title.contains("JS News:") }
-        assertTrue(elsewhereItems.isEmpty())
+        val elsewhereItems = result.filter { it.section == "Elsewhere" }
+        assertTrue(elsewhereItems.isNotEmpty())
     }
 
     @Test
-    fun `발신자 정보 파싱 테스트`() {
-        // Given
-        val emailMessage = EmailMessage.StringContent(
-            emailFrom = listOf("React Status <react@cooperpress.com>"),
-            emailSubject = "Test Subject",
-            emailReceivedDate = LocalDateTime.now(),
-            emailSentDate = LocalDateTime.now(),
-            emailContentType = "text/plain",
-            emailExtractedContent = "Test content",
-            emailTextContent = "Test content",
-            emailHtmlContent = null,
-            emailAttachments = emptyList(),
-            content = "Test content"
-        )
-
-        // When
-        val result = parser.parse(emailMessage)
-
-        // Then
-        assertEquals("React Status", result.source.sender)
-        assertEquals("react@cooperpress.com", result.source.senderEmail)
+    fun `isTarget 동작 테스트`() {
+        assertTrue(parser.isTarget("React Status <react@cooperpress.com>"))
+        assertTrue(parser.isTarget("react@cooperpress.com"))
+        assertTrue(parser.isTarget("REACT STATUS"))
+        assertTrue(!parser.isTarget("other@newsletter.com"))
     }
 
     @Test
@@ -160,27 +118,14 @@ class ReactStatusParserTest {
             * TEST ARTICLE TITLE
             ( https://example.com/test-article )
             — This is a test article description
-        """.trimIndent()
-
-        val emailMessage = EmailMessage.StringContent(
-            emailFrom = listOf("React Status <react@cooperpress.com>"),
-            emailSubject = "URL Test",
-            emailReceivedDate = LocalDateTime.now(),
-            emailSentDate = LocalDateTime.now(),
-            emailContentType = "text/plain",
-            emailExtractedContent = emailContent,
-            emailTextContent = emailContent,
-            emailHtmlContent = null,
-            emailAttachments = emptyList(),
-            content = emailContent
-        )
+            """.trimIndent()
 
         // When
-        val result = parser.parse(emailMessage)
+        val result = parser.parse(emailContent)
 
         // Then
-        val article = result.contents.find { it.title.contains("TEST ARTICLE TITLE") }
+        val article = result.find { it.title.contains("TEST ARTICLE TITLE") }
         assertTrue(article != null)
-        assertEquals("https://example.com/test-article", article!!.originalUrl)
+        assertEquals("https://example.com/test-article", article!!.link)
     }
 }

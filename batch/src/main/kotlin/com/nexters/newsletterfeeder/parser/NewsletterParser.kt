@@ -11,6 +11,7 @@ interface NewsletterParser {
     fun parse(emailMessage: EmailMessage): ParsedNewsletter
     fun supports(sender: String): Boolean
 }
+
 /**
  * 파싱 결과: NewsletterSource(원본) + 기사(여러 개)
  */
