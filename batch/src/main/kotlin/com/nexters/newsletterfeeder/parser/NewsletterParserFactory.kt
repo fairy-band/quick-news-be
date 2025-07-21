@@ -8,5 +8,5 @@ object MailParserFactory {
             // 다른 파서들 추가
         )
 
-    fun getParser(sender: String): MailParser? = parsers.firstOrNull { it.isTarget(sender) }
+    fun from(sender: String): MailParser? = parsers.firstOrNull { it.isTarget(sender) }
 }
