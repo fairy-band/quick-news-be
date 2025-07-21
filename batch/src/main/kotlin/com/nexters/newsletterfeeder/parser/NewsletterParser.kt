@@ -1,7 +1,7 @@
 package com.nexters.newsletterfeeder.parser
 
-import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.NewsletterSource
 import com.nexters.newsletterfeeder.dto.EmailMessage
 
 /**
@@ -9,6 +9,7 @@ import com.nexters.newsletterfeeder.dto.EmailMessage
  */
 interface NewsletterParser {
     fun parse(emailMessage: EmailMessage): ParsedNewsletter
+
     fun supports(sender: String): Boolean
 }
 

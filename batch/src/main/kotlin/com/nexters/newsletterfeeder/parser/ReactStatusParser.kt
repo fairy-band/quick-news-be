@@ -3,7 +3,7 @@ package com.nexters.newsletterfeeder.parser
 class ReactStatusParser : MailParser {
     override fun isTarget(sender: String): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
-                sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
+            sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
     override fun parse(content: String): List<MailContent> {
         val normalized = content.normalizeContent()
@@ -38,7 +38,8 @@ class ReactStatusParser : MailParser {
         content: String,
         issueInfo: IssueInfo
     ): List<MailContent> {
-        return MAIN_ARTICLE_REGEX.findAll(content)
+        return MAIN_ARTICLE_REGEX
+            .findAll(content)
             .mapNotNull { match ->
                 val title = match.groupValues[1].trim()
                 val url = match.groupValues[2].trim().cleanUrl()
@@ -53,8 +54,7 @@ class ReactStatusParser : MailParser {
                     link = url,
                     section = "Main"
                 )
-            }
-            .toList()
+            }.toList()
     }
 
     private fun parseSections(
@@ -85,7 +85,11 @@ class ReactStatusParser : MailParser {
         Section.entries
             .filter { it != Section.MAIN }
             .forEach { section ->
-                val position = section.pattern.find(content)?.range?.first
+                val position =
+                    section.pattern
+                        .find(content)
+                        ?.range
+                        ?.first
                 if (position != null) {
                     positions.add(section to position)
                 }
@@ -98,19 +102,19 @@ class ReactStatusParser : MailParser {
         section: Section,
         rawSectionText: String,
         issueInfo: IssueInfo
-    ): List<MailContent> {
-        return when (section) {
+    ): List<MailContent> =
+        when (section) {
             Section.MAIN -> parseMainSection(rawSectionText, issueInfo)
             else -> parseRegularSection(section, rawSectionText, issueInfo)
         }
-    }
 
     private fun parseMainSection(
         content: String,
         issueInfo: IssueInfo
     ): List<MailContent> {
         val mainSection = content.substringBefore("IN BRIEF:")
-        return MAIN_ARTICLE_REGEX.findAll(mainSection)
+        return MAIN_ARTICLE_REGEX
+            .findAll(mainSection)
             .mapNotNull { match ->
                 val title = match.groupValues[1].trim()
                 val url = match.groupValues[2].trim().cleanUrl()
@@ -125,8 +129,7 @@ class ReactStatusParser : MailParser {
                     link = url,
                     section = Section.MAIN.label
                 )
-            }
-            .toList()
+            }.toList()
     }
 
     private fun parseRegularSection(
@@ -153,26 +156,25 @@ class ReactStatusParser : MailParser {
         return lines
             .dropWhile { line ->
                 line.trim().isEmpty() ||
-                        line.contains("--") ||
-                        line.contains("🛠") ||
-                        line.contains("📢")
-            }
-            .joinToString("\n")
+                    line.contains("--") ||
+                    line.contains("🛠") ||
+                    line.contains("📢")
+            }.joinToString("\n")
     }
 
-    private fun extractSectionItems(sectionContent: String): List<Pair<String, String>> {
-        return SECTION_ITEM_REGEX.findAll(sectionContent)
+    private fun extractSectionItems(sectionContent: String): List<Pair<String, String>> =
+        SECTION_ITEM_REGEX
+            .findAll(sectionContent)
             .map { match ->
                 val itemText = match.groupValues[1].trim()
                 val title = extractTitleFromItem(itemText)
                 title to itemText
-            }
-            .filter { it.first.isNotBlank() }
+            }.filter { it.first.isNotBlank() }
             .toList()
-    }
 
     private fun extractTitleFromItem(itemText: String): String =
-        itemText.lines()
+        itemText
+            .lines()
             .firstOrNull()
             ?.substringBefore("(")
             ?.substringBefore("–")
@@ -184,8 +186,18 @@ class ReactStatusParser : MailParser {
     private fun extractUrlFromText(text: String): String {
         val normalized = text.normalizeContent()
 
-        return URL_REGEX.find(normalized)?.groupValues?.get(1)?.trim()?.cleanUrl()
-            ?: GENERAL_URL_REGEX.find(normalized)?.groupValues?.get(1)?.trim()?.cleanUrl()
+        return URL_REGEX
+            .find(normalized)
+            ?.groupValues
+            ?.get(1)
+            ?.trim()
+            ?.cleanUrl()
+            ?: GENERAL_URL_REGEX
+                .find(normalized)
+                ?.groupValues
+                ?.get(1)
+                ?.trim()
+                ?.cleanUrl()
             ?: DEFAULT_URL
     }
 
@@ -209,16 +221,18 @@ class ReactStatusParser : MailParser {
         private val ISSUE_DATE_REGEX = Regex("(\\w+ \\d+, \\d{4})")
 
         // 메인 아티클 파싱용 정규식
-        private val MAIN_ARTICLE_REGEX = Regex(
-            """^\*\s*([^(\n]+?)\s*\n\(\s*(https?://[^)]+)\s*\)\s*\n\s*[—–-]\s*(.+?)(?=^\*|\Z)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
-        )
+        private val MAIN_ARTICLE_REGEX =
+            Regex(
+                """^\*\s*([^(\n]+?)\s*\n\(\s*(https?://[^)]+)\s*\)\s*\n\s*[—–-]\s*(.+?)(?=^\*|\Z)""",
+                setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+            )
 
         // 섹션 아이템 파싱용 정규식
-        private val SECTION_ITEM_REGEX = Regex(
-            """^\*\s*(.+?)(?=^\*|\Z)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
-        )
+        private val SECTION_ITEM_REGEX =
+            Regex(
+                """^\*\s*(.+?)(?=^\*|\Z)""",
+                setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+            )
 
         // URL 추출용 정규식
         private val URL_REGEX = Regex("""\(\s*(https?://[^)\s]+)\s*\)""")

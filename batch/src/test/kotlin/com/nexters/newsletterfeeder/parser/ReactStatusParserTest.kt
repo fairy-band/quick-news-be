@@ -10,7 +10,8 @@ class ReactStatusParserTest {
     @Test
     fun `React Status 뉴스레터 파싱 테스트`() {
         // Given - 실제 React Status 이메일 내용 (로그에서 확인한 내용)
-        val emailContent = """
+        val emailContent =
+            """
             Plus an epic tour through the history of React. |
 
             #​436 — July 16, 2025
@@ -114,7 +115,8 @@ class ReactStatusParserTest {
     @Test
     fun `URL 추출 테스트`() {
         // Given
-        val emailContent = """
+        val emailContent =
+            """
             * TEST ARTICLE TITLE
             ( https://example.com/test-article )
             — This is a test article description
