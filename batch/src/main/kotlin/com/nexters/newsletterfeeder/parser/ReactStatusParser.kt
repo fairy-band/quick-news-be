@@ -23,17 +23,25 @@ class ReactStatusParser : NewsletterParser {
         private const val NEWSLETTER_NAME = "React Status"
 
         // 섹션 구분을 위한 패턴들
-        private val MAIN_ARTICLE_PATTERN = Regex("""^\* ([A-Z0-9 .\-–—:]+)\s*\n\(\s*([^)]+)\s*\)\s*\n—?\s*(.+?)(?=^\* [A-Z]|^🤖|^IN BRIEF:|^🛠|^📢|$)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+        private val MAIN_ARTICLE_PATTERN = Regex(
+            """^\* ([A-Z0-9 .\-–—:]+)\s*\n\(\s*([^)]+)\s*\)\s*\n—?\s*(.+?)(?=^\* [A-Z]|^🤖|^IN BRIEF:|^🛠|^📢|$)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
+        )
 
-        private val IN_BRIEF_PATTERN = Regex("""IN BRIEF:\s*\n\n(.+?)(?=^\* [A-Z]|^🛠|^📢|$)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL))
+        private val IN_BRIEF_PATTERN = Regex(
+            """IN BRIEF:\s*\n\n(.+?)(?=^\* [A-Z]|^🛠|^📢|$)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
 
-        private val TOOLS_SECTION_PATTERN = Regex("""🛠\s+CODE,?\s*TOOLS\s*&?\s*LIBRARIES\s*\n(.+?)(?=^📢|$)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL))
+        private val TOOLS_SECTION_PATTERN = Regex(
+            """🛠\s+CODE,?\s*TOOLS\s*&?\s*LIBRARIES\s*\n(.+?)(?=^📢|$)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
 
-        private val ELSEWHERE_SECTION_PATTERN = Regex("""📢\s+ELSEWHERE\s+IN\s+JAVASCRIPT\s*\n(.+?)(?=^-{10,}|$)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL))
+        private val ELSEWHERE_SECTION_PATTERN = Regex(
+            """📢\s+ELSEWHERE\s+IN\s+JAVASCRIPT\s*\n(.+?)(?=^-{10,}|$)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
 
         // URL 추출 패턴
         private val URL_PATTERN = Regex("""\(\s*(https?://[^)\s]+)\s*\)""")
@@ -60,6 +68,9 @@ class ReactStatusParser : NewsletterParser {
             contents = contents
         )
     }
+
+    override fun supports(sender: String): Boolean = sender == "react@cooperpress.com"
+
 
     private fun createNewsletterSource(emailMessage: EmailMessage): NewsletterSource {
         val senderInfo = parseSenderInfo(emailMessage.from.firstOrNull() ?: "")
@@ -125,7 +136,12 @@ class ReactStatusParser : NewsletterParser {
         return contents
     }
 
-    private fun parseMainArticles(textContent: String, newsletterSourceId: String, contents: MutableList<Content>, fullContent: String) {
+    private fun parseMainArticles(
+        textContent: String,
+        newsletterSourceId: String,
+        contents: MutableList<Content>,
+        fullContent: String
+    ) {
         val matches = MAIN_ARTICLE_PATTERN.findAll(textContent)
 
         matches.forEach { match ->
@@ -136,81 +152,104 @@ class ReactStatusParser : NewsletterParser {
 
             // 스폰서 콘텐츠 제외 (옵션)
             if (!SPONSOR_PATTERN.containsMatchIn(description)) {
-                contents.add(Content(
-                    newsletterSourceId = newsletterSourceId,
-                    title = title,
-                    content = description,
-                    newsletterName = NEWSLETTER_NAME,
-                    originalUrl = url,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                ))
+                contents.add(
+                    Content(
+                        newsletterSourceId = newsletterSourceId,
+                        title = title,
+                        content = description,
+                        newsletterName = NEWSLETTER_NAME,
+                        originalUrl = url,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
             }
         }
 
         LOGGER.debug("메인 기사 ${matches.count()}개 파싱 완료")
     }
 
-    private fun parseInBriefSection(textContent: String, newsletterSourceId: String, contents: MutableList<Content>, fullContent: String) {
+    private fun parseInBriefSection(
+        textContent: String,
+        newsletterSourceId: String,
+        contents: MutableList<Content>,
+        fullContent: String
+    ) {
         val inBriefMatch = IN_BRIEF_PATTERN.find(textContent)
         if (inBriefMatch != null) {
             val briefContent = inBriefMatch.groupValues[1]
             val briefItems = extractBriefItems(briefContent, fullContent)
 
             briefItems.forEach { item ->
-                contents.add(Content(
-                    newsletterSourceId = newsletterSourceId,
-                    title = "${NEWSLETTER_NAME} - Brief: ${item.title}",
-                    content = item.content,
-                    newsletterName = NEWSLETTER_NAME,
-                    originalUrl = item.url,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                ))
+                contents.add(
+                    Content(
+                        newsletterSourceId = newsletterSourceId,
+                        title = "${NEWSLETTER_NAME} - Brief: ${item.title}",
+                        content = item.content,
+                        newsletterName = NEWSLETTER_NAME,
+                        originalUrl = item.url,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
             }
 
             LOGGER.debug("IN BRIEF 섹션에서 ${briefItems.size}개 항목 파싱 완료")
         }
     }
 
-    private fun parseToolsSection(textContent: String, newsletterSourceId: String, contents: MutableList<Content>, fullContent: String) {
+    private fun parseToolsSection(
+        textContent: String,
+        newsletterSourceId: String,
+        contents: MutableList<Content>,
+        fullContent: String
+    ) {
         val toolsMatch = TOOLS_SECTION_PATTERN.find(textContent)
         if (toolsMatch != null) {
             val toolsContent = toolsMatch.groupValues[1]
             val toolItems = extractToolItems(toolsContent, fullContent)
 
             toolItems.forEach { item ->
-                contents.add(Content(
-                    newsletterSourceId = newsletterSourceId,
-                    title = "${NEWSLETTER_NAME} - Tool: ${item.title}",
-                    content = item.content,
-                    newsletterName = NEWSLETTER_NAME,
-                    originalUrl = item.url,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                ))
+                contents.add(
+                    Content(
+                        newsletterSourceId = newsletterSourceId,
+                        title = "${NEWSLETTER_NAME} - Tool: ${item.title}",
+                        content = item.content,
+                        newsletterName = NEWSLETTER_NAME,
+                        originalUrl = item.url,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
             }
 
             LOGGER.debug("TOOLS 섹션에서 ${toolItems.size}개 항목 파싱 완료")
         }
     }
 
-    private fun parseElsewhereSection(textContent: String, newsletterSourceId: String, contents: MutableList<Content>, fullContent: String) {
+    private fun parseElsewhereSection(
+        textContent: String,
+        newsletterSourceId: String,
+        contents: MutableList<Content>,
+        fullContent: String
+    ) {
         val elsewhereMatch = ELSEWHERE_SECTION_PATTERN.find(textContent)
         if (elsewhereMatch != null) {
             val elsewhereContent = elsewhereMatch.groupValues[1]
             val elsewhereItems = extractElsewhereItems(elsewhereContent, fullContent)
 
             elsewhereItems.forEach { item ->
-                contents.add(Content(
-                    newsletterSourceId = newsletterSourceId,
-                    title = "$NEWSLETTER_NAME - JS News: ${item.title}",
-                    content = item.content,
-                    newsletterName = NEWSLETTER_NAME,
-                    originalUrl = item.url,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                ))
+                contents.add(
+                    Content(
+                        newsletterSourceId = newsletterSourceId,
+                        title = "$NEWSLETTER_NAME - JS News: ${item.title}",
+                        content = item.content,
+                        newsletterName = NEWSLETTER_NAME,
+                        originalUrl = item.url,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
             }
 
             LOGGER.debug("ELSEWHERE 섹션에서 ${elsewhereItems.size}개 항목 파싱 완료")
@@ -233,19 +272,23 @@ class ReactStatusParser : NewsletterParser {
         val items = mutableListOf<ParsedItem>()
 
         // * 로 시작하는 각 항목을 파싱
-        val itemPattern = Regex("""^\*\s*(.+?)(?=^\*|\Z)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL))
+        val itemPattern = Regex(
+            """^\*\s*(.+?)(?=^\*|\Z)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
 
         itemPattern.findAll(briefContent).forEach { match ->
             val itemText = match.groupValues[1].trim()
             val url = extractUrl(itemText, fullContent)
             val title = extractTitleFromBrief(itemText)
 
-            items.add(ParsedItem(
-                title = title,
-                content = itemText,
-                url = url
-            ))
+            items.add(
+                ParsedItem(
+                    title = title,
+                    content = itemText,
+                    url = url
+                )
+            )
         }
 
         return items
@@ -255,19 +298,23 @@ class ReactStatusParser : NewsletterParser {
         val items = mutableListOf<ParsedItem>()
 
         // * 로 시작하는 도구 항목들 파싱
-        val toolPattern = Regex("""^\*\s*(.+?)(?=^\*|^📄|^\Z)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL))
+        val toolPattern = Regex(
+            """^\*\s*(.+?)(?=^\*|^📄|^\Z)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
 
         toolPattern.findAll(toolsContent).forEach { match ->
             val itemText = match.groupValues[1].trim()
             val url = extractUrl(itemText, fullContent)
             val title = extractToolTitle(itemText)
 
-            items.add(ParsedItem(
-                title = title,
-                content = itemText,
-                url = url
-            ))
+            items.add(
+                ParsedItem(
+                    title = title,
+                    content = itemText,
+                    url = url
+                )
+            )
         }
 
         return items
@@ -277,19 +324,23 @@ class ReactStatusParser : NewsletterParser {
         val items = mutableListOf<ParsedItem>()
 
         // * 로 시작하는 JavaScript 뉴스 항목들 파싱
-        val itemPattern = Regex("""^\*\s*(.+?)(?=^\*|\Z)""",
-            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL))
+        val itemPattern = Regex(
+            """^\*\s*(.+?)(?=^\*|\Z)""",
+            setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
 
         itemPattern.findAll(elsewhereContent).forEach { match ->
             val itemText = match.groupValues[1].trim()
             val url = extractUrl(itemText, fullContent)
             val title = extractTitleFromBrief(itemText)
 
-            items.add(ParsedItem(
-                title = title,
-                content = itemText,
-                url = url
-            ))
+            items.add(
+                ParsedItem(
+                    title = title,
+                    content = itemText,
+                    url = url
+                )
+            )
         }
 
         return items
