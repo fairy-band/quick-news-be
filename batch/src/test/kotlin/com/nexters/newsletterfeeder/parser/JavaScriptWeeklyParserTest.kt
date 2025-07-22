@@ -22,7 +22,8 @@ class JavaScriptWeeklyParserTest {
 
     @Test
     fun `parse should extract articles from JavaScript Weekly newsletter`() {
-        val sampleEmail = """
+        val sampleEmail =
+            """
             Content-Type: text/plain; charset="utf-8"
 
             #745 — July 18, 2025
@@ -63,7 +64,7 @@ class JavaScriptWeeklyParserTest {
             * Nuxt v4.0 ( https://nuxt.com/blog/v4 ) – A major DX-focused release for the popular full-stack Vue.js framework.
 
             * ESLint v9.31.0 ( https://eslint.org/blog/2025/07/eslint-v9.31.0-released/ ) – Four core rules have been updated to support explicit resource management.
-        """.trimIndent()
+            """.trimIndent()
 
         // when
         val result = sut.parse(sampleEmail)
@@ -134,11 +135,12 @@ class JavaScriptWeeklyParserTest {
         )
 
         // Verify sponsor content is filtered out
-        val sponsorArticles = result.filter {
-            it.title.contains("sponsor", ignoreCase = true) ||
-            it.title.contains("WorkOS", ignoreCase = true) ||
-            it.content.contains("SPONSOR", ignoreCase = true)
-        }
+        val sponsorArticles =
+            result.filter {
+                it.title.contains("sponsor", ignoreCase = true) ||
+                    it.title.contains("WorkOS", ignoreCase = true) ||
+                    it.content.contains("SPONSOR", ignoreCase = true)
+            }
         assertTrue(sponsorArticles.isEmpty(), "Should filter out sponsored content")
 
         // Verify issue info is included
@@ -150,12 +152,13 @@ class JavaScriptWeeklyParserTest {
 
     @Test
     fun `parse should handle content without clear sections`() {
-        val contentWithoutSections = """
+        val contentWithoutSections =
+            """
             #745 — July 18, 2025
 
             * Some random article ( https://example.com/article )
             * Another article without proper section ( https://example.com/article2 )
-        """.trimIndent()
+            """.trimIndent()
 
         // when
         val result = sut.parse(contentWithoutSections)
@@ -186,11 +189,12 @@ class JavaScriptWeeklyParserTest {
 
     @Test
     fun `parse should filter out sponsored content effectively`() {
-        val contentWithSponsors = """
+        val contentWithSponsors =
+            """
             * GOOD ARTICLE ( https://example.com/good ) — Real content about JavaScript
             * SPONSORED CONTENT ( https://sponsor.com/ad ) — This is sponsored content
             * ANOTHER SPONSOR ( https://example.com/sponsor ) — Advertisement here
-        """.trimIndent()
+            """.trimIndent()
 
         // when
         val result = sut.parse(contentWithSponsors)
@@ -199,8 +203,8 @@ class JavaScriptWeeklyParserTest {
         result.forEach { article ->
             assertFalse(
                 article.title.contains("sponsor", ignoreCase = true) ||
-                article.title.contains("advertisement", ignoreCase = true) ||
-                article.title.contains("sponsored", ignoreCase = true),
+                    article.title.contains("advertisement", ignoreCase = true) ||
+                    article.title.contains("sponsored", ignoreCase = true),
                 "Should filter out sponsored content: ${article.title}"
             )
         }
@@ -220,7 +224,7 @@ class JavaScriptWeeklyParserTest {
         assertEquals(expectedLink, article.link, "Article link should match expected")
         assertEquals(expectedSection, article.section, "Article section should match expected")
         assertTrue(
-            article.content.contains("[${expectedSection}]"),
+            article.content.contains("[$expectedSection]"),
             "Article content should contain section marker"
         )
     }

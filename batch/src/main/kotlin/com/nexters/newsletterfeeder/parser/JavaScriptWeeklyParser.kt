@@ -7,7 +7,6 @@ package com.nexters.newsletterfeeder.parser
  * - 링크가 괄호 안에 포함된 형태로 제공됨
  */
 class JavaScriptWeeklyParser : MailParser {
-
     override fun isTarget(sender: String): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
             sender.contains(NEWSLETTER_EMAIL, ignoreCase = true) ||
@@ -22,11 +21,12 @@ class JavaScriptWeeklyParser : MailParser {
     }
 
     private fun extractPlainTextContent(content: String): String? {
-        val plainTextMarkers = listOf(
-            "Content-Type: text/plain",
-            "emailTextContent=",
-            "Plain Text:"
-        )
+        val plainTextMarkers =
+            listOf(
+                "Content-Type: text/plain",
+                "emailTextContent=",
+                "Plain Text:"
+            )
 
         for (marker in plainTextMarkers) {
             val startIndex = content.indexOf(marker, ignoreCase = true)
@@ -47,58 +47,74 @@ class JavaScriptWeeklyParser : MailParser {
         return IssueInfo(issueNumber, date)
     }
 
-    private fun parseSections(content: String, issueInfo: IssueInfo): List<MailContent> {
-        return listOf(
+    private fun parseSections(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> =
+        listOf(
             parseMainArticles(content, issueInfo),
             parseArticlesSection(content, issueInfo),
             parseCodeToolsSection(content, issueInfo),
             parseInBriefSection(content, issueInfo),
             parseReleasesSection(content, issueInfo)
         ).flatten()
-    }
 
-    private fun parseMainArticles(content: String, issueInfo: IssueInfo): List<MailContent> {
+    private fun parseMainArticles(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> {
         val mainSectionEnd = findSectionBoundary(content, MAIN_SECTION_END_MARKERS)
         val mainSection = content.substring(0, mainSectionEnd)
 
-        return MAIN_ARTICLE_REGEX.findAll(mainSection)
+        return MAIN_ARTICLE_REGEX
+            .findAll(mainSection)
             .filter { !isSponsorContent(it.groupValues[1]) }
             .map { match ->
                 val title = match.groupValues[1].trim()
                 val url = match.groupValues[2].trim()
 
                 createMailContent(title, url, issueInfo, Section.FEATURED)
-            }
-            .toList()
+            }.toList()
     }
 
-    private fun parseArticlesSection(content: String, issueInfo: IssueInfo): List<MailContent> =
-        parseSection(content, "ARTICLES AND VIDEOS", Section.ARTICLES, issueInfo)
+    private fun parseArticlesSection(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> = parseSection(content, "ARTICLES AND VIDEOS", Section.ARTICLES, issueInfo)
 
-    private fun parseCodeToolsSection(content: String, issueInfo: IssueInfo): List<MailContent> =
-        parseSection(content, "CODE & TOOLS", Section.CODE_TOOLS, issueInfo)
+    private fun parseCodeToolsSection(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> = parseSection(content, "CODE & TOOLS", Section.CODE_TOOLS, issueInfo)
 
-    private fun parseInBriefSection(content: String, issueInfo: IssueInfo): List<MailContent> {
+    private fun parseInBriefSection(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> {
         val sectionStart = content.indexOf("IN BRIEF:")
         if (sectionStart == -1) return emptyList()
 
         val nextSectionStart = findSectionBoundary(content, IN_BRIEF_END_MARKERS, sectionStart)
         val sectionContent = content.substring(sectionStart, nextSectionStart)
 
-        return BRIEF_ITEM_REGEX.findAll(sectionContent)
+        return BRIEF_ITEM_REGEX
+            .findAll(sectionContent)
             .mapNotNull { match ->
                 val fullText = match.groupValues[1].trim()
                 extractLinkFromText(fullText)?.let { (title, url) ->
                     if (!isSponsorContent(fullText)) {
                         createMailContent(title, url, issueInfo, Section.IN_BRIEF, fullText)
-                    } else null
+                    } else {
+                        null
+                    }
                 }
-            }
-            .toList()
+            }.toList()
     }
 
-    private fun parseReleasesSection(content: String, issueInfo: IssueInfo): List<MailContent> =
-        parseSection(content, "RELEASES:", Section.RELEASES, issueInfo)
+    private fun parseReleasesSection(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> = parseSection(content, "RELEASES:", Section.RELEASES, issueInfo)
 
     private fun parseSection(
         content: String,
@@ -112,16 +128,18 @@ class JavaScriptWeeklyParser : MailParser {
         val nextSectionStart = findSectionBoundary(content, SECTION_END_MARKERS, sectionStart + sectionMarker.length)
         val sectionContent = content.substring(sectionStart, nextSectionStart)
 
-        return SECTION_ITEM_REGEX.findAll(sectionContent)
+        return SECTION_ITEM_REGEX
+            .findAll(sectionContent)
             .mapNotNull { match ->
                 val fullText = match.groupValues[1].trim()
                 extractLinkFromText(fullText)?.let { (title, url) ->
                     if (!isSponsorContent(fullText)) {
                         createMailContent(title, url, issueInfo, section, fullText)
-                    } else null
+                    } else {
+                        null
+                    }
                 }
-            }
-            .toList()
+            }.toList()
     }
 
     private fun extractLinkFromText(text: String): Pair<String, String>? {
@@ -152,26 +170,29 @@ class JavaScriptWeeklyParser : MailParser {
         content: String,
         markers: List<String>,
         startFrom: Int = 0
-    ): Int {
-        return markers.mapNotNull { marker ->
-            content.indexOf(marker, startFrom).takeIf { it != -1 }
-        }.minOrNull() ?: content.length
-    }
+    ): Int =
+        markers
+            .mapNotNull { marker ->
+                content.indexOf(marker, startFrom).takeIf { it != -1 }
+            }.minOrNull() ?: content.length
 
-    private fun isSponsorContent(text: String): Boolean =
-        SPONSOR_KEYWORDS.any { keyword -> text.contains(keyword, ignoreCase = true) }
+    private fun isSponsorContent(text: String): Boolean = SPONSOR_KEYWORDS.any { keyword -> text.contains(keyword, ignoreCase = true) }
 
-    private fun getCurrentDate(): String = java.time.LocalDate.now().toString()
+    private fun getCurrentDate(): String =
+        java.time.LocalDate
+            .now()
+            .toString()
 
-    private fun String.normalizeSoftBreaks(): String =
-        replace("=\r\n", "").replace("=\n", "").replace("=\r", "")
+    private fun String.normalizeSoftBreaks(): String = replace("=\r\n", "").replace("=\n", "").replace("=\r", "")
 
     private data class IssueInfo(
         val number: String,
         val date: String
     )
 
-    private enum class Section(val label: String) {
+    private enum class Section(
+        val label: String
+    ) {
         FEATURED("Featured"),
         ARTICLES("Articles & Videos"),
         CODE_TOOLS("Code & Tools"),
@@ -189,37 +210,53 @@ class JavaScriptWeeklyParser : MailParser {
         private val ISSUE_DATE_REGEX = Regex("— ([A-Za-z]+ \\d+, \\d{4})")
 
         // * TITLE (URL) — Description 패턴
-        private val MAIN_ARTICLE_REGEX = Regex(
-            """\* (.+?) \( (https?://[^)]+) \) — (.+?)(?=\n\*|\n\n|$)""",
-            RegexOption.DOT_MATCHES_ALL
-        )
+        private val MAIN_ARTICLE_REGEX =
+            Regex(
+                """\* (.+?) \( (https?://[^)]+) \) — (.+?)(?=\n\*|\n\n|$)""",
+                RegexOption.DOT_MATCHES_ALL
+            )
 
         // * 로 시작하는 일반 항목들
-        private val BRIEF_ITEM_REGEX = Regex(
-            """\* (.+?)(?=\n\*|\n\n|$)""",
-            RegexOption.DOT_MATCHES_ALL
-        )
+        private val BRIEF_ITEM_REGEX =
+            Regex(
+                """\* (.+?)(?=\n\*|\n\n|$)""",
+                RegexOption.DOT_MATCHES_ALL
+            )
 
-        private val SECTION_ITEM_REGEX = Regex(
-            """(?:\* |📄 )(.+?)(?=\n(?:\*|📄)|\n\n|$)""",
-            RegexOption.DOT_MATCHES_ALL
-        )
+        private val SECTION_ITEM_REGEX =
+            Regex(
+                """(?:\* |📄 )(.+?)(?=\n(?:\*|📄)|\n\n|$)""",
+                RegexOption.DOT_MATCHES_ALL
+            )
 
         // 링크 패턴 - TITLE (URL)
         private val LINK_PATTERN_REGEX = Regex("""(.+?) \( (https?://[^)]+) \)""")
 
-        private val MAIN_SECTION_END_MARKERS = listOf(
-            "IN BRIEF:", "📖 ARTICLES AND VIDEOS", "ARTICLES AND VIDEOS"
-        )
+        private val MAIN_SECTION_END_MARKERS =
+            listOf(
+                "IN BRIEF:",
+                "📖 ARTICLES AND VIDEOS",
+                "ARTICLES AND VIDEOS"
+            )
 
-        private val IN_BRIEF_END_MARKERS = listOf(
-            "RELEASES:", "📖 ARTICLES AND VIDEOS", "CODE & TOOLS"
-        )
+        private val IN_BRIEF_END_MARKERS =
+            listOf(
+                "RELEASES:",
+                "📖 ARTICLES AND VIDEOS",
+                "CODE & TOOLS"
+            )
 
-        private val SECTION_END_MARKERS = listOf(
-            "📄", "📖", "🛠", "▶", "RELEASES:", "CODE & TOOLS",
-            "Want us to say nice things", "Built with ❤️"
-        )
+        private val SECTION_END_MARKERS =
+            listOf(
+                "📄",
+                "📖",
+                "🛠",
+                "▶",
+                "RELEASES:",
+                "CODE & TOOLS",
+                "Want us to say nice things",
+                "Built with ❤️"
+            )
 
         private val SPONSOR_KEYWORDS = listOf("sponsor", "sponsored", "(sponsor)", "advertisement")
     }
