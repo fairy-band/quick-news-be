@@ -20,6 +20,7 @@ micrometer = "1.13.2"
 mongodb = "5.3.0"
 springdoc-openapi = "2.8.9"
 rest-assured = "5.4.0"
+jsoup = "1.17.2"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -79,6 +80,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 de-flapdoodle-embed-mongo-spring = { group = "de.flapdoodle.embed", name = "de.flapdoodle.embed.mongo.spring30x", version = "4.11.0" }
 rest-assured = { group = "io.rest-assured", name = "rest-assured", version.ref = "rest-assured" }
 rest-assured-kotlin = { group = "io.rest-assured", name = "kotlin-extensions", version.ref = "rest-assured" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 
 [bundles]
 # Spring Boot web bundle (for API module)

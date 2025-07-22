@@ -9,6 +9,7 @@ dependencies {
 
     // Logging
     implementation(libs.spring.boot.starter.logging)
+    implementation(libs.jsoup)
 
     annotationProcessor(libs.spring.boot.configuration.processor)
 
