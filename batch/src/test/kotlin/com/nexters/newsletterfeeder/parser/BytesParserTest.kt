@@ -25,7 +25,8 @@ class BytesParserTest {
     @Test
     fun `debug simple parsing test`() {
         // 더 간단한 HTML로 테스트
-        val simpleHtml = """
+        val simpleHtml =
+            """
             <html>
                 <body>
                     <p>Welcome to #409.</p>
@@ -38,7 +39,7 @@ class BytesParserTest {
                     </ol>
                 </body>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         // when
         val result = sut.parse(simpleHtml)
@@ -54,7 +55,8 @@ class BytesParserTest {
 
     @Test
     fun `parse should extract articles from Bytes newsletter`() {
-        val sampleEmail = """
+        val sampleEmail =
+            """
             Content-Type: text/html; charset="utf-8"
 
             <!DOCTYPE html>
@@ -84,7 +86,7 @@ class BytesParserTest {
                     <p><a href="https://bytes.dev/advertise">Sponsored content</a></p>
                 </body>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         // Debug: Test HtmlTextExtractor directly first
         println("=== Direct HtmlTextExtractor Test ===")
@@ -160,7 +162,7 @@ class BytesParserTest {
         result.forEach { article ->
             assertFalse(
                 article.link.contains("workos.com", ignoreCase = true) ||
-                article.link.contains("advertise", ignoreCase = true),
+                    article.link.contains("advertise", ignoreCase = true),
                 "Should filter out sponsor links: ${article.link}"
             )
         }
@@ -185,7 +187,8 @@ class BytesParserTest {
 
     @Test
     fun `parse should filter sponsor content effectively`() {
-        val htmlWithSponsors = """
+        val htmlWithSponsors =
+            """
             <html>
                 <body>
                     <h2>The Main Thing</h2>
@@ -194,7 +197,7 @@ class BytesParserTest {
                     <p><a href="https://bytes.dev/advertise">Advertisement Link</a></p>
                 </body>
             </html>
-        """.trimIndent()
+            """.trimIndent()
 
         // when
         val result = sut.parse(htmlWithSponsors)
@@ -203,12 +206,12 @@ class BytesParserTest {
         result.forEach { article ->
             assertFalse(
                 article.link.contains("workos.com", ignoreCase = true) ||
-                article.link.contains("advertise", ignoreCase = true),
+                    article.link.contains("advertise", ignoreCase = true),
                 "Should filter out sponsor links: ${article.link}"
             )
             assertFalse(
                 article.title.contains("sponsor", ignoreCase = true) ||
-                article.title.contains("advertisement", ignoreCase = true),
+                    article.title.contains("advertisement", ignoreCase = true),
                 "Should filter out sponsor titles: ${article.title}"
             )
         }
@@ -228,7 +231,7 @@ class BytesParserTest {
         assertEquals(expectedLink, article.link, "Article link should match expected")
         assertEquals(expectedSection, article.section, "Article section should match expected")
         assertTrue(
-            article.content.contains("[${expectedSection}]"),
+            article.content.contains("[$expectedSection]"),
             "Article content should contain section marker"
         )
     }

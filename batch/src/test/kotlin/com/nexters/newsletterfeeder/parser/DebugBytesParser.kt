@@ -2,8 +2,9 @@ package com.nexters.newsletterfeeder.parser
 
 fun main() {
     val parser = BytesParser()
-    
-    val sampleEmail = """
+
+    val sampleEmail =
+        """
         Content-Type: text/html; charset="utf-8"
 
         <!DOCTYPE html>
@@ -33,14 +34,14 @@ fun main() {
                 <p><a href="https://bytes.dev/advertise">Sponsored content</a></p>
             </body>
         </html>
-    """.trimIndent()
-    
+        """.trimIndent()
+
     println("=== Debugging BytesParser ===")
     println("1. Is target: ${parser.isTarget("Bytes <noreply@ui.dev>")}")
-    
+
     val result = parser.parse(sampleEmail)
     println("2. Parse result count: ${result.size}")
-    
+
     result.forEachIndexed { index, content ->
         println("[$index] Title: '${content.title}'")
         println("[$index] Link: '${content.link}'")
@@ -48,7 +49,7 @@ fun main() {
         println("[$index] Content preview: '${content.content.take(100)}...'")
         println("---")
     }
-    
+
     println("\n=== Testing HtmlTextExtractor directly ===")
     val links = HtmlTextExtractor.extractLinks(sampleEmail)
     println("Direct link extraction count: ${links.size}")
