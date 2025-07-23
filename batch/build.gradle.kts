@@ -10,6 +10,9 @@ dependencies {
     // Logging
     implementation(libs.spring.boot.starter.logging)
 
+    // JSoup for HTML parsing
+    implementation(libs.jsoup)
+
     annotationProcessor(libs.spring.boot.configuration.processor)
 
     testImplementation(libs.bundles.testing)

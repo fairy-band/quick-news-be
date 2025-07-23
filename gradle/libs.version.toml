@@ -15,6 +15,7 @@ jakarta-activation = "2.1.2"
 junit = "5.10.0"
 google-genai = "1.0.0"
 gson = "2.10.1"
+jsoup = "1.17.2"
 mockk = "1.13.8"
 micrometer = "1.13.2"
 mongodb = "5.3.0"
@@ -60,6 +61,9 @@ google-genai = { group = "com.google.genai", name = "google-genai", version.ref 
 
 # Gson
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# JSoup
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 # Micrometer
 micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
