@@ -456,12 +456,12 @@
                             <p>${data.summary}</p>
                     `;
 
-                    if (data.provocativeKeywords && data.provocativeKeywords.length > 0) {
+                    if (data.provocativeHeadlines && data.provocativeHeadlines.length > 0) {
                         html += `
                             <div class="keyword-group">
-                                <div class="keyword-label">🔥 자극적인 키워드</div>
+                                <div class="keyword-label">🔥 자극적인 헤드라인</div>
                                 <div class="keywords">
-                                    ${data.provocativeKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                    ${data.provocativeHeadlines.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
                                 </div>
                             </div>
                         `;
