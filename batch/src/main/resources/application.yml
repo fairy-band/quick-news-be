@@ -4,11 +4,15 @@ spring:
   application:
     name: newsletter-feeder-batch
   config:
-    import: gemini.yml
+    import:
+      - "optional:file:.env[.properties]"  # .env 파일 자동 로딩
+      - gemini.yml
+  main:
+    web-application-type: none  # 웹 서버 완전 비활성화
   mail:
     host: pop.gmail.com
     port: 995
-    username: ${MAIL_USER_NAME:}
+    username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     protocol: pop3s
     properties:
