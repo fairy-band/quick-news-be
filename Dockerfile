@@ -15,7 +15,7 @@ COPY gradle/libs.version.toml gradle/
 COPY . .
 
 # Build the application
-RUN ./gradlew :api:bootJar :batch:bootJar --no-daemon
+RUN ./gradlew :api:bootJar :batch:bootJar :admin:bootJar --no-daemon
 
 # Runtime stage for API
 FROM azul/zulu-openjdk-alpine:21-jre AS api
@@ -36,6 +36,19 @@ WORKDIR /app
 
 # Copy the built jar
 COPY --from=build /app/batch/build/libs/*.jar app.jar
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Runtime stage for Admin
+FROM azul/zulu-openjdk-alpine:21-jre AS admin
+WORKDIR /app
+
+# Copy the built jar
+COPY --from=build /app/admin/build/libs/*.jar app.jar
+
+# Expose port
+EXPOSE 8083
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -27,6 +27,8 @@ services:
       target: batch
     container_name: newsletter-batch
     restart: always
+    ports:
+      - "8082:8082"
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
@@ -38,6 +40,28 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SERVER_PORT: 8082
+    depends_on:
+      - postgres
+      - mongodb
+    networks:
+      - newsletter-network
+
+  admin:
+    build:
+      context: .
+      target: admin
+    container_name: newsletter-admin
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SERVER_PORT: 8083
     depends_on:
       - postgres
       - mongodb
@@ -87,6 +111,8 @@ services:
       - ./ssl:/etc/ssl/certs:ro
     depends_on:
       - api
+      - batch
+      - admin
     networks:
       - newsletter-network
 
