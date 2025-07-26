@@ -7,7 +7,7 @@ import org.springframework.web.servlet.view.RedirectView
 @Controller
 class AdminController {
     @GetMapping("/")
-    fun index(): RedirectView = RedirectView("/contents")
+    fun index(): String = "contents"
 
     @GetMapping("/metrics")
     fun metrics(): String = "metrics"
