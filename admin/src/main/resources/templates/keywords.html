@@ -221,7 +221,7 @@
             <div class="header-left">
                 <h1 class="logo">Newsletter AI</h1>
                 <div class="nav-links">
-                    <a href="/" class="nav-link">🏠 홈</a>
+                    <a href="/contents" class="nav-link">🏠 홈</a>
                     <a href="/metrics" class="nav-link">📊 메트릭</a>
                     <a href="/keywords" class="nav-link active">🔑 키워드</a>
                 </div>
@@ -233,6 +233,15 @@
             <div class="col-md-6">
                 <div class="section">
                     <h2>후보 키워드</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <button id="select-all-candidates-btn" class="btn btn-primary">전체 선택</button>
+                            <button id="deselect-all-candidates-btn" class="btn btn-primary">전체 해제</button>
+                        </div>
+                        <div>
+                            <button id="delete-selected-candidates-btn" class="btn btn-danger" disabled>선택 삭제</button>
+                        </div>
+                    </div>
                     <div id="candidate-keywords-list">
                         <!-- Will be populated by JavaScript -->
                     </div>
@@ -332,79 +341,6 @@
             }
         }
         
-        document.addEventListener('DOMContentLoaded', function() {
-            createStars();
-            
-            // Fetch all candidate keywords
-            fetchCandidateKeywords();
-            
-            // Fetch all reserved keywords
-            fetchReservedKeywords();
-            
-            // Fetch all categories
-            fetchCategories();
-            
-            // Set up category select change event
-            document.getElementById('category-select').addEventListener('change', function() {
-                const categoryId = this.value;
-                if (categoryId) {
-                    fetchCategoryKeywords(categoryId);
-                } else {
-                    document.getElementById('category-keywords-list').innerHTML = '<p>카테고리를 선택하세요</p>';
-                }
-            });
-            
-            // Set up add keyword button
-            document.getElementById('add-keyword-btn').addEventListener('click', function() {
-                const categoryId = document.getElementById('category-select').value;
-                const keywordId = document.getElementById('keyword-select').value;
-                const weight = document.getElementById('keyword-weight').value;
-                
-                if (!categoryId || !keywordId || !weight) {
-                    alert('카테고리, 키워드, 가중치를 모두 입력해주세요');
-                    return;
-                }
-                
-                addKeywordToCategory(categoryId, keywordId, weight);
-            });
-            
-            // Set up add reserved keyword button
-            document.getElementById('add-reserved-keyword-btn').addEventListener('click', function() {
-                const keywordName = document.getElementById('new-keyword-name').value.trim();
-                
-                if (!keywordName) {
-                    alert('키워드 이름을 입력해주세요');
-                    return;
-                }
-                
-                createReservedKeyword(keywordName);
-            });
-            
-            // Set up add candidate keyword button
-            document.getElementById('add-candidate-keyword-btn').addEventListener('click', function() {
-                const candidateName = document.getElementById('new-candidate-name').value.trim();
-                
-                if (!candidateName) {
-                    alert('후보 키워드 이름을 입력해주세요');
-                    return;
-                }
-                
-                createCandidateKeyword(candidateName);
-            });
-            
-            // Set up add category button
-            document.getElementById('add-category-btn').addEventListener('click', function() {
-                const categoryName = document.getElementById('new-category-name').value.trim();
-                
-                if (!categoryName) {
-                    alert('카테고리 이름을 입력해주세요');
-                    return;
-                }
-                
-                createCategory(categoryName);
-            });
-        });
-        
         function fetchCandidateKeywords() {
             fetch('/api/keywords/candidate')
                 .then(response => response.json())
@@ -414,6 +350,7 @@
                     
                     if (data.length === 0) {
                         container.innerHTML = '<p>후보 키워드가 없습니다</p>';
+                        document.getElementById('delete-selected-candidates-btn').disabled = true;
                         return;
                     }
                     
@@ -421,8 +358,21 @@
                         const item = document.createElement('div');
                         item.className = 'keyword-item';
                         
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.style.marginRight = '10px';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'candidate-checkbox';
+                        checkbox.value = keyword.id;
+                        checkbox.style.cursor = 'pointer';
+                        checkbox.addEventListener('change', updateDeleteButtonState);
+                        
+                        checkboxContainer.appendChild(checkbox);
+                        
                         const nameSpan = document.createElement('span');
                         nameSpan.textContent = keyword.name;
+                        nameSpan.style.flex = '1';
                         
                         const actions = document.createElement('div');
                         actions.className = 'keyword-actions';
@@ -432,13 +382,26 @@
                         promoteBtn.textContent = '승격';
                         promoteBtn.addEventListener('click', () => promoteCandidateKeyword(keyword.id));
                         
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-danger';
+                        deleteBtn.textContent = '삭제';
+                        deleteBtn.addEventListener('click', () => deleteCandidateKeyword(keyword.id));
+                        
                         actions.appendChild(promoteBtn);
+                        actions.appendChild(deleteBtn);
+                        
+                        item.appendChild(checkboxContainer);
                         item.appendChild(nameSpan);
                         item.appendChild(actions);
                         container.appendChild(item);
                     });
                 })
                 .catch(error => console.error('Error fetching candidate keywords:', error));
+        }
+        
+        function updateDeleteButtonState() {
+            const selectedCheckboxes = document.querySelectorAll('.candidate-checkbox:checked');
+            document.getElementById('delete-selected-candidates-btn').disabled = selectedCheckboxes.length === 0;
         }
         
         function fetchReservedKeywords() {
@@ -684,6 +647,157 @@
                 alert('카테고리 생성에 실패했습니다.');
             });
         }
+
+        function deleteCandidateKeyword(candidateId) {
+            if (confirm('정말로 이 키워드를 삭제하시겠습니까?')) {
+                fetch(`/api/keywords/candidate/${candidateId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to delete candidate keyword');
+                    }
+                    // Refresh lists
+                    fetchCandidateKeywords();
+                })
+                .catch(error => {
+                    console.error('Error deleting candidate keyword:', error);
+                    alert('키워드 삭제에 실패했습니다.');
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            
+            // Fetch all candidate keywords
+            fetchCandidateKeywords();
+            
+            // Fetch all reserved keywords
+            fetchReservedKeywords();
+            
+            // Fetch all categories
+            fetchCategories();
+            
+            // Set up category select change event
+            document.getElementById('category-select').addEventListener('change', function() {
+                const categoryId = this.value;
+                if (categoryId) {
+                    fetchCategoryKeywords(categoryId);
+                } else {
+                    document.getElementById('category-keywords-list').innerHTML = '<p>카테고리를 선택하세요</p>';
+                }
+            });
+            
+            // Set up add keyword button
+            document.getElementById('add-keyword-btn').addEventListener('click', function() {
+                const categoryId = document.getElementById('category-select').value;
+                const keywordId = document.getElementById('keyword-select').value;
+                const weight = document.getElementById('keyword-weight').value;
+                
+                if (!categoryId || !keywordId || !weight) {
+                    alert('카테고리, 키워드, 가중치를 모두 입력해주세요');
+                    return;
+                }
+                
+                addKeywordToCategory(categoryId, keywordId, weight);
+            });
+            
+            // Set up add reserved keyword button
+            document.getElementById('add-reserved-keyword-btn').addEventListener('click', function() {
+                const keywordName = document.getElementById('new-keyword-name').value.trim();
+                
+                if (!keywordName) {
+                    alert('키워드 이름을 입력해주세요');
+                    return;
+                }
+                
+                createReservedKeyword(keywordName);
+            });
+            
+            // Set up add candidate keyword button
+            document.getElementById('add-candidate-keyword-btn').addEventListener('click', function() {
+                const candidateName = document.getElementById('new-candidate-name').value.trim();
+                
+                if (!candidateName) {
+                    alert('후보 키워드 이름을 입력해주세요');
+                    return;
+                }
+                
+                createCandidateKeyword(candidateName);
+            });
+            
+            // Set up add category button
+            document.getElementById('add-category-btn').addEventListener('click', function() {
+                const categoryName = document.getElementById('new-category-name').value.trim();
+                
+                if (!categoryName) {
+                    alert('카테고리 이름을 입력해주세요');
+                    return;
+                }
+                
+                createCategory(categoryName);
+            });
+
+            // Set up select/deselect all buttons
+            document.getElementById('select-all-candidates-btn').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('.candidate-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                updateDeleteButtonState();
+            });
+            
+            document.getElementById('deselect-all-candidates-btn').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('.candidate-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateDeleteButtonState();
+            });
+            
+            // Set up delete selected button
+            document.getElementById('delete-selected-candidates-btn').addEventListener('click', function() {
+                const selectedIds = Array.from(document.querySelectorAll('.candidate-checkbox:checked')).map(checkbox => parseInt(checkbox.value));
+                
+                if (selectedIds.length === 0) {
+                    alert('삭제할 키워드를 선택해주세요.');
+                    return;
+                }
+                
+                if (confirm(`선택된 ${selectedIds.length}개의 키워드를 삭제하시겠습니까?`)) {
+                    fetch('/api/keywords/candidate/batch', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ candidateIds: selectedIds })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to delete candidate keywords');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            alert(`${data.deletedIds.length}개의 키워드가 삭제되었습니다.`);
+                            if (data.notFoundIds.length > 0) {
+                                alert(`${data.notFoundIds.length}개의 키워드는 이미 삭제되었거나 찾을 수 없습니다.`);
+                            }
+                        } else {
+                            alert('키워드 삭제에 실패했습니다.');
+                        }
+                        // Refresh lists
+                        fetchCandidateKeywords();
+                    })
+                    .catch(error => {
+                        console.error('Error deleting candidate keywords:', error);
+                        alert('키워드 삭제에 실패했습니다.');
+                    });
+                }
+            });
+        });
     </script>
 </body>
 </html> 

@@ -1,11 +1,11 @@
 package com.nexters.admin.controller
 
+import com.nexters.admin.repository.CategoryKeywordMappingRepository
 import com.nexters.external.entity.CandidateKeyword
 import com.nexters.external.entity.Category
 import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CandidateKeywordRepository
-import com.nexters.external.repository.CategoryKeywordMappingRepository
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.service.KeywordService
@@ -27,14 +27,14 @@ class KeywordAdminController(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val categoryRepository: CategoryRepository,
     private val categoryKeywordMappingRepository: CategoryKeywordMappingRepository,
-    private val keywordService: KeywordService
+    private val keywordService: KeywordService,
 ) {
     @GetMapping("/candidate")
     fun getAllCandidateKeywords(): ResponseEntity<List<CandidateKeyword>> = ResponseEntity.ok(candidateKeywordRepository.findAll())
 
     @PostMapping("/candidate")
     fun createCandidateKeyword(
-        @RequestBody request: CreateKeywordRequest
+        @RequestBody request: CreateKeywordRequest,
     ): ResponseEntity<CandidateKeyword> {
         // Check if a candidate keyword with the same name already exists
         val existingCandidate = candidateKeywordRepository.findByName(request.name)
@@ -52,10 +52,54 @@ class KeywordAdminController(
             CandidateKeyword(
                 name = request.name,
                 createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
             )
 
         return ResponseEntity.ok(candidateKeywordRepository.save(newKeyword))
+    }
+
+    @DeleteMapping("/candidate/{candidateId}")
+    fun deleteCandidateKeyword(
+        @PathVariable candidateId: Long,
+    ): ResponseEntity<Void> {
+        val candidateKeyword =
+            candidateKeywordRepository
+                .findById(candidateId)
+                .orElseThrow { NoSuchElementException("Candidate keyword not found with id: $candidateId") }
+
+        candidateKeywordRepository.delete(candidateKeyword)
+
+        return ResponseEntity.noContent().build()
+    }
+
+    @DeleteMapping("/candidate/batch")
+    fun deleteCandidateKeywords(
+        @RequestBody request: DeleteCandidateKeywordsRequest,
+    ): ResponseEntity<DeleteCandidateKeywordsResponse> {
+        val deletedIds = mutableListOf<Long>()
+        val notFoundIds = mutableListOf<Long>()
+
+        request.candidateIds.forEach { candidateId ->
+            try {
+                val candidateKeyword = candidateKeywordRepository.findById(candidateId)
+                if (candidateKeyword.isPresent) {
+                    candidateKeywordRepository.delete(candidateKeyword.get())
+                    deletedIds.add(candidateId)
+                } else {
+                    notFoundIds.add(candidateId)
+                }
+            } catch (e: Exception) {
+                notFoundIds.add(candidateId)
+            }
+        }
+
+        return ResponseEntity.ok(
+            DeleteCandidateKeywordsResponse(
+                success = deletedIds.isNotEmpty(),
+                deletedIds = deletedIds,
+                notFoundIds = notFoundIds
+            )
+        )
     }
 
     @GetMapping("/reserved")
@@ -63,7 +107,7 @@ class KeywordAdminController(
 
     @PostMapping("/reserved")
     fun createReservedKeyword(
-        @RequestBody request: CreateKeywordRequest
+        @RequestBody request: CreateKeywordRequest,
     ): ResponseEntity<ReservedKeyword> {
         // Check if keyword with same name already exists
         val existingKeyword = reservedKeywordRepository.findByName(request.name)
@@ -75,7 +119,7 @@ class KeywordAdminController(
             ReservedKeyword(
                 name = request.name,
                 createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
             )
 
         return ResponseEntity.ok(reservedKeywordRepository.save(newKeyword))
@@ -86,7 +130,7 @@ class KeywordAdminController(
 
     @PostMapping("/categories")
     fun createCategory(
-        @RequestBody request: CreateCategoryRequest
+        @RequestBody request: CreateCategoryRequest,
     ): ResponseEntity<Category> {
         // Check if category with same name already exists
         val existingCategory = categoryRepository.findByName(request.name)
@@ -98,7 +142,7 @@ class KeywordAdminController(
             Category(
                 name = request.name,
                 createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
             )
 
         return ResponseEntity.ok(categoryRepository.save(newCategory))
@@ -106,12 +150,12 @@ class KeywordAdminController(
 
     @GetMapping("/categories/{categoryId}/keywords")
     fun getKeywordsByCategory(
-        @PathVariable categoryId: Long
+        @PathVariable categoryId: Long,
     ): ResponseEntity<List<ReservedKeyword>> = ResponseEntity.ok(reservedKeywordRepository.findReservedKeywordsByCategoryId(categoryId))
 
     @PostMapping("/candidate/{candidateId}/promote")
     fun promoteCandidateToReserved(
-        @PathVariable candidateId: Long
+        @PathVariable candidateId: Long,
     ): ResponseEntity<ReservedKeyword> {
         val reservedKeyword = keywordService.promoteCandidateKeyword(candidateId)
         return ResponseEntity.ok(reservedKeyword)
@@ -120,7 +164,7 @@ class KeywordAdminController(
     @PostMapping("/categories/{categoryId}/keywords")
     fun addKeywordToCategory(
         @PathVariable categoryId: Long,
-        @RequestBody request: AddKeywordToCategoryRequest
+        @RequestBody request: AddKeywordToCategoryRequest,
     ): ResponseEntity<CategoryKeywordMapping> {
         val category =
             categoryRepository
@@ -144,7 +188,7 @@ class KeywordAdminController(
                 keyword = keyword,
                 weight = request.weight,
                 createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
             )
 
         return ResponseEntity.ok(categoryKeywordMappingRepository.save(mapping))
@@ -154,7 +198,7 @@ class KeywordAdminController(
     fun updateKeywordWeight(
         @PathVariable categoryId: Long,
         @PathVariable keywordId: Long,
-        @RequestBody request: UpdateKeywordWeightRequest
+        @RequestBody request: UpdateKeywordWeightRequest,
     ): ResponseEntity<CategoryKeywordMapping> {
         val category =
             categoryRepository
@@ -177,7 +221,7 @@ class KeywordAdminController(
                 keyword = mapping.keyword,
                 weight = request.weight,
                 createdAt = mapping.createdAt,
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
             )
 
         return ResponseEntity.ok(categoryKeywordMappingRepository.save(updatedMapping))
@@ -186,7 +230,7 @@ class KeywordAdminController(
     @DeleteMapping("/categories/{categoryId}/keywords/{keywordId}")
     fun removeKeywordFromCategory(
         @PathVariable categoryId: Long,
-        @PathVariable keywordId: Long
+        @PathVariable keywordId: Long,
     ): ResponseEntity<Void> {
         val category =
             categoryRepository
@@ -210,17 +254,27 @@ class KeywordAdminController(
 
 data class AddKeywordToCategoryRequest(
     val keywordId: Long,
-    val weight: Double
+    val weight: Double,
 )
 
 data class UpdateKeywordWeightRequest(
-    val weight: Double
+    val weight: Double,
 )
 
 data class CreateKeywordRequest(
-    val name: String
+    val name: String,
 )
 
 data class CreateCategoryRequest(
-    val name: String
+    val name: String,
+)
+
+data class DeleteCandidateKeywordsRequest(
+    val candidateIds: List<Long>,
+)
+
+data class DeleteCandidateKeywordsResponse(
+    val success: Boolean,
+    val deletedIds: List<Long> = emptyList(),
+    val notFoundIds: List<Long> = emptyList(),
 )

@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS candidate_keywords (
 -- Contents table
 CREATE TABLE IF NOT EXISTS contents (
     id SERIAL PRIMARY KEY,
-    mongo_id VARCHAR(255) NOT NULL,
+    newsletter_source_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     newsletter_name VARCHAR(255) NOT NULL,
@@ -96,4 +96,4 @@ CREATE TABLE IF NOT EXISTS newsletter_sources (
     email VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-); 
+);
