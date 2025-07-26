@@ -10,4 +10,5 @@ dependencies {
 
     testImplementation(libs.bundles.testing)
     testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.h2)
 }

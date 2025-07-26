@@ -14,6 +14,18 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- User-Category mappings table
+CREATE TABLE IF NOT EXISTS user_category_mappings (
+    id SERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    category_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, category_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
 -- Reserved keywords table
 CREATE TABLE IF NOT EXISTS reserved_keywords (
     id SERIAL PRIMARY KEY,
