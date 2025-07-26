@@ -38,6 +38,7 @@ jobs:
           tags: |
             ahj0/fairy-band:api
             ahj0/fairy-band:api-${{ github.sha }}
+          platforms: linux/amd64
 
       - name: Build and push Batch image
         uses: docker/build-push-action@v5
@@ -48,6 +49,7 @@ jobs:
           tags: |
             ahj0/fairy-band:batch
             ahj0/fairy-band:batch-${{ github.sha }}
+          platforms: linux/amd64
 
       - name: Build and push Admin image
         uses: docker/build-push-action@v5
@@ -58,3 +60,4 @@ jobs:
           tags: |
             ahj0/fairy-band:admin
             ahj0/fairy-band:admin-${{ github.sha }}
+          platforms: linux/amd64
