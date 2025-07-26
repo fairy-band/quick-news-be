@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   api:
-    build:
-      context: .
-      target: api
+    image: ahj0/fairy-band:api
     container_name: newsletter-api
     restart: always
     ports:
@@ -27,9 +25,7 @@ services:
       - newsletter-network
 
   batch:
-    build:
-      context: .
-      target: batch
+    image: ahj0/fairy-band:batch
     container_name: newsletter-batch
     restart: always
     ports:
@@ -52,6 +48,30 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      - postgres
+    networks:
+      - newsletter-network
+
+  admin:
+    image: ahj0/fairy-band:admin
+    container_name: newsletter-admin
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
+      # PostgreSQL 환경 변수 추가
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SERVER_PORT: 8083
     depends_on:
       - postgres
     networks:
