@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>콘텐츠 관리 - Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+
+        .content-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .content-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .content-item.active {
+            border: 1px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .content-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .content-source {
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .content-detail {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .content-detail.active {
+            display: block;
+        }
+
+        .content-text {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .keyword-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: #fff;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .form-select, .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus, .form-control:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .form-select option {
+            background-color: #16213e;
+            color: #ffffff;
+        }
+
+        .row {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .col-md-6 {
+            flex: 1;
+        }
+
+        .keyword-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: #000;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .keyword-list {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .keyword-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .keyword-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .content-preview {
+            max-height: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #a0aec0;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination-item {
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .pagination-item.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+        
+        .result-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .keyword-group {
+            margin-bottom: 1rem;
+        }
+
+        .keyword-label {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .keyword {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: #000;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="/contents" class="nav-link active">🏠 홈</a>
+                    <a href="/metrics" class="nav-link">📊 메트릭</a>
+                    <a href="/keywords" class="nav-link">🔑 키워드</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Category Filter Section -->
+            <div class="col-md-6">
+                <div class="section">
+                    <h2>카테고리별 콘텐츠 필터</h2>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                        <div style="flex: 1;">
+                            <select id="category-select" class="form-select">
+                                <option value="">모든 카테고리</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <button id="filter-btn" class="btn btn-primary">필터링</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Keyword Filter Section -->
+            <div class="col-md-6">
+                <div class="section">
+                    <h2>키워드별 콘텐츠 필터</h2>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                        <div style="flex: 1;">
+                            <select id="keyword-select" class="form-select">
+                                <option value="">모든 키워드</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <button id="keyword-filter-btn" class="btn btn-primary">필터링</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>콘텐츠 목록</h2>
+            <div id="content-list">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div class="pagination" id="pagination">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="section" id="content-detail-section" style="display: none;">
+            <h2>콘텐츠 상세</h2>
+            <div id="content-detail">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <h3>콘텐츠 수정</h3>
+                <form id="edit-content-form">
+                    <input type="hidden" id="edit-content-id">
+                    <div style="margin-bottom: 1rem;">
+                        <label for="edit-newsletter-source-id">뉴스레터 소스 ID (선택사항)</label>
+                        <input type="text" id="edit-newsletter-source-id" class="form-control">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="edit-newsletter-name">뉴스레터 이름</label>
+                        <input type="text" id="edit-newsletter-name" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="edit-content-title">제목</label>
+                        <input type="text" id="edit-content-title" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="edit-original-url">원본 URL</label>
+                        <input type="url" id="edit-original-url" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="edit-content-text">내용</label>
+                        <textarea id="edit-content-text" class="form-control" rows="10" required></textarea>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">콘텐츠 수정</button>
+                        <button type="button" id="delete-content-btn" class="btn btn-danger" style="flex: 1;">콘텐츠 삭제</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <h3>AI 처리</h3>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                    <button id="generate-summary-btn" class="btn btn-primary" style="flex: 1;">
+                        🧠 AI 요약 생성
+                    </button>
+                    <button id="extract-keywords-btn" class="btn btn-primary" style="flex: 1;">
+                        🏷️ 키워드 추출
+                    </button>
+                </div>
+                
+                <div class="loading" id="loading" style="display: none; text-align: center; margin: 1.5rem 0;">
+                    <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                    <p>AI가 열심히 분석 중입니다...</p>
+                </div>
+                
+                <div id="ai-results"></div>
+                
+                <div id="summary-save-section" style="display: none; margin-top: 2rem;">
+                    <h3>요약 저장</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="summary-title">제목 선택</label>
+                        <select id="headline-select" class="form-select">
+                            <option value="">직접 입력</option>
+                            <!-- Will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="summary-title">제목</label>
+                        <input type="text" id="summary-title" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="summary-text">요약 내용</label>
+                        <textarea id="summary-text" class="form-control" rows="5" required></textarea>
+                    </div>
+                    <div>
+                        <button id="save-summary-btn" class="btn btn-success" style="width: 100%;">요약 저장</button>
+                    </div>
+                </div>
+                
+                <div id="saved-summaries-section" style="margin-top: 2rem; display: none;">
+                    <h3>저장된 요약 목록</h3>
+                    <div id="saved-summaries-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <h3>키워드 관리</h3>
+                <div id="content-keywords">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <h3>키워드 추가</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="flex: 1;">
+                            <select id="add-keyword-select" class="form-select">
+                                <option value="">키워드 선택</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <button id="add-keyword-btn" class="btn btn-primary">추가</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    <h3>키워드 선택 추출</h3>
+                    <div id="keyword-selection">
+                        <div class="keyword-select-container" style="margin-bottom: 1rem;">
+                            <select id="keyword-select" class="form-select" multiple style="height: 150px; background: rgba(0, 0, 0, 0.3); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 0.5rem;">
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                            <div class="keyword-selection-info" style="font-size: 0.8rem; color: #a0aec0; margin-top: 0.5rem; text-align: right;">Ctrl 또는 Shift 키를 누른 상태에서 여러 키워드를 선택할 수 있습니다.</div>
+                        </div>
+                        <button id="extract-with-selected-btn" class="btn btn-primary">
+                            🔍 선택 키워드로 추출
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    <h3>후보 키워드 추가</h3>
+                    <div class="keyword-candidate-container">
+                        <div id="suggested-keywords-container" style="margin-bottom: 1rem;">
+                            <!-- Will be populated by JavaScript when keywords are extracted -->
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <button id="add-selected-as-candidates-btn" class="btn btn-primary" style="flex: 1;" disabled>
+                                선택한 키워드를 후보로 추가
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Content Section -->
+        <div class="section">
+            <h2>새 콘텐츠 추가</h2>
+            <form id="add-content-form">
+                <div style="margin-bottom: 1rem;">
+                    <label for="newsletter-source-id">뉴스레터 소스 ID (선택사항)</label>
+                    <input type="text" id="newsletter-source-id" class="form-control">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="newsletter-name">뉴스레터 이름</label>
+                    <input type="text" id="newsletter-name" class="form-control" required>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="content-title">제목</label>
+                    <input type="text" id="content-title" class="form-control" required>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="original-url">원본 URL</label>
+                    <input type="url" id="original-url" class="form-control" required>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="content-text">내용</label>
+                    <textarea id="content-text" class="form-control" rows="10" required></textarea>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success" style="width: 100%;">콘텐츠 추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Create stars
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 100;
+            
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            
+            // Fetch all categories
+            fetchCategories();
+            
+            // Fetch all reserved keywords
+            fetchReservedKeywords();
+            
+            // Fetch all contents
+            fetchContents();
+            
+            // Set up category filter button
+            document.getElementById('filter-btn').addEventListener('click', function() {
+                const categoryId = document.getElementById('category-select').value;
+                if (categoryId) {
+                    fetchContentsByCategory(categoryId);
+                } else {
+                    fetchContents();
+                }
+            });
+            
+            // Set up keyword filter button
+            document.getElementById('keyword-filter-btn').addEventListener('click', function() {
+                const keywordId = document.getElementById('keyword-select').value;
+                if (keywordId) {
+                    // This would require a backend endpoint to filter by keyword
+                    alert('키워드별 필터링은 아직 구현되지 않았습니다.');
+                } else {
+                    fetchContents();
+                }
+            });
+            
+            // Set up add keyword button
+            document.getElementById('add-keyword-btn').addEventListener('click', function() {
+                const contentId = document.getElementById('content-detail').dataset.contentId;
+                const keywordId = document.getElementById('add-keyword-select').value;
+                
+                if (!contentId || !keywordId) {
+                    alert('콘텐츠와 키워드를 모두 선택해주세요');
+                    return;
+                }
+                
+                addKeywordToContent(contentId, keywordId);
+            });
+            
+            // Set up delete content button
+            document.getElementById('delete-content-btn').addEventListener('click', function() {
+                const contentId = document.getElementById('edit-content-id').value;
+                
+                if (!contentId) {
+                    alert('삭제할 콘텐츠가 선택되지 않았습니다');
+                    return;
+                }
+                
+                if (confirm('정말로 이 콘텐츠를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                    deleteContent(contentId);
+                }
+            });
+            
+            // Set up add content form submission
+            document.getElementById('add-content-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const newsletterSourceId = document.getElementById('newsletter-source-id').value.trim();
+                const newsletterName = document.getElementById('newsletter-name').value;
+                const title = document.getElementById('content-title').value;
+                const originalUrl = document.getElementById('original-url').value;
+                const content = document.getElementById('content-text').value;
+                
+                if (!newsletterName || !title || !originalUrl || !content) {
+                    alert('필수 필드를 모두 입력해주세요');
+                    return;
+                }
+                
+                createContent({
+                    newsletterSourceId: newsletterSourceId || null,
+                    newsletterName: newsletterName,
+                    title: title,
+                    originalUrl: originalUrl,
+                    content: content
+                });
+            });
+            
+            // Set up AI processing buttons
+            document.getElementById('generate-summary-btn').addEventListener('click', function() {
+                generateSummary(document.getElementById('edit-content-id').value);
+            });
+            
+            document.getElementById('extract-keywords-btn').addEventListener('click', function() {
+                extractKeywords(document.getElementById('edit-content-id').value);
+            });
+            
+            document.getElementById('extract-with-selected-btn').addEventListener('click', function() {
+                extractWithSelectedKeywords(document.getElementById('edit-content-id').value);
+            });
+            
+            // Set up headline selection
+            document.getElementById('headline-select').addEventListener('change', function() {
+                const selectedHeadline = this.value;
+                if (selectedHeadline) {
+                    document.getElementById('summary-title').value = selectedHeadline;
+                }
+            });
+            
+            // Set up summary save button
+            document.getElementById('save-summary-btn').addEventListener('click', function() {
+                saveSummary(document.getElementById('edit-content-id').value);
+            });
+            
+            // Set up add selected keywords as candidates button
+            document.getElementById('add-selected-as-candidates-btn').addEventListener('click', function() {
+                addSelectedKeywordsAsCandidates();
+            });
+            
+            // Fetch all reserved keywords for the dropdowns
+            fetchAllReservedKeywords();
+        });
+        
+        function fetchCategories() {
+            fetch('/api/keywords/categories')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('category-select');
+                    
+                    data.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching categories:', error));
+        }
+        
+        function fetchReservedKeywords() {
+            fetch('/api/keywords/reserved')
+                .then(response => response.json())
+                .then(data => {
+                    const keywordSelect = document.getElementById('keyword-select');
+                    const addKeywordSelect = document.getElementById('add-keyword-select');
+                    
+                    data.forEach(keyword => {
+                        // Add to keyword filter dropdown
+                        const option1 = document.createElement('option');
+                        option1.value = keyword.id;
+                        option1.textContent = keyword.name;
+                        keywordSelect.appendChild(option1);
+                        
+                        // Add to keyword add dropdown
+                        const option2 = document.createElement('option');
+                        option2.value = keyword.id;
+                        option2.textContent = keyword.name;
+                        addKeywordSelect.appendChild(option2);
+                    });
+                })
+                .catch(error => console.error('Error fetching reserved keywords:', error));
+        }
+        
+        function fetchContents(page = 0, size = 10) {
+            fetch('/api/contents')
+                .then(response => response.json())
+                .then(data => {
+                    renderContentList(data);
+                })
+                .catch(error => console.error('Error fetching contents:', error));
+        }
+        
+        function fetchContentsByCategory(categoryId) {
+            fetch(`/api/contents/by-category/${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    renderContentList(data);
+                })
+                .catch(error => console.error('Error fetching contents by category:', error));
+        }
+        
+        function renderContentList(contents) {
+            const container = document.getElementById('content-list');
+            container.innerHTML = '';
+            
+            if (contents.length === 0) {
+                container.innerHTML = '<p>콘텐츠가 없습니다</p>';
+                return;
+            }
+            
+            contents.forEach(content => {
+                const item = document.createElement('div');
+                item.className = 'content-item';
+                item.dataset.id = content.id;
+                
+                const title = document.createElement('div');
+                title.className = 'content-title';
+                title.textContent = content.title;
+                
+                const source = document.createElement('div');
+                source.className = 'content-source';
+                source.textContent = `출처: ${content.newsletterName}${content.newsletterSourceId ? ' (ID: ' + content.newsletterSourceId + ')' : ''}`;
+                
+                const preview = document.createElement('div');
+                preview.className = 'content-preview';
+                preview.textContent = content.content.substring(0, 150) + '...';
+                
+                item.appendChild(title);
+                item.appendChild(source);
+                item.appendChild(preview);
+                
+                item.addEventListener('click', () => showContentDetail(content.id));
+                
+                container.appendChild(item);
+            });
+        }
+        
+        function showContentDetail(contentId) {
+            // Highlight selected content
+            document.querySelectorAll('.content-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.content-item[data-id="${contentId}"]`).classList.add('active');
+            
+            // Show detail section
+            document.getElementById('content-detail-section').style.display = 'block';
+            
+            // Fetch content details
+            fetch(`/api/contents/${contentId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Content not found');
+                    }
+                    return response.json();
+                })
+                .then(content => {
+                    const detailContainer = document.getElementById('content-detail');
+                    detailContainer.dataset.contentId = content.id;
+                    
+                    document.getElementById('edit-content-id').value = content.id;
+                    document.getElementById('edit-newsletter-source-id').value = content.newsletterSourceId;
+                    document.getElementById('edit-newsletter-name').value = content.newsletterName;
+                    document.getElementById('edit-content-title').value = content.title;
+                    document.getElementById('edit-original-url').value = content.originalUrl;
+                    document.getElementById('edit-content-text').value = content.content;
+                    
+                    detailContainer.innerHTML = `
+                        <h3>${content.title}</h3>
+                        <div class="content-source">출처: ${content.newsletterName}</div>
+                        ${content.newsletterSourceId ? `<div class="content-source">소스 ID: ${content.newsletterSourceId}</div>` : ''}
+                        <div class="content-source">URL: <a href="${content.originalUrl}" target="_blank">${content.originalUrl}</a></div>
+                        <div class="content-text">${content.content}</div>
+                    `;
+                    
+                    // Fetch content keywords
+                    fetchContentKeywords(contentId);
+                    
+                    // Fetch saved summaries
+                    fetchSavedSummaries(contentId);
+                    
+                    // Clear previous AI results
+                    document.getElementById('ai-results').innerHTML = '';
+                    
+                    // Hide summary save section
+                    document.getElementById('summary-save-section').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching content details:', error);
+                    document.getElementById('content-detail').innerHTML = '<p>콘텐츠를 불러오는 중 오류가 발생했습니다</p>';
+                });
+        }
+        
+        function fetchContentKeywords(contentId) {
+            fetch(`/api/process/content/${contentId}/keywords`)
+                .then(response => response.json())
+                .then(keywords => {
+                    const container = document.getElementById('content-keywords');
+                    container.innerHTML = '<h4>현재 키워드</h4>';
+                    
+                    if (keywords.length === 0) {
+                        container.innerHTML += '<p>등록된 키워드가 없습니다</p>';
+                        return;
+                    }
+                    
+                    const keywordList = document.createElement('div');
+                    keywordList.className = 'keyword-list';
+                    
+                    keywords.forEach(keyword => {
+                        const keywordItem = document.createElement('div');
+                        keywordItem.className = 'keyword-item';
+                        
+                        const keywordName = document.createElement('span');
+                        keywordName.textContent = keyword.name;
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'btn btn-danger';
+                        removeBtn.textContent = '삭제';
+                        removeBtn.style.padding = '0.25rem 0.5rem';
+                        removeBtn.style.fontSize = '0.8rem';
+                        removeBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            removeKeywordFromContent(contentId, keyword.id);
+                        });
+                        
+                        keywordItem.appendChild(keywordName);
+                        keywordItem.appendChild(removeBtn);
+                        keywordList.appendChild(keywordItem);
+                    });
+                    
+                    container.appendChild(keywordList);
+                })
+                .catch(error => console.error('Error fetching content keywords:', error));
+        }
+        
+        function addKeywordToContent(contentId, keywordId) {
+            fetch(`/api/contents/${contentId}/keywords`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    keywordId: keywordId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add keyword to content');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // Refresh content keywords
+                fetchContentKeywords(contentId);
+                
+                // Clear input
+                document.getElementById('add-keyword-select').value = '';
+            })
+            .catch(error => {
+                console.error('Error adding keyword to content:', error);
+                alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
+            });
+        }
+        
+        function removeKeywordFromContent(contentId, keywordId) {
+            fetch(`/api/contents/${contentId}/keywords/${keywordId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to remove keyword from content');
+                }
+                // Refresh content keywords
+                fetchContentKeywords(contentId);
+            })
+            .catch(error => console.error('Error removing keyword from content:', error));
+        }
+        
+        function createContent(contentData) {
+            fetch('/api/contents', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(contentData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create content');
+                }
+                return response.json();
+            })
+            .then(content => {
+                // Clear form
+                document.getElementById('add-content-form').reset();
+                
+                // Show success message
+                alert('콘텐츠가 성공적으로 추가되었습니다!');
+                
+                // Refresh content list
+                fetchContents();
+            })
+            .catch(error => {
+                console.error('Error creating content:', error);
+                alert('콘텐츠 추가에 실패했습니다.');
+            });
+        }
+
+        // Set up edit content form submission
+        document.getElementById('edit-content-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const contentId = document.getElementById('edit-content-id').value;
+            const newsletterSourceId = document.getElementById('edit-newsletter-source-id').value.trim();
+            const newsletterName = document.getElementById('edit-newsletter-name').value;
+            const title = document.getElementById('edit-content-title').value;
+            const originalUrl = document.getElementById('edit-original-url').value;
+            const content = document.getElementById('edit-content-text').value;
+
+            if (!contentId || !newsletterName || !title || !originalUrl || !content) {
+                alert('필수 필드를 모두 입력해주세요');
+                return;
+            }
+
+            updateContent(contentId, {
+                newsletterSourceId: newsletterSourceId || null,
+                newsletterName: newsletterName,
+                title: title,
+                originalUrl: originalUrl,
+                content: content
+            });
+        });
+
+        function updateContent(contentId, contentData) {
+            fetch(`/api/contents/${contentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(contentData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update content');
+                }
+                return response.json();
+            })
+            .then(content => {
+                // Clear form
+                document.getElementById('edit-content-form').reset();
+                document.getElementById('edit-content-id').value = ''; // Clear hidden ID
+
+                // Show success message
+                alert('콘텐츠가 성공적으로 수정되었습니다!');
+
+                // Refresh content list
+                fetchContents();
+                // Hide detail section
+                document.getElementById('content-detail-section').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error updating content:', error);
+                alert('콘텐츠 수정에 실패했습니다.');
+            });
+        }
+        
+        function deleteContent(contentId) {
+            fetch(`/api/contents/${contentId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete content');
+                }
+                
+                // Clear form
+                document.getElementById('edit-content-form').reset();
+                document.getElementById('edit-content-id').value = ''; // Clear hidden ID
+
+                // Show success message
+                alert('콘텐츠가 성공적으로 삭제되었습니다!');
+
+                // Refresh content list
+                fetchContents();
+                // Hide detail section
+                document.getElementById('content-detail-section').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error deleting content:', error);
+                alert('콘텐츠 삭제에 실패했습니다.');
+            });
+        }
+
+        function fetchAllReservedKeywords() {
+            fetch('/api/keywords/reserved')
+                .then(response => response.json())
+                .then(data => {
+                    const keywordSelect = document.getElementById('keyword-select');
+                    const addKeywordSelect = document.getElementById('add-keyword-select');
+                    
+                    data.forEach(keyword => {
+                        // Add to keyword filter dropdown
+                        const option1 = document.createElement('option');
+                        option1.value = keyword.id;
+                        option1.textContent = keyword.name;
+                        keywordSelect.appendChild(option1);
+                        
+                        // Add to keyword add dropdown
+                        const option2 = document.createElement('option');
+                        option2.value = keyword.id;
+                        option2.textContent = keyword.name;
+                        addKeywordSelect.appendChild(option2);
+                    });
+                })
+                .catch(error => console.error('Error fetching reserved keywords:', error));
+        }
+        
+        function generateSummary(contentId) {
+            if (!contentId) {
+                alert('콘텐츠를 선택해주세요.');
+                return;
+            }
+
+            showLoading();
+
+            fetch(`/api/process/content/${contentId}/summary`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.success) {
+                    let html = `
+                        <div class="result-card">
+                            <div class="result-title">📋 AI 요약</div>
+                            <p>${data.summary}</p>
+                    `;
+
+                    if (data.provocativeHeadlines && data.provocativeHeadlines.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">🔥 자극적인 헤드라인</div>
+                                <div class="keywords">
+                                    ${data.provocativeHeadlines.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('ai-results').innerHTML = html;
+                    
+                    // Show summary save section
+                    document.getElementById('summary-save-section').style.display = 'block';
+                    
+                    // Populate headline select dropdown
+                    const headlineSelect = document.getElementById('headline-select');
+                    headlineSelect.innerHTML = '<option value="">직접 입력</option>';
+                    
+                    if (data.provocativeHeadlines && data.provocativeHeadlines.length > 0) {
+                        data.provocativeHeadlines.forEach(headline => {
+                            const option = document.createElement('option');
+                            option.value = headline;
+                            option.textContent = headline;
+                            headlineSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Set summary text
+                    document.getElementById('summary-text').value = data.summary;
+                    
+                    // Set default title
+                    document.getElementById('summary-title').value = document.getElementById('edit-content-title').value;
+                    
+                    // Store model info
+                    document.getElementById('summary-save-section').dataset.model = data.usedModel;
+                } else {
+                    showError(data.error || '요약 생성에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            });
+        }
+
+        function extractKeywords(contentId) {
+            if (!contentId) {
+                alert('콘텐츠를 선택해주세요.');
+                return;
+            }
+
+            showLoading();
+
+            fetch(`/api/process/content/${contentId}/keywords`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.success) {
+                    let html = '<div class="result-card"><div class="result-title">🏷️ 키워드 분석 결과</div>';
+
+                    if (data.matchedKeywords && data.matchedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">📌 매칭된 키워드</div>
+                                <div class="keywords">
+                                    ${data.matchedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.suggestedKeywords && data.suggestedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">💡 추천 키워드</div>
+                                <div class="keywords">
+                                    ${data.suggestedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.provocativeKeywords && data.provocativeKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">🔥 자극적인 키워드</div>
+                                <div class="keywords">
+                                    ${data.provocativeKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('ai-results').innerHTML = html;
+                    
+                    // Refresh content keywords after extraction
+                    fetchContentKeywords(contentId);
+                    
+                    // Display suggested keywords for candidate selection
+                    displaySuggestedKeywordsForSelection(data);
+                } else {
+                    showError(data.error || '키워드 추출에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            });
+        }
+        
+        function extractWithSelectedKeywords(contentId) {
+            if (!contentId) {
+                alert('콘텐츠를 선택해주세요.');
+                return;
+            }
+            
+            const select = document.getElementById('keyword-select');
+            const selectedOptions = Array.from(select.selectedOptions).map(option => parseInt(option.value));
+            
+            if (selectedOptions.length === 0) {
+                alert('키워드를 하나 이상 선택해주세요.');
+                return;
+            }
+
+            showLoading();
+
+            fetch(`/api/process/content/${contentId}/keywords/extract-with-selected`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    keywordIds: selectedOptions
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.success) {
+                    let html = '<div class="result-card"><div class="result-title">🏷️ 선택 키워드 기반 분석 결과</div>';
+
+                    if (data.matchedKeywords && data.matchedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">📌 매칭된 키워드</div>
+                                <div class="keywords">
+                                    ${data.matchedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.suggestedKeywords && data.suggestedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">💡 추천 키워드</div>
+                                <div class="keywords">
+                                    ${data.suggestedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.provocativeKeywords && data.provocativeKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">🔥 자극적인 키워드</div>
+                                <div class="keywords">
+                                    ${data.provocativeKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('ai-results').innerHTML = html;
+                    
+                    // Refresh content keywords after extraction
+                    fetchContentKeywords(contentId);
+                    
+                    // Display suggested keywords for candidate selection
+                    displaySuggestedKeywordsForSelection(data);
+                } else {
+                    showError(data.error || '키워드 추출에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            });
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showError(message) {
+            const resultsDiv = document.getElementById('ai-results');
+            resultsDiv.innerHTML = `<div class="error" style="background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); color: #fca5a5; padding: 1rem; border-radius: 8px; margin-top: 1rem;">❌ ${message}</div>`;
+        }
+        
+        function saveSummary(contentId) {
+            if (!contentId) {
+                alert('콘텐츠를 선택해주세요.');
+                return;
+            }
+            
+            const title = document.getElementById('summary-title').value.trim();
+            const summary = document.getElementById('summary-text').value.trim();
+            const model = document.getElementById('summary-save-section').dataset.model || 'unknown';
+            
+            if (!title || !summary) {
+                alert('제목과 요약 내용을 모두 입력해주세요.');
+                return;
+            }
+            
+            showLoading();
+            
+            fetch(`/api/process/content/${contentId}/summary/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: title,
+                    summary: summary,
+                    model: model
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    alert('요약이 성공적으로 저장되었습니다!');
+                    
+                    // Clear form
+                    document.getElementById('summary-title').value = '';
+                    document.getElementById('summary-text').value = '';
+                    document.getElementById('headline-select').selectedIndex = 0;
+                    
+                    // Hide summary save section
+                    document.getElementById('summary-save-section').style.display = 'none';
+                    
+                    // Refresh saved summaries
+                    fetchSavedSummaries(contentId);
+                } else {
+                    alert('요약 저장에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('서버 오류가 발생했습니다: ' + error.message);
+            });
+        }
+        
+        function fetchSavedSummaries(contentId) {
+            fetch(`/api/process/content/${contentId}/summaries`)
+                .then(response => response.json())
+                .then(summaries => {
+                    const container = document.getElementById('saved-summaries-list');
+                    container.innerHTML = '';
+                    
+                    if (summaries.length === 0) {
+                        document.getElementById('saved-summaries-section').style.display = 'none';
+                        return;
+                    }
+                    
+                    document.getElementById('saved-summaries-section').style.display = 'block';
+                    
+                    summaries.forEach(summary => {
+                        const summaryCard = document.createElement('div');
+                        summaryCard.className = 'result-card';
+                        
+                        const summaryDate = new Date(summary.createdAt).toLocaleString('ko-KR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
+                        summaryCard.innerHTML = `
+                            <div class="result-title">${summary.title}</div>
+                            <div style="font-size: 0.8rem; color: #a0aec0; margin-bottom: 0.5rem;">
+                                생성일: ${summaryDate} | 모델: ${summary.model}
+                            </div>
+                            <p>${summary.summary}</p>
+                        `;
+                        
+                        container.appendChild(summaryCard);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching saved summaries:', error);
+                    document.getElementById('saved-summaries-section').style.display = 'none';
+                });
+        }
+        
+        function displaySuggestedKeywordsForSelection(data) {
+            const container = document.getElementById('suggested-keywords-container');
+            container.innerHTML = '';
+            
+            // Combine all keyword types
+            const allKeywords = [
+                ...(data.suggestedKeywords || []),
+                ...(data.matchedKeywords || []),
+                ...(data.provocativeKeywords || [])
+            ];
+            
+            // Remove duplicates
+            const uniqueKeywords = [...new Set(allKeywords)];
+            
+            if (uniqueKeywords.length === 0) {
+                container.innerHTML = '<p>추가할 수 있는 키워드가 없습니다</p>';
+                document.getElementById('add-selected-as-candidates-btn').disabled = true;
+                return;
+            }
+            
+            // Create checkboxes for each keyword
+            uniqueKeywords.forEach(keyword => {
+                const keywordDiv = document.createElement('div');
+                keywordDiv.className = 'keyword-checkbox';
+                keywordDiv.style.marginBottom = '0.5rem';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `keyword-${keyword}`;
+                checkbox.value = keyword;
+                checkbox.style.marginRight = '0.5rem';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `keyword-${keyword}`;
+                label.textContent = keyword;
+                
+                keywordDiv.appendChild(checkbox);
+                keywordDiv.appendChild(label);
+                container.appendChild(keywordDiv);
+            });
+            
+            // Enable the add button
+            document.getElementById('add-selected-as-candidates-btn').disabled = false;
+        }
+        
+        function addSelectedKeywordsAsCandidates() {
+            const checkboxes = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('추가할 키워드를 하나 이상 선택해주세요.');
+                return;
+            }
+            
+            const selectedKeywords = Array.from(checkboxes).map(checkbox => checkbox.value);
+            
+            showLoading();
+            
+            fetch('/api/process/candidate-keywords', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    keywords: selectedKeywords
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    let message = '';
+                    
+                    if (data.addedKeywords.length > 0) {
+                        message += `다음 키워드가 후보로 추가되었습니다: ${data.addedKeywords.join(', ')}\n`;
+                    }
+                    
+                    if (data.existingKeywords.length > 0) {
+                        message += `다음 키워드는 이미 존재합니다: ${data.existingKeywords.join(', ')}\n`;
+                    }
+                    
+                    if (data.errorKeywords.length > 0) {
+                        message += `다음 키워드는 추가에 실패했습니다: ${data.errorKeywords.join(', ')}`;
+                    }
+                    
+                    alert(message);
+                    
+                    // Clear checkboxes
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                } else {
+                    alert('키워드 추가에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('서버 오류가 발생했습니다: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html> 
