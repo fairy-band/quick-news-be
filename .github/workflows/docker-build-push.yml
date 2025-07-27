@@ -112,11 +112,11 @@ jobs:
 
           # First copy docker-compose.yml
           echo "Deploying docker-compose.yml..."
-          sshpass -e scp -v -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          sshpass -e scp -v -o StrictHostKeyChecking=no deploy/docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Then copy nginx.conf
           echo "Deploying nginx.conf..."
-          sshpass -e scp -v -o StrictHostKeyChecking=no nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          sshpass -e scp -v -o StrictHostKeyChecking=no deploy/nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Copy .env file
           echo "Deploying .env file..."
@@ -124,7 +124,7 @@ jobs:
 
           # Finally copy deploy.sh
           echo "Deploying deploy.sh..."
-          sshpass -e scp -v -o StrictHostKeyChecking=no deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          sshpass -e scp -v -o StrictHostKeyChecking=no deploy/deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Make deploy.sh executable
           echo "Making deploy.sh executable..."
