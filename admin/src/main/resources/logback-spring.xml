@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <!-- Base appender configuration -->
+    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/spring.log}"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+
+    <!-- Discord webhook appender - only active in prod environment -->
+    <springProfile name="prod">
+        <appender name="DISCORD" class="com.nexters.external.logging.DiscordWebhookAppender">
+            <webhookUri>${ERROR_DISCORD_WEBHOOK_URI}</webhookUri>
+            <username>Newsletter Feeder - Admin Error</username>
+            <avatarUrl>https://cdn.discordapp.com/embed/avatars/0.png</avatarUrl>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+        </appender>
+    </springProfile>
+
+    <!-- Root logger configuration -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <springProfile name="prod">
+            <appender-ref ref="DISCORD"/>
+        </springProfile>
+    </root>
+
+    <!-- Application-specific logger configurations -->
+    <logger name="com.nexters.admin" level="INFO"/>
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.hibernate" level="WARN"/>
+</configuration>
