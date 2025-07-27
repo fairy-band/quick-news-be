@@ -141,6 +141,7 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
       ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/
       ME_CONFIG_BASICAUTH: false
+      ME_CONFIG_SITE_BASEURL: /mongo-express/
     depends_on:
       mongodb:
         condition: service_healthy
