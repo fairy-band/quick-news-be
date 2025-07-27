@@ -1,9 +1,7 @@
 spring:
   application:
     name: api
-  profiles:
-    active: dev
-    
+
 # Swagger UI Configuration
 springdoc:
   swagger-ui:
