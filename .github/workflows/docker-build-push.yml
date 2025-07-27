@@ -95,6 +95,11 @@ jobs:
           echo "Creating deploy directory..."
           sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
 
+      - name: Create .env file from secret
+        run: |
+          echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
+          cat .env | wc -l
+
       - name: Deploy configuration files one by one
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
@@ -108,6 +113,10 @@ jobs:
           # Then copy nginx.conf
           echo "Deploying nginx.conf..."
           sshpass -e scp -v -o StrictHostKeyChecking=no nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+
+          # Copy .env file
+          echo "Deploying .env file..."
+          sshpass -e scp -v -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Finally copy deploy.sh
           echo "Deploying deploy.sh..."
