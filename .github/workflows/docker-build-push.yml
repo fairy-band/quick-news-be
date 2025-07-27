@@ -62,6 +62,20 @@ jobs:
             ahj0/fairy-band:admin-${{ github.sha }}
           platforms: linux/amd64
 
+      - name: Discord notification for build
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "🐳 Docker 이미지 빌드 및 푸시"
+          description: |
+            **상태**: ${{ job.status }}
+            **브랜치**: ${{ github.ref_name }}
+            **커밋**: ${{ github.sha }}
+            **커밋 메시지**: ${{ github.event.head_commit.message }}
+          color: ${{ job.status == 'success' && '0x57F287' || '0xED4245' }}
+          username: GitHub Actions
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -110,3 +124,18 @@ jobs:
           export SSHPASS="${SSHPASS}"
           echo "Executing deployment script..."
           sshpass -e ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
+
+      - name: Discord notification for deployment
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "🚀 서버 배포"
+          description: |
+            **상태**: ${{ job.status }}
+            **브랜치**: ${{ github.ref_name }}
+            **커밋**: ${{ github.sha }}
+            **커밋 메시지**: ${{ github.event.head_commit.message }}
+            **배포 시간**: ${{ github.event.repository.updated_at }}
+          color: ${{ job.status == 'success' && '0x57F287' || '0xED4245' }}
+          username: GitHub Actions
