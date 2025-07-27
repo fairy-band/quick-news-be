@@ -46,3 +46,5 @@ logging:
     com.nexters.newsletterfeeder: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+server:
+  port: 8082
