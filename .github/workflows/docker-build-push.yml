@@ -65,14 +65,14 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
-      
+
       - name: Create deploy directory and set permissions
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
@@ -80,33 +80,29 @@ jobs:
           export SSHPASS="${SSHPASS}"
           echo "Creating deploy directory..."
           sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
-      
+
       - name: Deploy configuration files one by one
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           export SSHPASS="${SSHPASS}"
-          
+
           # First copy docker-compose.yml
           echo "Deploying docker-compose.yml..."
           sshpass -e scp -v -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-          
+
           # Then copy nginx.conf
           echo "Deploying nginx.conf..."
           sshpass -e scp -v -o StrictHostKeyChecking=no nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-          
-          # Then copy init-mongo.js
-          echo "Deploying init-mongo.js..."
-          sshpass -e scp -v -o StrictHostKeyChecking=no init-mongo.js ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-          
+
           # Finally copy deploy.sh
           echo "Deploying deploy.sh..."
           sshpass -e scp -v -o StrictHostKeyChecking=no deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-          
+
           # Make deploy.sh executable
           echo "Making deploy.sh executable..."
           sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/deploy.sh"
-      
+
       - name: Execute deployment script
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
