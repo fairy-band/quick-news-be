@@ -12,6 +12,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,6 +45,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       SERVER_PORT: 8082
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,6 +72,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
       SERVER_PORT: 8083
     depends_on:
       postgres:
