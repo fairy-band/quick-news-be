@@ -1,5 +1,4 @@
-version: '3.8'
-
+# local 환경에서 애플리케이션 실행을 위해 필요한 Docker Compose 설정 파일
 services:
   mongodb:
     image: mongo:7.0
@@ -53,4 +52,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data: 
+  postgres_data:
