@@ -61,3 +61,28 @@ jobs:
             ahj0/fairy-band:admin
             ahj0/fairy-band:admin-${{ github.sha }}
           platforms: linux/amd64
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Deploy configuration files
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no init-mongo.js ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+
+      - name: Execute deployment script
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && chmod +x deploy.sh && ./deploy.sh"
