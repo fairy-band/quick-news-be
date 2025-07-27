@@ -73,16 +73,37 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
+      - name: Check if deploy directory exists
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          export SSHPASS="${SSHPASS}"
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy"
+
       - name: Deploy configuration files
         env:
-          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no init-mongo.js ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          export SSHPASS="${SSHPASS}"
+          echo "Deploying docker-compose.yml..."
+          sshpass -e scp -v -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          echo "Deploying nginx.conf..."
+          sshpass -e scp -v -o StrictHostKeyChecking=no nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          echo "Deploying init-mongo.js..."
+          sshpass -e scp -v -o StrictHostKeyChecking=no init-mongo.js ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+
+      - name: Deploy deployment script
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          export SSHPASS="${SSHPASS}"
+          echo "Deploying deploy.sh..."
+          sshpass -e scp -v -o StrictHostKeyChecking=no deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
       - name: Execute deployment script
         env:
-          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && chmod +x deploy.sh && ./deploy.sh"
+          export SSHPASS="${SSHPASS}"
+          echo "Executing deployment script..."
+          sshpass -e ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && chmod +x deploy.sh && ./deploy.sh"
