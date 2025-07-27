@@ -730,7 +730,7 @@
         });
         
         function fetchCategories() {
-            fetch('/api/keywords/categories')
+            fetch('./api/keywords/categories')
                 .then(response => response.json())
                 .then(data => {
                     const select = document.getElementById('category-select');
@@ -746,7 +746,7 @@
         }
         
         function fetchReservedKeywords() {
-            fetch('/api/keywords/reserved')
+            fetch('./api/keywords/reserved')
                 .then(response => response.json())
                 .then(data => {
                     const keywordSelect = document.getElementById('keyword-select');
@@ -770,7 +770,7 @@
         }
         
         function fetchContents(page = 0, size = 10) {
-            fetch('/api/contents')
+            fetch('./api/contents')
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data);
@@ -779,7 +779,7 @@
         }
         
         function fetchContentsByCategory(categoryId) {
-            fetch(`/api/contents/by-category/${categoryId}`)
+            fetch(`./api/contents/by-category/${categoryId}`)
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data);
@@ -834,7 +834,7 @@
             document.getElementById('content-detail-section').style.display = 'block';
             
             // Fetch content details
-            fetch(`/api/contents/${contentId}`)
+            fetch(`./api/contents/${contentId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Content not found');
@@ -879,7 +879,7 @@
         }
         
         function fetchContentKeywords(contentId) {
-            fetch(`/api/process/content/${contentId}/keywords`)
+            fetch(`./api/process/content/${contentId}/keywords`)
                 .then(response => response.json())
                 .then(keywords => {
                     const container = document.getElementById('content-keywords');
@@ -921,7 +921,7 @@
         }
         
         function addKeywordToContent(contentId, keywordId) {
-            fetch(`/api/contents/${contentId}/keywords`, {
+            fetch(`./api/contents/${contentId}/keywords`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -950,7 +950,7 @@
         }
         
         function removeKeywordFromContent(contentId, keywordId) {
-            fetch(`/api/contents/${contentId}/keywords/${keywordId}`, {
+            fetch(`./api/contents/${contentId}/keywords/${keywordId}`, {
                 method: 'DELETE'
             })
             .then(response => {
@@ -964,7 +964,7 @@
         }
         
         function createContent(contentData) {
-            fetch('/api/contents', {
+            fetch('./api/contents', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1019,7 +1019,7 @@
         });
 
         function updateContent(contentId, contentData) {
-            fetch(`/api/contents/${contentId}`, {
+            fetch(`./api/contents/${contentId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1052,7 +1052,7 @@
         }
         
         function deleteContent(contentId) {
-            fetch(`/api/contents/${contentId}`, {
+            fetch(`./api/contents/${contentId}`, {
                 method: 'DELETE'
             })
             .then(response => {
@@ -1079,7 +1079,7 @@
         }
 
         function fetchAllReservedKeywords() {
-            fetch('/api/keywords/reserved')
+            fetch('./api/keywords/reserved')
                 .then(response => response.json())
                 .then(data => {
                     const keywordSelect = document.getElementById('keyword-select');
@@ -1110,7 +1110,7 @@
 
             showLoading();
 
-            fetch(`/api/process/content/${contentId}/summary`, {
+            fetch(`./api/process/content/${contentId}/summary`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1183,7 +1183,7 @@
 
             showLoading();
 
-            fetch(`/api/process/content/${contentId}/keywords`, {
+            fetch(`./api/process/content/${contentId}/keywords`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1263,7 +1263,7 @@
 
             showLoading();
 
-            fetch(`/api/process/content/${contentId}/keywords/extract-with-selected`, {
+            fetch(`./api/process/content/${contentId}/keywords/extract-with-selected`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1360,7 +1360,7 @@
             
             showLoading();
             
-            fetch(`/api/process/content/${contentId}/summary/save`, {
+            fetch(`./api/process/content/${contentId}/summary/save`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1399,7 +1399,7 @@
         }
         
         function fetchSavedSummaries(contentId) {
-            fetch(`/api/process/content/${contentId}/summaries`)
+            fetch(`./api/process/content/${contentId}/summaries`)
                 .then(response => response.json())
                 .then(summaries => {
                     const container = document.getElementById('saved-summaries-list');
@@ -1498,7 +1498,7 @@
             
             showLoading();
             
-            fetch('/api/process/candidate-keywords', {
+            fetch('./api/process/candidate-keywords', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

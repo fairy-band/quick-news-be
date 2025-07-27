@@ -342,7 +342,7 @@
         }
         
         function fetchCandidateKeywords() {
-            fetch('/api/keywords/candidate')
+            fetch('./api/keywords/candidate')
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('candidate-keywords-list');
@@ -405,7 +405,7 @@
         }
         
         function fetchReservedKeywords() {
-            fetch('/api/keywords/reserved')
+            fetch('./api/keywords/reserved')
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('reserved-keywords-list');
@@ -441,7 +441,7 @@
         }
         
         function fetchCategories() {
-            fetch('/api/keywords/categories')
+            fetch('./api/keywords/categories')
                 .then(response => response.json())
                 .then(data => {
                     const select = document.getElementById('category-select');
@@ -460,7 +460,7 @@
         }
         
         function fetchCategoryKeywords(categoryId) {
-            fetch(`/api/keywords/categories/${categoryId}/keywords`)
+            fetch(`./api/keywords/categories/${categoryId}/keywords`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('category-keywords-list');
@@ -496,7 +496,7 @@
         }
         
         function promoteCandidateKeyword(candidateId) {
-            fetch(`/api/keywords/candidate/${candidateId}/promote`, {
+            fetch(`./api/keywords/candidate/${candidateId}/promote`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -517,7 +517,7 @@
         }
         
         function addKeywordToCategory(categoryId, keywordId, weight) {
-            fetch(`/api/keywords/categories/${categoryId}/keywords`, {
+            fetch(`./api/keywords/categories/${categoryId}/keywords`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -548,7 +548,7 @@
         }
         
         function removeKeywordFromCategory(categoryId, keywordId) {
-            fetch(`/api/keywords/categories/${categoryId}/keywords/${keywordId}`, {
+            fetch(`./api/keywords/categories/${categoryId}/keywords/${keywordId}`, {
                 method: 'DELETE'
             })
             .then(response => {
@@ -562,7 +562,7 @@
         }
         
         function createReservedKeyword(keywordName) {
-            fetch('/api/keywords/reserved', {
+            fetch('./api/keywords/reserved', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -591,7 +591,7 @@
         }
 
         function createCandidateKeyword(keywordName) {
-            fetch('/api/keywords/candidate', {
+            fetch('./api/keywords/candidate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -620,7 +620,7 @@
         }
         
         function createCategory(categoryName) {
-            fetch('/api/keywords/categories', {
+            fetch('./api/keywords/categories', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -650,7 +650,7 @@
 
         function deleteCandidateKeyword(candidateId) {
             if (confirm('정말로 이 키워드를 삭제하시겠습니까?')) {
-                fetch(`/api/keywords/candidate/${candidateId}`, {
+                fetch(`./api/keywords/candidate/${candidateId}`, {
                     method: 'DELETE'
                 })
                 .then(response => {
@@ -766,7 +766,7 @@
                 }
                 
                 if (confirm(`선택된 ${selectedIds.length}개의 키워드를 삭제하시겠습니까?`)) {
-                    fetch('/api/keywords/candidate/batch', {
+                    fetch('./api/keywords/candidate/batch', {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json'

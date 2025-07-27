@@ -545,7 +545,7 @@
         }
         
         function fetchContents(page = 0, size = 10) {
-            fetch('/api/contents')
+            fetch('./api/contents')
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data);
@@ -615,7 +615,7 @@
         }
         
         function fetchContentKeywords(contentId) {
-            fetch(`/api/process/content/${contentId}/keywords`)
+            fetch(`./api/process/content/${contentId}/keywords`)
                 .then(response => response.json())
                 .then(keywords => {
                     const container = document.getElementById('content-keywords');
@@ -640,7 +640,7 @@
         }
         
         function fetchAllReservedKeywords() {
-            fetch('/api/process/reserved-keywords')
+            fetch('./api/process/reserved-keywords')
                 .then(response => response.json())
                 .then(keywords => {
                     const select = document.getElementById('keyword-select');
@@ -678,7 +678,7 @@
             showLoading();
 
             try {
-                const response = await fetch(`/api/process/content/${selectedContentId}/summary`, {
+                const response = await fetch(`./api/process/content/${selectedContentId}/summary`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -726,7 +726,7 @@
             showLoading();
 
             try {
-                const response = await fetch(`/api/process/content/${selectedContentId}/keywords`, {
+                const response = await fetch(`./api/process/content/${selectedContentId}/keywords`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -803,7 +803,7 @@
             showLoading();
 
             try {
-                const response = await fetch(`/api/process/content/${selectedContentId}/keywords/extract-with-selected`, {
+                const response = await fetch(`./api/process/content/${selectedContentId}/keywords/extract-with-selected`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

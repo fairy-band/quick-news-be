@@ -401,7 +401,7 @@
         // 메트릭 데이터 가져오기
         async function fetchMetrics() {
             try {
-                const response = await fetch('/api/metrics/gemini');
+                const response = await fetch('./api/metrics/gemini');
                 const data = await response.json();
                 updateDashboard(data);
             } catch (error) {
