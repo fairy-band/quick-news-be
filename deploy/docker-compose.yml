@@ -74,6 +74,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
       SERVER_PORT: 8083
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
