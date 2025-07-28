@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
-
-    <!-- Base appender configuration -->
-    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/spring.log}"/>
-    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+<configuration debug="true">
+    <!-- Console appender with explicit configuration -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
     <!-- Discord webhook appender - only active in prod environment -->
     <springProfile name="prod">
@@ -22,14 +22,8 @@
     <!-- Root logger configuration -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
         <springProfile name="prod">
             <appender-ref ref="DISCORD"/>
         </springProfile>
     </root>
-
-    <!-- Application-specific logger configurations -->
-    <logger name="com.nexters.admin" level="INFO"/>
-    <logger name="org.springframework" level="INFO"/>
-    <logger name="org.hibernate" level="WARN"/>
 </configuration>
