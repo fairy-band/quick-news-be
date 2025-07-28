@@ -2,12 +2,15 @@
 
 echo "🚀 뉴스레터 서비스 배포 시작..."
 
-# 특정 서비스만 pull 및 재시작
+docker image prune
+
 echo "📥 서비스 이미지 pull 중..."
 docker compose pull api batch admin nginx
 
+docker compose down
+
 echo "🔄 서비스 재시작 중..."
-docker compose up -d api batch admin
+docker compose up -d
 
 docker compose restart nginx
 
