@@ -18,7 +18,7 @@ class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, name = "device_token")
     val deviceToken: String,
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -27,8 +27,8 @@ class User(
         inverseJoinColumns = [JoinColumn(name = "category_id")]
     )
     val categories: Set<Category> = emptySet(),
-    @Column(nullable = false)
+    @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    @Column(nullable = false)
+    @Column(nullable = false, name = "updated_at")
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )
