@@ -11,6 +11,8 @@ import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.KeywordService
 import com.nexters.external.service.SummaryService
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -33,21 +35,23 @@ class ProcessController(
 ) {
     @GetMapping("/content/{contentId}/keywords")
     fun getContentKeywords(
-        @PathVariable contentId: Long
-    ): ResponseEntity<List<ReservedKeyword>> {
+        @PathVariable contentId: Long,
+        pageable: Pageable
+    ): ResponseEntity<Page<ReservedKeyword>> {
         val content =
             contentRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
-        val mappings = contentKeywordMappingRepository.findByContent(content)
-        val keywords = mappings.map { it.keyword }
+        val mappings = contentKeywordMappingRepository.findByContent(content, pageable)
+        val keywordPage = mappings.map { it.keyword }
 
-        return ResponseEntity.ok(keywords)
+        return ResponseEntity.ok(keywordPage)
     }
 
     @GetMapping("/reserved-keywords")
-    fun getAllReservedKeywords(): ResponseEntity<List<ReservedKeyword>> = ResponseEntity.ok(reservedKeywordRepository.findAll())
+    fun getAllReservedKeywords(pageable: Pageable): ResponseEntity<Page<ReservedKeyword>> =
+        ResponseEntity.ok(reservedKeywordRepository.findAll(pageable))
 
     @PostMapping("/content/{contentId}/keywords")
     fun extractKeywords(
@@ -134,6 +138,46 @@ class ProcessController(
         )
     }
 
+    @PostMapping("/content/{contentId}/keywords/extract-with-custom")
+    fun extractKeywordsWithCustom(
+        @PathVariable contentId: Long,
+        @RequestBody request: CustomKeywordsRequest
+    ): ResponseEntity<KeywordResponse> {
+        val content =
+            contentRepository
+                .findById(contentId)
+                .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
+
+        val keywordResult = keywordService.extractKeywords(request.keywords, content.content)
+
+        // Save matched keywords as content-keyword mappings
+        keywordResult.matchedKeywords.forEach { keywordName ->
+            val keyword = reservedKeywordRepository.findByName(keywordName)
+            if (keyword != null) {
+                val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(content, keyword)
+                if (existingMapping == null) {
+                    val mapping =
+                        ContentKeywordMapping(
+                            content = content,
+                            keyword = keyword,
+                            createdAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now()
+                        )
+                    contentKeywordMappingRepository.save(mapping)
+                }
+            }
+        }
+
+        return ResponseEntity.ok(
+            KeywordResponse(
+                success = true,
+                matchedKeywords = keywordResult.matchedKeywords,
+                suggestedKeywords = keywordResult.suggestedKeywords,
+                provocativeKeywords = keywordResult.provocativeKeywords
+            )
+        )
+    }
+
     @PostMapping("/content/{contentId}/summary")
     fun generateSummary(
         @PathVariable contentId: Long
@@ -188,14 +232,15 @@ class ProcessController(
 
     @GetMapping("/content/{contentId}/summaries")
     fun getContentSummaries(
-        @PathVariable contentId: Long
-    ): ResponseEntity<List<SummaryDetailResponse>> {
+        @PathVariable contentId: Long,
+        pageable: Pageable
+    ): ResponseEntity<Page<SummaryDetailResponse>> {
         val content =
             contentRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
-        val summaries = summaryRepository.findByContent(content)
+        val summaries = summaryRepository.findByContent(content, pageable)
 
         val summaryResponses =
             summaries.map { summary ->
@@ -279,6 +324,10 @@ data class KeywordResponse(
 
 data class SelectedKeywordsRequest(
     val keywordIds: List<Long>
+)
+
+data class CustomKeywordsRequest(
+    val keywords: List<String>
 )
 
 data class SaveSummaryRequest(

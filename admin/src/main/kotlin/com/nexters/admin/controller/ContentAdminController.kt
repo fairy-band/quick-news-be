@@ -7,6 +7,8 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -41,7 +43,7 @@ class ContentApiController(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository
 ) {
     @GetMapping
-    fun getAllContents(): ResponseEntity<List<Content>> = ResponseEntity.ok(contentRepository.findAll())
+    fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
 
     @PostMapping
     fun createContent(
@@ -190,14 +192,15 @@ class ContentApiController(
 
     @GetMapping("/by-category/{categoryId}")
     fun getContentsByCategory(
-        @PathVariable categoryId: Long
-    ): ResponseEntity<List<Content>> {
+        @PathVariable categoryId: Long,
+        pageable: Pageable
+    ): ResponseEntity<Page<Content>> {
         val category =
             categoryRepository
                 .findById(categoryId)
                 .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
 
-        val contents = contentRepository.findContentsByCategory(categoryId)
+        val contents = contentRepository.findContentsByCategory(categoryId, pageable)
         return ResponseEntity.ok(contents)
     }
 }

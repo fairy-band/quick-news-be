@@ -212,6 +212,216 @@
         .col-md-6 {
             flex: 1;
         }
+
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 300px; /* Adjust as needed */
+            overflow-y: auto;
+            padding-right: 10px; /* Add some padding for scrollbar */
+        }
+
+        .category-item {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination-item {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+            min-width: 40px;
+        }
+
+        .pagination-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .pagination-item.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .keyword-item {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .keyword-item span {
+            flex: 1;
+        }
+
+        .keyword-item button {
+            margin-left: 0.5rem;
+        }
+
+        .keyword-manager {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .keyword-column {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .keyword-column h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: #00d4ff;
+            font-size: 1.2rem;
+        }
+
+        .keyword-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .keyword-list-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .keyword-list-item:hover {
+            border-color: #00d4ff;
+        }
+
+        .keyword-list-item.selected {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+        }
+
+        .keyword-list-item .keyword-name {
+            flex: 1;
+        }
+
+        .keyword-list-item .keyword-weight {
+            width: 80px;
+            text-align: right;
+            color: #00d4ff;
+        }
+
+        .keyword-list-item .keyword-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: 1rem;
+        }
+
+        .keyword-search {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+        }
+
+        .keyword-search::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .category-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-selector select {
+            flex: 1;
+        }
+
+        .keyword-transfer-controls {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .keyword-transfer-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .keyword-transfer-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .keyword-transfer-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .weight-input-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .weight-input-container label {
+            white-space: nowrap;
+        }
+
+        .weight-input-container input {
+            width: 100px;
+        }
     </style>
 </head>
 <body>
@@ -233,28 +443,11 @@
             <div class="col-md-6">
                 <div class="section">
                     <h2>후보 키워드</h2>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div>
-                            <button id="select-all-candidates-btn" class="btn btn-primary">전체 선택</button>
-                            <button id="deselect-all-candidates-btn" class="btn btn-primary">전체 해제</button>
-                        </div>
-                        <div>
-                            <button id="delete-selected-candidates-btn" class="btn btn-danger" disabled>선택 삭제</button>
-                        </div>
-                    </div>
-                    <div id="candidate-keywords-list">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                    <div style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
-                        <h3>새 후보 키워드 추가</h3>
-                        <div style="display: flex; gap: 1rem; align-items: center;">
-                            <div style="flex: 3;">
-                                <input type="text" id="new-candidate-name" class="form-control" placeholder="키워드 이름">
-                            </div>
-                            <div>
-                                <button id="add-candidate-keyword-btn" class="btn btn-primary">추가</button>
-                            </div>
-                        </div>
+                    <div id="candidate-keywords-list"></div>
+                    <div class="pagination" id="candidate-pagination"></div>
+                    <div class="form-group">
+                        <input type="text" id="new-candidate-name" class="form-control" placeholder="새 후보 키워드">
+                        <button id="add-candidate-keyword-btn" class="btn btn-primary">추가</button>
                     </div>
                 </div>
             </div>
@@ -263,19 +456,11 @@
             <div class="col-md-6">
                 <div class="section">
                     <h2>예약 키워드</h2>
-                    <div id="reserved-keywords-list">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                    <div style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
-                        <h3>새 예약 키워드 추가</h3>
-                        <div style="display: flex; gap: 1rem; align-items: center;">
-                            <div style="flex: 3;">
-                                <input type="text" id="new-keyword-name" class="form-control" placeholder="키워드 이름">
-                            </div>
-                            <div>
-                                <button id="add-reserved-keyword-btn" class="btn btn-primary">추가</button>
-                            </div>
-                        </div>
+                    <div id="reserved-keywords-list"></div>
+                    <div class="pagination" id="reserved-pagination"></div>
+                    <div class="form-group">
+                        <input type="text" id="new-keyword-name" class="form-control" placeholder="새 예약 키워드">
+                        <button id="add-reserved-keyword-btn" class="btn btn-primary">추가</button>
                     </div>
                 </div>
             </div>
@@ -283,42 +468,45 @@
         
         <div class="section">
             <h2>카테고리</h2>
-            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
-                <div style="flex: 3;">
-                    <select id="category-select" class="form-select">
-                        <option value="">카테고리 선택</option>
-                        <!-- Will be populated by JavaScript -->
-                    </select>
-                </div>
-                <div style="flex: 3;">
-                    <input type="text" id="new-category-name" class="form-control" placeholder="새 카테고리 이름">
-                </div>
-                <div>
-                    <button id="add-category-btn" class="btn btn-primary">카테고리 추가</button>
-                </div>
+            <div id="categories-list" class="category-list"></div>
+            <div class="pagination" id="category-pagination"></div>
+            <div class="form-group">
+                <input type="text" id="new-category-name" class="form-control" placeholder="새 카테고리">
+                <button id="add-category-btn" class="btn btn-primary">추가</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>카테고리별 키워드</h2>
+            <div class="category-selector">
+                <select id="category-select" class="form-select">
+                    <option value="">카테고리 선택</option>
+                </select>
             </div>
             
-            <div id="category-keywords" class="mt-4">
-                <h3>카테고리 키워드</h3>
-                <div id="category-keywords-list">
-                    <!-- Will be populated by JavaScript -->
+            <div class="keyword-manager">
+                <div class="keyword-column">
+                    <h3>전체 키워드</h3>
+                    <input type="text" id="all-keywords-search" class="keyword-search" placeholder="키워드 검색...">
+                    <div class="weight-input-container">
+                        <label>기본 가중치:</label>
+                        <input type="number" id="default-weight" class="form-control" value="1.0" step="0.1" min="0" max="10">
+                    </div>
+                    <div id="all-keywords-list" class="keyword-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
                 </div>
                 
-                <div style="margin-top: 2rem;">
-                    <h3>키워드 추가</h3>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <div style="flex: 2;">
-                            <select id="keyword-select" class="form-select">
-                                <option value="">키워드 선택</option>
-                                <!-- Will be populated by JavaScript -->
-                            </select>
-                        </div>
-                        <div style="flex: 1;">
-                            <input type="number" id="keyword-weight" class="form-control" placeholder="가중치" step="0.1" min="0" max="1">
-                        </div>
-                        <div>
-                            <button id="add-keyword-btn" class="btn btn-primary">추가</button>
-                        </div>
+                <div class="keyword-transfer-controls">
+                    <button id="add-to-category-btn" class="keyword-transfer-btn" disabled title="카테고리에 추가">&rarr;</button>
+                    <button id="remove-from-category-btn" class="keyword-transfer-btn" disabled title="카테고리에서 제거">&larr;</button>
+                </div>
+                
+                <div class="keyword-column">
+                    <h3>카테고리 키워드</h3>
+                    <input type="text" id="category-keywords-search" class="keyword-search" placeholder="키워드 검색...">
+                    <div id="category-keywords-list" class="keyword-list">
+                        <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -341,158 +529,420 @@
             }
         }
         
-        function fetchCandidateKeywords() {
-            fetch('./api/keywords/candidate')
+        function fetchCandidateKeywords(page = 0, size = 10) {
+            fetch(`./api/keywords/candidate?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('candidate-keywords-list');
                     container.innerHTML = '';
                     
-                    if (data.length === 0) {
+                    if (data.content.length === 0) {
                         container.innerHTML = '<p>후보 키워드가 없습니다</p>';
-                        document.getElementById('delete-selected-candidates-btn').disabled = true;
                         return;
                     }
                     
-                    data.forEach(keyword => {
-                        const item = document.createElement('div');
-                        item.className = 'keyword-item';
+                    data.content.forEach(keyword => {
+                        const keywordItem = document.createElement('div');
+                        keywordItem.className = 'keyword-item';
                         
-                        const checkboxContainer = document.createElement('div');
-                        checkboxContainer.style.marginRight = '10px';
-                        
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.className = 'candidate-checkbox';
-                        checkbox.value = keyword.id;
-                        checkbox.style.cursor = 'pointer';
-                        checkbox.addEventListener('change', updateDeleteButtonState);
-                        
-                        checkboxContainer.appendChild(checkbox);
-                        
-                        const nameSpan = document.createElement('span');
-                        nameSpan.textContent = keyword.name;
-                        nameSpan.style.flex = '1';
-                        
-                        const actions = document.createElement('div');
-                        actions.className = 'keyword-actions';
+                        const keywordName = document.createElement('span');
+                        keywordName.textContent = keyword.name;
                         
                         const promoteBtn = document.createElement('button');
-                        promoteBtn.className = 'btn btn-success';
+                        promoteBtn.className = 'btn btn-primary';
                         promoteBtn.textContent = '승격';
-                        promoteBtn.addEventListener('click', () => promoteCandidateKeyword(keyword.id));
+                        promoteBtn.style.padding = '0.25rem 0.5rem';
+                        promoteBtn.style.fontSize = '0.8rem';
+                        promoteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            promoteCandidateToReserved(keyword.id);
+                        });
                         
                         const deleteBtn = document.createElement('button');
                         deleteBtn.className = 'btn btn-danger';
                         deleteBtn.textContent = '삭제';
-                        deleteBtn.addEventListener('click', () => deleteCandidateKeyword(keyword.id));
+                        deleteBtn.style.padding = '0.25rem 0.5rem';
+                        deleteBtn.style.fontSize = '0.8rem';
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deleteCandidateKeyword(keyword.id);
+                        });
                         
-                        actions.appendChild(promoteBtn);
-                        actions.appendChild(deleteBtn);
-                        
-                        item.appendChild(checkboxContainer);
-                        item.appendChild(nameSpan);
-                        item.appendChild(actions);
-                        container.appendChild(item);
+                        keywordItem.appendChild(keywordName);
+                        keywordItem.appendChild(promoteBtn);
+                        keywordItem.appendChild(deleteBtn);
+                        container.appendChild(keywordItem);
                     });
+                    
+                    // Add pagination
+                    renderCandidatePagination(data, 'candidate-pagination');
                 })
                 .catch(error => console.error('Error fetching candidate keywords:', error));
         }
-        
-        function updateDeleteButtonState() {
-            const selectedCheckboxes = document.querySelectorAll('.candidate-checkbox:checked');
-            document.getElementById('delete-selected-candidates-btn').disabled = selectedCheckboxes.length === 0;
+
+        function renderCandidatePagination(pageData, containerId) {
+            const paginationContainer = document.getElementById(containerId);
+            if (!paginationContainer) return;
+            
+            paginationContainer.innerHTML = '';
+            
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => fetchCandidateKeywords(pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+            
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => fetchCandidateKeywords(i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+            
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => fetchCandidateKeywords(pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
         }
         
-        function fetchReservedKeywords() {
-            fetch('./api/keywords/reserved')
+        function fetchReservedKeywords(page = 0, size = 10) {
+            fetch(`./api/keywords/reserved?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('reserved-keywords-list');
-                    const select = document.getElementById('keyword-select');
-                    
                     container.innerHTML = '';
-                    // Clear previous options but keep the first one
-                    select.innerHTML = '<option value="">키워드 선택</option>';
                     
-                    if (data.length === 0) {
+                    if (data.content.length === 0) {
                         container.innerHTML = '<p>예약 키워드가 없습니다</p>';
                         return;
                     }
                     
-                    data.forEach(keyword => {
-                        const item = document.createElement('div');
-                        item.className = 'keyword-item';
+                    data.content.forEach(keyword => {
+                        const keywordItem = document.createElement('div');
+                        keywordItem.className = 'keyword-item';
                         
-                        const nameSpan = document.createElement('span');
-                        nameSpan.textContent = keyword.name;
+                        const keywordName = document.createElement('span');
+                        keywordName.textContent = keyword.name;
                         
-                        item.appendChild(nameSpan);
-                        container.appendChild(item);
-                        
-                        // Add to select dropdown
-                        const option = document.createElement('option');
-                        option.value = keyword.id;
-                        option.textContent = keyword.name;
-                        select.appendChild(option);
+                        keywordItem.appendChild(keywordName);
+                        container.appendChild(keywordItem);
                     });
+                    
+                    // Add pagination
+                    renderReservedPagination(data, 'reserved-pagination');
                 })
                 .catch(error => console.error('Error fetching reserved keywords:', error));
+            
+            // 전체 키워드 목록은 별도로 가져오기
+            fetchAllReservedKeywords();
         }
-        
-        function fetchCategories() {
-            fetch('./api/keywords/categories')
+
+        function fetchAllReservedKeywords() {
+            fetch(`./api/keywords/reserved?page=0&size=1000`)
                 .then(response => response.json())
                 .then(data => {
+                    // 전체 키워드 목록 업데이트
+                    updateAllKeywordsList(data.content);
+                })
+                .catch(error => console.error('Error fetching all reserved keywords:', error));
+        }
+        
+        function updateAllKeywordsList(keywords) {
+            const container = document.getElementById('all-keywords-list');
+            container.innerHTML = '';
+            
+            if (keywords.length === 0) {
+                container.innerHTML = '<p>등록된 키워드가 없습니다</p>';
+                return;
+            }
+            
+            // 키워드를 알파벳 순으로 정렬
+            const sortedKeywords = [...keywords].sort((a, b) => a.name.localeCompare(b.name));
+            
+            sortedKeywords.forEach(keyword => {
+                const item = document.createElement('div');
+                item.className = 'keyword-list-item';
+                item.dataset.id = keyword.id;
+                item.dataset.name = keyword.name;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'keyword-name';
+                nameSpan.textContent = keyword.name;
+                
+                item.appendChild(nameSpan);
+                container.appendChild(item);
+                
+                // 클릭 이벤트 추가
+                item.addEventListener('click', () => {
+                    // 다른 키워드 선택 해제
+                    document.querySelectorAll('#all-keywords-list .keyword-list-item.selected').forEach(el => {
+                        if (el !== item) el.classList.remove('selected');
+                    });
+                    
+                    // 현재 키워드 선택 토글
+                    item.classList.toggle('selected');
+                    
+                    // 추가 버튼 활성화/비활성화
+                    updateTransferButtonsState();
+                });
+            });
+            
+            // 검색 기능 설정
+            setupKeywordSearch('all-keywords-search', 'all-keywords-list');
+        }
+        
+        function renderReservedPagination(pageData, containerId) {
+            const paginationContainer = document.getElementById(containerId);
+            if (!paginationContainer) return;
+            
+            paginationContainer.innerHTML = '';
+            
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => fetchReservedKeywords(pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+            
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => fetchReservedKeywords(i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+            
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => fetchReservedKeywords(pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
+        }
+        
+        function fetchCategories(page = 0, size = 10) {
+            fetch(`./api/keywords/categories?page=${page}&size=${size}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('categories-list');
                     const select = document.getElementById('category-select');
                     
-                    // Clear previous options but keep the first one
+                    container.innerHTML = '';
                     select.innerHTML = '<option value="">카테고리 선택</option>';
                     
-                    data.forEach(category => {
+                    if (data.content.length === 0) {
+                        container.innerHTML = '<p>카테고리가 없습니다</p>';
+                        return;
+                    }
+                    
+                    data.content.forEach(category => {
+                        // Add to list
+                        const categoryItem = document.createElement('div');
+                        categoryItem.className = 'category-item';
+                        categoryItem.textContent = category.name;
+                        categoryItem.addEventListener('click', () => fetchCategoryKeywords(category.id));
+                        container.appendChild(categoryItem);
+                        
+                        // Add to dropdown
                         const option = document.createElement('option');
                         option.value = category.id;
                         option.textContent = category.name;
                         select.appendChild(option);
                     });
+                    
+                    // Add pagination
+                    renderCategoryPagination(data, 'category-pagination');
                 })
                 .catch(error => console.error('Error fetching categories:', error));
         }
+
+        function renderCategoryPagination(pageData, containerId) {
+            const paginationContainer = document.getElementById(containerId);
+            if (!paginationContainer) return;
+            
+            paginationContainer.innerHTML = '';
+            
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => fetchCategories(pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+            
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => fetchCategories(i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+            
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => fetchCategories(pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
+        }
         
-        function fetchCategoryKeywords(categoryId) {
-            fetch(`./api/keywords/categories/${categoryId}/keywords`)
+        function fetchCategoryKeywords(categoryId, page = 0, size = 1000) {
+            if (!categoryId) {
+                document.getElementById('category-keywords-list').innerHTML = '<p>카테고리를 선택하세요</p>';
+                return;
+            }
+            
+            fetch(`./api/keywords/categories/${categoryId}/keywords?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('category-keywords-list');
                     container.innerHTML = '';
                     
-                    if (data.length === 0) {
+                    if (data.content.length === 0) {
                         container.innerHTML = '<p>이 카테고리에 키워드가 없습니다</p>';
                         return;
                     }
                     
-                    data.forEach(keyword => {
+                    data.content.forEach(keyword => {
                         const item = document.createElement('div');
-                        item.className = 'keyword-item';
+                        item.className = 'keyword-list-item';
+                        item.dataset.id = keyword.id;
+                        item.dataset.name = keyword.name;
                         
                         const nameSpan = document.createElement('span');
+                        nameSpan.className = 'keyword-name';
                         nameSpan.textContent = keyword.name;
                         
-                        const actions = document.createElement('div');
-                        actions.className = 'keyword-actions';
+                        // 가중치 표시
+                        const weightSpan = document.createElement('span');
+                        weightSpan.className = 'keyword-weight';
                         
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'btn btn-danger';
-                        removeBtn.textContent = '삭제';
-                        removeBtn.addEventListener('click', () => removeKeywordFromCategory(categoryId, keyword.id));
+                        // 가중치 정보 가져오기
+                        fetch(`./api/keywords/categories/${categoryId}/keywords/${keyword.id}/weight`)
+                            .then(response => response.json())
+                            .then(weightData => {
+                                weightSpan.textContent = weightData.weight.toFixed(1);
+                            })
+                            .catch(error => {
+                                console.error('Error fetching keyword weight:', error);
+                                weightSpan.textContent = '1.0';
+                            });
                         
-                        actions.appendChild(removeBtn);
                         item.appendChild(nameSpan);
-                        item.appendChild(actions);
+                        item.appendChild(weightSpan);
                         container.appendChild(item);
+                        
+                        // 클릭 이벤트 추가
+                        item.addEventListener('click', () => {
+                            // 다른 키워드 선택 해제
+                            document.querySelectorAll('#category-keywords-list .keyword-list-item.selected').forEach(el => {
+                                if (el !== item) el.classList.remove('selected');
+                            });
+                            
+                            // 현재 키워드 선택 토글
+                            item.classList.toggle('selected');
+                            
+                            // 제거 버튼 활성화/비활성화
+                            updateTransferButtonsState();
+                        });
                     });
+                    
+                    // 검색 기능 설정
+                    setupKeywordSearch('category-keywords-search', 'category-keywords-list');
                 })
                 .catch(error => console.error('Error fetching category keywords:', error));
+        }
+
+        function renderCategoryKeywordsPagination(pageData, containerId, categoryId) {
+            const paginationContainer = document.getElementById(containerId);
+            if (!paginationContainer) return;
+            
+            paginationContainer.innerHTML = '';
+            
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => fetchCategoryKeywords(categoryId, pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+            
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => fetchCategoryKeywords(categoryId, i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+            
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => fetchCategoryKeywords(categoryId, pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
         }
         
         function promoteCandidateKeyword(candidateId) {
@@ -512,53 +962,35 @@
                 // Refresh both lists
                 fetchCandidateKeywords();
                 fetchReservedKeywords();
+                
+                // Refresh all keywords list for category mapping
+                fetchAllReservedKeywords();
             })
             .catch(error => console.error('Error promoting keyword:', error));
         }
-        
-        function addKeywordToCategory(categoryId, keywordId, weight) {
-            fetch(`./api/keywords/categories/${categoryId}/keywords`, {
+
+        function promoteCandidateToReserved(candidateId) {
+            fetch(`./api/keywords/candidate/${candidateId}/promote-to-reserved`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    keywordId: keywordId,
-                    weight: parseFloat(weight)
-                })
+                }
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to add keyword to category');
+                    throw new Error('Failed to promote candidate to reserved');
                 }
                 return response.json();
             })
             .then(() => {
-                // Refresh category keywords list
-                fetchCategoryKeywords(categoryId);
+                // Refresh both lists
+                fetchCandidateKeywords();
+                fetchReservedKeywords();
                 
-                // Clear inputs
-                document.getElementById('keyword-select').value = '';
-                document.getElementById('keyword-weight').value = '';
+                // Refresh all keywords list for category mapping
+                fetchAllReservedKeywords();
             })
-            .catch(error => {
-                console.error('Error adding keyword to category:', error);
-                alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
-            });
-        }
-        
-        function removeKeywordFromCategory(categoryId, keywordId) {
-            fetch(`./api/keywords/categories/${categoryId}/keywords/${keywordId}`, {
-                method: 'DELETE'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to remove keyword from category');
-                }
-                // Refresh category keywords list
-                fetchCategoryKeywords(categoryId);
-            })
-            .catch(error => console.error('Error removing keyword from category:', error));
+            .catch(error => console.error('Error promoting candidate to reserved:', error));
         }
         
         function createReservedKeyword(keywordName) {
@@ -578,8 +1010,11 @@
                 return response.json();
             })
             .then(() => {
-                // Refresh reserved keywords list
+                // Refresh reserved keywords list with pagination
                 fetchReservedKeywords();
+                
+                // Refresh all keywords list for category mapping
+                fetchAllReservedKeywords();
                 
                 // Clear input
                 document.getElementById('new-keyword-name').value = '';
@@ -667,13 +1102,111 @@
             }
         }
 
+        function setupKeywordSearch(inputId, listId) {
+            const searchInput = document.getElementById(inputId);
+            const items = document.querySelectorAll(`#${listId} .keyword-list-item`);
+            
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                
+                items.forEach(item => {
+                    const keywordName = item.dataset.name.toLowerCase();
+                    if (searchTerm === '' || keywordName.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function updateTransferButtonsState() {
+            const addButton = document.getElementById('add-to-category-btn');
+            const removeButton = document.getElementById('remove-from-category-btn');
+            const categorySelect = document.getElementById('category-select');
+            
+            // 카테고리가 선택되었는지 확인
+            const categorySelected = categorySelect.value !== '';
+            
+            // 전체 키워드에서 선택된 항목이 있는지 확인
+            const allKeywordSelected = document.querySelector('#all-keywords-list .keyword-list-item.selected') !== null;
+            
+            // 카테고리 키워드에서 선택된 항목이 있는지 확인
+            const categoryKeywordSelected = document.querySelector('#category-keywords-list .keyword-list-item.selected') !== null;
+            
+            // 버튼 상태 업데이트
+            addButton.disabled = !categorySelected || !allKeywordSelected;
+            removeButton.disabled = !categorySelected || !categoryKeywordSelected;
+        }
+
+        function addKeywordToCategory(categoryId, keywordId, weight) {
+            fetch(`./api/keywords/categories/${categoryId}/keywords`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    keywordId: keywordId,
+                    weight: weight
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add keyword to category');
+                }
+                return response.json();
+            })
+            .then(() => {
+                // 키워드 선택 해제
+                document.querySelectorAll('#all-keywords-list .keyword-list-item.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                
+                // 버튼 상태 업데이트
+                updateTransferButtonsState();
+                
+                // 카테고리 키워드 목록 새로고침
+                fetchCategoryKeywords(categoryId);
+            })
+            .catch(error => {
+                console.error('Error adding keyword to category:', error);
+                alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
+            });
+        }
+
+        function removeKeywordFromCategory(categoryId, keywordId) {
+            fetch(`./api/keywords/categories/${categoryId}/keywords/${keywordId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to remove keyword from category');
+                }
+                
+                // 키워드 선택 해제
+                document.querySelectorAll('#category-keywords-list .keyword-list-item.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                
+                // 버튼 상태 업데이트
+                updateTransferButtonsState();
+                
+                // 카테고리 키워드 목록 새로고침
+                fetchCategoryKeywords(categoryId);
+            })
+            .catch(error => {
+                console.error('Error removing keyword from category:', error);
+                alert('키워드 제거에 실패했습니다.');
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
             
             // Fetch all candidate keywords
             fetchCandidateKeywords();
             
-            // Fetch all reserved keywords
+            // Fetch reserved keywords with pagination
             fetchReservedKeywords();
             
             // Fetch all categories
@@ -687,20 +1220,43 @@
                 } else {
                     document.getElementById('category-keywords-list').innerHTML = '<p>카테고리를 선택하세요</p>';
                 }
+                
+                // 버튼 상태 업데이트
+                updateTransferButtonsState();
             });
             
-            // Set up add keyword button
-            document.getElementById('add-keyword-btn').addEventListener('click', function() {
+            // 키워드 추가 버튼 이벤트 설정
+            document.getElementById('add-to-category-btn').addEventListener('click', function() {
                 const categoryId = document.getElementById('category-select').value;
-                const keywordId = document.getElementById('keyword-select').value;
-                const weight = document.getElementById('keyword-weight').value;
+                const selectedKeyword = document.querySelector('#all-keywords-list .keyword-list-item.selected');
+                const defaultWeight = document.getElementById('default-weight').value;
                 
-                if (!categoryId || !keywordId || !weight) {
-                    alert('카테고리, 키워드, 가중치를 모두 입력해주세요');
+                if (!categoryId || !selectedKeyword) {
+                    alert('카테고리와 키워드를 모두 선택해주세요');
                     return;
                 }
                 
+                const keywordId = selectedKeyword.dataset.id;
+                const weight = parseFloat(defaultWeight) || 1.0;
+                
                 addKeywordToCategory(categoryId, keywordId, weight);
+            });
+            
+            // 키워드 제거 버튼 이벤트 설정
+            document.getElementById('remove-from-category-btn').addEventListener('click', function() {
+                const categoryId = document.getElementById('category-select').value;
+                const selectedKeyword = document.querySelector('#category-keywords-list .keyword-list-item.selected');
+                
+                if (!categoryId || !selectedKeyword) {
+                    alert('카테고리와 키워드를 모두 선택해주세요');
+                    return;
+                }
+                
+                const keywordId = selectedKeyword.dataset.id;
+                
+                if (confirm('정말로 이 키워드를 카테고리에서 제거하시겠습니까?')) {
+                    removeKeywordFromCategory(categoryId, keywordId);
+                }
             });
             
             // Set up add reserved keyword button
@@ -737,65 +1293,6 @@
                 }
                 
                 createCategory(categoryName);
-            });
-
-            // Set up select/deselect all buttons
-            document.getElementById('select-all-candidates-btn').addEventListener('click', function() {
-                const checkboxes = document.querySelectorAll('.candidate-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = true;
-                });
-                updateDeleteButtonState();
-            });
-            
-            document.getElementById('deselect-all-candidates-btn').addEventListener('click', function() {
-                const checkboxes = document.querySelectorAll('.candidate-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-                updateDeleteButtonState();
-            });
-            
-            // Set up delete selected button
-            document.getElementById('delete-selected-candidates-btn').addEventListener('click', function() {
-                const selectedIds = Array.from(document.querySelectorAll('.candidate-checkbox:checked')).map(checkbox => parseInt(checkbox.value));
-                
-                if (selectedIds.length === 0) {
-                    alert('삭제할 키워드를 선택해주세요.');
-                    return;
-                }
-                
-                if (confirm(`선택된 ${selectedIds.length}개의 키워드를 삭제하시겠습니까?`)) {
-                    fetch('./api/keywords/candidate/batch', {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ candidateIds: selectedIds })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to delete candidate keywords');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            alert(`${data.deletedIds.length}개의 키워드가 삭제되었습니다.`);
-                            if (data.notFoundIds.length > 0) {
-                                alert(`${data.notFoundIds.length}개의 키워드는 이미 삭제되었거나 찾을 수 없습니다.`);
-                            }
-                        } else {
-                            alert('키워드 삭제에 실패했습니다.');
-                        }
-                        // Refresh lists
-                        fetchCandidateKeywords();
-                    })
-                    .catch(error => {
-                        console.error('Error deleting candidate keywords:', error);
-                        alert('키워드 삭제에 실패했습니다.');
-                    });
-                }
             });
         });
     </script>

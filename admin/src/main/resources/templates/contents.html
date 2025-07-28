@@ -362,6 +362,127 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .keyword-tags-container {
+            margin-bottom: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .keyword-tags-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+        
+        .keyword-count-total {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .keyword-tag {
+            display: inline-flex;
+            align-items: center;
+            margin: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .keyword-tag.selected {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: #000;
+            border-color: transparent;
+        }
+        
+        .keyword-tag:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+        
+        .keyword-search {
+            margin-bottom: 1rem;
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .keyword-search::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .keyword-tags-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+        }
+        
+        .keyword-count {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .keyword-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .keyword-tag.existing {
+            background-color: rgba(79, 172, 254, 0.3);
+            border-color: #4facfe;
+            color: #fff;
+            position: relative;
+            cursor: not-allowed;
+        }
+        
+        .keyword-tag.existing::after {
+            content: "✓";
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #4facfe;
+            color: #000;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .keyword-checkbox {
+            margin-bottom: 0.5rem;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .keyword-checkbox.existing {
+            opacity: 0.6;
+            background-color: rgba(79, 172, 254, 0.1);
+            border: 1px dashed rgba(79, 172, 254, 0.5);
+        }
+        
+        .existing-badge {
+            font-size: 10px;
+            background-color: #4facfe;
+            color: #000;
+            padding: 2px 5px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -519,30 +640,27 @@
                 
                 <div style="margin-top: 1.5rem;">
                     <h3>키워드 추가</h3>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <div style="flex: 1;">
-                            <select id="add-keyword-select" class="form-select">
-                                <option value="">키워드 선택</option>
-                                <!-- Will be populated by JavaScript -->
-                            </select>
+                    <div>
+                        <input type="text" id="keyword-search" class="keyword-search" placeholder="키워드 검색...">
+                        <div id="keyword-tags-container" class="keyword-tags-container">
+                            <!-- Will be populated by JavaScript -->
                         </div>
-                        <div>
-                            <button id="add-keyword-btn" class="btn btn-primary">추가</button>
+                        <div class="keyword-tags-footer">
+                            <div class="keyword-count">
+                                <span id="selected-count">0</span>개 선택됨
+                            </div>
+                            <div class="keyword-actions">
+                                <button id="add-keyword-btn" class="btn btn-primary">선택한 키워드 추가</button>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div style="margin-top: 2rem;">
-                    <h3>키워드 선택 추출</h3>
+                    <h3>현재 키워드로 추출</h3>
                     <div id="keyword-selection">
-                        <div class="keyword-select-container" style="margin-bottom: 1rem;">
-                            <select id="keyword-select" class="form-select" multiple style="height: 150px; background: rgba(0, 0, 0, 0.3); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 0.5rem;">
-                                <!-- Will be populated by JavaScript -->
-                            </select>
-                            <div class="keyword-selection-info" style="font-size: 0.8rem; color: #a0aec0; margin-top: 0.5rem; text-align: right;">Ctrl 또는 Shift 키를 누른 상태에서 여러 키워드를 선택할 수 있습니다.</div>
-                        </div>
                         <button id="extract-with-selected-btn" class="btn btn-primary">
-                            🔍 선택 키워드로 추출
+                            🔍 현재 키워드로 추출
                         </button>
                     </div>
                 </div>
@@ -556,6 +674,9 @@
                         <div style="display: flex; gap: 1rem;">
                             <button id="add-selected-as-candidates-btn" class="btn btn-primary" style="flex: 1;" disabled>
                                 선택한 키워드를 후보로 추가
+                            </button>
+                            <button id="add-selected-as-reserved-btn" class="btn btn-success" style="flex: 1;" disabled>
+                                선택한 키워드를 예약 키워드로 추가
                             </button>
                         </div>
                     </div>
@@ -626,9 +747,9 @@
             document.getElementById('filter-btn').addEventListener('click', function() {
                 const categoryId = document.getElementById('category-select').value;
                 if (categoryId) {
-                    fetchContentsByCategory(categoryId);
+                    fetchContentsByCategory(categoryId, 0, 10);
                 } else {
-                    fetchContents();
+                    fetchContents(0, 10);
                 }
             });
             
@@ -636,24 +757,30 @@
             document.getElementById('keyword-filter-btn').addEventListener('click', function() {
                 const keywordId = document.getElementById('keyword-select').value;
                 if (keywordId) {
-                    // This would require a backend endpoint to filter by keyword
-                    alert('키워드별 필터링은 아직 구현되지 않았습니다.');
+                    // Implement keyword filtering with pagination
+                    alert('키워드 필터링 기능은 아직 구현되지 않았습니다.');
                 } else {
-                    fetchContents();
+                    fetchContents(0, 10);
                 }
             });
             
             // Set up add keyword button
             document.getElementById('add-keyword-btn').addEventListener('click', function() {
                 const contentId = document.getElementById('content-detail').dataset.contentId;
-                const keywordId = document.getElementById('add-keyword-select').value;
+                const selectedTags = document.querySelectorAll('.keyword-tag.selected');
                 
-                if (!contentId || !keywordId) {
-                    alert('콘텐츠와 키워드를 모두 선택해주세요');
+                if (!contentId) {
+                    alert('콘텐츠를 선택해주세요');
                     return;
                 }
                 
-                addKeywordToContent(contentId, keywordId);
+                if (selectedTags.length === 0) {
+                    alert('추가할 키워드를 하나 이상 선택해주세요');
+                    return;
+                }
+                
+                // 선택된 모든 키워드를 콘텐츠에 추가
+                addKeywordsToContent(contentId, Array.from(selectedTags).map(tag => tag.dataset.id));
             });
             
             // Set up delete content button
@@ -704,7 +831,7 @@
             });
             
             document.getElementById('extract-with-selected-btn').addEventListener('click', function() {
-                extractWithSelectedKeywords(document.getElementById('edit-content-id').value);
+                extractWithSelectedKeywords();
             });
             
             // Set up headline selection
@@ -725,8 +852,18 @@
                 addSelectedKeywordsAsCandidates();
             });
             
-            // Fetch all reserved keywords for the dropdowns
-            fetchAllReservedKeywords();
+            // 선택한 키워드를 예약 키워드로 추가 버튼 이벤트 설정
+            document.getElementById('add-selected-as-reserved-btn').addEventListener('click', async function() {
+                const selectedKeywords = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked:not(:disabled)');
+                
+                if (selectedKeywords.length === 0) {
+                    alert('예약 키워드로 추가할 키워드를 하나 이상 선택해주세요.');
+                    return;
+                }
+                
+                const keywordNames = Array.from(selectedKeywords).map(checkbox => checkbox.value);
+                await addKeywordsAsReserved(keywordNames);
+            });
         });
         
         function fetchCategories() {
@@ -746,43 +883,208 @@
         }
         
         function fetchReservedKeywords() {
-            fetch('./api/keywords/reserved')
-                .then(response => response.json())
-                .then(data => {
-                    const keywordSelect = document.getElementById('keyword-select');
-                    const addKeywordSelect = document.getElementById('add-keyword-select');
-                    
-                    data.forEach(keyword => {
-                        // Add to keyword filter dropdown
-                        const option1 = document.createElement('option');
-                        option1.value = keyword.id;
-                        option1.textContent = keyword.name;
-                        keywordSelect.appendChild(option1);
+            // 현재 선택된 콘텐츠 ID 가져오기
+            const contentDetailElement = document.getElementById('content-detail');
+            const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
+            
+            // 현재 콘텐츠의 키워드 목록 가져오기
+            let existingKeywords = [];
+            
+            // 콘텐츠가 선택되어 있으면 현재 키워드 가져오기
+            const fetchExistingKeywords = async () => {
+                if (contentId) {
+                    try {
+                        const response = await fetch(`./api/process/content/${contentId}/keywords?size=1000`);
+                        const data = await response.json();
+                        return data.content.map(keyword => keyword.id.toString());
+                    } catch (error) {
+                        console.error('Error fetching content keywords:', error);
+                        return [];
+                    }
+                }
+                return [];
+            };
+            
+            // 모든 키워드 가져오기 (예약 키워드와 후보 키워드 모두)
+            fetchExistingKeywords().then(existingKeywordIds => {
+                // 전체 예약 키워드 가져오기 (size=1000으로 설정하여 최대한 많은 키워드 가져오기)
+                fetch('./api/keywords/reserved?size=1000')
+                    .then(response => response.json())
+                    .then(data => {
+                        const keywordSelect = document.getElementById('keyword-select');
+                        const keywordTagsContainer = document.getElementById('keyword-tags-container');
                         
-                        // Add to keyword add dropdown
-                        const option2 = document.createElement('option');
-                        option2.value = keyword.id;
-                        option2.textContent = keyword.name;
-                        addKeywordSelect.appendChild(option2);
-                    });
-                })
-                .catch(error => console.error('Error fetching reserved keywords:', error));
+                        // 키워드 필터 드롭다운 업데이트
+                        keywordSelect.innerHTML = '<option value="">모든 키워드</option>';
+                        data.content.forEach(keyword => {
+                            const option = document.createElement('option');
+                            option.value = keyword.id;
+                            option.textContent = keyword.name;
+                            keywordSelect.appendChild(option);
+                        });
+                        
+                        // 키워드 태그 컨테이너 업데이트
+                        keywordTagsContainer.innerHTML = '';
+                        
+                        // 헤더 추가 (전체 키워드 수 표시)
+                        const headerDiv = document.createElement('div');
+                        headerDiv.className = 'keyword-tags-header';
+                        headerDiv.innerHTML = `
+                            <div>전체 예약 키워드</div>
+                            <div class="keyword-count-total">총 ${data.content.length}개</div>
+                        `;
+                        keywordTagsContainer.appendChild(headerDiv);
+                        
+                        if (data.content.length === 0) {
+                            keywordTagsContainer.innerHTML += '<p>등록된 키워드가 없습니다</p>';
+                            return;
+                        }
+                        
+                        // 키워드를 알파벳 순으로 정렬
+                        const sortedKeywords = [...data.content].sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        // 키워드 태그 컨테이너에 태그 추가
+                        const tagsContainer = document.createElement('div');
+                        tagsContainer.className = 'keyword-tags';
+                        keywordTagsContainer.appendChild(tagsContainer);
+                        
+                        sortedKeywords.forEach(keyword => {
+                            const tag = document.createElement('div');
+                            tag.className = 'keyword-tag';
+                            
+                            // 이미 콘텐츠에 존재하는 키워드인지 확인
+                            const isExisting = existingKeywordIds.includes(keyword.id.toString());
+                            
+                            if (isExisting) {
+                                tag.classList.add('existing');
+                                tag.title = '이미 추가된 키워드';
+                                // 시각적으로 구분할 수 있는 스타일 추가
+                                tag.style.backgroundColor = 'rgba(79, 172, 254, 0.3)';
+                                tag.style.borderColor = '#4facfe';
+                            }
+                            
+                            tag.dataset.id = keyword.id;
+                            tag.dataset.name = keyword.name;
+                            tag.textContent = keyword.name;
+                            
+                            tag.addEventListener('click', () => {
+                                // 이미 존재하는 키워드는 선택 불가능하게 설정
+                                if (!isExisting) {
+                                    tag.classList.toggle('selected');
+                                    updateSelectedCount();
+                                } else {
+                                    alert('이미 추가된 키워드입니다.');
+                                }
+                            });
+                            
+                            tagsContainer.appendChild(tag);
+                        });
+                        
+                        // 검색 기능 설정
+                        setupKeywordSearch();
+                        
+                        // 선택된 개수 초기화
+                        updateSelectedCount();
+                    })
+                    .catch(error => console.error('Error fetching reserved keywords:', error));
+            });
+        }
+
+        function setupKeywordSearch() {
+            const searchInput = document.getElementById('keyword-search');
+            const tags = document.querySelectorAll('.keyword-tags .keyword-tag');
+            
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                let visibleCount = 0;
+                
+                tags.forEach(tag => {
+                    const keywordName = tag.dataset.name.toLowerCase();
+                    if (searchTerm === '' || keywordName.includes(searchTerm)) {
+                        tag.style.display = 'inline-flex';
+                        visibleCount++;
+                    } else {
+                        tag.style.display = 'none';
+                    }
+                });
+                
+                // 검색 결과 수 업데이트
+                const countTotal = document.querySelector('.keyword-count-total');
+                if (countTotal) {
+                    const totalCount = tags.length;
+                    if (searchTerm === '') {
+                        countTotal.textContent = `총 ${totalCount}개`;
+                    } else {
+                        countTotal.textContent = `검색 결과: ${visibleCount}/${totalCount}개`;
+                    }
+                }
+            });
+        }
+
+        function updateSelectedCount() {
+            const selectedTags = document.querySelectorAll('.keyword-tag.selected');
+            const countElement = document.getElementById('selected-count');
+            countElement.textContent = selectedTags.length;
         }
         
         function fetchContents(page = 0, size = 10) {
-            fetch('./api/contents')
+            fetch(`./api/contents?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
-                    renderContentList(data);
+                    renderContentList(data.content);
+                    renderPagination(data);
                 })
                 .catch(error => console.error('Error fetching contents:', error));
         }
         
-        function fetchContentsByCategory(categoryId) {
-            fetch(`./api/contents/by-category/${categoryId}`)
+        function renderPagination(pageData) {
+            const paginationContainer = document.getElementById('pagination');
+            paginationContainer.innerHTML = '';
+            
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => fetchContents(pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+            
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => fetchContents(i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+            
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => fetchContents(pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
+        }
+        
+        function fetchContentsByCategory(categoryId, page = 0, size = 10) {
+            fetch(`./api/contents/by-category/${categoryId}?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
-                    renderContentList(data);
+                    renderContentList(data.content);
+                    renderPagination(data);
                 })
                 .catch(error => console.error('Error fetching contents by category:', error));
         }
@@ -871,6 +1173,13 @@
                     
                     // Hide summary save section
                     document.getElementById('summary-save-section').style.display = 'none';
+                    
+                    // 예약 키워드 목록 새로고침 (이미 추가된 키워드 표시를 위해)
+                    fetchReservedKeywords();
+                    
+                    // 후보 키워드 추가 섹션 초기화
+                    document.getElementById('suggested-keywords-container').innerHTML = '';
+                    document.getElementById('add-selected-as-candidates-btn').disabled = true;
                 })
                 .catch(error => {
                     console.error('Error fetching content details:', error);
@@ -878,46 +1187,95 @@
                 });
         }
         
-        function fetchContentKeywords(contentId) {
-            fetch(`./api/process/content/${contentId}/keywords`)
-                .then(response => response.json())
-                .then(keywords => {
-                    const container = document.getElementById('content-keywords');
-                    container.innerHTML = '<h4>현재 키워드</h4>';
+        async function fetchContentKeywords(contentId, page = 0, size = 10) {
+            try {
+                const response = await fetch(`./api/process/content/${contentId}/keywords?page=${page}&size=${size}`);
+                const data = await response.json();
+                
+                const container = document.getElementById('content-keywords');
+                container.innerHTML = '<h4>현재 키워드</h4>';
+                
+                if (data.content.length === 0) {
+                    container.innerHTML += '<p>등록된 키워드가 없습니다</p>';
+                    return [];
+                }
+                
+                const keywordList = document.createElement('div');
+                keywordList.className = 'keyword-list';
+                
+                const keywordNames = [];
+                
+                data.content.forEach(keyword => {
+                    const keywordItem = document.createElement('div');
+                    keywordItem.className = 'keyword-item';
                     
-                    if (keywords.length === 0) {
-                        container.innerHTML += '<p>등록된 키워드가 없습니다</p>';
-                        return;
-                    }
+                    const keywordName = document.createElement('span');
+                    keywordName.textContent = keyword.name;
+                    keywordNames.push(keyword.name);
                     
-                    const keywordList = document.createElement('div');
-                    keywordList.className = 'keyword-list';
-                    
-                    keywords.forEach(keyword => {
-                        const keywordItem = document.createElement('div');
-                        keywordItem.className = 'keyword-item';
-                        
-                        const keywordName = document.createElement('span');
-                        keywordName.textContent = keyword.name;
-                        
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'btn btn-danger';
-                        removeBtn.textContent = '삭제';
-                        removeBtn.style.padding = '0.25rem 0.5rem';
-                        removeBtn.style.fontSize = '0.8rem';
-                        removeBtn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            removeKeywordFromContent(contentId, keyword.id);
-                        });
-                        
-                        keywordItem.appendChild(keywordName);
-                        keywordItem.appendChild(removeBtn);
-                        keywordList.appendChild(keywordItem);
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'btn btn-danger';
+                    removeBtn.textContent = '삭제';
+                    removeBtn.style.padding = '0.25rem 0.5rem';
+                    removeBtn.style.fontSize = '0.8rem';
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        removeKeywordFromContent(contentId, keyword.id);
                     });
                     
-                    container.appendChild(keywordList);
-                })
-                .catch(error => console.error('Error fetching content keywords:', error));
+                    keywordItem.appendChild(keywordName);
+                    keywordItem.appendChild(removeBtn);
+                    keywordList.appendChild(keywordItem);
+                });
+                
+                container.appendChild(keywordList);
+                
+                // Add pagination
+                const paginationContainer = document.createElement('div');
+                paginationContainer.className = 'pagination';
+                
+                if (data.totalPages > 1) {
+                    // Previous button
+                    if (data.number > 0) {
+                        const prevButton = document.createElement('div');
+                        prevButton.className = 'pagination-item';
+                        prevButton.textContent = '이전';
+                        prevButton.addEventListener('click', () => fetchContentKeywords(contentId, data.number - 1, data.size));
+                        paginationContainer.appendChild(prevButton);
+                    }
+                    
+                    // Page numbers
+                    const startPage = Math.max(0, data.number - 2);
+                    const endPage = Math.min(data.totalPages - 1, data.number + 2);
+                    
+                    for (let i = startPage; i <= endPage; i++) {
+                        const pageButton = document.createElement('div');
+                        pageButton.className = 'pagination-item';
+                        if (i === data.number) {
+                            pageButton.classList.add('active');
+                        }
+                        pageButton.textContent = i + 1;
+                        pageButton.addEventListener('click', () => fetchContentKeywords(contentId, i, data.size));
+                        paginationContainer.appendChild(pageButton);
+                    }
+                    
+                    // Next button
+                    if (data.number < data.totalPages - 1) {
+                        const nextButton = document.createElement('div');
+                        nextButton.className = 'pagination-item';
+                        nextButton.textContent = '다음';
+                        nextButton.addEventListener('click', () => fetchContentKeywords(contentId, data.number + 1, data.size));
+                        paginationContainer.appendChild(nextButton);
+                    }
+                    
+                    container.appendChild(paginationContainer);
+                }
+                
+                return keywordNames;
+            } catch (error) {
+                console.error('Error fetching content keywords:', error);
+                return [];
+            }
         }
         
         function addKeywordToContent(contentId, keywordId) {
@@ -959,6 +1317,9 @@
                 }
                 // Refresh content keywords
                 fetchContentKeywords(contentId);
+                
+                // 예약 키워드 목록 새로고침 (이미 추가된 키워드 표시를 위해)
+                fetchReservedKeywords();
             })
             .catch(error => console.error('Error removing keyword from content:', error));
         }
@@ -1078,36 +1439,14 @@
             });
         }
 
-        function fetchAllReservedKeywords() {
-            fetch('./api/keywords/reserved')
-                .then(response => response.json())
-                .then(data => {
-                    const keywordSelect = document.getElementById('keyword-select');
-                    const addKeywordSelect = document.getElementById('add-keyword-select');
-                    
-                    data.forEach(keyword => {
-                        // Add to keyword filter dropdown
-                        const option1 = document.createElement('option');
-                        option1.value = keyword.id;
-                        option1.textContent = keyword.name;
-                        keywordSelect.appendChild(option1);
-                        
-                        // Add to keyword add dropdown
-                        const option2 = document.createElement('option');
-                        option2.value = keyword.id;
-                        option2.textContent = keyword.name;
-                        addKeywordSelect.appendChild(option2);
-                    });
-                })
-                .catch(error => console.error('Error fetching reserved keywords:', error));
-        }
-        
         function generateSummary(contentId) {
             if (!contentId) {
                 alert('콘텐츠를 선택해주세요.');
                 return;
             }
 
+            // Clear previous results
+            document.getElementById('ai-results').innerHTML = '';
             showLoading();
 
             fetch(`./api/process/content/${contentId}/summary`, {
@@ -1181,6 +1520,8 @@
                 return;
             }
 
+            // Clear previous results
+            document.getElementById('ai-results').innerHTML = '';
             showLoading();
 
             fetch(`./api/process/content/${contentId}/keywords`, {
@@ -1247,37 +1588,44 @@
             });
         }
         
-        function extractWithSelectedKeywords(contentId) {
+        async function extractWithSelectedKeywords() {
+            // contentId를 전달하지 않고 함수 내에서 현재 선택된 콘텐츠 ID를 가져오도록 함
+            const contentDetailElement = document.getElementById('content-detail');
+            const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
+            
             if (!contentId) {
                 alert('콘텐츠를 선택해주세요.');
                 return;
             }
             
-            const select = document.getElementById('keyword-select');
-            const selectedOptions = Array.from(select.selectedOptions).map(option => parseInt(option.value));
+            // 현재 키워드 다시 가져오기 (최신 상태 반영)
+            const currentKeywords = await fetchContentKeywords(contentId);
             
-            if (selectedOptions.length === 0) {
-                alert('키워드를 하나 이상 선택해주세요.');
+            if (currentKeywords.length === 0) {
+                alert('현재 콘텐츠에 등록된 키워드가 없습니다. 먼저 키워드를 추가해주세요.');
                 return;
             }
 
+            // Clear previous results
+            document.getElementById('ai-results').innerHTML = '';
             showLoading();
 
-            fetch(`./api/process/content/${contentId}/keywords/extract-with-selected`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    keywordIds: selectedOptions
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const response = await fetch(`./api/process/content/${contentId}/keywords/extract-with-custom`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keywords: currentKeywords
+                    })
+                });
+                
+                const data = await response.json();
                 hideLoading();
 
                 if (data.success) {
-                    let html = '<div class="result-card"><div class="result-title">🏷️ 선택 키워드 기반 분석 결과</div>';
+                    let html = '<div class="result-card"><div class="result-title">🏷️ 현재 키워드 기반 분석 결과</div>';
 
                     if (data.matchedKeywords && data.matchedKeywords.length > 0) {
                         html += `
@@ -1315,19 +1663,15 @@
                     html += '</div>';
                     document.getElementById('ai-results').innerHTML = html;
                     
-                    // Refresh content keywords after extraction
-                    fetchContentKeywords(contentId);
-                    
                     // Display suggested keywords for candidate selection
                     displaySuggestedKeywordsForSelection(data);
                 } else {
                     showError(data.error || '키워드 추출에 실패했습니다.');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 hideLoading();
                 showError('서버 오류가 발생했습니다: ' + error.message);
-            });
+            }
         }
         
         function showLoading() {
@@ -1398,21 +1742,21 @@
             });
         }
         
-        function fetchSavedSummaries(contentId) {
-            fetch(`./api/process/content/${contentId}/summaries`)
+        function fetchSavedSummaries(contentId, page = 0, size = 10) {
+            fetch(`./api/process/content/${contentId}/summaries?page=${page}&size=${size}`)
                 .then(response => response.json())
-                .then(summaries => {
+                .then(data => {
                     const container = document.getElementById('saved-summaries-list');
                     container.innerHTML = '';
                     
-                    if (summaries.length === 0) {
+                    if (data.content.length === 0) {
                         document.getElementById('saved-summaries-section').style.display = 'none';
                         return;
                     }
                     
                     document.getElementById('saved-summaries-section').style.display = 'block';
                     
-                    summaries.forEach(summary => {
+                    data.content.forEach(summary => {
                         const summaryCard = document.createElement('div');
                         summaryCard.className = 'result-card';
                         
@@ -1434,6 +1778,47 @@
                         
                         container.appendChild(summaryCard);
                     });
+                    
+                    // Add pagination
+                    const paginationContainer = document.createElement('div');
+                    paginationContainer.className = 'pagination';
+                    
+                    if (data.totalPages > 1) {
+                        // Previous button
+                        if (data.number > 0) {
+                            const prevButton = document.createElement('div');
+                            prevButton.className = 'pagination-item';
+                            prevButton.textContent = '이전';
+                            prevButton.addEventListener('click', () => fetchSavedSummaries(contentId, data.number - 1, data.size));
+                            paginationContainer.appendChild(prevButton);
+                        }
+                        
+                        // Page numbers
+                        const startPage = Math.max(0, data.number - 2);
+                        const endPage = Math.min(data.totalPages - 1, data.number + 2);
+                        
+                        for (let i = startPage; i <= endPage; i++) {
+                            const pageButton = document.createElement('div');
+                            pageButton.className = 'pagination-item';
+                            if (i === data.number) {
+                                pageButton.classList.add('active');
+                            }
+                            pageButton.textContent = i + 1;
+                            pageButton.addEventListener('click', () => fetchSavedSummaries(contentId, i, data.size));
+                            paginationContainer.appendChild(pageButton);
+                        }
+                        
+                        // Next button
+                        if (data.number < data.totalPages - 1) {
+                            const nextButton = document.createElement('div');
+                            nextButton.className = 'pagination-item';
+                            nextButton.textContent = '다음';
+                            nextButton.addEventListener('click', () => fetchSavedSummaries(contentId, data.number + 1, data.size));
+                            paginationContainer.appendChild(nextButton);
+                        }
+                        
+                        document.getElementById('saved-summaries-section').appendChild(paginationContainer);
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching saved summaries:', error);
@@ -1441,7 +1826,7 @@
                 });
         }
         
-        function displaySuggestedKeywordsForSelection(data) {
+        async function displaySuggestedKeywordsForSelection(data) {
             const container = document.getElementById('suggested-keywords-container');
             container.innerHTML = '';
             
@@ -1461,11 +1846,23 @@
                 return;
             }
             
+            // 이미 예약 키워드로 존재하는 키워드 목록 가져오기
+            let existingReservedKeywords = [];
+            try {
+                // 항상 최신 예약 키워드 목록을 가져오기 위해 캐시를 무시하는 옵션 추가
+                const response = await fetch('./api/keywords/reserved?size=1000', {
+                    cache: 'no-store' // 캐시를 사용하지 않고 항상 새로운 데이터 요청
+                });
+                const data = await response.json();
+                existingReservedKeywords = data.content.map(keyword => keyword.name.toLowerCase());
+            } catch (error) {
+                console.error('Error fetching reserved keywords:', error);
+            }
+            
             // Create checkboxes for each keyword
             uniqueKeywords.forEach(keyword => {
                 const keywordDiv = document.createElement('div');
                 keywordDiv.className = 'keyword-checkbox';
-                keywordDiv.style.marginBottom = '0.5rem';
                 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
@@ -1473,12 +1870,36 @@
                 checkbox.value = keyword;
                 checkbox.style.marginRight = '0.5rem';
                 
-                const label = document.createElement('label');
-                label.htmlFor = `keyword-${keyword}`;
-                label.textContent = keyword;
+                // 이미 예약 키워드로 존재하는지 확인
+                const isExistingReserved = existingReservedKeywords.includes(keyword.toLowerCase());
                 
-                keywordDiv.appendChild(checkbox);
-                keywordDiv.appendChild(label);
+                if (isExistingReserved) {
+                    // 이미 예약 키워드로 존재하면 체크박스 비활성화
+                    checkbox.disabled = true;
+                    keywordDiv.classList.add('existing');
+                    keywordDiv.title = '이미 예약 키워드로 존재합니다';
+                    
+                    // 이미 존재하는 키워드 표시
+                    const existingBadge = document.createElement('span');
+                    existingBadge.textContent = '예약됨';
+                    existingBadge.className = 'existing-badge';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `keyword-${keyword}`;
+                    label.textContent = keyword + ' ';
+                    label.appendChild(existingBadge);
+                    
+                    keywordDiv.appendChild(checkbox);
+                    keywordDiv.appendChild(label);
+                } else {
+                    const label = document.createElement('label');
+                    label.htmlFor = `keyword-${keyword}`;
+                    label.textContent = keyword;
+                    
+                    keywordDiv.appendChild(checkbox);
+                    keywordDiv.appendChild(label);
+                }
+                
                 container.appendChild(keywordDiv);
             });
             
@@ -1486,8 +1907,78 @@
             document.getElementById('add-selected-as-candidates-btn').disabled = false;
         }
         
-        function addSelectedKeywordsAsCandidates() {
-            const checkboxes = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked');
+        // 체크된 항목이 있는지 확인하여 버튼 상태 업데이트
+        function updateAddButtonsState() {
+            const checkedBoxes = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked:not(:disabled)');
+            const hasCheckedItems = checkedBoxes.length > 0;
+            
+            document.getElementById('add-selected-as-candidates-btn').disabled = !hasCheckedItems;
+            document.getElementById('add-selected-as-reserved-btn').disabled = !hasCheckedItems;
+        }
+
+        function addKeywordsToContent(contentId, keywordIds) {
+            // 진행 상태 표시
+            const totalKeywords = keywordIds.length;
+            let processedKeywords = 0;
+            let successCount = 0;
+            
+            // 각 키워드에 대해 순차적으로 처리
+            const processNextKeyword = (index) => {
+                if (index >= keywordIds.length) {
+                    // 모든 키워드 처리 완료
+                    alert(`총 ${totalKeywords}개 중 ${successCount}개의 키워드가 추가되었습니다.`);
+                    
+                    // 키워드 선택 초기화
+                    document.querySelectorAll('.keyword-tag.selected').forEach(tag => {
+                        tag.classList.remove('selected');
+                    });
+                    updateSelectedCount();
+                    
+                    // 콘텐츠 키워드 목록 새로고침
+                    fetchContentKeywords(contentId);
+                    
+                    // 예약 키워드 목록 새로고침 (이미 추가된 키워드 표시를 위해)
+                    fetchReservedKeywords();
+                    
+                    return;
+                }
+                
+                const keywordId = keywordIds[index];
+                
+                fetch(`./api/contents/${contentId}/keywords`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keywordId: keywordId
+                    })
+                })
+                .then(response => {
+                    processedKeywords++;
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                    
+                    // 다음 키워드 처리
+                    processNextKeyword(index + 1);
+                })
+                .catch(error => {
+                    console.error('Error adding keyword to content:', error);
+                    processedKeywords++;
+                    
+                    // 오류가 발생해도 다음 키워드 처리
+                    processNextKeyword(index + 1);
+                });
+            };
+            
+            // 첫 번째 키워드부터 처리 시작
+            processNextKeyword(0);
+        }
+        
+        async function addSelectedKeywordsAsCandidates() {
+            const checkboxes = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked:not(:disabled)');
             
             if (checkboxes.length === 0) {
                 alert('추가할 키워드를 하나 이상 선택해주세요.');
@@ -1498,17 +1989,18 @@
             
             showLoading();
             
-            fetch('./api/process/candidate-keywords', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    keywords: selectedKeywords
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const response = await fetch('./api/process/candidate-keywords', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keywords: selectedKeywords
+                    })
+                });
+                
+                const data = await response.json();
                 hideLoading();
                 
                 if (data.success) {
@@ -1532,14 +2024,122 @@
                     checkboxes.forEach(checkbox => {
                         checkbox.checked = false;
                     });
+                    
+                    // 현재 AI 결과에서 키워드 목록을 다시 가져와서 표시
+                    // 이미 예약 키워드로 추가된 항목을 업데이트하기 위함
+                    const aiResultsElement = document.getElementById('ai-results');
+                    const resultCardElement = aiResultsElement.querySelector('.result-card');
+                    
+                    if (resultCardElement) {
+                        // 현재 표시된 키워드 데이터를 다시 사용하여 displaySuggestedKeywordsForSelection 호출
+                        const matchedKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(1) .keyword'))
+                            .map(el => el.textContent);
+                        const suggestedKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(2) .keyword'))
+                            .map(el => el.textContent);
+                        const provocativeKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(3) .keyword'))
+                            .map(el => el.textContent);
+                        
+                        // 현재 데이터로 키워드 목록 다시 표시
+                        await displaySuggestedKeywordsForSelection({
+                            matchedKeywords,
+                            suggestedKeywords,
+                            provocativeKeywords
+                        });
+                    }
                 } else {
                     alert('키워드 추가에 실패했습니다.');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 hideLoading();
                 alert('서버 오류가 발생했습니다: ' + error.message);
-            });
+            }
+        }
+        
+        // 선택한 키워드를 예약 키워드로 추가하는 함수
+        async function addKeywordsAsReserved(keywords) {
+            showLoading();
+            
+            // 각 키워드를 순차적으로 처리
+            const processKeywords = async () => {
+                const results = {
+                    success: [],
+                    error: []
+                };
+                
+                for (const keyword of keywords) {
+                    try {
+                        const response = await fetch('./api/keywords/reserved', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                name: keyword
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            results.success.push(keyword);
+                        } else {
+                            results.error.push(keyword);
+                        }
+                    } catch (error) {
+                        console.error(`Error adding reserved keyword ${keyword}:`, error);
+                        results.error.push(keyword);
+                    }
+                }
+                
+                return results;
+            };
+            
+            try {
+                const results = await processKeywords();
+                hideLoading();
+                
+                let message = '';
+                
+                if (results.success.length > 0) {
+                    message += `다음 키워드가 예약 키워드로 추가되었습니다: ${results.success.join(', ')}\n`;
+                }
+                
+                if (results.error.length > 0) {
+                    message += `다음 키워드는 추가에 실패했습니다: ${results.error.join(', ')}`;
+                }
+                
+                alert(message);
+                
+                // 체크박스 선택 해제
+                document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                
+                // 예약 키워드 목록 새로고침
+                fetchReservedKeywords();
+                
+                // 현재 AI 결과 다시 표시 (이미 예약 키워드로 추가된 항목을 업데이트하기 위함)
+                const aiResultsElement = document.getElementById('ai-results');
+                const resultCardElement = aiResultsElement.querySelector('.result-card');
+                
+                if (resultCardElement) {
+                    // 현재 표시된 키워드 데이터를 다시 사용하여 displaySuggestedKeywordsForSelection 호출
+                    const matchedKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(1) .keyword'))
+                        .map(el => el.textContent);
+                    const suggestedKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(2) .keyword'))
+                        .map(el => el.textContent);
+                    const provocativeKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(3) .keyword'))
+                        .map(el => el.textContent);
+                    
+                    // 현재 데이터로 키워드 목록 다시 표시
+                    await displaySuggestedKeywordsForSelection({
+                        matchedKeywords,
+                        suggestedKeywords,
+                        provocativeKeywords
+                    });
+                }
+            } catch (error) {
+                hideLoading();
+                alert('서버 오류가 발생했습니다: ' + error.message);
+            }
         }
     </script>
 </body>
