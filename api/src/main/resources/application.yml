@@ -1,9 +1,6 @@
 spring:
   application:
     name: api
-  config:
-    import:
-      - postgresql.yml
 
 # Swagger UI Configuration
 springdoc:

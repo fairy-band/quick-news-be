@@ -1,12 +1,12 @@
 package com.nexters.admin.controller
 
 import com.nexters.admin.repository.ContentKeywordMappingRepository
-import com.nexters.admin.repository.ContentRepository
 import com.nexters.external.entity.CandidateKeyword
 import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.KeywordService

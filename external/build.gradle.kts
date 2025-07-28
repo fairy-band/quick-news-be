@@ -32,7 +32,7 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 
     // JPA and Database dependencies
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.postgresql:postgresql")
-    testImplementation("com.h2database:h2")
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.postgresql)
+    testImplementation(libs.h2)
 }

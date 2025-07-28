@@ -1,17 +1,16 @@
 server:
   port: 8083
-
 spring:
   config:
-    import:
-      - gemini.yml
-      - postgresql.yml
+    import: gemini.yml
   application:
     name: newsletter-feeder-admin
   thymeleaf:
     cache: false
     prefix: classpath:/templates/
     suffix: .html
+  profiles:
+    active: dev
 
 management:
   endpoints:

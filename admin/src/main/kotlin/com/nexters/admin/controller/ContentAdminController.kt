@@ -1,11 +1,11 @@
 package com.nexters.admin.controller
 
 import com.nexters.admin.repository.ContentKeywordMappingRepository
-import com.nexters.admin.repository.ContentRepository
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CategoryRepository
+import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller

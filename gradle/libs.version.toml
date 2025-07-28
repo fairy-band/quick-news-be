@@ -20,6 +20,9 @@ micrometer = "1.13.2"
 mongodb = "5.3.0"
 springdoc-openapi = "2.8.9"
 rest-assured = "5.4.0"
+postgresql = "42.7.2"
+h2 = "2.2.224"
+thymeleaf = "3.1.2.RELEASE"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -37,6 +40,7 @@ spring-boot-configuration-processor = { group = "org.springframework.boot", name
 spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator" }
 spring-boot-starter-aop = { group = "org.springframework.boot", name = "spring-boot-starter-aop" }
 spring-boot-starter-data-mongodb = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb" }
+spring-boot-starter-thymeleaf = { group = "org.springframework.boot", name = "spring-boot-starter-thymeleaf" }
 
 # Spring Integration
 spring-integration-core = { group = "org.springframework.integration", name = "spring-integration-core", version.ref = "spring-integration" }
@@ -66,6 +70,10 @@ micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.r
 
 # MongoDB
 mongodb-driver-sync = { group = "org.mongodb", name = "mongodb-driver-sync", version.ref = "mongodb" }
+
+# Database
+postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
+h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
 
 # Springdoc OpenAPI (Swagger)
 springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
