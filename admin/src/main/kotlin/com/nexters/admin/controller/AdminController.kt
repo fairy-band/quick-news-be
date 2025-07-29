@@ -16,4 +16,7 @@ class AdminController {
 
     @GetMapping("/contents")
     fun contents(): String = "contents"
+
+    @GetMapping("/recommendations")
+    fun recommendations(): String = "recommendations"
 }

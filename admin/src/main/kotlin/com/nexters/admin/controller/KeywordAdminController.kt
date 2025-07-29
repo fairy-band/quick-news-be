@@ -9,6 +9,8 @@ import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.service.KeywordService
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -30,7 +32,8 @@ class KeywordAdminController(
     private val keywordService: KeywordService,
 ) {
     @GetMapping("/candidate")
-    fun getAllCandidateKeywords(): ResponseEntity<List<CandidateKeyword>> = ResponseEntity.ok(candidateKeywordRepository.findAll())
+    fun getAllCandidateKeywords(pageable: Pageable): ResponseEntity<Page<CandidateKeyword>> =
+        ResponseEntity.ok(candidateKeywordRepository.findAll(pageable))
 
     @PostMapping("/candidate")
     fun createCandidateKeyword(
@@ -103,7 +106,8 @@ class KeywordAdminController(
     }
 
     @GetMapping("/reserved")
-    fun getAllReservedKeywords(): ResponseEntity<List<ReservedKeyword>> = ResponseEntity.ok(reservedKeywordRepository.findAll())
+    fun getAllReservedKeywords(pageable: Pageable): ResponseEntity<Page<ReservedKeyword>> =
+        ResponseEntity.ok(reservedKeywordRepository.findAll(pageable))
 
     @PostMapping("/reserved")
     fun createReservedKeyword(
@@ -126,7 +130,7 @@ class KeywordAdminController(
     }
 
     @GetMapping("/categories")
-    fun getAllCategories(): ResponseEntity<List<Category>> = ResponseEntity.ok(categoryRepository.findAll())
+    fun getAllCategories(pageable: Pageable): ResponseEntity<Page<Category>> = ResponseEntity.ok(categoryRepository.findAll(pageable))
 
     @PostMapping("/categories")
     fun createCategory(
@@ -151,10 +155,20 @@ class KeywordAdminController(
     @GetMapping("/categories/{categoryId}/keywords")
     fun getKeywordsByCategory(
         @PathVariable categoryId: Long,
-    ): ResponseEntity<List<ReservedKeyword>> = ResponseEntity.ok(reservedKeywordRepository.findReservedKeywordsByCategoryId(categoryId))
+        pageable: Pageable
+    ): ResponseEntity<Page<ReservedKeyword>> =
+        ResponseEntity.ok(reservedKeywordRepository.findReservedKeywordsByCategoryId(categoryId, pageable))
+
+    @PostMapping("/candidate/{candidateId}/promote-to-reserved")
+    fun promoteCandidateToReserved(
+        @PathVariable candidateId: Long,
+    ): ResponseEntity<ReservedKeyword> {
+        val reservedKeyword = keywordService.promoteCandidateKeyword(candidateId)
+        return ResponseEntity.ok(reservedKeyword)
+    }
 
     @PostMapping("/candidate/{candidateId}/promote")
-    fun promoteCandidateToReserved(
+    fun promoteCandidateKeyword(
         @PathVariable candidateId: Long,
     ): ResponseEntity<ReservedKeyword> {
         val reservedKeyword = keywordService.promoteCandidateKeyword(candidateId)
@@ -250,6 +264,34 @@ class KeywordAdminController(
 
         return ResponseEntity.noContent().build()
     }
+
+    @GetMapping("/categories/{categoryId}/keywords/{keywordId}/weight")
+    fun getKeywordWeight(
+        @PathVariable categoryId: Long,
+        @PathVariable keywordId: Long
+    ): ResponseEntity<KeywordWeightResponse> {
+        val category =
+            categoryRepository
+                .findById(categoryId)
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+        val keyword =
+            reservedKeywordRepository
+                .findById(keywordId)
+                .orElseThrow { NoSuchElementException("ReservedKeyword not found with id: $keywordId") }
+
+        val mapping =
+            categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+                ?: throw NoSuchElementException("Mapping not found for category $categoryId and keyword $keywordId")
+
+        return ResponseEntity.ok(
+            KeywordWeightResponse(
+                categoryId = categoryId,
+                keywordId = keywordId,
+                weight = mapping.weight
+            )
+        )
+    }
 }
 
 data class AddKeywordToCategoryRequest(
@@ -277,4 +319,10 @@ data class DeleteCandidateKeywordsResponse(
     val success: Boolean,
     val deletedIds: List<Long> = emptyList(),
     val notFoundIds: List<Long> = emptyList(),
+)
+
+data class KeywordWeightResponse(
+    val categoryId: Long,
+    val keywordId: Long,
+    val weight: Double
 )

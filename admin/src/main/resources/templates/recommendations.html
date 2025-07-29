@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 추천 컨텐츠 - Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .form-select option {
+            background-color: #16213e;
+            color: #ffffff;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .content-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .content-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .content-source {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            margin-bottom: 1rem;
+        }
+
+        .content-preview {
+            font-size: 0.9rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            max-height: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+        }
+
+        .content-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .content-keyword {
+            background: rgba(0, 212, 255, 0.2);
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            color: #00d4ff;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 0;
+            color: #a0aec0;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-keywords {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .category-keyword {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.9rem;
+            color: #00d4ff;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="./contents" class="nav-link">🏠 홈</a>
+                    <a href="./metrics" class="nav-link">📊 메트릭</a>
+                    <a href="./keywords" class="nav-link">🔑 키워드</a>
+                    <a href="./recommendations" class="nav-link active">🔍 오늘의 추천</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>오늘의 추천 컨텐츠</h2>
+            <p>카테고리별 오늘의 추천 컨텐츠를 확인합니다. 각 카테고리의 상위 6개 키워드에 해당하는 최신 컨텐츠를 보여줍니다.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <select id="category-select" class="form-select">
+                    <option value="">카테고리를 선택하세요</option>
+                    <!-- Will be populated by JavaScript -->
+                </select>
+            </div>
+            
+            <div id="category-keywords-container" style="margin-top: 1.5rem; display: none;">
+                <h3>카테고리 키워드</h3>
+                <div id="category-keywords" class="category-keywords">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>컨텐츠를 불러오는 중...</p>
+            </div>
+            
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3>컨텐츠가 없습니다</h3>
+                <p>선택한 카테고리에 해당하는 추천 컨텐츠가 없습니다.</p>
+            </div>
+            
+            <div id="content-grid" class="content-grid">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Create stars
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 100;
+            
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            
+            // Fetch all categories
+            fetchCategories();
+            
+            // Set up category select change event
+            document.getElementById('category-select').addEventListener('change', function() {
+                const categoryId = this.value;
+                if (categoryId) {
+                    fetchCategoryKeywords(categoryId);
+                    fetchRecommendedContents(categoryId);
+                } else {
+                    document.getElementById('category-keywords-container').style.display = 'none';
+                    document.getElementById('content-grid').innerHTML = '';
+                    document.getElementById('empty-state').style.display = 'none';
+                }
+            });
+        });
+        
+        function fetchCategories() {
+            fetch('./api/recommendations/categories')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('category-select');
+                    
+                    data.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching categories:', error));
+        }
+        
+        function fetchCategoryKeywords(categoryId) {
+            fetch(`./api/keywords/categories/${categoryId}/keywords?size=6`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('category-keywords');
+                    container.innerHTML = '';
+                    
+                    if (data.content && data.content.length > 0) {
+                        data.content.forEach(keyword => {
+                            const keywordSpan = document.createElement('span');
+                            keywordSpan.className = 'category-keyword';
+                            keywordSpan.textContent = keyword.name;
+                            container.appendChild(keywordSpan);
+                        });
+                        
+                        document.getElementById('category-keywords-container').style.display = 'block';
+                    } else {
+                        document.getElementById('category-keywords-container').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching category keywords:', error);
+                    document.getElementById('category-keywords-container').style.display = 'none';
+                });
+        }
+        
+        function fetchRecommendedContents(categoryId) {
+            // Show loading
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('content-grid').innerHTML = '';
+            
+            fetch(`./api/recommendations/categories/${categoryId}/contents`)
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (data.length === 0) {
+                        document.getElementById('empty-state').style.display = 'block';
+                        return;
+                    }
+                    
+                    const contentGrid = document.getElementById('content-grid');
+                    contentGrid.innerHTML = '';
+                    
+                    data.forEach(content => {
+                        // Fetch content keywords
+                        fetchContentKeywords(content.id, contentCard => {
+                            contentGrid.appendChild(contentCard);
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching recommended contents:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('empty-state').style.display = 'block';
+                });
+        }
+        
+        function fetchContentKeywords(contentId, callback) {
+            fetch(`./api/process/content/${contentId}/keywords?size=1000`)
+                .then(response => response.json())
+                .then(data => {
+                    // Fetch content details
+                    fetch(`./api/contents/${contentId}`)
+                        .then(response => response.json())
+                        .then(content => {
+                            const contentCard = createContentCard(content, data.content);
+                            callback(contentCard);
+                        })
+                        .catch(error => console.error('Error fetching content details:', error));
+                })
+                .catch(error => console.error('Error fetching content keywords:', error));
+        }
+        
+        function createContentCard(content, keywords) {
+            const card = document.createElement('div');
+            card.className = 'content-card';
+            
+            const title = document.createElement('div');
+            title.className = 'content-title';
+            title.textContent = content.title;
+            
+            const source = document.createElement('div');
+            source.className = 'content-source';
+            source.textContent = `출처: ${content.newsletterName}`;
+            
+            const preview = document.createElement('div');
+            preview.className = 'content-preview';
+            preview.textContent = content.content.substring(0, 200) + '...';
+            
+            const keywordsContainer = document.createElement('div');
+            keywordsContainer.className = 'content-keywords';
+            
+            // Add up to 5 keywords
+            keywords.slice(0, 5).forEach(keyword => {
+                const keywordSpan = document.createElement('span');
+                keywordSpan.className = 'content-keyword';
+                keywordSpan.textContent = keyword.name;
+                keywordsContainer.appendChild(keywordSpan);
+            });
+            
+            const link = document.createElement('a');
+            link.href = `./contents?id=${content.id}`;
+            link.style.color = '#00d4ff';
+            link.style.textDecoration = 'none';
+            link.style.display = 'inline-block';
+            link.style.marginTop = '1rem';
+            link.textContent = '자세히 보기';
+            
+            card.appendChild(title);
+            card.appendChild(source);
+            card.appendChild(preview);
+            card.appendChild(keywordsContainer);
+            card.appendChild(link);
+            
+            return card;
+        }
+    </script>
+</body>
+</html> 

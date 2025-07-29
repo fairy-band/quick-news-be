@@ -434,6 +434,9 @@
             <a href="./contents" class="nav-link">
                 📄 콘텐츠 관리
             </a>
+            <a href="./recommendations" class="nav-link">
+                🔍 오늘의 추천
+            </a>
         </nav>
 
         <main class="main-content">
@@ -475,16 +478,10 @@
                     <h3 style="margin-bottom: 1rem; color: #00d4ff;">콘텐츠 연관 키워드</h3>
                     <div id="content-keywords" class="keywords"></div>
                     
-                    <h3 style="margin: 1.5rem 0 1rem; color: #00d4ff;">키워드 선택 추출</h3>
+                    <h3 style="margin: 1.5rem 0 1rem; color: #00d4ff;">현재 키워드로 추출</h3>
                     <div id="keyword-selection">
-                        <div class="keyword-select-container" style="margin-bottom: 1rem;">
-                            <select id="keyword-select" class="form-select" multiple style="height: 150px; background: rgba(0, 0, 0, 0.3); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 0.5rem;">
-                                <!-- Will be populated by JavaScript -->
-                            </select>
-                            <div class="keyword-selection-info">Ctrl 또는 Shift 키를 누른 상태에서 여러 키워드를 선택할 수 있습니다.</div>
-                        </div>
                         <button id="extract-with-selected-btn" class="btn btn-keywords" disabled>
-                            🔍 선택 키워드로 추출
+                            🔍 현재 키워드로 추출
                         </button>
                     </div>
                 </div>
@@ -506,21 +503,18 @@
             }
         }
 
-        createStars();
-
         let selectedContentId = null;
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Fetch contents when the page loads
+            createStars();
+            
+            // Fetch all contents when the page loads
             fetchContents();
             
             // Set up button event listeners
             document.getElementById('generate-summary-btn').addEventListener('click', generateSummary);
             document.getElementById('extract-keywords-btn').addEventListener('click', extractKeywords);
             document.getElementById('extract-with-selected-btn').addEventListener('click', extractWithSelectedKeywords);
-            
-            // Fetch all reserved keywords for the dropdown
-            fetchAllReservedKeywords();
         });
 
         function showLoading() {
@@ -537,6 +531,7 @@
         function disableButtons(disabled) {
             document.getElementById('generate-summary-btn').disabled = disabled || !selectedContentId;
             document.getElementById('extract-keywords-btn').disabled = disabled || !selectedContentId;
+            document.getElementById('extract-with-selected-btn').disabled = disabled || !selectedContentId;
         }
 
         function showError(message) {
@@ -545,10 +540,11 @@
         }
         
         function fetchContents(page = 0, size = 10) {
-            fetch('./api/contents')
+            fetch(`./api/contents?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
-                    renderContentList(data);
+                    renderContentList(data.content);
+                    renderPagination(data);
                 })
                 .catch(error => {
                     console.error('Error fetching contents:', error);
@@ -591,6 +587,48 @@
                 container.appendChild(item);
             });
         }
+
+        function renderPagination(pageData) {
+            const paginationContainer = document.getElementById('pagination');
+            paginationContainer.innerHTML = '';
+            
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+            
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => fetchContents(pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+            
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => fetchContents(i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+            
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => fetchContents(pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
+        }
         
         function selectContent(contentId, element) {
             // Remove active class from all items
@@ -604,6 +642,9 @@
             // Store selected content ID
             selectedContentId = contentId;
             
+            // Clear previous results
+            document.getElementById('results').innerHTML = '';
+            
             // Enable buttons
             disableButtons(false);
             
@@ -614,60 +655,38 @@
             fetchContentKeywords(contentId);
         }
         
-        function fetchContentKeywords(contentId) {
-            fetch(`./api/process/content/${contentId}/keywords`)
-                .then(response => response.json())
-                .then(keywords => {
-                    const container = document.getElementById('content-keywords');
-                    container.innerHTML = '';
-                    
-                    if (keywords.length === 0) {
-                        container.innerHTML = '<p>연관된 키워드가 없습니다</p>';
-                        return;
-                    }
-                    
-                    keywords.forEach(keyword => {
-                        const keywordElement = document.createElement('span');
-                        keywordElement.className = 'keyword';
-                        keywordElement.textContent = keyword.name;
-                        container.appendChild(keywordElement);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error fetching content keywords:', error);
-                    document.getElementById('content-keywords').innerHTML = '<p>키워드를 불러오는 중 오류가 발생했습니다</p>';
+        async function fetchContentKeywords(contentId) {
+            try {
+                const response = await fetch(`./api/process/content/${contentId}/keywords`);
+                const keywords = await response.json();
+                
+                const container = document.getElementById('content-keywords');
+                container.innerHTML = ''; // Clear previous keywords
+                
+                if (keywords.length === 0) {
+                    container.innerHTML = '<p>연관된 키워드가 없습니다</p>';
+                    return [];
+                }
+                
+                const keywordNames = [];
+                
+                keywords.forEach(keyword => {
+                    const keywordElement = document.createElement('span');
+                    keywordElement.className = 'keyword';
+                    keywordElement.textContent = keyword.name;
+                    container.appendChild(keywordElement);
+                    keywordNames.push(keyword.name);
                 });
+                
+                return keywordNames;
+            } catch (error) {
+                console.error('Error fetching content keywords:', error);
+                document.getElementById('content-keywords').innerHTML = '<p>키워드를 불러오는 중 오류가 발생했습니다</p>';
+                return [];
+            }
         }
         
-        function fetchAllReservedKeywords() {
-            fetch('./api/process/reserved-keywords')
-                .then(response => response.json())
-                .then(keywords => {
-                    const select = document.getElementById('keyword-select');
-                    select.innerHTML = '';
-                    
-                    if (keywords.length === 0) {
-                        const option = document.createElement('option');
-                        option.disabled = true;
-                        option.textContent = '등록된 키워드가 없습니다';
-                        select.appendChild(option);
-                        return;
-                    }
-                    
-                    keywords.forEach(keyword => {
-                        const option = document.createElement('option');
-                        option.value = keyword.id;
-                        option.textContent = keyword.name;
-                        select.appendChild(option);
-                    });
-                    
-                    // Enable the button if content is selected
-                    document.getElementById('extract-with-selected-btn').disabled = !selectedContentId;
-                })
-                .catch(error => {
-                    console.error('Error fetching reserved keywords:', error);
-                });
-        }
+        // fetchAllReservedKeywords function is removed as per edit hint
 
         async function generateSummary() {
             if (!selectedContentId) {
@@ -675,6 +694,8 @@
                 return;
             }
 
+            // Clear previous results
+            document.getElementById('results').innerHTML = '';
             showLoading();
 
             try {
@@ -723,6 +744,8 @@
                 return;
             }
 
+            // Clear previous results
+            document.getElementById('results').innerHTML = '';
             showLoading();
 
             try {
@@ -776,7 +799,7 @@
                     document.getElementById('results').innerHTML = html;
                     
                     // Refresh content keywords after extraction
-                    fetchContentKeywords(selectedContentId);
+                    await fetchContentKeywords(selectedContentId);
                 } else {
                     showError(data.error || '키워드 추출에 실패했습니다.');
                 }
@@ -792,24 +815,26 @@
                 return;
             }
             
-            const select = document.getElementById('keyword-select');
-            const selectedOptions = Array.from(select.selectedOptions).map(option => parseInt(option.value));
+            // Use the currently selected content's keywords for extraction
+            const currentKeywords = await fetchContentKeywords(selectedContentId);
             
-            if (selectedOptions.length === 0) {
-                showError('키워드를 하나 이상 선택해주세요.');
+            if (currentKeywords.length === 0) {
+                showError('현재 콘텐츠에 키워드가 없어 추출할 수 없습니다.');
                 return;
             }
 
+            // Clear previous results
+            document.getElementById('results').innerHTML = '';
             showLoading();
 
             try {
-                const response = await fetch(`./api/process/content/${selectedContentId}/keywords/extract-with-selected`, {
+                const response = await fetch(`./api/process/content/${selectedContentId}/keywords/extract-with-custom`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        keywordIds: selectedOptions
+                        keywords: currentKeywords
                     })
                 });
 
@@ -817,7 +842,7 @@
                 hideLoading();
 
                 if (data.success) {
-                    let html = '<div class="result-card"><div class="result-title">🏷️ 선택 키워드 기반 분석 결과</div>';
+                    let html = '<div class="result-card"><div class="result-title">🏷️ 현재 키워드 기반 분석 결과</div>';
 
                     if (data.matchedKeywords && data.matchedKeywords.length > 0) {
                         html += `
@@ -856,7 +881,7 @@
                     document.getElementById('results').innerHTML = html;
                     
                     // Refresh content keywords after extraction
-                    fetchContentKeywords(selectedContentId);
+                    await fetchContentKeywords(selectedContentId);
                 } else {
                     showError(data.error || '키워드 추출에 실패했습니다.');
                 }
