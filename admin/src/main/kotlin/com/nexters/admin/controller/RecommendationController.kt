@@ -4,6 +4,7 @@ import com.nexters.admin.repository.CategoryKeywordMappingRepository
 import com.nexters.external.entity.Category
 import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.repository.CategoryRepository
+import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
@@ -30,6 +31,7 @@ class RecommendationController(
     private val exposureContentService: ExposureContentService,
     private val exposureContentRepository: ExposureContentRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
+    private val contentRepository: ContentRepository,
 ) {
     @GetMapping("/categories")
     fun getAllCategories(): ResponseEntity<List<Category>> = ResponseEntity.ok(categoryRepository.findAll())
@@ -374,6 +376,41 @@ class RecommendationController(
         categoryKeywordMappingRepository.delete(mapping)
         return ResponseEntity.ok(mapOf("success" to true))
     }
+
+    @PostMapping("/exposure-contents")
+    fun createExposureContentDirect(
+        @RequestBody request: CreateExposureContentRequest
+    ): ResponseEntity<ExposureContentResponse> {
+        // Get the content
+        val content = contentRepository.findById(request.contentId)
+            .orElseThrow { NoSuchElementException("Content not found with id: ${request.contentId}") }
+
+        // Get the summary if provided
+        val summary = request.summaryId?.let {
+            summaryRepository.findById(it)
+                .orElse(null)
+        }
+
+        // Create exposure content
+        val exposureContent = exposureContentService.createOrUpdateExposureContent(
+            content = content,
+            summary = summary,
+            provocativeKeyword = request.provocativeKeyword,
+            provocativeHeadline = request.provocativeHeadline,
+            summaryContent = request.summaryContent
+        )
+
+        return ResponseEntity.ok(
+            ExposureContentResponse(
+                id = exposureContent.id!!,
+                contentId = exposureContent.content.id!!,
+                title = exposureContent.content.title,
+                provocativeKeyword = exposureContent.provocativeKeyword,
+                provocativeHeadline = exposureContent.provocativeHeadline,
+                summaryContent = exposureContent.summaryContent
+            )
+        )
+    }
 }
 
 data class RecommendedContentResponse(
@@ -414,6 +451,14 @@ data class ExposureContentResponse(
 )
 
 data class UpdateExposureContentRequest(
+    val provocativeKeyword: String,
+    val provocativeHeadline: String,
+    val summaryContent: String
+)
+
+data class CreateExposureContentRequest(
+    val contentId: Long,
+    val summaryId: Long? = null,
     val provocativeKeyword: String,
     val provocativeHeadline: String,
     val summaryContent: String

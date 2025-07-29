@@ -786,8 +786,17 @@
             // Fetch all reserved keywords
             fetchReservedKeywords();
             
-            // Fetch all contents
-            fetchContents();
+            // If there's a content ID in the URL, load that content directly
+            if (contentId) {
+                // Load content detail immediately
+                showContentDetail(contentId);
+                
+                // Also fetch the content list for navigation
+                fetchContents();
+            } else {
+                // If no specific content ID, just load the content list
+                fetchContents();
+            }
             
             // Set up category filter button
             document.getElementById('filter-btn').addEventListener('click', function() {
@@ -809,15 +818,6 @@
                     fetchContents(0, 10);
                 }
             });
-            
-            // URL에 id 매개변수가 있으면 해당 콘텐츠 상세 정보 로드
-            if (contentId) {
-                setTimeout(() => {
-                    showContentDetail(contentId);
-                    // 스크롤을 상세 정보 섹션으로 이동
-                    document.getElementById('content-detail-section').scrollIntoView({ behavior: 'smooth' });
-                }, 500); // 콘텐츠 목록이 로드된 후 실행하기 위해 약간의 지연 추가
-            }
             
             // Set up add keyword button
             document.getElementById('add-keyword-btn').addEventListener('click', function() {
@@ -1232,11 +1232,20 @@
         }
         
         function showContentDetail(contentId) {
-            // Highlight selected content
-            document.querySelectorAll('.content-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelector(`.content-item[data-id="${contentId}"]`).classList.add('active');
+            // Highlight selected content if it exists in the current view
+            const contentItem = document.querySelector(`.content-item[data-id="${contentId}"]`);
+            
+            if (contentItem) {
+                // Remove active class from all items
+                document.querySelectorAll('.content-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Add active class to the selected item
+                contentItem.classList.add('active');
+            } else {
+                console.log(`Content item with ID ${contentId} not found in the current view. It might be on another page or filtered out.`);
+            }
             
             // Show detail section
             document.getElementById('content-detail-section').style.display = 'block';
@@ -1296,6 +1305,9 @@
                     // 후보 키워드 추가 섹션 초기화
                     document.getElementById('suggested-keywords-container').innerHTML = '';
                     document.getElementById('add-selected-as-candidates-btn').disabled = true;
+                    
+                    // Scroll to the detail section
+                    document.getElementById('content-detail-section').scrollIntoView({ behavior: 'smooth' });
                 })
                 .catch(error => {
                     console.error('Error fetching content details:', error);

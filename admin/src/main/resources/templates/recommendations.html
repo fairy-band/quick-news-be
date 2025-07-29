@@ -239,6 +239,92 @@
             font-size: 0.8rem;
             color: #00d4ff;
         }
+        
+        .content-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .content-action-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .content-action-btn:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: #00d4ff;
+        }
+        
+        .summary-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #000;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .no-summary-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            border-radius: 12px;
+            padding: 2rem;
+            z-index: 1000;
+            width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+        
+        .summary-modal h3 {
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+        
+        .summary-content {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .summary-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
 
         .loading {
             display: flex;
@@ -654,6 +740,36 @@
         </div>
     </div>
     
+    <!-- Summary Modal -->
+    <div id="summary-modal" class="summary-modal">
+        <h3>콘텐츠 요약</h3>
+        <div id="summary-content" class="summary-content">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        <div id="summary-loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>요약을 생성하는 중...</p>
+        </div>
+        
+        <!-- Headline selection section (initially hidden) -->
+        <div id="headline-selection" style="display: none; margin-top: 1.5rem; background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 8px;">
+            <h4 style="color: #00d4ff; margin-bottom: 1rem;">헤드라인 선택</h4>
+            <select id="headline-select" style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff; margin-bottom: 1rem;">
+                <!-- Will be populated by JavaScript -->
+            </select>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button id="create-exposure-content" class="btn btn-primary" style="flex: 1;">노출 컨텐츠로 설정</button>
+            </div>
+        </div>
+        
+        <div class="summary-actions">
+            <button id="close-summary" class="btn btn-cancel">닫기</button>
+            <button id="generate-summary" class="btn btn-primary">요약 생성</button>
+            <button id="save-summary" class="btn btn-save" style="display: none;">요약 저장</button>
+        </div>
+    </div>
+    
     <!-- Toast Notification -->
     <div id="toast" class="toast">
         <span id="toast-message"></span>
@@ -718,6 +834,12 @@
             
             // Set up keyword search
             document.getElementById('keyword-search').addEventListener('input', filterKeywords);
+            
+            // Set up summary modal events
+            document.getElementById('close-summary').addEventListener('click', closeSummaryModal);
+            document.getElementById('generate-summary').addEventListener('click', generateSummary);
+            document.getElementById('save-summary').addEventListener('click', saveSummary);
+            document.getElementById('create-exposure-content').addEventListener('click', createExposureContent);
         });
         
         function fetchCategories() {
@@ -938,6 +1060,22 @@
             source.className = 'content-source';
             source.textContent = `출처: ${content.newsletterName}`;
             
+            // Check if content has summaries
+            checkContentHasSummary(content.id, (hasSummary) => {
+                const summaryBadge = document.createElement('div');
+                if (hasSummary) {
+                    summaryBadge.className = 'summary-badge';
+                    summaryBadge.textContent = '요약 있음';
+                } else {
+                    summaryBadge.className = 'no-summary-badge';
+                    summaryBadge.textContent = '요약 없음';
+                }
+                card.insertBefore(summaryBadge, source.nextSibling);
+                
+                // Update the actions container based on summary status
+                updateActionsContainer(actionsContainer, content.id, hasSummary);
+            });
+            
             const preview = document.createElement('div');
             preview.className = 'content-preview';
             preview.textContent = content.content.substring(0, 200) + '...';
@@ -953,26 +1091,54 @@
                 keywordsContainer.appendChild(keywordSpan);
             });
             
-            const link = document.createElement('a');
-            link.href = `./contents?id=${content.id}`;
-            link.style.color = '#00d4ff';
-            link.style.textDecoration = 'none';
-            link.style.display = 'inline-block';
-            link.style.marginTop = '1rem';
-            link.textContent = '자세히 보기';
+            // Add actions container
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'content-actions';
             
-            // Add click event for debugging and ensure navigation works
-            link.addEventListener('click', function(e) {
-                console.log(`Navigating to content ID: ${content.id}`);
+            // Add view details button (this will always be present)
+            const detailsBtn = document.createElement('div');
+            detailsBtn.className = 'content-action-btn';
+            detailsBtn.textContent = '자세히 보기';
+            detailsBtn.style.cursor = 'pointer';
+            detailsBtn.addEventListener('click', function() {
+                window.location.href = `./contents?id=${content.id}`;
             });
+            actionsContainer.appendChild(detailsBtn);
             
             card.appendChild(title);
             card.appendChild(source);
             card.appendChild(preview);
             card.appendChild(keywordsContainer);
-            card.appendChild(link);
+            card.appendChild(actionsContainer);
             
             return card;
+        }
+        
+        function updateActionsContainer(container, contentId, hasSummary) {
+            // Clear existing buttons except the last one (자세히 보기)
+            while (container.children.length > 1) {
+                container.removeChild(container.firstChild);
+            }
+            
+            // Always add view summary button
+            const viewSummaryBtn = document.createElement('div');
+            viewSummaryBtn.className = 'content-action-btn';
+            viewSummaryBtn.textContent = '요약 보기';
+            viewSummaryBtn.addEventListener('click', function() {
+                openSummaryModal(contentId, false); // false = don't show generate button in modal footer
+            });
+            container.insertBefore(viewSummaryBtn, container.firstChild);
+            
+            // Always add generate summary button
+            const generateSummaryBtn = document.createElement('div');
+            generateSummaryBtn.className = 'content-action-btn';
+            generateSummaryBtn.textContent = '요약 생성';
+            generateSummaryBtn.addEventListener('click', function() {
+                openSummaryModal(contentId, true); // true = show generate button in modal footer
+            });
+            
+            // Insert before the last element (자세히 보기)
+            container.insertBefore(generateSummaryBtn, container.lastChild);
         }
         
         function createExposureContentCard(exposureContent, contentData) {
@@ -1003,28 +1169,49 @@
             preview.className = 'content-preview';
             preview.textContent = exposureContent.summaryContent.substring(0, 200) + '...';
             
-            // Debug info for exposure content
-            console.log('Exposure content data:', exposureContent);
+            // Add summaryBadge
+            const summaryBadge = document.createElement('div');
+            summaryBadge.className = 'summary-badge';
+            summaryBadge.textContent = '요약 있음';
             
-            const link = document.createElement('a');
-            // Use the contentId from exposureContent to ensure correct linking
-            link.href = `./contents?id=${exposureContent.contentId}`;
-            link.style.color = '#00d4ff';
-            link.style.textDecoration = 'none';
-            link.style.display = 'inline-block';
-            link.style.marginTop = '1rem';
-            link.textContent = '자세히 보기';
+            // Add actions container
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'content-actions';
             
-            // Add click event for debugging and ensure navigation works
-            link.addEventListener('click', function(e) {
-                console.log(`Navigating to exposure content ID: ${exposureContent.contentId}`);
+            // Add view summary button
+            const viewSummaryBtn = document.createElement('div');
+            viewSummaryBtn.className = 'content-action-btn';
+            viewSummaryBtn.textContent = '요약 보기';
+            viewSummaryBtn.addEventListener('click', function() {
+                openSummaryModalWithContent(exposureContent.summaryContent);
             });
+            actionsContainer.appendChild(viewSummaryBtn);
+            
+            // Add generate summary button
+            const generateSummaryBtn = document.createElement('div');
+            generateSummaryBtn.className = 'content-action-btn';
+            generateSummaryBtn.textContent = '요약 생성';
+            generateSummaryBtn.addEventListener('click', function() {
+                openSummaryModal(exposureContent.contentId, true);
+            });
+            actionsContainer.appendChild(generateSummaryBtn);
+            
+            // Add view details button
+            const detailsBtn = document.createElement('div');
+            detailsBtn.className = 'content-action-btn';
+            detailsBtn.textContent = '자세히 보기';
+            detailsBtn.style.cursor = 'pointer';
+            detailsBtn.addEventListener('click', function() {
+                window.location.href = `./contents?id=${exposureContent.contentId}`;
+            });
+            actionsContainer.appendChild(detailsBtn);
             
             card.appendChild(badge);
             card.appendChild(title);
+            card.appendChild(summaryBadge);
             card.appendChild(keyword);
             card.appendChild(preview);
-            card.appendChild(link);
+            card.appendChild(actionsContainer);
             
             return card;
         }
@@ -1283,6 +1470,315 @@
             .catch(error => {
                 console.error('Error deleting keyword:', error);
                 showToast('키워드 삭제에 실패했습니다.');
+            });
+        }
+
+        // Function to check if a content has summaries
+        function checkContentHasSummary(contentId, callback) {
+            fetch(`./api/process/content/${contentId}/summaries?page=0&size=1`)
+                .then(response => response.json())
+                .then(data => {
+                    callback(data.totalElements > 0);
+                })
+                .catch(error => {
+                    console.error('Error checking if content has summaries:', error);
+                    callback(false);
+                });
+        }
+        
+        // Summary modal functions
+        function openSummaryModal(contentId, showGenerateButton = true) {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('summary-modal').style.display = 'block';
+            document.getElementById('summary-content').innerHTML = '<div style="text-align: center; color: #a0aec0;">요약을 불러오는 중...</div>';
+            document.getElementById('save-summary').style.display = 'none';
+            
+            // Always show generate button
+            document.getElementById('generate-summary').style.display = 'block';
+            
+            // Store content ID in the modal
+            document.getElementById('summary-modal').dataset.contentId = contentId;
+            
+            // Check if content has existing summaries - get up to 5 most recent summaries
+            fetch(`./api/process/content/${contentId}/summaries?page=0&size=5&sort=createdAt,desc`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.totalElements > 0) {
+                        // Create container for summaries
+                        const summariesContainer = document.createElement('div');
+                        
+                        // Add header
+                        const header = document.createElement('h4');
+                        header.style.color = '#00d4ff';
+                        header.style.marginBottom = '1rem';
+                        header.textContent = '저장된 요약';
+                        summariesContainer.appendChild(header);
+                        
+                        // Add each summary
+                        data.content.forEach((summary, index) => {
+                            const summaryCard = document.createElement('div');
+                            summaryCard.style.background = 'rgba(0, 0, 0, 0.2)';
+                            summaryCard.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                            summaryCard.style.borderRadius = '8px';
+                            summaryCard.style.padding = '1rem';
+                            summaryCard.style.marginBottom = '1rem';
+                            
+                            const titleElement = document.createElement('h5');
+                            titleElement.style.color = '#00d4ff';
+                            titleElement.style.marginBottom = '0.5rem';
+                            titleElement.textContent = summary.title;
+                            summaryCard.appendChild(titleElement);
+                            
+                            const contentElement = document.createElement('p');
+                            contentElement.textContent = summary.summary;
+                            summaryCard.appendChild(contentElement);
+                            
+                            const metaElement = document.createElement('div');
+                            metaElement.style.color = '#a0aec0';
+                            metaElement.style.fontSize = '0.9rem';
+                            metaElement.style.marginTop = '0.5rem';
+                            metaElement.textContent = `생성일: ${new Date(summary.createdAt).toLocaleString('ko-KR')} | 모델: ${summary.model}`;
+                            summaryCard.appendChild(metaElement);
+                            
+                            summariesContainer.appendChild(summaryCard);
+                        });
+                        
+                        // Show total count if more summaries exist
+                        if (data.totalElements > data.content.length) {
+                            const moreInfo = document.createElement('p');
+                            moreInfo.style.color = '#a0aec0';
+                            moreInfo.style.fontSize = '0.9rem';
+                            moreInfo.style.textAlign = 'center';
+                            moreInfo.textContent = `총 ${data.totalElements}개의 요약 중 최근 ${data.content.length}개를 표시하고 있습니다.`;
+                            summariesContainer.appendChild(moreInfo);
+                        }
+                        
+                        // Set the content
+                        document.getElementById('summary-content').innerHTML = '';
+                        document.getElementById('summary-content').appendChild(summariesContainer);
+                    } else {
+                        // No summaries found
+                        document.getElementById('summary-content').innerHTML = '<div style="text-align: center; color: #a0aec0;">요약이 없습니다. "요약 생성" 버튼을 클릭하여 새 요약을 생성하세요.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching summaries:', error);
+                    document.getElementById('summary-content').innerHTML = '<div style="text-align: center; color: #ff6464;">요약을 불러오는 중 오류가 발생했습니다.</div>';
+                });
+        }
+        
+        function openSummaryModalWithContent(summaryContent) {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('summary-modal').style.display = 'block';
+            document.getElementById('summary-content').innerHTML = `<p>${summaryContent}</p>`;
+            document.getElementById('generate-summary').style.display = 'block';
+            document.getElementById('save-summary').style.display = 'none';
+        }
+        
+        function closeSummaryModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('summary-modal').style.display = 'none';
+            document.getElementById('generate-summary').style.display = 'block';
+        }
+        
+        function generateSummary() {
+            const contentId = document.getElementById('summary-modal').dataset.contentId;
+            if (!contentId) {
+                showToast('콘텐츠 ID를 찾을 수 없습니다.');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('summary-content').innerHTML = '';
+            document.getElementById('summary-loading').style.display = 'flex';
+            document.getElementById('generate-summary').disabled = true;
+            document.getElementById('headline-selection').style.display = 'none';
+            
+            fetch(`./api/process/content/${contentId}/summary`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading
+                document.getElementById('summary-loading').style.display = 'none';
+                document.getElementById('generate-summary').disabled = false;
+                
+                if (data.success) {
+                    // Show the generated summary
+                    document.getElementById('summary-content').innerHTML = `
+                        <h4 style="color: #00d4ff; margin-bottom: 1rem;">AI 생성 요약</h4>
+                        <p>${data.summary}</p>
+                        <div style="margin-top: 1rem;">
+                            <h4 style="color: #00d4ff; margin-bottom: 0.5rem;">자극적인 헤드라인 제안</h4>
+                            <ul style="list-style-type: none; padding-left: 0;">
+                                ${data.provocativeHeadlines.map(headline => `<li style="margin-bottom: 0.5rem;">• ${headline}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    
+                    // Store the summary data for saving
+                    document.getElementById('summary-modal').dataset.summary = data.summary;
+                    document.getElementById('summary-modal').dataset.model = data.usedModel || 'unknown';
+                    document.getElementById('summary-modal').dataset.headlines = JSON.stringify(data.provocativeHeadlines);
+                    
+                    // Show save button
+                    document.getElementById('save-summary').style.display = 'block';
+                    
+                    // Populate headline select dropdown
+                    const headlineSelect = document.getElementById('headline-select');
+                    headlineSelect.innerHTML = '';
+                    
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '헤드라인을 선택하세요';
+                    headlineSelect.appendChild(defaultOption);
+                    
+                    // Add headline options
+                    data.provocativeHeadlines.forEach((headline, index) => {
+                        const option = document.createElement('option');
+                        option.value = headline;
+                        option.textContent = headline;
+                        headlineSelect.appendChild(option);
+                    });
+                    
+                    // Show headline selection section
+                    document.getElementById('headline-selection').style.display = 'block';
+                } else {
+                    document.getElementById('summary-content').innerHTML = `<div style="text-align: center; color: #ff6464;">요약 생성에 실패했습니다: ${data.error || '알 수 없는 오류'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error generating summary:', error);
+                document.getElementById('summary-loading').style.display = 'none';
+                document.getElementById('generate-summary').disabled = false;
+                document.getElementById('summary-content').innerHTML = '<div style="text-align: center; color: #ff6464;">요약 생성 중 오류가 발생했습니다.</div>';
+            });
+        }
+        
+        function saveSummary() {
+            const contentId = document.getElementById('summary-modal').dataset.contentId;
+            const summary = document.getElementById('summary-modal').dataset.summary;
+            const model = document.getElementById('summary-modal').dataset.model;
+            const headlines = JSON.parse(document.getElementById('summary-modal').dataset.headlines || '[]');
+            
+            // Get selected headline from dropdown
+            const headlineSelect = document.getElementById('headline-select');
+            const selectedHeadline = headlineSelect.value || (headlines.length > 0 ? headlines[0] : '자동 생성 요약');
+            
+            if (!contentId || !summary) {
+                showToast('저장할 요약 정보가 없습니다.');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('save-summary').disabled = true;
+            document.getElementById('save-summary').textContent = '저장 중...';
+            
+            fetch(`./api/process/content/${contentId}/summary/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: selectedHeadline,
+                    summary: summary,
+                    model: model
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('save-summary').disabled = false;
+                document.getElementById('save-summary').textContent = '요약 저장';
+                
+                if (data.success) {
+                    showToast('요약이 성공적으로 저장되었습니다.');
+                    
+                    // Hide save button after successful save
+                    document.getElementById('save-summary').style.display = 'none';
+                    
+                    // Store the summary ID for exposure content creation
+                    document.getElementById('summary-modal').dataset.summaryId = data.summaryId;
+                    
+                    // Refresh the content list to show updated summary status
+                    const categoryId = document.getElementById('category-select').value;
+                    if (categoryId) {
+                        fetchRecommendedContents(categoryId);
+                    }
+                } else {
+                    showToast('요약 저장에 실패했습니다: ' + (data.error || '알 수 없는 오류'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving summary:', error);
+                document.getElementById('save-summary').disabled = false;
+                document.getElementById('save-summary').textContent = '요약 저장';
+                showToast('요약 저장 중 오류가 발생했습니다.');
+            });
+        }
+        
+        // Function to create exposure content
+        function createExposureContent() {
+            const contentId = document.getElementById('summary-modal').dataset.contentId;
+            const summaryId = document.getElementById('summary-modal').dataset.summaryId;
+            const summary = document.getElementById('summary-modal').dataset.summary;
+            const headlineSelect = document.getElementById('headline-select');
+            const selectedHeadline = headlineSelect.value;
+            
+            if (!contentId || !summary || !selectedHeadline) {
+                showToast('노출 컨텐츠 생성에 필요한 정보가 부족합니다. 헤드라인을 선택해주세요.');
+                return;
+            }
+            
+            // Default keyword from headline
+            const defaultKeyword = selectedHeadline.split(' ')[0].replace(/[^\w가-힣]/g, '');
+            
+            // Show loading
+            document.getElementById('create-exposure-content').disabled = true;
+            document.getElementById('create-exposure-content').textContent = '생성 중...';
+            
+            fetch('./api/recommendations/exposure-contents', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contentId: parseInt(contentId),
+                    summaryId: summaryId ? parseInt(summaryId) : null,
+                    provocativeKeyword: defaultKeyword,
+                    provocativeHeadline: selectedHeadline,
+                    summaryContent: summary
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create exposure content');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('create-exposure-content').disabled = false;
+                document.getElementById('create-exposure-content').textContent = '노출 컨텐츠로 설정';
+                
+                showToast('노출 컨텐츠가 성공적으로 생성되었습니다.');
+                
+                // Refresh the content list
+                const categoryId = document.getElementById('category-select').value;
+                if (categoryId) {
+                    fetchRecommendedContents(categoryId);
+                }
+                
+                // Close the summary modal
+                closeSummaryModal();
+            })
+            .catch(error => {
+                console.error('Error creating exposure content:', error);
+                document.getElementById('create-exposure-content').disabled = false;
+                document.getElementById('create-exposure-content').textContent = '노출 컨텐츠로 설정';
+                showToast('노출 컨텐츠 생성에 실패했습니다.');
             });
         }
     </script>
