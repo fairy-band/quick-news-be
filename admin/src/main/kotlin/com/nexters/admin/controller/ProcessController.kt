@@ -1,14 +1,15 @@
 package com.nexters.admin.controller
 
-import com.nexters.admin.repository.ContentKeywordMappingRepository
 import com.nexters.external.entity.CandidateKeyword
 import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
 import com.nexters.external.service.SummaryService
 import org.springframework.data.domain.Page
@@ -31,7 +32,8 @@ class ProcessController(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
-    private val candidateKeywordRepository: CandidateKeywordRepository
+    private val candidateKeywordRepository: CandidateKeywordRepository,
+    private val exposureContentService: ExposureContentService
 ) {
     @GetMapping("/content/{contentId}/keywords")
     fun getContentKeywords(
@@ -303,6 +305,42 @@ class ProcessController(
                 errorKeywords = errorKeywords
             )
         )
+    }
+
+    @GetMapping("/summary/{summaryId}/exposure-content-exists")
+    fun checkExposureContentExists(
+        @PathVariable summaryId: Long
+    ): ResponseEntity<Map<String, Any>> {
+        val summary =
+            summaryRepository
+                .findById(summaryId)
+                .orElseThrow { NoSuchElementException("Summary not found with ID: $summaryId") }
+
+        val exposureContent =
+            exposureContentService.getExposureContentByContent(summary.content)
+
+        // Check if the exposure content's summary content matches this summary's content
+        // This is a simple way to determine if this summary is the active one
+        val isThisSummaryActive =
+            exposureContent?.let {
+                // Compare summary content with exposure content's summary content
+                // We use trim() to ignore whitespace differences
+                it.summaryContent.trim() == summary.summarizedContent.trim()
+            } ?: false
+
+        val response =
+            mutableMapOf<String, Any>(
+                "exists" to isThisSummaryActive
+            )
+
+        // Add the exposure content ID if this summary is active
+        if (isThisSummaryActive) {
+            exposureContent?.id?.let {
+                response["exposureContentId"] = it
+            }
+        }
+
+        return ResponseEntity.ok(response)
     }
 }
 

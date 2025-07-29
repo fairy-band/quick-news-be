@@ -286,6 +286,16 @@
             margin-right: 0.5rem;
             margin-bottom: 0.5rem;
         }
+        
+        .keyword-weight {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.8rem;
+            color: #ffffff;
+            margin-left: 0.3rem;
+        }
     </style>
 </head>
 <body>
@@ -305,7 +315,7 @@
         
         <div class="section">
             <h2>오늘의 추천 컨텐츠</h2>
-            <p>카테고리별 오늘의 추천 컨텐츠를 확인합니다. 각 카테고리의 상위 6개 키워드에 해당하는 최신 컨텐츠를 보여줍니다.</p>
+            <p>카테고리별 오늘의 추천 컨텐츠를 확인합니다. 각 카테고리의 상위 키워드에 해당하는 최신 컨텐츠를 보여줍니다.</p>
             
             <div style="margin-top: 1.5rem;">
                 <select id="category-select" class="form-select">
@@ -391,17 +401,27 @@
         }
         
         function fetchCategoryKeywords(categoryId) {
-            fetch(`./api/keywords/categories/${categoryId}/keywords?size=6`)
+            fetch(`./api/recommendations/categories/${categoryId}/keywords`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('category-keywords');
                     container.innerHTML = '';
                     
-                    if (data.content && data.content.length > 0) {
-                        data.content.forEach(keyword => {
+                    if (data && data.length > 0) {
+                        // Sort keywords by weight in descending order
+                        data.sort((a, b) => b.weight - a.weight);
+                        
+                        data.forEach(keyword => {
                             const keywordSpan = document.createElement('span');
                             keywordSpan.className = 'category-keyword';
                             keywordSpan.textContent = keyword.name;
+                            
+                            // Add weight badge
+                            const weightSpan = document.createElement('span');
+                            weightSpan.className = 'keyword-weight';
+                            weightSpan.textContent = keyword.weight.toFixed(2);
+                            keywordSpan.appendChild(weightSpan);
+                            
                             container.appendChild(keywordSpan);
                         });
                         
@@ -436,11 +456,21 @@
                     const contentGrid = document.getElementById('content-grid');
                     contentGrid.innerHTML = '';
                     
-                    data.forEach(content => {
-                        // Fetch content keywords
-                        fetchContentKeywords(content.id, contentCard => {
-                            contentGrid.appendChild(contentCard);
-                        });
+                    data.forEach(item => {
+                        let contentCard;
+                        
+                        // Use exposureContent if available, otherwise use regular content
+                        if (item.exposureContent) {
+                            contentCard = createExposureContentCard(item.exposureContent);
+                        } else {
+                            // For regular content, we need to fetch keywords
+                            fetchContentKeywords(item.content.id, (contentCard) => {
+                                contentGrid.appendChild(contentCard);
+                            });
+                            return; // Skip the append below as it's done in the callback
+                        }
+                        
+                        contentGrid.appendChild(contentCard);
                     });
                 })
                 .catch(error => {
@@ -505,6 +535,51 @@
             card.appendChild(source);
             card.appendChild(preview);
             card.appendChild(keywordsContainer);
+            card.appendChild(link);
+            
+            return card;
+        }
+        
+        function createExposureContentCard(exposureContent) {
+            const card = document.createElement('div');
+            card.className = 'content-card';
+            card.style.background = 'rgba(0, 0, 0, 0.3)'; // Slightly darker background to distinguish
+            card.style.border = '1px solid rgba(0, 212, 255, 0.3)'; // Highlight border
+            
+            const badge = document.createElement('div');
+            badge.style.display = 'inline-block';
+            badge.style.background = 'rgba(0, 212, 255, 0.2)';
+            badge.style.color = '#00d4ff';
+            badge.style.padding = '0.25rem 0.5rem';
+            badge.style.borderRadius = '4px';
+            badge.style.fontSize = '0.8rem';
+            badge.style.marginBottom = '0.5rem';
+            badge.textContent = '🔥 노출 컨텐츠';
+            
+            const title = document.createElement('div');
+            title.className = 'content-title';
+            title.textContent = exposureContent.provocativeHeadline;
+            
+            const keyword = document.createElement('div');
+            keyword.className = 'content-source';
+            keyword.innerHTML = `🔑 <strong>자극적인 키워드:</strong> ${exposureContent.provocativeKeyword}`;
+            
+            const preview = document.createElement('div');
+            preview.className = 'content-preview';
+            preview.textContent = exposureContent.summaryContent.substring(0, 200) + '...';
+            
+            const link = document.createElement('a');
+            link.href = `./contents?id=${exposureContent.contentId}`;
+            link.style.color = '#00d4ff';
+            link.style.textDecoration = 'none';
+            link.style.display = 'inline-block';
+            link.style.marginTop = '1rem';
+            link.textContent = '자세히 보기';
+            
+            card.appendChild(badge);
+            card.appendChild(title);
+            card.appendChild(keyword);
+            card.appendChild(preview);
             card.appendChild(link);
             
             return card;

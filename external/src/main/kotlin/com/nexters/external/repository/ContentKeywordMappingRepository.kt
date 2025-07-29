@@ -1,4 +1,4 @@
-package com.nexters.admin.repository
+package com.nexters.external.repository
 
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentKeywordMapping

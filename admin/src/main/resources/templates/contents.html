@@ -1769,15 +1769,44 @@
                             minute: '2-digit'
                         });
                         
-                        summaryCard.innerHTML = `
-                            <div class="result-title">${summary.title}</div>
-                            <div style="font-size: 0.8rem; color: #a0aec0; margin-bottom: 0.5rem;">
-                                생성일: ${summaryDate} | 모델: ${summary.model}
-                            </div>
-                            <p>${summary.summary}</p>
-                        `;
-                        
-                        container.appendChild(summaryCard);
+                        // Check if exposure content exists for this summary
+                        checkExposureContentExists(summary.id, (exists, exposureContentId) => {
+                            let exposureContentButton = '';
+                            let activeStatus = '';
+                            
+                            if (exists) {
+                                activeStatus = `<div style="margin-bottom: 0.5rem; background-color: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; font-size: 0.8rem;">✓ 현재 활성화된 요약</div>`;
+                                exposureContentButton = `
+                                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                        <button class="btn" style="flex: 1; background: linear-gradient(45deg, #3b82f6, #1d4ed8); color: #fff;" 
+                                                onclick="editExposureContent(${exposureContentId})">
+                                            노출 컨텐츠 수정
+                                        </button>
+                                    </div>
+                                `;
+                            } else {
+                                exposureContentButton = `
+                                    <button class="btn" style="background: linear-gradient(45deg, #f59e0b, #d97706); color: #fff;" 
+                                            onclick="setActiveSummary(${summary.id})">
+                                        이 요약을 활성화
+                                    </button>
+                                `;
+                            }
+                            
+                            summaryCard.innerHTML = `
+                                <div class="result-title">${summary.title}</div>
+                                <div style="font-size: 0.8rem; color: #a0aec0; margin-bottom: 0.5rem;">
+                                    생성일: ${summaryDate} | 모델: ${summary.model}
+                                </div>
+                                ${activeStatus}
+                                <p>${summary.summary}</p>
+                                <div style="margin-top: 1rem;">
+                                    ${exposureContentButton}
+                                </div>
+                            `;
+                            
+                            container.appendChild(summaryCard);
+                        });
                     });
                     
                     // Add pagination
@@ -1825,6 +1854,92 @@
                     console.error('Error fetching saved summaries:', error);
                     document.getElementById('saved-summaries-section').style.display = 'none';
                 });
+        }
+        
+        function checkExposureContentExists(summaryId, callback) {
+            fetch(`./api/process/summary/${summaryId}/exposure-content-exists`)
+                .then(response => response.json())
+                .then(data => {
+                    // Pass both the existence status and the exposure content ID
+                    callback(data.exists, data.exposureContentId);
+                })
+                .catch(error => {
+                    console.error('Error checking exposure content:', error);
+                    callback(false, null);
+                });
+        }
+        
+        function updateExposureContent(exposureContentId, data) {
+            showLoading();
+            
+            fetch(`./api/recommendations/exposure-contents/${exposureContentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update exposure content');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    hideLoading();
+                    alert('노출 컨텐츠가 성공적으로 수정되었습니다.');
+                    
+                    // Refresh the summary list
+                    const contentDetailElement = document.getElementById('content-detail');
+                    const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
+                    if (contentId) {
+                        fetchSavedSummaries(contentId);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error updating exposure content:', error);
+                    alert('노출 컨텐츠 수정 중 오류가 발생했습니다.');
+                });
+        }
+        
+        function setActiveSummary(summaryId) {
+            if (!confirm('이 요약을 활성화하시겠습니까? 기존의 노출 컨텐츠는 삭제되고 이 요약이 노출 컨텐츠로 설정됩니다.')) {
+                return;
+            }
+            
+            showLoading();
+            
+            fetch(`./api/recommendations/summaries/${summaryId}/set-active`, {
+                method: 'POST'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to set active summary');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    hideLoading();
+                    alert('요약이 성공적으로 활성화되었습니다.');
+                    
+                    // Refresh the summary list
+                    const contentDetailElement = document.getElementById('content-detail');
+                    const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
+                    if (contentId) {
+                        fetchSavedSummaries(contentId);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error setting active summary:', error);
+                    alert('요약 활성화 중 오류가 발생했습니다.');
+                });
+        }
+        
+        function createExposureContent(summaryId) {
+            // Redirect to the new setActiveSummary function
+            setActiveSummary(summaryId);
         }
         
         async function displaySuggestedKeywordsForSelection(data) {
@@ -2141,6 +2256,93 @@
                 hideLoading();
                 alert('서버 오류가 발생했습니다: ' + error.message);
             }
+        }
+
+        function editExposureContent(exposureContentId) {
+            // Fetch the exposure content details
+            fetch(`./api/recommendations/exposure-contents/${exposureContentId}`)
+                .then(response => response.json())
+                .then(exposureContent => {
+                    // Create a modal for editing
+                    const modalContainer = document.createElement('div');
+                    modalContainer.className = 'modal-container';
+                    modalContainer.style.position = 'fixed';
+                    modalContainer.style.top = '0';
+                    modalContainer.style.left = '0';
+                    modalContainer.style.width = '100%';
+                    modalContainer.style.height = '100%';
+                    modalContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    modalContainer.style.display = 'flex';
+                    modalContainer.style.justifyContent = 'center';
+                    modalContainer.style.alignItems = 'center';
+                    modalContainer.style.zIndex = '1000';
+                    
+                    const modalContent = document.createElement('div');
+                    modalContent.className = 'modal-content';
+                    modalContent.style.backgroundColor = 'rgba(26, 26, 46, 0.95)';
+                    modalContent.style.borderRadius = '20px';
+                    modalContent.style.padding = '2rem';
+                    modalContent.style.width = '80%';
+                    modalContent.style.maxWidth = '800px';
+                    modalContent.style.maxHeight = '90%';
+                    modalContent.style.overflowY = 'auto';
+                    modalContent.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                    modalContent.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+                    
+                    modalContent.innerHTML = `
+                        <h2 style="color: #00d4ff; margin-bottom: 1.5rem;">노출 컨텐츠 수정</h2>
+                        <form id="edit-exposure-form">
+                            <input type="hidden" id="exposure-content-id" value="${exposureContent.id}">
+                            <div style="margin-bottom: 1rem;">
+                                <label for="provocative-keyword">자극적인 키워드</label>
+                                <input type="text" id="provocative-keyword" class="form-control" value="${exposureContent.provocativeKeyword}" required>
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <label for="provocative-headline">자극적인 헤드라인</label>
+                                <input type="text" id="provocative-headline" class="form-control" value="${exposureContent.provocativeHeadline}" required>
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <label for="summary-content">요약 내용</label>
+                                <textarea id="summary-content" class="form-control" rows="10" required>${exposureContent.summaryContent}</textarea>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                                <button type="submit" class="btn btn-primary" style="flex: 1;">저장</button>
+                                <button type="button" id="cancel-edit-btn" class="btn" style="flex: 1; background: rgba(255, 255, 255, 0.1);">취소</button>
+                            </div>
+                        </form>
+                    `;
+                    
+                    modalContainer.appendChild(modalContent);
+                    document.body.appendChild(modalContainer);
+                    
+                    // Set up form submission
+                    document.getElementById('edit-exposure-form').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const exposureContentId = document.getElementById('exposure-content-id').value;
+                        const provocativeKeyword = document.getElementById('provocative-keyword').value;
+                        const provocativeHeadline = document.getElementById('provocative-headline').value;
+                        const summaryContent = document.getElementById('summary-content').value;
+                        
+                        updateExposureContent(exposureContentId, {
+                            provocativeKeyword,
+                            provocativeHeadline,
+                            summaryContent
+                        });
+                        
+                        // Close the modal
+                        document.body.removeChild(modalContainer);
+                    });
+                    
+                    // Set up cancel button
+                    document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+                        document.body.removeChild(modalContainer);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching exposure content:', error);
+                    alert('노출 컨텐츠 정보를 불러오는 데 실패했습니다.');
+                });
         }
     </script>
 </body>
