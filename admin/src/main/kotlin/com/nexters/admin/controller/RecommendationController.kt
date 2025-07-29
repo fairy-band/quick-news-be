@@ -283,6 +283,97 @@ class RecommendationController(
         exposureContentService.deleteExposureContent(id)
         return ResponseEntity.ok(mapOf("success" to true))
     }
+
+    @GetMapping("/categories/{categoryId}/all-keywords")
+    fun getAllCategoryKeywords(
+        @PathVariable categoryId: Long
+    ): ResponseEntity<List<CategoryKeywordResponse>> {
+        val category =
+            categoryRepository
+                .findById(categoryId)
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+        val mappings = categoryKeywordMappingRepository.findByCategory(category)
+        val response =
+            mappings.map { mapping ->
+                CategoryKeywordResponse(
+                    id = mapping.keyword.id!!,
+                    name = mapping.keyword.name,
+                    weight = mapping.weight
+                )
+            }
+
+        return ResponseEntity.ok(response)
+    }
+
+    @PostMapping("/categories/{categoryId}/keywords")
+    fun addKeywordToCategory(
+        @PathVariable categoryId: Long,
+        @RequestBody request: AddKeywordToCategoryRequest
+    ): ResponseEntity<CategoryKeywordResponse> {
+        val category =
+            categoryRepository
+                .findById(categoryId)
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+        val keyword =
+            reservedKeywordRepository
+                .findById(request.keywordId)
+                .orElseThrow { NoSuchElementException("Keyword not found with id: ${request.keywordId}") }
+
+        // Check if mapping already exists
+        val existingMapping = categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+        if (existingMapping != null) {
+            return ResponseEntity.ok(
+                CategoryKeywordResponse(
+                    id = existingMapping.keyword.id!!,
+                    name = existingMapping.keyword.name,
+                    weight = existingMapping.weight
+                )
+            )
+        }
+
+        val mapping =
+            CategoryKeywordMapping(
+                category = category,
+                keyword = keyword,
+                weight = request.weight,
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+
+        val savedMapping = categoryKeywordMappingRepository.save(mapping)
+
+        return ResponseEntity.ok(
+            CategoryKeywordResponse(
+                id = savedMapping.keyword.id!!,
+                name = savedMapping.keyword.name,
+                weight = savedMapping.weight
+            )
+        )
+    }
+
+    @DeleteMapping("/categories/{categoryId}/keywords/{keywordId}")
+    fun removeKeywordFromCategory(
+        @PathVariable categoryId: Long,
+        @PathVariable keywordId: Long
+    ): ResponseEntity<Map<String, Boolean>> {
+        val category =
+            categoryRepository
+                .findById(categoryId)
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+        val keyword =
+            reservedKeywordRepository
+                .findById(keywordId)
+                .orElseThrow { NoSuchElementException("Keyword not found with id: $keywordId") }
+
+        val mapping = categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+            ?: throw NoSuchElementException("Mapping not found for category $categoryId and keyword $keywordId")
+
+        categoryKeywordMappingRepository.delete(mapping)
+        return ResponseEntity.ok(mapOf("success" to true))
+    }
 }
 
 data class RecommendedContentResponse(
