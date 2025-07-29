@@ -2,7 +2,7 @@
 
 echo "🚀 뉴스레터 서비스 배포 시작..."
 
-docker image prune
+docker image prune -f
 
 echo "📥 서비스 이미지 pull 중..."
 docker compose pull api batch admin nginx
