@@ -206,23 +206,24 @@ class ContentApiController(
                 .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
 
         val contents = contentRepository.findContentsByCategory(categoryId, pageable)
-        
-        val contentResponses = contents.map { content ->
-            val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
-            ContentWithSummaryStatusResponse(
-                id = content.id ?: 0,
-                newsletterSourceId = content.newsletterSourceId,
-                title = content.title,
-                content = content.content,
-                newsletterName = content.newsletterName,
-                originalUrl = content.originalUrl,
-                publishedAt = content.publishedAt,
-                createdAt = content.createdAt,
-                updatedAt = content.updatedAt,
-                hasSummary = hasSummary
-            )
-        }
-        
+
+        val contentResponses =
+            contents.map { content ->
+                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+                ContentWithSummaryStatusResponse(
+                    id = content.id ?: 0,
+                    newsletterSourceId = content.newsletterSourceId,
+                    title = content.title,
+                    content = content.content,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    publishedAt = content.publishedAt,
+                    createdAt = content.createdAt,
+                    updatedAt = content.updatedAt,
+                    hasSummary = hasSummary
+                )
+            }
+
         return ResponseEntity.ok(contentResponses)
     }
 
@@ -244,21 +245,22 @@ class ContentApiController(
     fun getAllContentsWithSummaryStatus(pageable: Pageable): ResponseEntity<Page<ContentWithSummaryStatusResponse>> {
         val contents = contentRepository.findAll(pageable)
 
-        val contentResponses = contents.map { content ->
-            val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
-            ContentWithSummaryStatusResponse(
-                id = content.id ?: 0,
-                newsletterSourceId = content.newsletterSourceId,
-                title = content.title,
-                content = content.content,
-                newsletterName = content.newsletterName,
-                originalUrl = content.originalUrl,
-                publishedAt = content.publishedAt,
-                createdAt = content.createdAt,
-                updatedAt = content.updatedAt,
-                hasSummary = hasSummary
-            )
-        }
+        val contentResponses =
+            contents.map { content ->
+                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+                ContentWithSummaryStatusResponse(
+                    id = content.id ?: 0,
+                    newsletterSourceId = content.newsletterSourceId,
+                    title = content.title,
+                    content = content.content,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    publishedAt = content.publishedAt,
+                    createdAt = content.createdAt,
+                    updatedAt = content.updatedAt,
+                    hasSummary = hasSummary
+                )
+            }
 
         return ResponseEntity.ok(contentResponses)
     }

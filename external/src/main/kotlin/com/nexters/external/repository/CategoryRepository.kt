@@ -25,6 +25,17 @@ interface CategoryRepository : JpaRepository<Category, Long> {
 
     @Query(
         """
+        SELECT rk
+        FROM ReservedKeyword rk
+        JOIN CategoryKeywordMapping ckm ON rk.id = ckm.keyword.id
+        WHERE ckm.category.id = :categoryId
+        ORDER BY ckm.weight DESC
+    """
+    )
+    fun findKeywordsByCategoryId(categoryId: Long): List<ReservedKeyword>
+
+    @Query(
+        """
         SELECT ckm
         FROM CategoryKeywordMapping ckm
         WHERE ckm.category.id = :categoryId

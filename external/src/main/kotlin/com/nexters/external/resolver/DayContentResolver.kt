@@ -16,7 +16,7 @@ class DayContentResolver(
         categoryId: Long
     ): List<Content> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
-        val keywords: List<ReservedKeyword> = categoryService.getTodayKeywordsByCategoryId(categoryId)
+        val keywords: List<ReservedKeyword> = categoryService.getKeywordsByCategoryId(categoryId)
 
         val reservedKeywordIds = keywords.map { it.id!! }.toList()
         val possibleContents = contentService.getContentsByReservedKeywordIds(reservedKeywordIds)
@@ -29,40 +29,45 @@ class DayContentResolver(
         val contentWeights =
             possibleContents.associateWith { content ->
                 // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
-                val relevantKeywords = content.reservedKeywords.filter { keyword -> 
-                    categoryKeywordWeights[keyword] != null 
-                }
-                
+                val relevantKeywords =
+                    content.reservedKeywords.filter { keyword ->
+                        categoryKeywordWeights[keyword] != null
+                    }
+
                 // 가중치가 있는 키워드가 없으면 0.0 반환
                 if (relevantKeywords.isEmpty()) {
                     0.0
                 } else {
                     // 양수 가중치와 음수 가중치를 분리
-                    val positiveKeywords = relevantKeywords.filter { keyword -> 
-                        categoryKeywordWeights[keyword]!! > 0 
-                    }
-                    
-                    val negativeKeywords = relevantKeywords.filter { keyword -> 
-                        categoryKeywordWeights[keyword]!! < 0 
-                    }
-                    
+                    val positiveKeywords =
+                        relevantKeywords.filter { keyword ->
+                            categoryKeywordWeights[keyword]!! > 0
+                        }
+
+                    val negativeKeywords =
+                        relevantKeywords.filter { keyword ->
+                            categoryKeywordWeights[keyword]!! < 0
+                        }
+
                     // 양수 가중치가 없으면 0.0 반환
                     if (positiveKeywords.isEmpty()) {
                         0.0
                     } else {
                         // 양수 가중치의 곱 계산
-                        val positiveWeight = positiveKeywords.fold(1.0) { acc, keyword ->
-                            acc * categoryKeywordWeights[keyword]!!
-                        }
-                        
-                        // 음수 가중치의 합 계산 (음수 가중치는 합산으로 적용)
-                        val negativeWeight = negativeKeywords.sumOf { keyword ->
-                            categoryKeywordWeights[keyword]!!
-                        }
-                        
+                        val positiveWeight =
+                            positiveKeywords.fold(1.0) { acc, keyword ->
+                                acc * categoryKeywordWeights[keyword]!!
+                            }
+
+                        // 음수 가중치의 곱 계산
+                        val negativeWeight =
+                            negativeKeywords.fold(1.0) { acc, keyword ->
+                                acc * categoryKeywordWeights[keyword]!! * -1 // 음수이므로 -1을 곱함
+                            }
+
                         // 최종 가중치 = 양수 가중치의 곱 + 음수 가중치의 합
                         // 음수 가중치가 너무 크면 0으로 만들기 위해 max 사용
-                        maxOf(positiveWeight + negativeWeight, 0.0)
+                        maxOf(positiveWeight - negativeWeight, 0.0)
                     }
                 }
             }
@@ -75,13 +80,13 @@ class DayContentResolver(
             .map { it.first }
             .take(MAX_CONTENT_SIZE)
     }
-    
+
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
      */
     fun getNegativeKeywords(categoryId: Long): List<ReservedKeyword> {
         val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryId(categoryId)
-        
+
         return categoryKeywordWeights.entries
             .filter { it.value < 0 }
             .map { it.key }

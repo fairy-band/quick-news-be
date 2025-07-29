@@ -292,7 +292,7 @@ class KeywordAdminController(
             )
         )
     }
-    
+
     @GetMapping("/reserved/{keywordId}/categories")
     fun getCategoriesByKeyword(
         @PathVariable keywordId: Long

@@ -14,6 +14,6 @@ interface CategoryKeywordMappingRepository : JpaRepository<CategoryKeywordMappin
     ): CategoryKeywordMapping?
 
     fun findByCategory(category: Category): List<CategoryKeywordMapping>
-    
+
     fun findByKeyword(keyword: ReservedKeyword): List<CategoryKeywordMapping>
 }

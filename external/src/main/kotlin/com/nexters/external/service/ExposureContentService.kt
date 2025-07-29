@@ -153,30 +153,32 @@ class ExposureContentService(
     ): ExposureContent {
         // Check if exposure content already exists for this content
         val existingExposureContent = exposureContentRepository.findByContent(content)
-        
+
         if (existingExposureContent != null) {
             // Update existing exposure content
-            val updatedContent = ExposureContent(
-                id = existingExposureContent.id,
-                content = existingExposureContent.content,
-                provocativeKeyword = provocativeKeyword,
-                provocativeHeadline = provocativeHeadline,
-                summaryContent = summaryContent,
-                createdAt = existingExposureContent.createdAt,
-                updatedAt = LocalDateTime.now()
-            )
-            
+            val updatedContent =
+                ExposureContent(
+                    id = existingExposureContent.id,
+                    content = existingExposureContent.content,
+                    provocativeKeyword = provocativeKeyword,
+                    provocativeHeadline = provocativeHeadline,
+                    summaryContent = summaryContent,
+                    createdAt = existingExposureContent.createdAt,
+                    updatedAt = LocalDateTime.now()
+                )
+
             logger.info("Updated existing exposure content for content ID: ${content.id}")
             return exposureContentRepository.save(updatedContent)
         } else {
             // Create new exposure content
-            val newExposureContent = ExposureContent(
-                content = content,
-                provocativeKeyword = provocativeKeyword,
-                provocativeHeadline = provocativeHeadline,
-                summaryContent = summaryContent,
-            )
-            
+            val newExposureContent =
+                ExposureContent(
+                    content = content,
+                    provocativeKeyword = provocativeKeyword,
+                    provocativeHeadline = provocativeHeadline,
+                    summaryContent = summaryContent,
+                )
+
             logger.info("Created new exposure content for content ID: ${content.id}")
             return exposureContentRepository.save(newExposureContent)
         }

@@ -103,22 +103,23 @@ class RecommendationController(
     ): ResponseEntity<List<CategoryKeywordResponse>> {
         val negativeKeywords = dayContentResolver.getNegativeKeywords(categoryId)
 
-        val response = negativeKeywords.map { keyword ->
-            // 카테고리에 해당하는 키워드 가중치 맵 생성
-            val categoryKeywordWeights = categoryRepository
-                .findById(categoryId)
-                .map { category ->
-                    val mapping = categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
-                    CategoryKeywordResponse(
-                        id = keyword.id!!,
-                        name = keyword.name,
-                        weight = mapping?.weight ?: 0.0
-                    )
-                }
-                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+        val response =
+            negativeKeywords.map { keyword ->
+                // 카테고리에 해당하는 키워드 가중치 맵 생성
+                val categoryKeywordWeights =
+                    categoryRepository
+                        .findById(categoryId)
+                        .map { category ->
+                            val mapping = categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+                            CategoryKeywordResponse(
+                                id = keyword.id!!,
+                                name = keyword.name,
+                                weight = mapping?.weight ?: 0.0
+                            )
+                        }.orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
 
-            categoryKeywordWeights
-        }
+                categoryKeywordWeights
+            }
 
         return ResponseEntity.ok(response)
     }
@@ -370,8 +371,9 @@ class RecommendationController(
                 .findById(keywordId)
                 .orElseThrow { NoSuchElementException("Keyword not found with id: $keywordId") }
 
-        val mapping = categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
-            ?: throw NoSuchElementException("Mapping not found for category $categoryId and keyword $keywordId")
+        val mapping =
+            categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+                ?: throw NoSuchElementException("Mapping not found for category $categoryId and keyword $keywordId")
 
         categoryKeywordMappingRepository.delete(mapping)
         return ResponseEntity.ok(mapOf("success" to true))
@@ -382,23 +384,28 @@ class RecommendationController(
         @RequestBody request: CreateExposureContentRequest
     ): ResponseEntity<ExposureContentResponse> {
         // Get the content
-        val content = contentRepository.findById(request.contentId)
-            .orElseThrow { NoSuchElementException("Content not found with id: ${request.contentId}") }
+        val content =
+            contentRepository
+                .findById(request.contentId)
+                .orElseThrow { NoSuchElementException("Content not found with id: ${request.contentId}") }
 
         // Get the summary if provided
-        val summary = request.summaryId?.let {
-            summaryRepository.findById(it)
-                .orElse(null)
-        }
+        val summary =
+            request.summaryId?.let {
+                summaryRepository
+                    .findById(it)
+                    .orElse(null)
+            }
 
         // Create exposure content
-        val exposureContent = exposureContentService.createOrUpdateExposureContent(
-            content = content,
-            summary = summary,
-            provocativeKeyword = request.provocativeKeyword,
-            provocativeHeadline = request.provocativeHeadline,
-            summaryContent = request.summaryContent
-        )
+        val exposureContent =
+            exposureContentService.createOrUpdateExposureContent(
+                content = content,
+                summary = summary,
+                provocativeKeyword = request.provocativeKeyword,
+                provocativeHeadline = request.provocativeHeadline,
+                summaryContent = request.summaryContent
+            )
 
         return ResponseEntity.ok(
             ExposureContentResponse(

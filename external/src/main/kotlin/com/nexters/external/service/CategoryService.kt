@@ -19,6 +19,8 @@ class CategoryService(
         return categoryRepository.findTop6KeywordsByCategoryId(categoryId)
     }
 
+    fun getKeywordsByCategoryId(categoryId: Long): List<ReservedKeyword> = categoryRepository.findKeywordsByCategoryId(categoryId)
+
     fun getKeywordWeightsByCategoryId(categoryId: Long): Map<ReservedKeyword, Double> =
         categoryRepository.findCategoryKeywordMappingByCategoryId(categoryId).let {
             return it.associate { mapping ->
