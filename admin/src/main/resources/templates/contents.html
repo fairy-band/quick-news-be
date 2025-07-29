@@ -743,6 +743,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
             
+            // URL에서 id 매개변수 확인
+            const urlParams = new URLSearchParams(window.location.search);
+            const contentId = urlParams.get('id');
+            
             // Fetch all categories
             fetchCategories();
             
@@ -772,6 +776,15 @@
                     fetchContents(0, 10);
                 }
             });
+            
+            // URL에 id 매개변수가 있으면 해당 콘텐츠 상세 정보 로드
+            if (contentId) {
+                setTimeout(() => {
+                    showContentDetail(contentId);
+                    // 스크롤을 상세 정보 섹션으로 이동
+                    document.getElementById('content-detail-section').scrollIntoView({ behavior: 'smooth' });
+                }, 500); // 콘텐츠 목록이 로드된 후 실행하기 위해 약간의 지연 추가
+            }
             
             // Set up add keyword button
             document.getElementById('add-keyword-btn').addEventListener('click', function() {
@@ -875,6 +888,9 @@
                 const keywordNames = Array.from(selectedKeywords).map(checkbox => checkbox.value);
                 await addKeywordsAsReserved(keywordNames);
             });
+            
+            // 키워드 관련 이벤트 설정
+            setupKeywordEvents();
         });
         
         function fetchCategories() {

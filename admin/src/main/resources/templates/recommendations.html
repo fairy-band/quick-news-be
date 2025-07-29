@@ -607,6 +607,8 @@
                         return;
                     }
                     
+                    console.log('Server response data:', data);
+                    
                     const contentGrid = document.getElementById('content-grid');
                     contentGrid.innerHTML = '';
                     
@@ -621,7 +623,7 @@
                     // Process all items and replace placeholders when ready
                     data.forEach((item, index) => {
                         if (item.exposureContent) {
-                            const contentCard = createExposureContentCard(item.exposureContent);
+                            const contentCard = createExposureContentCard(item.exposureContent, item.content);
                             contentPlaceholders[index].replaceWith(contentCard);
                         } else {
                             // For regular content, we need to fetch keywords
@@ -689,6 +691,11 @@
             link.style.marginTop = '1rem';
             link.textContent = '자세히 보기';
             
+            // Add click event for debugging and ensure navigation works
+            link.addEventListener('click', function(e) {
+                console.log(`Navigating to content ID: ${content.id}`);
+            });
+            
             card.appendChild(title);
             card.appendChild(source);
             card.appendChild(preview);
@@ -698,7 +705,7 @@
             return card;
         }
         
-        function createExposureContentCard(exposureContent) {
+        function createExposureContentCard(exposureContent, contentData) {
             const card = document.createElement('div');
             card.className = 'content-card';
             card.style.background = 'rgba(0, 0, 0, 0.3)'; // Slightly darker background to distinguish
@@ -726,13 +733,22 @@
             preview.className = 'content-preview';
             preview.textContent = exposureContent.summaryContent.substring(0, 200) + '...';
             
+            // Debug info for exposure content
+            console.log('Exposure content data:', exposureContent);
+            
             const link = document.createElement('a');
+            // Use the contentId from exposureContent to ensure correct linking
             link.href = `./contents?id=${exposureContent.contentId}`;
             link.style.color = '#00d4ff';
             link.style.textDecoration = 'none';
             link.style.display = 'inline-block';
             link.style.marginTop = '1rem';
             link.textContent = '자세히 보기';
+            
+            // Add click event for debugging and ensure navigation works
+            link.addEventListener('click', function(e) {
+                console.log(`Navigating to exposure content ID: ${exposureContent.contentId}`);
+            });
             
             card.appendChild(badge);
             card.appendChild(title);
