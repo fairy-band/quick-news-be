@@ -292,6 +292,21 @@ class KeywordAdminController(
             )
         )
     }
+    
+    @GetMapping("/reserved/{keywordId}/categories")
+    fun getCategoriesByKeyword(
+        @PathVariable keywordId: Long
+    ): ResponseEntity<List<Category>> {
+        val keyword =
+            reservedKeywordRepository
+                .findById(keywordId)
+                .orElseThrow { NoSuchElementException("ReservedKeyword not found with id: $keywordId") }
+
+        val mappings = categoryKeywordMappingRepository.findByKeyword(keyword)
+        val categories = mappings.map { it.category }
+
+        return ResponseEntity.ok(categories)
+    }
 }
 
 data class AddKeywordToCategoryRequest(

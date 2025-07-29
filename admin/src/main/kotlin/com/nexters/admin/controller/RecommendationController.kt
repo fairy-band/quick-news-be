@@ -95,6 +95,32 @@ class RecommendationController(
         return ResponseEntity.ok(response)
     }
 
+    @GetMapping("/categories/{categoryId}/negative-keywords")
+    fun getCategoryNegativeKeywords(
+        @PathVariable categoryId: Long
+    ): ResponseEntity<List<CategoryKeywordResponse>> {
+        val negativeKeywords = dayContentResolver.getNegativeKeywords(categoryId)
+
+        val response = negativeKeywords.map { keyword ->
+            // 카테고리에 해당하는 키워드 가중치 맵 생성
+            val categoryKeywordWeights = categoryRepository
+                .findById(categoryId)
+                .map { category ->
+                    val mapping = categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+                    CategoryKeywordResponse(
+                        id = keyword.id!!,
+                        name = keyword.name,
+                        weight = mapping?.weight ?: 0.0
+                    )
+                }
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+            categoryKeywordWeights
+        }
+
+        return ResponseEntity.ok(response)
+    }
+
     @PutMapping("/categories/{categoryId}/keywords/{keywordId}/weight")
     fun updateCategoryKeywordWeight(
         @PathVariable categoryId: Long,

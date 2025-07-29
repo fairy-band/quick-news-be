@@ -261,6 +261,39 @@
             margin-bottom: 0.5rem;
         }
 
+        .summary-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #000;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-summary-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+
+
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
         .keyword-list {
             display: flex;
             flex-wrap: wrap;
@@ -1055,7 +1088,7 @@
         }
         
         function fetchContents(page = 0, size = 10) {
-            fetch(`./api/contents?page=${page}&size=${size}`)
+            fetch(`./api/contents/with-summary-status?page=${page}&size=${size}&sort=publishedAt,desc`)
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data.content);
@@ -1107,7 +1140,7 @@
         }
         
         function fetchContentsByCategory(categoryId, page = 0, size = 10) {
-            fetch(`./api/contents/by-category/${categoryId}?page=${page}&size=${size}`)
+            fetch(`./api/contents/by-category/${categoryId}?page=${page}&size=${size}&sort=publishedAt,desc`)
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data.content);
@@ -1144,6 +1177,42 @@
                     ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}` 
                     : '';
                 
+                // Create badges container
+                const badgesContainer = document.createElement('div');
+                badgesContainer.className = 'badges-container';
+                
+                // Add summary badge
+                const summaryBadge = document.createElement('div');
+                if (content.hasSummary) {
+                    summaryBadge.className = 'summary-badge';
+                    summaryBadge.textContent = '요약 있음';
+                } else {
+                    summaryBadge.className = 'no-summary-badge';
+                    summaryBadge.textContent = '요약 없음';
+                }
+                badgesContainer.appendChild(summaryBadge);
+                
+                // Get content keywords
+                getContentKeywords(content.id, (keywords) => {
+                    // Limit to 5 keywords to avoid cluttering
+                    const keywordsToShow = keywords.slice(0, 5);
+                    keywordsToShow.forEach(keyword => {
+                        const keywordBadge = document.createElement('div');
+                        keywordBadge.className = 'keyword-badge';
+                        keywordBadge.textContent = keyword.name;
+                        badgesContainer.appendChild(keywordBadge);
+                    });
+                    
+                    // Show more indicator if there are more than 5 keywords
+                    if (keywords.length > 5) {
+                        const moreBadge = document.createElement('div');
+                        moreBadge.className = 'keyword-badge';
+                        moreBadge.style.background = 'rgba(255, 255, 255, 0.2)';
+                        moreBadge.textContent = `+${keywords.length - 5}`;
+                        badgesContainer.appendChild(moreBadge);
+                    }
+                });
+                
                 const preview = document.createElement('div');
                 preview.className = 'content-preview';
                 preview.textContent = content.content.substring(0, 150) + '...';
@@ -1153,6 +1222,7 @@
                 if (content.publishedAt) {
                     item.appendChild(publishDate);
                 }
+                item.appendChild(badgesContainer);
                 item.appendChild(preview);
                 
                 item.addEventListener('click', () => showContentDetail(content.id));
@@ -2389,6 +2459,22 @@
                 .catch(error => {
                     console.error('Error fetching exposure content:', error);
                     alert('노출 컨텐츠 정보를 불러오는 데 실패했습니다.');
+                });
+        }
+
+
+
+
+        // Function to get content keywords
+        function getContentKeywords(contentId, callback) {
+            fetch(`./api/contents/${contentId}/keywords?size=1000`)
+                .then(response => response.json())
+                .then(keywords => {
+                    callback(keywords);
+                })
+                .catch(error => {
+                    console.error('Error getting content keywords:', error);
+                    callback([]);
                 });
         }
     </script>

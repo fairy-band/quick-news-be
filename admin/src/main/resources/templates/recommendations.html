@@ -436,6 +436,13 @@
                 <div id="category-keywords" class="category-keywords">
                     <!-- Will be populated by JavaScript -->
                 </div>
+                
+                <h3 style="margin-top: 1.5rem;">음수 키워드</h3>
+                <p>음수 가중치가 적용된 키워드입니다. 이 키워드가 포함된 컨텐츠는 추천에서 제외됩니다.</p>
+                <div id="negative-keywords" class="category-keywords" style="background: rgba(255, 100, 100, 0.1);">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
                 <div class="refresh-btn-container">
                     <button id="refresh-contents" class="btn btn-refresh">추천 컨텐츠 리프레시</button>
                 </div>
@@ -465,8 +472,8 @@
         <div class="weight-editor-form">
             <label for="keyword-name">키워드</label>
             <input type="text" id="keyword-name" class="weight-editor-input" readonly>
-            <label for="keyword-weight">가중치</label>
-            <input type="number" id="keyword-weight" class="weight-editor-input" step="0.01" min="0" max="10">
+            <label for="keyword-weight">가중치 (음수 값 가능)</label>
+            <input type="number" id="keyword-weight" class="weight-editor-input" step="0.01" min="-10" max="10">
             <input type="hidden" id="keyword-id">
             <div class="weight-editor-actions">
                 <button id="cancel-edit" class="btn btn-cancel">취소</button>
@@ -507,6 +514,7 @@
                 const categoryId = this.value;
                 if (categoryId) {
                     fetchCategoryKeywords(categoryId);
+                    fetchCategoryNegativeKeywords(categoryId);
                     fetchRecommendedContents(categoryId);
                 } else {
                     document.getElementById('category-keywords-container').style.display = 'none';
@@ -519,6 +527,8 @@
             document.getElementById('refresh-contents').addEventListener('click', function() {
                 const categoryId = document.getElementById('category-select').value;
                 if (categoryId) {
+                    fetchCategoryKeywords(categoryId);
+                    fetchCategoryNegativeKeywords(categoryId);
                     fetchRecommendedContents(categoryId);
                     showToast('추천 컨텐츠를 리프레시했습니다.');
                 }
@@ -557,7 +567,10 @@
                         // Sort keywords by weight in descending order
                         data.sort((a, b) => b.weight - a.weight);
                         
-                        data.forEach(keyword => {
+                        // Filter out negative weights as they'll be shown in a separate section
+                        const positiveKeywords = data.filter(keyword => keyword.weight > 0);
+                        
+                        positiveKeywords.forEach(keyword => {
                             const keywordSpan = document.createElement('span');
                             keywordSpan.className = 'category-keyword';
                             keywordSpan.textContent = keyword.name;
@@ -587,6 +600,57 @@
                 .catch(error => {
                     console.error('Error fetching category keywords:', error);
                     document.getElementById('category-keywords-container').style.display = 'none';
+                });
+        }
+        
+        function fetchCategoryNegativeKeywords(categoryId) {
+            fetch(`./api/recommendations/categories/${categoryId}/negative-keywords`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('negative-keywords');
+                    container.innerHTML = '';
+                    
+                    if (data && data.length > 0) {
+                        // Sort by weight (most negative first)
+                        data.sort((a, b) => a.weight - b.weight);
+                        
+                        data.forEach(keyword => {
+                            const keywordSpan = document.createElement('span');
+                            keywordSpan.className = 'category-keyword';
+                            keywordSpan.style.background = 'rgba(255, 100, 100, 0.2)';
+                            keywordSpan.style.color = '#ff6464';
+                            keywordSpan.textContent = keyword.name;
+                            keywordSpan.dataset.id = keyword.id;
+                            keywordSpan.dataset.name = keyword.name;
+                            keywordSpan.dataset.weight = keyword.weight;
+                            
+                            // Add click event to edit weight
+                            keywordSpan.addEventListener('click', function() {
+                                openWeightEditor(keyword.id, keyword.name, keyword.weight);
+                            });
+                            
+                            // Add weight badge
+                            const weightSpan = document.createElement('span');
+                            weightSpan.className = 'keyword-weight';
+                            weightSpan.style.background = 'rgba(255, 100, 100, 0.3)';
+                            weightSpan.textContent = keyword.weight.toFixed(2);
+                            keywordSpan.appendChild(weightSpan);
+                            
+                            container.appendChild(keywordSpan);
+                        });
+                    } else {
+                        // If no negative keywords, show a message
+                        const emptyMsg = document.createElement('p');
+                        emptyMsg.style.padding = '1rem';
+                        emptyMsg.style.color = '#a0aec0';
+                        emptyMsg.textContent = '음수 키워드가 없습니다.';
+                        container.appendChild(emptyMsg);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching negative keywords:', error);
+                    const container = document.getElementById('negative-keywords');
+                    container.innerHTML = '<p style="padding: 1rem; color: #a0aec0;">음수 키워드를 불러오는 중 오류가 발생했습니다.</p>';
                 });
         }
         
@@ -779,8 +843,8 @@
             const keywordWeight = parseFloat(document.getElementById('keyword-weight').value);
             const categoryId = document.getElementById('category-select').value;
             
-            if (isNaN(keywordWeight) || keywordWeight < 0) {
-                showToast('유효한 가중치 값을 입력하세요.');
+            if (isNaN(keywordWeight) || keywordWeight < -10 || keywordWeight > 10) {
+                showToast('유효한 가중치 값을 입력하세요. (-10 ~ 10 사이)');
                 return;
             }
             
@@ -804,8 +868,9 @@
                 // Show success message
                 showToast('키워드 가중치가 업데이트되었습니다.');
                 
-                // Refresh the keywords list
+                // Refresh both keyword lists
                 fetchCategoryKeywords(categoryId);
+                fetchCategoryNegativeKeywords(categoryId);
             })
             .catch(error => {
                 console.error('Error updating keyword weight:', error);

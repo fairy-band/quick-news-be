@@ -7,6 +7,7 @@ import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
+import com.nexters.external.repository.SummaryRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -41,7 +42,8 @@ class ContentApiController(
     private val contentRepository: ContentRepository,
     private val categoryRepository: CategoryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
-    private val contentKeywordMappingRepository: ContentKeywordMappingRepository
+    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
+    private val summaryRepository: SummaryRepository
 ) {
     @GetMapping
     fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
@@ -197,14 +199,68 @@ class ContentApiController(
     fun getContentsByCategory(
         @PathVariable categoryId: Long,
         pageable: Pageable
-    ): ResponseEntity<Page<Content>> {
+    ): ResponseEntity<Page<ContentWithSummaryStatusResponse>> {
         val category =
             categoryRepository
                 .findById(categoryId)
                 .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
 
         val contents = contentRepository.findContentsByCategory(categoryId, pageable)
-        return ResponseEntity.ok(contents)
+        
+        val contentResponses = contents.map { content ->
+            val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+            ContentWithSummaryStatusResponse(
+                id = content.id ?: 0,
+                newsletterSourceId = content.newsletterSourceId,
+                title = content.title,
+                content = content.content,
+                newsletterName = content.newsletterName,
+                originalUrl = content.originalUrl,
+                publishedAt = content.publishedAt,
+                createdAt = content.createdAt,
+                updatedAt = content.updatedAt,
+                hasSummary = hasSummary
+            )
+        }
+        
+        return ResponseEntity.ok(contentResponses)
+    }
+
+    @GetMapping("/{contentId}/has-summary")
+    fun checkContentHasSummary(
+        @PathVariable contentId: Long
+    ): ResponseEntity<Map<String, Any>> {
+        val content =
+            contentRepository
+                .findById(contentId)
+                .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
+
+        val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+
+        return ResponseEntity.ok(mapOf("hasSummary" to hasSummary))
+    }
+
+    @GetMapping("/with-summary-status")
+    fun getAllContentsWithSummaryStatus(pageable: Pageable): ResponseEntity<Page<ContentWithSummaryStatusResponse>> {
+        val contents = contentRepository.findAll(pageable)
+
+        val contentResponses = contents.map { content ->
+            val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+            ContentWithSummaryStatusResponse(
+                id = content.id ?: 0,
+                newsletterSourceId = content.newsletterSourceId,
+                title = content.title,
+                content = content.content,
+                newsletterName = content.newsletterName,
+                originalUrl = content.originalUrl,
+                publishedAt = content.publishedAt,
+                createdAt = content.createdAt,
+                updatedAt = content.updatedAt,
+                hasSummary = hasSummary
+            )
+        }
+
+        return ResponseEntity.ok(contentResponses)
     }
 }
 
@@ -228,4 +284,17 @@ data class UpdateContentRequest(
     val newsletterName: String? = null,
     val originalUrl: String? = null,
     val publishedAt: LocalDate? = null
+)
+
+data class ContentWithSummaryStatusResponse(
+    val id: Long,
+    val newsletterSourceId: String?,
+    val title: String,
+    val content: String,
+    val newsletterName: String,
+    val originalUrl: String,
+    val publishedAt: LocalDate,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val hasSummary: Boolean
 )
