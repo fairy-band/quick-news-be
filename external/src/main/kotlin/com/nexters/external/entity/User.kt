@@ -26,7 +26,14 @@ class User(
         joinColumns = [JoinColumn(name = "user_id")],
         inverseJoinColumns = [JoinColumn(name = "category_id")]
     )
-    val categories: Set<Category> = emptySet(),
+    var categories: MutableSet<Category> = mutableSetOf<Category>(),
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_keyword_mappings",
+        joinColumns = [JoinColumn(name = "user_id")],
+        inverseJoinColumns = [JoinColumn(name = "keyword_id")]
+    )
+    var keywords: MutableSet<ReservedKeyword> = mutableSetOf<ReservedKeyword>(),
     @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false, name = "updated_at")

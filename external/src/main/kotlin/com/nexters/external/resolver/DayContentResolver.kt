@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class DayContentResolver(
-    val categoryService: CategoryService,
-    val contentService: ContentService,
+    private val categoryService: CategoryService,
+    private val contentService: ContentService,
 ) {
     fun resolveTodayContents(
         userId: Long,

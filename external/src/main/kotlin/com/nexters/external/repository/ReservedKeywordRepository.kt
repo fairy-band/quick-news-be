@@ -11,6 +11,8 @@ import org.springframework.stereotype.Repository
 interface ReservedKeywordRepository : JpaRepository<ReservedKeyword, Long> {
     fun findByName(name: String): ReservedKeyword?
 
+    fun findByNameIn(names: List<String>): List<ReservedKeyword>
+
     @Query(
         """
         SELECT rk from ReservedKeyword rk

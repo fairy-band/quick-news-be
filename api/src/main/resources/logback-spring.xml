@@ -20,10 +20,15 @@
     </springProfile>
 
     <!-- Root logger configuration -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <springProfile name="prod">
+    <springProfile name="local">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+    <springProfile name = "prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
             <appender-ref ref="DISCORD"/>
-        </springProfile>
-    </root>
+        </root>
+    </springProfile>
 </configuration>

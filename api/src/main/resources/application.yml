@@ -14,3 +14,6 @@ springdoc:
     path: /api-docs
   show-actuator: true
   default-produces-media-type: application/json
+ai:
+  gemini:
+    key: ${AI_GEMINI_KEY:}
