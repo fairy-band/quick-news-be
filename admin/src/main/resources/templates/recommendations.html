@@ -610,21 +610,25 @@
                     const contentGrid = document.getElementById('content-grid');
                     contentGrid.innerHTML = '';
                     
-                    data.forEach(item => {
-                        let contentCard;
-                        
-                        // Use exposureContent if available, otherwise use regular content
+                    // Create a placeholder for each content item to maintain order
+                    const contentPlaceholders = data.map((_, index) => {
+                        const placeholder = document.createElement('div');
+                        placeholder.id = `content-placeholder-${index}`;
+                        contentGrid.appendChild(placeholder);
+                        return placeholder;
+                    });
+                    
+                    // Process all items and replace placeholders when ready
+                    data.forEach((item, index) => {
                         if (item.exposureContent) {
-                            contentCard = createExposureContentCard(item.exposureContent);
+                            const contentCard = createExposureContentCard(item.exposureContent);
+                            contentPlaceholders[index].replaceWith(contentCard);
                         } else {
                             // For regular content, we need to fetch keywords
                             fetchContentKeywords(item.content.id, (contentCard) => {
-                                contentGrid.appendChild(contentCard);
+                                contentPlaceholders[index].replaceWith(contentCard);
                             });
-                            return; // Skip the append below as it's done in the callback
                         }
-                        
-                        contentGrid.appendChild(contentCard);
                     });
                 })
                 .catch(error => {

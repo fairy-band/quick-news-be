@@ -1,6 +1,7 @@
 package com.nexters.external.repository
 
 import com.nexters.external.entity.Category
+import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -21,4 +22,13 @@ interface CategoryRepository : JpaRepository<Category, Long> {
     """
     )
     fun findTop6KeywordsByCategoryId(categoryId: Long): List<ReservedKeyword>
+
+    @Query(
+        """
+        SELECT ckm
+        FROM CategoryKeywordMapping ckm
+        WHERE ckm.category.id = :categoryId
+    """
+    )
+    fun findCategoryKeywordMappingByCategoryId(categoryId: Long): List<CategoryKeywordMapping>
 }
