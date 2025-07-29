@@ -2,8 +2,10 @@ package com.nexters.admin.controller
 
 import com.nexters.admin.repository.CategoryKeywordMappingRepository
 import com.nexters.external.entity.Category
+import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ExposureContentRepository
+import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.resolver.DayContentResolver
 import com.nexters.external.service.ExposureContentService
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/api/recommendations")
@@ -26,6 +29,7 @@ class RecommendationController(
     private val summaryRepository: SummaryRepository,
     private val exposureContentService: ExposureContentService,
     private val exposureContentRepository: ExposureContentRepository,
+    private val reservedKeywordRepository: ReservedKeywordRepository,
 ) {
     @GetMapping("/categories")
     fun getAllCategories(): ResponseEntity<List<Category>> = ResponseEntity.ok(categoryRepository.findAll())
@@ -89,6 +93,48 @@ class RecommendationController(
             }
 
         return ResponseEntity.ok(response)
+    }
+
+    @PutMapping("/categories/{categoryId}/keywords/{keywordId}/weight")
+    fun updateCategoryKeywordWeight(
+        @PathVariable categoryId: Long,
+        @PathVariable keywordId: Long,
+        @RequestBody request: UpdateKeywordWeightRequest
+    ): ResponseEntity<CategoryKeywordResponse> {
+        val category =
+            categoryRepository
+                .findById(categoryId)
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+        val keyword =
+            reservedKeywordRepository
+                .findById(keywordId)
+                .orElseThrow { NoSuchElementException("Keyword not found with id: $keywordId") }
+
+        val mapping =
+            categoryKeywordMappingRepository.findByCategoryAndKeyword(category, keyword)
+                ?: throw NoSuchElementException("Mapping not found for category $categoryId and keyword $keywordId")
+
+        // Create a new mapping with updated weight and timestamp
+        val updatedMapping =
+            CategoryKeywordMapping(
+                id = mapping.id,
+                category = mapping.category,
+                keyword = mapping.keyword,
+                weight = request.weight,
+                createdAt = mapping.createdAt,
+                updatedAt = LocalDateTime.now()
+            )
+
+        val savedMapping = categoryKeywordMappingRepository.save(updatedMapping)
+
+        return ResponseEntity.ok(
+            CategoryKeywordResponse(
+                id = savedMapping.keyword.id!!,
+                name = savedMapping.keyword.name,
+                weight = savedMapping.weight
+            )
+        )
     }
 
     @GetMapping("/summaries")

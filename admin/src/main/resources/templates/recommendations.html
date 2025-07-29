@@ -171,6 +171,12 @@
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: #fff;
         }
+        
+        .btn-refresh {
+            background: linear-gradient(45deg, #00d4ff, #0077ff);
+            color: #fff;
+            margin-left: 1rem;
+        }
 
         .content-grid {
             display: grid;
@@ -285,6 +291,12 @@
             color: #00d4ff;
             margin-right: 0.5rem;
             margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .category-keyword:hover {
+            background: rgba(0, 212, 255, 0.4);
         }
         
         .keyword-weight {
@@ -295,6 +307,100 @@
             font-size: 0.8rem;
             color: #ffffff;
             margin-left: 0.3rem;
+        }
+        
+        .weight-editor {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            border-radius: 12px;
+            padding: 2rem;
+            z-index: 1000;
+            width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+        
+        .weight-editor h3 {
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+        
+        .weight-editor-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .weight-editor-input {
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+        
+        .weight-editor-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        
+        .weight-editor-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        
+        .btn-save {
+            background: linear-gradient(45deg, #00d4ff, #0077ff);
+            color: #ffffff;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            display: none;
+        }
+        
+        .refresh-btn-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #ffffff;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
         }
     </style>
 </head>
@@ -326,8 +432,12 @@
             
             <div id="category-keywords-container" style="margin-top: 1.5rem; display: none;">
                 <h3>카테고리 키워드</h3>
+                <p>키워드를 클릭하여 가중치를 수정할 수 있습니다.</p>
                 <div id="category-keywords" class="category-keywords">
                     <!-- Will be populated by JavaScript -->
+                </div>
+                <div class="refresh-btn-container">
+                    <button id="refresh-contents" class="btn btn-refresh">추천 컨텐츠 리프레시</button>
                 </div>
             </div>
             
@@ -346,6 +456,28 @@
                 <!-- Will be populated by JavaScript -->
             </div>
         </div>
+    </div>
+    
+    <!-- Weight Editor Modal -->
+    <div id="overlay" class="overlay"></div>
+    <div id="weight-editor" class="weight-editor">
+        <h3>키워드 가중치 수정</h3>
+        <div class="weight-editor-form">
+            <label for="keyword-name">키워드</label>
+            <input type="text" id="keyword-name" class="weight-editor-input" readonly>
+            <label for="keyword-weight">가중치</label>
+            <input type="number" id="keyword-weight" class="weight-editor-input" step="0.01" min="0" max="10">
+            <input type="hidden" id="keyword-id">
+            <div class="weight-editor-actions">
+                <button id="cancel-edit" class="btn btn-cancel">취소</button>
+                <button id="save-weight" class="btn btn-save">저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <span id="toast-message"></span>
     </div>
     
     <script>
@@ -382,6 +514,20 @@
                     document.getElementById('empty-state').style.display = 'none';
                 }
             });
+            
+            // Set up refresh button event
+            document.getElementById('refresh-contents').addEventListener('click', function() {
+                const categoryId = document.getElementById('category-select').value;
+                if (categoryId) {
+                    fetchRecommendedContents(categoryId);
+                    showToast('추천 컨텐츠를 리프레시했습니다.');
+                }
+            });
+            
+            // Set up weight editor modal events
+            document.getElementById('cancel-edit').addEventListener('click', closeWeightEditor);
+            document.getElementById('overlay').addEventListener('click', closeWeightEditor);
+            document.getElementById('save-weight').addEventListener('click', saveKeywordWeight);
         });
         
         function fetchCategories() {
@@ -415,6 +561,14 @@
                             const keywordSpan = document.createElement('span');
                             keywordSpan.className = 'category-keyword';
                             keywordSpan.textContent = keyword.name;
+                            keywordSpan.dataset.id = keyword.id;
+                            keywordSpan.dataset.name = keyword.name;
+                            keywordSpan.dataset.weight = keyword.weight;
+                            
+                            // Add click event to edit weight
+                            keywordSpan.addEventListener('click', function() {
+                                openWeightEditor(keyword.id, keyword.name, keyword.weight);
+                            });
                             
                             // Add weight badge
                             const weightSpan = document.createElement('span');
@@ -583,6 +737,73 @@
             card.appendChild(link);
             
             return card;
+        }
+        
+        // Weight editor functions
+        function openWeightEditor(keywordId, keywordName, keywordWeight) {
+            document.getElementById('keyword-id').value = keywordId;
+            document.getElementById('keyword-name').value = keywordName;
+            document.getElementById('keyword-weight').value = keywordWeight;
+            
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('weight-editor').style.display = 'block';
+        }
+        
+        function closeWeightEditor() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('weight-editor').style.display = 'none';
+        }
+        
+        function saveKeywordWeight() {
+            const keywordId = document.getElementById('keyword-id').value;
+            const keywordWeight = parseFloat(document.getElementById('keyword-weight').value);
+            const categoryId = document.getElementById('category-select').value;
+            
+            if (isNaN(keywordWeight) || keywordWeight < 0) {
+                showToast('유효한 가중치 값을 입력하세요.');
+                return;
+            }
+            
+            fetch(`./api/recommendations/categories/${categoryId}/keywords/${keywordId}/weight`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ weight: keywordWeight })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update keyword weight');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Close the editor
+                closeWeightEditor();
+                
+                // Show success message
+                showToast('키워드 가중치가 업데이트되었습니다.');
+                
+                // Refresh the keywords list
+                fetchCategoryKeywords(categoryId);
+            })
+            .catch(error => {
+                console.error('Error updating keyword weight:', error);
+                showToast('키워드 가중치 업데이트에 실패했습니다.');
+            });
+        }
+        
+        // Toast notification function
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
     </script>
 </body>

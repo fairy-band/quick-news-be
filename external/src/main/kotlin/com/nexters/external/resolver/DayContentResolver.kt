@@ -23,7 +23,7 @@ class DayContentResolver(
 
         // 1차 오늘 날짜를 우선순위로
         return possibleContents
-            .sortedByDescending { it.createdAt }
+            .sortedByDescending { it.publishedAt }
             .take(MAX_CONTENT_SIZE)
     }
 

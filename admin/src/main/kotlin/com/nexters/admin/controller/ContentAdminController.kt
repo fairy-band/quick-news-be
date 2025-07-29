@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Controller
@@ -56,6 +57,7 @@ class ContentApiController(
                 content = request.content,
                 newsletterName = request.newsletterName,
                 originalUrl = request.originalUrl,
+                publishedAt = request.publishedAt,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
             )
@@ -93,6 +95,7 @@ class ContentApiController(
                 content = request.content ?: existingContent.content,
                 newsletterName = request.newsletterName ?: existingContent.newsletterName,
                 originalUrl = request.originalUrl ?: existingContent.originalUrl,
+                publishedAt = request.publishedAt ?: existingContent.publishedAt,
                 createdAt = existingContent.createdAt,
                 updatedAt = LocalDateTime.now()
             )
@@ -214,7 +217,8 @@ data class CreateContentRequest(
     val title: String,
     val content: String,
     val newsletterName: String,
-    val originalUrl: String
+    val originalUrl: String,
+    val publishedAt: LocalDate
 )
 
 data class UpdateContentRequest(
@@ -222,5 +226,6 @@ data class UpdateContentRequest(
     val title: String? = null,
     val content: String? = null,
     val newsletterName: String? = null,
-    val originalUrl: String? = null
+    val originalUrl: String? = null,
+    val publishedAt: LocalDate? = null
 )

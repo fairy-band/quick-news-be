@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
@@ -24,6 +25,8 @@ class Content(
     val newsletterName: String,
     @Column(nullable = false, name = "original_url")
     val originalUrl: String,
+    @Column(nullable = true, name = "published_at")
+    val publishedAt: LocalDate,
     @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false, name = "updated_at")

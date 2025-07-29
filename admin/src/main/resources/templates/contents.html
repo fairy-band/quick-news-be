@@ -575,6 +575,10 @@
                         <input type="url" id="edit-original-url" class="form-control" required>
                     </div>
                     <div style="margin-bottom: 1rem;">
+                        <label for="edit-published-at">발행 날짜</label>
+                        <input type="date" id="edit-published-at" class="form-control">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
                         <label for="edit-content-text">내용</label>
                         <textarea id="edit-content-text" class="form-control" rows="10" required></textarea>
                     </div>
@@ -706,6 +710,10 @@
                     <input type="url" id="original-url" class="form-control" required>
                 </div>
                 <div style="margin-bottom: 1rem;">
+                    <label for="published-at">발행 날짜</label>
+                    <input type="date" id="published-at" class="form-control">
+                </div>
+                <div style="margin-bottom: 1rem;">
                     <label for="content-text">내용</label>
                     <textarea id="content-text" class="form-control" rows="10" required></textarea>
                 </div>
@@ -806,6 +814,7 @@
                 const newsletterName = document.getElementById('newsletter-name').value;
                 const title = document.getElementById('content-title').value;
                 const originalUrl = document.getElementById('original-url').value;
+                const publishedAt = document.getElementById('published-at').value || null;
                 const content = document.getElementById('content-text').value;
                 
                 if (!newsletterName || !title || !originalUrl || !content) {
@@ -818,6 +827,7 @@
                     newsletterName: newsletterName,
                     title: title,
                     originalUrl: originalUrl,
+                    publishedAt: publishedAt,
                     content: content
                 });
             });
@@ -1112,12 +1122,21 @@
                 source.className = 'content-source';
                 source.textContent = `출처: ${content.newsletterName}${content.newsletterSourceId ? ' (ID: ' + content.newsletterSourceId + ')' : ''}`;
                 
+                const publishDate = document.createElement('div');
+                publishDate.className = 'content-source';
+                publishDate.textContent = content.publishedAt 
+                    ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}` 
+                    : '';
+                
                 const preview = document.createElement('div');
                 preview.className = 'content-preview';
                 preview.textContent = content.content.substring(0, 150) + '...';
                 
                 item.appendChild(title);
                 item.appendChild(source);
+                if (content.publishedAt) {
+                    item.appendChild(publishDate);
+                }
                 item.appendChild(preview);
                 
                 item.addEventListener('click', () => showContentDetail(content.id));
@@ -1153,13 +1172,23 @@
                     document.getElementById('edit-newsletter-name').value = content.newsletterName;
                     document.getElementById('edit-content-title').value = content.title;
                     document.getElementById('edit-original-url').value = content.originalUrl;
+                    document.getElementById('edit-published-at').value = content.publishedAt ? content.publishedAt : '';
                     document.getElementById('edit-content-text').value = content.content;
+                    
+                    const publishedDateText = content.publishedAt 
+                        ? new Date(content.publishedAt).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        : '없음';
                     
                     detailContainer.innerHTML = `
                         <h3>${content.title}</h3>
                         <div class="content-source">출처: ${content.newsletterName}</div>
                         ${content.newsletterSourceId ? `<div class="content-source">소스 ID: ${content.newsletterSourceId}</div>` : ''}
                         <div class="content-source">URL: <a href="${content.originalUrl}" target="_blank">${content.originalUrl}</a></div>
+                        <div class="content-source">발행 날짜: ${publishedDateText}</div>
                         <div class="content-text">${content.content}</div>
                     `;
                     
@@ -1364,6 +1393,7 @@
             const newsletterName = document.getElementById('edit-newsletter-name').value;
             const title = document.getElementById('edit-content-title').value;
             const originalUrl = document.getElementById('edit-original-url').value;
+            const publishedAt = document.getElementById('edit-published-at').value || null;
             const content = document.getElementById('edit-content-text').value;
 
             if (!contentId || !newsletterName || !title || !originalUrl || !content) {
@@ -1376,6 +1406,7 @@
                 newsletterName: newsletterName,
                 title: title,
                 originalUrl: originalUrl,
+                publishedAt: publishedAt,
                 content: content
             });
         });
