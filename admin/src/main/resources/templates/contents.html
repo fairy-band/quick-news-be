@@ -538,17 +538,38 @@
             <div class="col-md-6">
                 <div class="section">
                     <h2>카테고리별 콘텐츠 필터</h2>
-                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
-                        <div style="flex: 1;">
-                            <select id="category-select" class="form-select">
-                                <option value="">모든 카테고리</option>
-                                <!-- Will be populated by JavaScript -->
-                            </select>
-                        </div>
-                        <div>
-                            <button id="filter-btn" class="btn btn-primary">필터링</button>
-                        </div>
+                                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                    <div style="flex: 1;">
+                        <select id="category-select" class="form-select">
+                            <option value="">모든 카테고리</option>
+                            <!-- Will be populated by JavaScript -->
+                        </select>
                     </div>
+                    <div>
+                        <button id="filter-btn" class="btn btn-primary">필터링</button>
+                    </div>
+                </div>
+                
+                <!-- 정렬 옵션 선택 -->
+                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                    <div style="flex: 1;">
+                        <select id="sort-option" class="form-select">
+                            <option value="publishedAt">발행일순</option>
+                            <option value="noSummary">요약 없음 우선</option>
+                            <option value="notExposed">노출 안함 우선</option>
+                            <option value="exposed">노출 중 우선</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <select id="newsletter-filter" class="form-select">
+                            <option value="">모든 뉴스레터</option>
+                            <!-- 뉴스레터 이름 목록은 JavaScript로 채워집니다 -->
+                        </select>
+                    </div>
+                    <div>
+                        <button id="apply-sort-btn" class="btn btn-primary">필터 적용</button>
+                    </div>
+                </div>
                 </div>
             </div>
             
@@ -799,6 +820,9 @@
             }
         }
         
+        // 전역 변수로 현재 정렬 옵션 저장
+        let currentSortOption = 'publishedAt';
+        
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
             
@@ -811,6 +835,9 @@
             
             // Fetch all reserved keywords
             fetchReservedKeywords();
+            
+            // Fetch newsletter names for filter
+            fetchNewsletterNames();
             
             // If there's a content ID in the URL, load that content directly
             if (contentId) {
@@ -833,6 +860,40 @@
                     fetchContents(0, 10);
                 }
             });
+            
+            // 정렬 적용 버튼 이벤트 설정
+            document.getElementById('apply-sort-btn').addEventListener('click', function() {
+                const button = this;
+                const originalText = button.textContent;
+                
+                // 버튼 텍스트 변경으로 피드백 제공
+                button.textContent = '적용 중...';
+                button.disabled = true;
+                
+                currentSortOption = document.getElementById('sort-option').value;
+                
+                // 정렬 옵션에 따라 시각적 표시 업데이트
+                updateSortOptionDisplay();
+                
+                // 현재 선택된 카테고리 확인
+                const categoryId = document.getElementById('category-select').value;
+                
+                // 서버에서 정렬된 데이터 다시 가져오기
+                setTimeout(() => {
+                    if (categoryId) {
+                        fetchContentsByCategory(categoryId, 0, 10);
+                    } else {
+                        fetchContents(0, 10);
+                    }
+                    
+                    // 정렬 완료 후 버튼 상태 복원
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 100); // 약간의 지연으로 UI 반응성 향상
+            });
+            
+            // 페이지 로드 시 정렬 옵션 표시 초기화
+            updateSortOptionDisplay();
             
             // Set up keyword filter button
             document.getElementById('keyword-filter-btn').addEventListener('click', function() {
@@ -1551,7 +1612,16 @@
         }
         
         function fetchContents(page = 0, size = 10) {
-            fetch(`./api/contents/with-summary-status?page=${page}&size=${size}&sort=publishedAt,desc`)
+            // 정렬 옵션에 따라 API 호출
+            const sortOption = document.getElementById('sort-option')?.value || 'publishedAt';
+            const newsletterName = document.getElementById('newsletter-filter')?.value || '';
+            
+            let url = `./api/contents/sorted?sortOption=${sortOption}&page=${page}&size=${size}`;
+            if (newsletterName) {
+                url += `&newsletterName=${encodeURIComponent(newsletterName)}`;
+            }
+            
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data.content);
@@ -1603,7 +1673,16 @@
         }
         
         function fetchContentsByCategory(categoryId, page = 0, size = 10) {
-            fetch(`./api/contents/by-category/${categoryId}?page=${page}&size=${size}&sort=publishedAt,desc`)
+            // 정렬 옵션에 따라 API 호출
+            const sortOption = document.getElementById('sort-option')?.value || 'publishedAt';
+            const newsletterName = document.getElementById('newsletter-filter')?.value || '';
+            
+            let url = `./api/contents/by-category/${categoryId}/sorted?sortOption=${sortOption}&page=${page}&size=${size}`;
+            if (newsletterName) {
+                url += `&newsletterName=${encodeURIComponent(newsletterName)}`;
+            }
+            
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data.content);
@@ -1621,42 +1700,9 @@
                 return;
             }
             
-            // 모든 콘텐츠 ID 목록 추출
-            const contentIds = contents.map(content => content.id);
-            
-            // 모든 콘텐츠의 노출 상태를 한 번에 가져오기
-            fetch('./api/process/contents/exposure-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ contentIds: contentIds })
-            })
-            .then(response => response.json())
-            .then(exposureStatusMap => {
-                // 콘텐츠 목록을 노출 여부에 따라 정렬
-                const sortedContents = [...contents].sort((a, b) => {
-                    const aIsExposed = exposureStatusMap[a.id] || false;
-                    const bIsExposed = exposureStatusMap[b.id] || false;
-                    
-                    if (aIsExposed !== bIsExposed) {
-                        return aIsExposed ? 1 : -1; // 노출 안 하는 항목이 먼저 오도록
-                    }
-                    return b.id - a.id; // 같은 노출 상태면 ID 역순(최신순)
-                });
-                
-                // 정렬된 콘텐츠로 목록 생성
-                sortedContents.forEach(content => {
-                    const isExposed = exposureStatusMap[content.id] || false;
-                    renderContentItem(content, isExposed, container);
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching bulk exposure status:', error);
-                // 오류 발생 시 기본 순서로 표시
-                contents.forEach(content => {
-                    renderContentItem(content, false, container);
-                });
+            // 콘텐츠 항목 렌더링
+            contents.forEach(content => {
+                renderContentItem(content, content.isExposed, container);
             });
         }
         
@@ -2987,6 +3033,77 @@
                     console.error('Error getting content keywords:', error);
                     callback([]);
                 });
+        }
+        
+        // 정렬 옵션에 따라 시각적 표시를 업데이트하는 함수
+        function updateSortOptionDisplay() {
+            // 현재 정렬 옵션에 따라 정렬 기준 표시
+            const sortInfoElement = document.createElement('div');
+            sortInfoElement.style.marginTop = '1rem';
+            sortInfoElement.style.padding = '0.5rem';
+            sortInfoElement.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+            sortInfoElement.style.borderRadius = '8px';
+            sortInfoElement.style.fontSize = '0.9rem';
+            sortInfoElement.style.color = '#a0aec0';
+            
+            let sortDescription = '';
+            switch (currentSortOption) {
+                case 'noSummary':
+                    sortDescription = '요약 없음 우선 정렬';
+                    break;
+                case 'notExposed':
+                    sortDescription = '노출 안함 우선 정렬';
+                    break;
+                case 'exposed':
+                    sortDescription = '노출 중 우선 정렬';
+                    break;
+                case 'newest':
+                    sortDescription = '최신순 정렬';
+                    break;
+                case 'oldest':
+                    sortDescription = '오래된순 정렬';
+                    break;
+                case 'publishedAt':
+                default:
+                    sortDescription = '발행일순 정렬';
+                    break;
+            }
+            
+            sortInfoElement.innerHTML = `<span style="color: #00d4ff;">현재 정렬:</span> ${sortDescription}`;
+            
+            // 기존 정렬 정보 요소 제거
+            const existingSortInfo = document.getElementById('sort-info');
+            if (existingSortInfo) {
+                existingSortInfo.remove();
+            }
+            
+            // 새 정렬 정보 요소 추가
+            sortInfoElement.id = 'sort-info';
+            const sortOptionContainer = document.getElementById('sort-option').parentElement.parentElement.parentElement;
+            sortOptionContainer.appendChild(sortInfoElement);
+        }
+
+        // 뉴스레터 이름 목록을 가져오는 함수
+        function fetchNewsletterNames() {
+            fetch('./api/contents/newsletter-names')
+                .then(response => response.json())
+                .then(data => {
+                    const newsletterFilter = document.getElementById('newsletter-filter');
+                    
+                    // 기존 옵션 제거 (첫 번째 옵션 '모든 뉴스레터' 제외)
+                    while (newsletterFilter.options.length > 1) {
+                        newsletterFilter.remove(1);
+                    }
+                    
+                    // 뉴스레터 이름 옵션 추가
+                    data.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        newsletterFilter.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching newsletter names:', error));
         }
     </script>
 </body>

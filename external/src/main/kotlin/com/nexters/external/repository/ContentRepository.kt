@@ -58,4 +58,83 @@ interface ContentRepository : JpaRepository<Content, Long> {
 
     @Query("SELECT DISTINCT c.newsletterName FROM Content c ORDER BY c.newsletterName")
     fun findDistinctNewsletterNames(): List<String>
+
+    @Query(
+        """
+        SELECT c FROM Content c
+        WHERE c.id NOT IN (
+            SELECT DISTINCT s.content.id FROM Summary s
+        )
+    """
+    )
+    fun findContentsWithoutSummary(pageable: Pageable): Page<Content>
+
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
+        JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
+        WHERE catkm.category.id = :categoryId
+        AND c.id NOT IN (
+            SELECT DISTINCT s.content.id FROM Summary s
+        )
+    """
+    )
+    fun findContentsByCategoryWithoutSummary(
+        @Param("categoryId") categoryId: Long,
+        pageable: Pageable
+    ): Page<Content>
+
+    // 뉴스레터 이름으로 필터링하는 메서드 추가
+    fun findByNewsletterName(
+        newsletterName: String,
+        pageable: Pageable
+    ): Page<Content>
+
+    @Query(
+        """
+        SELECT c FROM Content c
+        WHERE c.newsletterName = :newsletterName
+        AND c.id NOT IN (
+            SELECT DISTINCT s.content.id FROM Summary s
+        )
+    """
+    )
+    fun findContentsWithoutSummaryByNewsletterName(
+        @Param("newsletterName") newsletterName: String,
+        pageable: Pageable
+    ): Page<Content>
+
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
+        JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
+        WHERE catkm.category.id = :categoryId
+        AND c.newsletterName = :newsletterName
+        AND c.id NOT IN (
+            SELECT DISTINCT s.content.id FROM Summary s
+        )
+    """
+    )
+    fun findContentsByCategoryWithoutSummaryAndNewsletterName(
+        @Param("categoryId") categoryId: Long,
+        @Param("newsletterName") newsletterName: String,
+        pageable: Pageable
+    ): Page<Content>
+
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
+        JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
+        WHERE catkm.category.id = :categoryId
+        AND c.newsletterName = :newsletterName
+    """
+    )
+    fun findContentsByCategoryAndNewsletterName(
+        @Param("categoryId") categoryId: Long,
+        @Param("newsletterName") newsletterName: String,
+        pageable: Pageable
+    ): Page<Content>
 }

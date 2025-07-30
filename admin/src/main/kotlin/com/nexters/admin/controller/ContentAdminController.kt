@@ -6,10 +6,13 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentRepository
+import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -43,7 +47,8 @@ class ContentApiController(
     private val categoryRepository: CategoryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
-    private val summaryRepository: SummaryRepository
+    private val summaryRepository: SummaryRepository,
+    private val exposureContentRepository: ExposureContentRepository
 ) {
     @GetMapping
     fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
@@ -270,6 +275,162 @@ class ContentApiController(
 
         return ResponseEntity.ok(contentResponses)
     }
+
+    @GetMapping("/sorted")
+    fun getSortedContents(
+        @RequestParam("sortOption") sortOption: String,
+        @RequestParam("newsletterName", required = false) newsletterName: String?,
+        pageable: Pageable
+    ): ResponseEntity<Page<ContentWithSortInfoResponse>> {
+        // 정렬 옵션에 따라 적절한 레포지토리 메서드 사용
+        val contents =
+            when (sortOption) {
+                "noSummary" -> {
+                    // 요약 없는 콘텐츠 우선 정렬 (DB 쿼리로 처리)
+                    if (newsletterName != null) {
+                        contentRepository.findContentsWithoutSummaryByNewsletterName(newsletterName, pageable)
+                    } else {
+                        contentRepository.findContentsWithoutSummary(pageable)
+                    }
+                }
+                "notExposed" -> {
+                    // 노출 안 하는 콘텐츠 우선 정렬 (DB 쿼리로 처리)
+                    if (newsletterName != null) {
+                        exposureContentRepository.findContentsWithoutExposureByNewsletterName(newsletterName, pageable)
+                    } else {
+                        exposureContentRepository.findContentsWithoutExposure(pageable)
+                    }
+                }
+                "exposed" -> {
+                    // 노출 중인 콘텐츠 우선 정렬 (DB 쿼리로 처리)
+                    if (newsletterName != null) {
+                        exposureContentRepository.findContentsWithExposureByNewsletterName(newsletterName, pageable)
+                    } else {
+                        exposureContentRepository.findContentsWithExposure(pageable)
+                    }
+                }
+                else -> {
+                    // 발행일 기준 정렬 (기본값)
+                    val pageRequest =
+                        PageRequest.of(
+                            pageable.pageNumber,
+                            pageable.pageSize,
+                            Sort.by(Sort.Direction.DESC, "publishedAt")
+                        )
+                    if (newsletterName != null) {
+                        contentRepository.findByNewsletterName(newsletterName, pageRequest)
+                    } else {
+                        contentRepository.findAll(pageRequest)
+                    }
+                }
+            }
+
+        // 요약 정보 및 노출 정보 가져오기
+        val contentResponses =
+            contents.map { content ->
+                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+                val isExposed = exposureContentRepository.findByContent(content) != null
+
+                ContentWithSortInfoResponse(
+                    id = content.id ?: 0,
+                    newsletterSourceId = content.newsletterSourceId,
+                    title = content.title,
+                    content = content.content,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    publishedAt = content.publishedAt,
+                    createdAt = content.createdAt,
+                    updatedAt = content.updatedAt,
+                    hasSummary = hasSummary,
+                    isExposed = isExposed
+                )
+            }
+
+        return ResponseEntity.ok(contentResponses)
+    }
+
+    @GetMapping("/by-category/{categoryId}/sorted")
+    fun getSortedContentsByCategory(
+        @PathVariable categoryId: Long,
+        @RequestParam("sortOption") sortOption: String,
+        @RequestParam("newsletterName", required = false) newsletterName: String?,
+        pageable: Pageable
+    ): ResponseEntity<Page<ContentWithSortInfoResponse>> {
+        val category =
+            categoryRepository
+                .findById(categoryId)
+                .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
+
+        // 정렬 옵션에 따라 적절한 레포지토리 메서드 사용
+        val contents =
+            when (sortOption) {
+                "noSummary" -> {
+                    // 요약 없는 콘텐츠 우선 정렬 (DB 쿼리로 처리)
+                    if (newsletterName != null) {
+                        contentRepository.findContentsByCategoryWithoutSummaryAndNewsletterName(categoryId, newsletterName, pageable)
+                    } else {
+                        contentRepository.findContentsByCategoryWithoutSummary(categoryId, pageable)
+                    }
+                }
+                "notExposed" -> {
+                    // 노출 안 하는 콘텐츠 우선 정렬 (DB 쿼리로 처리)
+                    if (newsletterName != null) {
+                        exposureContentRepository.findContentsByCategoryWithoutExposureAndNewsletterName(
+                            categoryId,
+                            newsletterName,
+                            pageable
+                        )
+                    } else {
+                        exposureContentRepository.findContentsByCategoryWithoutExposure(categoryId, pageable)
+                    }
+                }
+                "exposed" -> {
+                    // 노출 중인 콘텐츠 우선 정렬 (DB 쿼리로 처리)
+                    if (newsletterName != null) {
+                        exposureContentRepository.findContentsByCategoryWithExposureAndNewsletterName(categoryId, newsletterName, pageable)
+                    } else {
+                        exposureContentRepository.findContentsByCategoryWithExposure(categoryId, pageable)
+                    }
+                }
+                else -> {
+                    // 발행일 기준 정렬 (기본값)
+                    val pageRequest =
+                        PageRequest.of(
+                            pageable.pageNumber,
+                            pageable.pageSize,
+                            Sort.by(Sort.Direction.DESC, "publishedAt")
+                        )
+                    if (newsletterName != null) {
+                        contentRepository.findContentsByCategoryAndNewsletterName(categoryId, newsletterName, pageRequest)
+                    } else {
+                        contentRepository.findContentsByCategory(categoryId, pageRequest)
+                    }
+                }
+            }
+
+        // 요약 정보 및 노출 정보 가져오기
+        val contentResponses =
+            contents.map { content ->
+                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+                val isExposed = exposureContentRepository.findByContent(content) != null
+
+                ContentWithSortInfoResponse(
+                    id = content.id ?: 0,
+                    newsletterSourceId = content.newsletterSourceId,
+                    title = content.title,
+                    content = content.content,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    publishedAt = content.publishedAt,
+                    createdAt = content.createdAt,
+                    updatedAt = content.updatedAt,
+                    hasSummary = hasSummary,
+                    isExposed = isExposed
+                )
+            }
+
+        return ResponseEntity.ok(contentResponses)
+    }
 }
 
 data class AddKeywordToContentRequest(
@@ -305,4 +466,18 @@ data class ContentWithSummaryStatusResponse(
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val hasSummary: Boolean
+)
+
+data class ContentWithSortInfoResponse(
+    val id: Long,
+    val newsletterSourceId: String?,
+    val title: String,
+    val content: String,
+    val newsletterName: String,
+    val originalUrl: String,
+    val publishedAt: LocalDate,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val hasSummary: Boolean,
+    val isExposed: Boolean = false
 )
