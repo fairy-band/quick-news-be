@@ -10,8 +10,6 @@ springdoc:
     operationsSorter: method
     disable-swagger-default-url: true
     display-request-duration: true
-  api-docs:
-    path: /api-docs
   show-actuator: true
   default-produces-media-type: application/json
 ai:
