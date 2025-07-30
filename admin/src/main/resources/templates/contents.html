@@ -1621,77 +1621,141 @@
                 return;
             }
             
-            contents.forEach(content => {
-                const item = document.createElement('div');
-                item.className = 'content-item';
-                item.dataset.id = content.id;
-                
-                const title = document.createElement('div');
-                title.className = 'content-title';
-                title.textContent = content.title;
-                
-                const source = document.createElement('div');
-                source.className = 'content-source';
-                source.textContent = `출처: ${content.newsletterName}${content.newsletterSourceId ? ' (ID: ' + content.newsletterSourceId + ')' : ''}`;
-                
-                const publishDate = document.createElement('div');
-                publishDate.className = 'content-source';
-                publishDate.textContent = content.publishedAt 
-                    ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}` 
-                    : '';
-                
-                // Create badges container
-                const badgesContainer = document.createElement('div');
-                badgesContainer.className = 'badges-container';
-                
-                // Add summary badge
-                const summaryBadge = document.createElement('div');
-                if (content.hasSummary) {
-                    summaryBadge.className = 'summary-badge';
-                    summaryBadge.textContent = '요약 있음';
-                } else {
-                    summaryBadge.className = 'no-summary-badge';
-                    summaryBadge.textContent = '요약 없음';
-                }
-                badgesContainer.appendChild(summaryBadge);
-                
-                // Get content keywords
-                getContentKeywords(content.id, (keywords) => {
-                    // Limit to 5 keywords to avoid cluttering
-                    const keywordsToShow = keywords.slice(0, 5);
-                    keywordsToShow.forEach(keyword => {
-                        const keywordBadge = document.createElement('div');
-                        keywordBadge.className = 'keyword-badge';
-                        keywordBadge.textContent = keyword.name;
-                        badgesContainer.appendChild(keywordBadge);
-                    });
+            // 모든 콘텐츠 ID 목록 추출
+            const contentIds = contents.map(content => content.id);
+            
+            // 모든 콘텐츠의 노출 상태를 한 번에 가져오기
+            fetch('./api/process/contents/exposure-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ contentIds: contentIds })
+            })
+            .then(response => response.json())
+            .then(exposureStatusMap => {
+                // 콘텐츠 목록을 노출 여부에 따라 정렬
+                const sortedContents = [...contents].sort((a, b) => {
+                    const aIsExposed = exposureStatusMap[a.id] || false;
+                    const bIsExposed = exposureStatusMap[b.id] || false;
                     
-                    // Show more indicator if there are more than 5 keywords
-                    if (keywords.length > 5) {
-                        const moreBadge = document.createElement('div');
-                        moreBadge.className = 'keyword-badge';
-                        moreBadge.style.background = 'rgba(255, 255, 255, 0.2)';
-                        moreBadge.textContent = `+${keywords.length - 5}`;
-                        badgesContainer.appendChild(moreBadge);
+                    if (aIsExposed !== bIsExposed) {
+                        return aIsExposed ? 1 : -1; // 노출 안 하는 항목이 먼저 오도록
                     }
+                    return b.id - a.id; // 같은 노출 상태면 ID 역순(최신순)
                 });
                 
-                const preview = document.createElement('div');
-                preview.className = 'content-preview';
-                preview.textContent = content.content.substring(0, 150) + '...';
-                
-                item.appendChild(title);
-                item.appendChild(source);
-                if (content.publishedAt) {
-                    item.appendChild(publishDate);
-                }
-                item.appendChild(badgesContainer);
-                item.appendChild(preview);
-                
-                item.addEventListener('click', () => showContentDetail(content.id));
-                
-                container.appendChild(item);
+                // 정렬된 콘텐츠로 목록 생성
+                sortedContents.forEach(content => {
+                    const isExposed = exposureStatusMap[content.id] || false;
+                    renderContentItem(content, isExposed, container);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching bulk exposure status:', error);
+                // 오류 발생 시 기본 순서로 표시
+                contents.forEach(content => {
+                    renderContentItem(content, false, container);
+                });
             });
+        }
+        
+        // 개별 콘텐츠 항목을 렌더링하는 함수
+        function renderContentItem(content, isExposed, container) {
+            const item = document.createElement('div');
+            item.className = 'content-item';
+            item.dataset.id = content.id;
+            
+            // 노출 상태에 따른 시각적 표시 추가
+            if (!isExposed) {
+                // 노출하지 않는 항목 강조
+                item.style.borderLeft = '4px solid #3b82f6'; // 파란색 테두리
+                item.style.backgroundColor = 'rgba(59, 130, 246, 0.05)'; // 연한 파란색 배경
+            } else {
+                // 노출 중인 항목은 약하게 표시
+                item.style.borderLeft = '4px solid #f59e0b';
+                item.style.opacity = '0.8';
+            }
+            
+            const title = document.createElement('div');
+            title.className = 'content-title';
+            title.textContent = content.title;
+            
+            const source = document.createElement('div');
+            source.className = 'content-source';
+            source.textContent = `출처: ${content.newsletterName}${content.newsletterSourceId ? ' (ID: ' + content.newsletterSourceId + ')' : ''}`;
+            
+            const publishDate = document.createElement('div');
+            publishDate.className = 'content-source';
+            publishDate.textContent = content.publishedAt 
+                ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}` 
+                : '';
+            
+            // Create badges container
+            const badgesContainer = document.createElement('div');
+            badgesContainer.className = 'badges-container';
+            
+            // Create badges first, then append them in order
+            const summaryBadge = document.createElement('div');
+            if (content.hasSummary) {
+                summaryBadge.className = 'summary-badge';
+                summaryBadge.textContent = '요약 있음';
+            } else {
+                summaryBadge.className = 'no-summary-badge';
+                summaryBadge.textContent = '요약 없음';
+            }
+            
+            // Create exposure badge (now we already know the status)
+            const exposureBadge = document.createElement('div');
+            if (isExposed) {
+                exposureBadge.className = 'summary-badge';
+                exposureBadge.style.background = 'linear-gradient(45deg, #f59e0b, #d97706)';
+                exposureBadge.textContent = '노출 중';
+            } else {
+                exposureBadge.className = 'no-summary-badge';
+                exposureBadge.textContent = '노출 안 함';
+            }
+            
+            // Add badges in fixed order
+            badgesContainer.appendChild(summaryBadge);
+            badgesContainer.appendChild(exposureBadge);
+            
+            // Get content keywords
+            getContentKeywords(content.id, (keywords) => {
+                // Limit to 5 keywords to avoid cluttering
+                const keywordsToShow = keywords.slice(0, 5);
+                keywordsToShow.forEach(keyword => {
+                    const keywordBadge = document.createElement('div');
+                    keywordBadge.className = 'keyword-badge';
+                    keywordBadge.textContent = keyword.name;
+                    badgesContainer.appendChild(keywordBadge);
+                });
+                
+                // Show more indicator if there are more than 5 keywords
+                if (keywords.length > 5) {
+                    const moreBadge = document.createElement('div');
+                    moreBadge.className = 'keyword-badge';
+                    moreBadge.style.background = 'rgba(255, 255, 255, 0.2)';
+                    moreBadge.textContent = `+${keywords.length - 5}`;
+                    badgesContainer.appendChild(moreBadge);
+                }
+            });
+            
+            const preview = document.createElement('div');
+            preview.className = 'content-preview';
+            preview.textContent = content.content.substring(0, 150) + '...';
+            
+            item.appendChild(title);
+            item.appendChild(source);
+            if (content.publishedAt) {
+                item.appendChild(publishDate);
+            }
+            item.appendChild(badgesContainer);
+            item.appendChild(preview);
+            
+            item.addEventListener('click', () => showContentDetail(content.id));
+            
+            container.appendChild(item);
         }
         
         function showContentDetail(contentId) {

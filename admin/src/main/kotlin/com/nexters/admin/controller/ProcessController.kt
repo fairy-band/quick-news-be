@@ -342,6 +342,54 @@ class ProcessController(
 
         return ResponseEntity.ok(response)
     }
+
+    @GetMapping("/content/{contentId}/exposure-status")
+    fun checkContentExposureStatus(
+        @PathVariable contentId: Long
+    ): ResponseEntity<Map<String, Any>> {
+        val content =
+            contentRepository
+                .findById(contentId)
+                .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
+
+        val exposureContent = exposureContentService.getExposureContentByContent(content)
+        val isExposed = exposureContent != null
+
+        val response =
+            mutableMapOf<String, Any>(
+                "isExposed" to isExposed
+            )
+
+        // Add the exposure content ID if it exists
+        if (isExposed) {
+            exposureContent?.id?.let {
+                response["exposureContentId"] = it
+            }
+        }
+
+        return ResponseEntity.ok(response)
+    }
+
+    @PostMapping("/contents/exposure-status")
+    fun getBulkContentExposureStatus(
+        @RequestBody request: BulkContentExposureStatusRequest
+    ): ResponseEntity<Map<Long, Boolean>> {
+        val contentIds = request.contentIds
+        val result = mutableMapOf<Long, Boolean>()
+
+        // Find all contents at once
+        val contents = contentRepository.findAllById(contentIds)
+
+        // Check exposure status for each content
+        contents.forEach { content ->
+            val isExposed = exposureContentService.getExposureContentByContent(content) != null
+            content.id?.let {
+                result[it] = isExposed
+            }
+        }
+
+        return ResponseEntity.ok(result)
+    }
 }
 
 data class SummaryResponse(
@@ -398,4 +446,8 @@ data class AddCandidateKeywordsResponse(
     val addedKeywords: List<String> = emptyList(),
     val existingKeywords: List<String> = emptyList(),
     val errorKeywords: List<String> = emptyList()
+)
+
+data class BulkContentExposureStatusRequest(
+    val contentIds: List<Long>
 )
