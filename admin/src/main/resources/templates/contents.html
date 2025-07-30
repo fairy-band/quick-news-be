@@ -725,35 +725,61 @@
         <!-- Add Content Section -->
         <div class="section">
             <h2>새 콘텐츠 추가</h2>
-            <form id="add-content-form">
+            
+            <!-- 뉴스레터 정보 섹션 -->
+            <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
+                <h3 style="color: #00d4ff; margin-bottom: 1rem;">뉴스레터 정보</h3>
                 <div style="margin-bottom: 1rem;">
                     <label for="newsletter-source-id">뉴스레터 소스 ID (선택사항)</label>
                     <input type="text" id="newsletter-source-id" class="form-control">
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label for="newsletter-name">뉴스레터 이름</label>
-                    <input type="text" id="newsletter-name" class="form-control" required>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label for="content-title">제목</label>
-                    <input type="text" id="content-title" class="form-control" required>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label for="original-url">원본 URL</label>
-                    <input type="url" id="original-url" class="form-control" required>
-                </div>
+                        <div style="margin-bottom: 1rem;">
+            <label for="newsletter-name">뉴스레터 이름</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="newsletter-name" class="form-control" required style="flex: 1;">
+                <button type="button" id="load-newsletters-btn" class="btn btn-primary" style="white-space: nowrap;">
+                    <span style="font-size: 1rem;">📋</span> 목록
+                </button>
+            </div>
+        </div>
                 <div style="margin-bottom: 1rem;">
                     <label for="published-at">발행 날짜</label>
                     <input type="date" id="published-at" class="form-control">
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label for="content-text">내용</label>
-                    <textarea id="content-text" class="form-control" rows="10" required></textarea>
+            </div>
+            
+            <!-- 콘텐츠 추가 폼 -->
+            <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
+                <h3 style="color: #00d4ff; margin-bottom: 1rem;">콘텐츠 정보</h3>
+                <form id="add-content-form">
+                    <div style="margin-bottom: 1rem;">
+                        <label for="content-title">제목</label>
+                        <input type="text" id="content-title" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="original-url">원본 URL</label>
+                        <input type="url" id="original-url" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="content-text">내용</label>
+                        <textarea id="content-text" class="form-control" rows="10" required></textarea>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-success" style="width: 100%;">콘텐츠 추가</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 추가된 콘텐츠 목록 -->
+            <div id="added-contents-section" style="display: none;">
+                <h3 style="color: #00d4ff; margin-bottom: 1rem;">추가된 콘텐츠 목록</h3>
+                <div id="added-contents-list" class="content-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- 자바스크립트로 추가될 콘텐츠 목록 -->
                 </div>
-                <div>
-                    <button type="submit" class="btn btn-success" style="width: 100%;">콘텐츠 추가</button>
+                <div style="margin-top: 1rem;">
+                    <button id="clear-added-contents" class="btn btn-danger">목록 초기화</button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
     
@@ -852,6 +878,119 @@
                 }
             });
             
+            // 추가된 콘텐츠를 저장할 배열
+            let addedContents = [];
+            
+            // 뉴스레터 목록 버튼 이벤트 설정
+            document.getElementById('load-newsletters-btn').addEventListener('click', function() {
+                loadNewsletterList();
+            });
+            
+            // 뉴스레터 목록을 가져와서 모달로 표시하는 함수
+            function loadNewsletterList() {
+                showLoading();
+                
+                // 뉴스레터 목록 가져오기 (중복 제거된 이름 목록)
+                fetch('./api/contents/newsletter-names')
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoading();
+                        
+                        // 모달 생성
+                        const modalContainer = document.createElement('div');
+                        modalContainer.className = 'modal-container';
+                        modalContainer.style.position = 'fixed';
+                        modalContainer.style.top = '0';
+                        modalContainer.style.left = '0';
+                        modalContainer.style.width = '100%';
+                        modalContainer.style.height = '100%';
+                        modalContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                        modalContainer.style.display = 'flex';
+                        modalContainer.style.justifyContent = 'center';
+                        modalContainer.style.alignItems = 'center';
+                        modalContainer.style.zIndex = '1000';
+                        
+                        const modalContent = document.createElement('div');
+                        modalContent.className = 'modal-content';
+                        modalContent.style.backgroundColor = 'rgba(26, 26, 46, 0.95)';
+                        modalContent.style.borderRadius = '20px';
+                        modalContent.style.padding = '2rem';
+                        modalContent.style.width = '80%';
+                        modalContent.style.maxWidth = '600px';
+                        modalContent.style.maxHeight = '80%';
+                        modalContent.style.overflowY = 'auto';
+                        modalContent.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                        modalContent.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+                        
+                        modalContent.innerHTML = `
+                            <h2 style="color: #00d4ff; margin-bottom: 1.5rem;">뉴스레터 목록</h2>
+                            <div style="margin-bottom: 1rem;">
+                                <input type="text" id="newsletter-search" class="form-control" placeholder="뉴스레터 이름 검색...">
+                            </div>
+                            <div id="newsletter-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;">
+                                <!-- 뉴스레터 목록이 여기에 표시됩니다 -->
+                            </div>
+                            <div style="display: flex; justify-content: flex-end;">
+                                <button type="button" id="close-modal-btn" class="btn" style="background: rgba(255, 255, 255, 0.1);">닫기</button>
+                            </div>
+                        `;
+                        
+                        modalContainer.appendChild(modalContent);
+                        document.body.appendChild(modalContainer);
+                        
+                        // 뉴스레터 목록 표시
+                        const newsletterList = document.getElementById('newsletter-list');
+                        
+                        if (data.length === 0) {
+                            newsletterList.innerHTML = '<p>등록된 뉴스레터가 없습니다</p>';
+                        } else {
+                            // 뉴스레터 이름을 알파벳 순으로 정렬
+                            const sortedNewsletters = [...data].sort((a, b) => a.localeCompare(b));
+                            
+                            sortedNewsletters.forEach(name => {
+                                const item = document.createElement('div');
+                                item.className = 'content-item';
+                                item.style.padding = '0.75rem 1rem';
+                                item.style.marginBottom = '0.5rem';
+                                item.style.cursor = 'pointer';
+                                item.textContent = name;
+                                
+                                item.addEventListener('click', () => {
+                                    document.getElementById('newsletter-name').value = name;
+                                    document.body.removeChild(modalContainer);
+                                });
+                                
+                                newsletterList.appendChild(item);
+                            });
+                        }
+                        
+                        // 검색 기능 설정
+                        document.getElementById('newsletter-search').addEventListener('input', function() {
+                            const searchTerm = this.value.toLowerCase().trim();
+                            const items = newsletterList.querySelectorAll('.content-item');
+                            
+                            items.forEach(item => {
+                                const newsletterName = item.textContent.toLowerCase();
+                                if (searchTerm === '' || newsletterName.includes(searchTerm)) {
+                                    item.style.display = 'block';
+                                } else {
+                                    item.style.display = 'none';
+                                }
+                            });
+                        });
+                        
+                        // 닫기 버튼 이벤트 설정
+                        document.getElementById('close-modal-btn').addEventListener('click', function() {
+                            document.body.removeChild(modalContainer);
+                        });
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        console.error('Error fetching newsletter names:', error);
+                        alert('뉴스레터 목록을 불러오는 중 오류가 발생했습니다.');
+                    });
+            }
+            
             // Set up add content form submission
             document.getElementById('add-content-form').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -868,15 +1007,339 @@
                     return;
                 }
                 
-                createContent({
+                // 콘텐츠 객체 생성
+                const contentObj = {
                     newsletterSourceId: newsletterSourceId || null,
                     newsletterName: newsletterName,
                     title: title,
                     originalUrl: originalUrl,
                     publishedAt: publishedAt,
                     content: content
-                });
+                };
+                
+                // 콘텐츠를 배열에 추가
+                addedContents.push(contentObj);
+                
+                // 콘텐츠 목록 업데이트
+                updateAddedContentsList();
+                
+                // 콘텐츠 폼 초기화 (뉴스레터 정보는 유지)
+                document.getElementById('content-title').value = '';
+                document.getElementById('original-url').value = '';
+                document.getElementById('content-text').value = '';
+                
+                // 콘텐츠 제목 입력란에 포커스
+                document.getElementById('content-title').focus();
+                
+                // 추가된 콘텐츠 목록 섹션 표시
+                document.getElementById('added-contents-section').style.display = 'block';
             });
+            
+            // 추가된 콘텐츠 목록 초기화 버튼
+            document.getElementById('clear-added-contents').addEventListener('click', function() {
+                if (confirm('추가된 콘텐츠 목록을 초기화하시겠습니까?')) {
+                    addedContents = [];
+                    updateAddedContentsList();
+                    document.getElementById('added-contents-section').style.display = 'none';
+                }
+            });
+            
+            // 추가된 콘텐츠 목록 업데이트 함수
+            function updateAddedContentsList() {
+                const container = document.getElementById('added-contents-list');
+                container.innerHTML = '';
+                
+                if (addedContents.length === 0) {
+                    container.innerHTML = '<p>추가된 콘텐츠가 없습니다</p>';
+                    return;
+                }
+                
+                // 콘텐츠 목록 생성
+                addedContents.forEach((content, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'content-item';
+                    item.style.position = 'relative';
+                    item.style.padding = '1.5rem';
+                    item.style.marginBottom = '1rem';
+                    
+                    // 제목
+                    const title = document.createElement('div');
+                    title.className = 'content-title';
+                    title.textContent = content.title;
+                    title.style.fontSize = '1.1rem';
+                    title.style.fontWeight = '600';
+                    title.style.marginBottom = '0.5rem';
+                    title.style.paddingRight = '60px'; // 삭제 버튼 공간 확보
+                    
+                    // URL
+                    const url = document.createElement('div');
+                    url.className = 'content-source';
+                    url.innerHTML = `<strong>URL:</strong> <a href="${content.originalUrl}" target="_blank">${content.originalUrl}</a>`;
+                    url.style.marginBottom = '0.5rem';
+                    
+                    // 뉴스레터 정보
+                    const newsletter = document.createElement('div');
+                    newsletter.className = 'content-source';
+                    newsletter.innerHTML = `<strong>뉴스레터:</strong> ${content.newsletterName}`;
+                    if (content.newsletterSourceId) {
+                        newsletter.innerHTML += ` (ID: ${content.newsletterSourceId})`;
+                    }
+                    newsletter.style.marginBottom = '0.5rem';
+                    
+                    // 발행일
+                    if (content.publishedAt) {
+                        const publishDate = document.createElement('div');
+                        publishDate.className = 'content-source';
+                        publishDate.innerHTML = `<strong>발행일:</strong> ${content.publishedAt}`;
+                        publishDate.style.marginBottom = '0.5rem';
+                        item.appendChild(publishDate);
+                    }
+                    
+                    // 내용 미리보기
+                    const preview = document.createElement('div');
+                    preview.className = 'content-preview';
+                    preview.textContent = content.content.substring(0, 100) + '...';
+                    preview.style.marginTop = '0.5rem';
+                    preview.style.color = '#a0aec0';
+                    preview.style.fontSize = '0.9rem';
+                    
+                    // 삭제 버튼
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'btn btn-danger';
+                    removeBtn.textContent = '삭제';
+                    removeBtn.style.position = 'absolute';
+                    removeBtn.style.right = '10px';
+                    removeBtn.style.top = '10px';
+                    removeBtn.style.padding = '0.25rem 0.5rem';
+                    removeBtn.style.fontSize = '0.8rem';
+                    
+                    // 구분선
+                    const divider = document.createElement('div');
+                    divider.style.height = '1px';
+                    divider.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    divider.style.margin = '0.5rem 0';
+                    
+                    removeBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (confirm('이 콘텐츠를 목록에서 삭제하시겠습니까?')) {
+                            addedContents.splice(index, 1);
+                            updateAddedContentsList();
+                            
+                            if (addedContents.length === 0) {
+                                document.getElementById('added-contents-section').style.display = 'none';
+                            }
+                        }
+                    });
+                    
+                    // 순서 번호 표시
+                    const orderBadge = document.createElement('div');
+                    orderBadge.style.position = 'absolute';
+                    orderBadge.style.left = '-10px';
+                    orderBadge.style.top = '-10px';
+                    orderBadge.style.backgroundColor = '#00d4ff';
+                    orderBadge.style.color = '#000';
+                    orderBadge.style.width = '24px';
+                    orderBadge.style.height = '24px';
+                    orderBadge.style.borderRadius = '50%';
+                    orderBadge.style.display = 'flex';
+                    orderBadge.style.alignItems = 'center';
+                    orderBadge.style.justifyContent = 'center';
+                    orderBadge.style.fontWeight = 'bold';
+                    orderBadge.style.fontSize = '0.8rem';
+                    orderBadge.textContent = index + 1;
+                    
+                    item.appendChild(title);
+                    item.appendChild(url);
+                    item.appendChild(newsletter);
+                    item.appendChild(divider);
+                    item.appendChild(preview);
+                    item.appendChild(removeBtn);
+                    item.appendChild(orderBadge);
+                    container.appendChild(item);
+                });
+                
+                // 저장 버튼 컨테이너
+                const saveButtonContainer = document.createElement('div');
+                saveButtonContainer.style.marginTop = '1.5rem';
+                saveButtonContainer.style.padding = '1rem';
+                saveButtonContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                saveButtonContainer.style.borderRadius = '10px';
+                saveButtonContainer.style.textAlign = 'center';
+                
+                // 저장 정보 표시
+                const saveInfo = document.createElement('div');
+                saveInfo.style.marginBottom = '1rem';
+                saveInfo.style.fontSize = '1.1rem';
+                saveInfo.style.fontWeight = '600';
+                saveInfo.innerHTML = `<span style="color: #00d4ff;">${addedContents.length}개</span>의 콘텐츠가 추가되었습니다`;
+                saveButtonContainer.appendChild(saveInfo);
+                
+                // 모든 콘텐츠 저장 버튼
+                const saveAllBtn = document.createElement('button');
+                saveAllBtn.className = 'btn btn-success';
+                saveAllBtn.innerHTML = `<span style="font-size: 1.2rem;">💾</span> 모든 콘텐츠 저장하기`;
+                saveAllBtn.style.width = '100%';
+                saveAllBtn.style.padding = '0.75rem';
+                saveAllBtn.style.fontWeight = '600';
+                saveAllBtn.style.fontSize = '1.1rem';
+                
+                saveAllBtn.addEventListener('click', function() {
+                    if (confirm(`${addedContents.length}개의 콘텐츠를 저장하시겠습니까?`)) {
+                        saveAllContents();
+                    }
+                });
+                
+                saveButtonContainer.appendChild(saveAllBtn);
+                
+                // 진행 상태 표시 영역 (초기에는 숨김)
+                const progressContainer = document.createElement('div');
+                progressContainer.id = 'save-progress-container';
+                progressContainer.style.display = 'none';
+                progressContainer.style.marginTop = '1rem';
+                progressContainer.style.padding = '1rem';
+                progressContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                progressContainer.style.borderRadius = '8px';
+                
+                const progressText = document.createElement('div');
+                progressText.id = 'save-progress-text';
+                progressText.style.marginBottom = '0.5rem';
+                progressText.style.textAlign = 'center';
+                progressText.textContent = '저장 중...';
+                
+                const progressBarOuter = document.createElement('div');
+                progressBarOuter.style.width = '100%';
+                progressBarOuter.style.height = '10px';
+                progressBarOuter.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                progressBarOuter.style.borderRadius = '5px';
+                progressBarOuter.style.overflow = 'hidden';
+                
+                const progressBarInner = document.createElement('div');
+                progressBarInner.id = 'save-progress-bar';
+                progressBarInner.style.width = '0%';
+                progressBarInner.style.height = '100%';
+                progressBarInner.style.backgroundColor = '#00d4ff';
+                progressBarInner.style.transition = 'width 0.3s ease';
+                
+                progressBarOuter.appendChild(progressBarInner);
+                progressContainer.appendChild(progressText);
+                progressContainer.appendChild(progressBarOuter);
+                saveButtonContainer.appendChild(progressContainer);
+                
+                container.appendChild(saveButtonContainer);
+            }
+            
+            // 모든 콘텐츠 저장 함수
+            function saveAllContents() {
+                if (addedContents.length === 0) {
+                    alert('저장할 콘텐츠가 없습니다');
+                    return;
+                }
+                
+                // 진행 상태 표시
+                const totalContents = addedContents.length;
+                let processedContents = 0;
+                let successCount = 0;
+                let failedContents = [];
+                
+                // 진행 상태 표시 영역 표시
+                const progressContainer = document.getElementById('save-progress-container');
+                const progressBar = document.getElementById('save-progress-bar');
+                const progressText = document.getElementById('save-progress-text');
+                
+                if (progressContainer) {
+                    progressContainer.style.display = 'block';
+                    progressBar.style.width = '0%';
+                    progressText.textContent = `저장 중... (0/${totalContents})`;
+                }
+                
+                // 각 콘텐츠에 대해 순차적으로 처리
+                const processNextContent = (index) => {
+                    if (index >= addedContents.length) {
+                        // 모든 콘텐츠 처리 완료
+                        hideLoading();
+                        
+                        // 진행 상태 표시 영역 업데이트
+                        if (progressContainer) {
+                            progressBar.style.width = '100%';
+                            progressText.textContent = `완료: ${successCount}/${totalContents} 저장됨`;
+                            
+                            // 3초 후에 진행 상태 표시 영역 숨김
+                            setTimeout(() => {
+                                progressContainer.style.display = 'none';
+                            }, 3000);
+                        }
+                        
+                        // 결과 메시지 표시
+                        let resultMessage = `총 ${totalContents}개 중 ${successCount}개의 콘텐츠가 저장되었습니다.`;
+                        
+                        if (failedContents.length > 0) {
+                            resultMessage += `\n\n저장에 실패한 콘텐츠 (${failedContents.length}개):\n`;
+                            failedContents.forEach((title, i) => {
+                                if (i < 5) { // 최대 5개까지만 표시
+                                    resultMessage += `- ${title}\n`;
+                                } else if (i === 5) {
+                                    resultMessage += `... 외 ${failedContents.length - 5}개`;
+                                }
+                            });
+                        }
+                        
+                        alert(resultMessage);
+                        
+                        // 성공적으로 저장된 콘텐츠가 있으면 목록 초기화
+                        if (successCount > 0) {
+                            addedContents = [];
+                            updateAddedContentsList();
+                            document.getElementById('added-contents-section').style.display = 'none';
+                            
+                            // 콘텐츠 목록 새로고침
+                            fetchContents();
+                        }
+                        
+                        return;
+                    }
+                    
+                    const contentData = addedContents[index];
+                    
+                    // 진행 상태 표시 업데이트
+                    if (progressContainer) {
+                        const percent = Math.floor((index / totalContents) * 100);
+                        progressBar.style.width = `${percent}%`;
+                        progressText.textContent = `저장 중... (${index}/${totalContents})`;
+                    }
+                    
+                    fetch('./api/contents', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(contentData)
+                    })
+                    .then(response => {
+                        processedContents++;
+                        
+                        if (response.ok) {
+                            successCount++;
+                            return response.json();
+                        } else {
+                            failedContents.push(contentData.title);
+                            throw new Error(`콘텐츠 저장 실패: ${contentData.title}`);
+                        }
+                    })
+                    .then(() => {
+                        // 다음 콘텐츠 처리
+                        processNextContent(index + 1);
+                    })
+                    .catch(error => {
+                        console.error('Error creating content:', error);
+                        
+                        // 오류가 발생해도 다음 콘텐츠 처리
+                        processNextContent(index + 1);
+                    });
+                };
+                
+                // 첫 번째 콘텐츠부터 처리 시작
+                processNextContent(0);
+            }
             
             // Set up AI processing buttons
             document.getElementById('generate-summary-btn').addEventListener('click', function() {
@@ -1452,35 +1915,7 @@
             .catch(error => console.error('Error removing keyword from content:', error));
         }
         
-        function createContent(contentData) {
-            fetch('./api/contents', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(contentData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to create content');
-                }
-                return response.json();
-            })
-            .then(content => {
-                // Clear form
-                document.getElementById('add-content-form').reset();
-                
-                // Show success message
-                alert('콘텐츠가 성공적으로 추가되었습니다!');
-                
-                // Refresh content list
-                fetchContents();
-            })
-            .catch(error => {
-                console.error('Error creating content:', error);
-                alert('콘텐츠 추가에 실패했습니다.');
-            });
-        }
+        // createContent 함수는 saveAllContents 함수로 대체되었습니다.
 
         // Set up edit content form submission
         document.getElementById('edit-content-form').addEventListener('submit', function(e) {

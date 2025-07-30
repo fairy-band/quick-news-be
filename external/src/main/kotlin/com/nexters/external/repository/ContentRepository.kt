@@ -55,4 +55,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         @Param("categoryId") categoryId: Long,
         pageable: Pageable
     ): Page<Content>
+
+    @Query("SELECT DISTINCT c.newsletterName FROM Content c ORDER BY c.newsletterName")
+    fun findDistinctNewsletterNames(): List<String>
 }

@@ -48,6 +48,12 @@ class ContentApiController(
     @GetMapping
     fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
 
+    @GetMapping("/newsletter-names")
+    fun getNewsletterNames(): ResponseEntity<List<String>> {
+        val newsletterNames = contentRepository.findDistinctNewsletterNames()
+        return ResponseEntity.ok(newsletterNames)
+    }
+
     @PostMapping
     fun createContent(
         @RequestBody request: CreateContentRequest
