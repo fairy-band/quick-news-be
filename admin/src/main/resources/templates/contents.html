@@ -2706,6 +2706,19 @@
             document.getElementById('add-selected-as-reserved-btn').disabled = !hasCheckedItems;
         }
 
+        function setupKeywordEvents() {
+            // Add event listener to the suggested keywords container to handle checkbox changes
+            const suggestedKeywordsContainer = document.getElementById('suggested-keywords-container');
+            
+            // Use event delegation to handle checkbox changes
+            suggestedKeywordsContainer.addEventListener('change', function(event) {
+                if (event.target.type === 'checkbox') {
+                    // Update button states when a checkbox is checked or unchecked
+                    updateAddButtonsState();
+                }
+            });
+        }
+
         function addKeywordsToContent(contentId, keywordIds) {
             // 진행 상태 표시
             const totalKeywords = keywordIds.length;
