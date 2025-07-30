@@ -32,4 +32,6 @@ class CategoryService(
         categoryRepository.findById(categoryId).orElseThrow {
             IllegalArgumentException("Category with id $categoryId not found")
         }
+
+    fun getAllCategories(): List<Category> = categoryRepository.findAll()
 }

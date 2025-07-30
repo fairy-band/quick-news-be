@@ -8,11 +8,9 @@ data class ContentViewApiResponse(
 ) {
     data class ContentCardApiResponse(
         val title: String,
-        val category: String,
         val topKeyword: String,
         val summary: String,
         val contentUrl: String,
         val newsletterName: String,
-        val newsletterUrl: String,
     )
 }
