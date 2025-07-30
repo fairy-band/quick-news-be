@@ -137,4 +137,16 @@ interface ContentRepository : JpaRepository<Content, Long> {
         @Param("newsletterName") newsletterName: String,
         pageable: Pageable
     ): Page<Content>
+
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
+        WHERE ckm.keyword.id = :keywordId
+        """
+    )
+    fun findContentsByKeywordId(
+        @Param("keywordId") keywordId: Long,
+        pageable: Pageable
+    ): Page<Content>
 }

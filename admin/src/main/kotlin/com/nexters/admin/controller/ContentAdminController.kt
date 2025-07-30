@@ -431,6 +431,42 @@ class ContentApiController(
 
         return ResponseEntity.ok(contentResponses)
     }
+
+    @GetMapping("/by-keyword/{keywordId}")
+    fun getContentsByKeyword(
+        @PathVariable keywordId: Long,
+        pageable: Pageable
+    ): ResponseEntity<Page<ContentWithSortInfoResponse>> {
+        val keyword =
+            reservedKeywordRepository
+                .findById(keywordId)
+                .orElseThrow { NoSuchElementException("Keyword not found with id: $keywordId") }
+
+        val contents = contentRepository.findContentsByKeywordId(keywordId, pageable)
+
+        // 요약 정보 및 노출 정보 가져오기
+        val contentResponses =
+            contents.map { content ->
+                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+                val isExposed = exposureContentRepository.findByContent(content) != null
+
+                ContentWithSortInfoResponse(
+                    id = content.id ?: 0,
+                    newsletterSourceId = content.newsletterSourceId,
+                    title = content.title,
+                    content = content.content,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    publishedAt = content.publishedAt,
+                    createdAt = content.createdAt,
+                    updatedAt = content.updatedAt,
+                    hasSummary = hasSummary,
+                    isExposed = isExposed
+                )
+            }
+
+        return ResponseEntity.ok(contentResponses)
+    }
 }
 
 data class AddKeywordToContentRequest(

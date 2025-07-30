@@ -899,8 +899,8 @@
             document.getElementById('keyword-filter-btn').addEventListener('click', function() {
                 const keywordId = document.getElementById('keyword-select').value;
                 if (keywordId) {
-                    // Implement keyword filtering with pagination
-                    alert('키워드 필터링 기능은 아직 구현되지 않았습니다.');
+                    // 키워드 ID로 콘텐츠 필터링
+                    fetchContentsByKeyword(keywordId, 0, 10);
                 } else {
                     fetchContents(0, 10);
                 }
@@ -1638,12 +1638,25 @@
                 return;
             }
             
+            // 현재 필터 상태 확인
+            const categoryId = document.getElementById('category-select').value;
+            const keywordId = document.getElementById('keyword-select').value;
+            
             // Previous button
             if (pageData.number > 0) {
                 const prevButton = document.createElement('div');
                 prevButton.className = 'pagination-item';
                 prevButton.textContent = '이전';
-                prevButton.addEventListener('click', () => fetchContents(pageData.number - 1, pageData.size));
+                
+                // 필터 상태에 따라 페이지네이션 함수 선택
+                if (keywordId) {
+                    prevButton.addEventListener('click', () => fetchContentsByKeyword(keywordId, pageData.number - 1, pageData.size));
+                } else if (categoryId) {
+                    prevButton.addEventListener('click', () => fetchContentsByCategory(categoryId, pageData.number - 1, pageData.size));
+                } else {
+                    prevButton.addEventListener('click', () => fetchContents(pageData.number - 1, pageData.size));
+                }
+                
                 paginationContainer.appendChild(prevButton);
             }
             
@@ -1658,7 +1671,16 @@
                     pageButton.classList.add('active');
                 }
                 pageButton.textContent = i + 1;
-                pageButton.addEventListener('click', () => fetchContents(i, pageData.size));
+                
+                // 필터 상태에 따라 페이지네이션 함수 선택
+                if (keywordId) {
+                    pageButton.addEventListener('click', () => fetchContentsByKeyword(keywordId, i, pageData.size));
+                } else if (categoryId) {
+                    pageButton.addEventListener('click', () => fetchContentsByCategory(categoryId, i, pageData.size));
+                } else {
+                    pageButton.addEventListener('click', () => fetchContents(i, pageData.size));
+                }
+                
                 paginationContainer.appendChild(pageButton);
             }
             
@@ -1667,7 +1689,16 @@
                 const nextButton = document.createElement('div');
                 nextButton.className = 'pagination-item';
                 nextButton.textContent = '다음';
-                nextButton.addEventListener('click', () => fetchContents(pageData.number + 1, pageData.size));
+                
+                // 필터 상태에 따라 페이지네이션 함수 선택
+                if (keywordId) {
+                    nextButton.addEventListener('click', () => fetchContentsByKeyword(keywordId, pageData.number + 1, pageData.size));
+                } else if (categoryId) {
+                    nextButton.addEventListener('click', () => fetchContentsByCategory(categoryId, pageData.number + 1, pageData.size));
+                } else {
+                    nextButton.addEventListener('click', () => fetchContents(pageData.number + 1, pageData.size));
+                }
+                
                 paginationContainer.appendChild(nextButton);
             }
         }
@@ -1689,6 +1720,58 @@
                     renderPagination(data);
                 })
                 .catch(error => console.error('Error fetching contents by category:', error));
+        }
+        
+        function fetchContentsByKeyword(keywordId, page = 0, size = 10) {
+            // 키워드 ID로 콘텐츠 필터링
+            const url = `./api/contents/by-keyword/${keywordId}?page=${page}&size=${size}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    renderContentList(data.content);
+                    renderPagination(data);
+                    
+                    // 필터링 적용 상태 표시
+                    const keywordSelect = document.getElementById('keyword-select');
+                    const selectedKeywordText = keywordSelect.options[keywordSelect.selectedIndex].text;
+                    
+                    // 기존 필터 정보 요소 제거
+                    const existingFilterInfo = document.getElementById('keyword-filter-info');
+                    if (existingFilterInfo) {
+                        existingFilterInfo.remove();
+                    }
+                    
+                    // 필터 정보 요소 추가
+                    const filterInfoElement = document.createElement('div');
+                    filterInfoElement.id = 'keyword-filter-info';
+                    filterInfoElement.style.marginTop = '1rem';
+                    filterInfoElement.style.padding = '0.5rem';
+                    filterInfoElement.style.backgroundColor = 'rgba(0, 212, 255, 0.1)';
+                    filterInfoElement.style.borderRadius = '8px';
+                    filterInfoElement.style.fontSize = '0.9rem';
+                    filterInfoElement.style.color = '#00d4ff';
+                    filterInfoElement.style.display = 'flex';
+                    filterInfoElement.style.justifyContent = 'space-between';
+                    filterInfoElement.style.alignItems = 'center';
+                    
+                    filterInfoElement.innerHTML = `
+                        <span>현재 필터: <strong>${selectedKeywordText}</strong> 키워드 (${data.totalElements}개 콘텐츠)</span>
+                        <button id="clear-keyword-filter" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: rgba(255, 255, 255, 0.1);">필터 해제</button>
+                    `;
+                    
+                    // 키워드 필터 섹션에 추가
+                    const keywordFilterSection = document.querySelector('.section h2').parentElement;
+                    keywordFilterSection.appendChild(filterInfoElement);
+                    
+                    // 필터 해제 버튼 이벤트 설정
+                    document.getElementById('clear-keyword-filter').addEventListener('click', function() {
+                        document.getElementById('keyword-select').value = '';
+                        fetchContents(0, 10);
+                        filterInfoElement.remove();
+                    });
+                })
+                .catch(error => console.error('Error fetching contents by keyword:', error));
         }
         
         function renderContentList(contents) {
