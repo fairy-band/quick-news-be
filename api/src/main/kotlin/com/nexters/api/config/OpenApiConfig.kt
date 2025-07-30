@@ -3,11 +3,16 @@ package com.nexters.api.config
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
+import io.swagger.v3.oas.models.servers.Server
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.web.filter.ForwardedHeaderFilter
 
 @Configuration
-class OpenApiConfig {
+class OpenApiConfig(
+    @Value("\${server.url:http://localhost:8080}") private val swaggerBaseUrl: String
+) {
     @Bean
     fun openAPI(): OpenAPI =
         OpenAPI()
@@ -21,5 +26,8 @@ class OpenApiConfig {
                             .name("Nexters")
                             .url("https://github.com/Nexters/newsletter-feeder")
                     )
-            )
+            ).addServersItem(Server().url(swaggerBaseUrl).description("로컬 개발 서버"))
+
+    @Bean
+    fun forwardedHeaderFilter(): ForwardedHeaderFilter = ForwardedHeaderFilter()
 }

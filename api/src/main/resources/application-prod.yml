@@ -2,3 +2,6 @@ spring:
   config:
     import:
       - postgresql-prod.yml
+server:
+  forward-headers-strategy: framework
+  url: http://fairy-band.com/
