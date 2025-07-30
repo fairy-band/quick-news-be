@@ -107,7 +107,7 @@ class DayContentResolver(
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
      */
-    private fun getNegativeKeywords(categoryId: Long): List<ReservedKeyword> {
+    fun getNegativeKeywords(categoryId: Long): List<ReservedKeyword> {
         val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryId(categoryId)
 
         return categoryKeywordWeights.entries

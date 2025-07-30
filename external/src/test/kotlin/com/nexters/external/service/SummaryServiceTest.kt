@@ -14,6 +14,7 @@ import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 class SummaryServiceTest {
@@ -92,7 +93,8 @@ class SummaryServiceTest {
                 newsletterName = "Test Newsletter",
                 originalUrl = "https://test.com",
                 createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
+                updatedAt = LocalDateTime.now(),
+                publishedAt = LocalDate.now(),
             )
         val validJsonResponse = """{"summary":"요약된 내용입니다","provocativeHeadlines":["흥미로운 제목"]}"""
         val mockResponse = mockk<GenerateContentResponse>()

@@ -45,10 +45,8 @@ class RecommendationController(
         val contents = dayContentResolver.resolveTodayContents(userId, categoryId)
 
         val response =
-            contents.map { content ->
-                val exposureContent =
-                    exposureContentRepository.findByContent(content)
-
+            contents.map { exposureContent ->
+                val content = exposureContent.content
                 RecommendedContentResponse(
                     content =
                         ContentResponse(
@@ -59,7 +57,7 @@ class RecommendationController(
                             originalUrl = content.originalUrl
                         ),
                     exposureContent =
-                        exposureContent?.let {
+                        exposureContent.let {
                             ExposureContentResponse(
                                 id = it.id!!,
                                 contentId = it.content.id!!,
