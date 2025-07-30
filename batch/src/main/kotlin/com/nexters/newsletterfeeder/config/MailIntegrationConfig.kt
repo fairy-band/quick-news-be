@@ -64,7 +64,6 @@ class MailIntegrationConfig(
                     MessageBuilder
                         .withPayload("TRIGGER_MAIL_READING")
                         .setHeader("source", "scheduler")
-                        .setHeader("timestamp", System.currentTimeMillis())
                         .build(),
                 )
 

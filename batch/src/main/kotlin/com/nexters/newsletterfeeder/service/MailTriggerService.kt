@@ -16,15 +16,14 @@ class MailTriggerService(
     /**
      * 매일 아침 8시에 메일 읽기 작업 트리거
      */
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(fixedRate = 5 * 60 * 1000) // 5분마다 실행
     fun triggerDailyMailReading() {
-        logger.info("매일 아침 8시 스케줄 메일 읽기 시작")
+        logger.info("메일 읽기 시작")
 
         scheduleTriggerChannel.send(
             MessageBuilder
                 .withPayload("DAILY_TRIGGER")
                 .setHeader("triggerType", "SCHEDULED")
-                .setHeader("triggerTime", System.currentTimeMillis())
                 .build()
         )
     }
@@ -39,7 +38,6 @@ class MailTriggerService(
             MessageBuilder
                 .withPayload("MANUAL_TRIGGER")
                 .setHeader("triggerType", "MANUAL")
-                .setHeader("triggerTime", System.currentTimeMillis())
                 .build()
         )
     }
