@@ -4,4 +4,4 @@ spring:
       - postgresql-prod.yml
 server:
   forward-headers-strategy: framework
-  url: http://fairy-band.com/
+  url: http://fairy-band.com/api
