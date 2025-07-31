@@ -2,3 +2,4 @@ spring:
   config:
     import:
         - postgresql-dev.yml
+        - mongo-dev.yml

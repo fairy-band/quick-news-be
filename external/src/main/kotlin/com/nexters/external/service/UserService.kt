@@ -40,4 +40,9 @@ class UserService(
         user.keywords.addAll(keywords)
         userRepository.save(user)
     }
+
+    fun getUserById(userId: Long): User =
+        userRepository.findById(userId).orElseThrow {
+            IllegalArgumentException("User with ID $userId not found.")
+        }
 }

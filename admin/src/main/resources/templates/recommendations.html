@@ -658,6 +658,30 @@
                 </select>
             </div>
             
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <h3 style="color: #00d4ff; margin-bottom: 1rem;">특정 유저 오늘 아카이브 조회</h3>
+                <p style="color: #a0aec0; margin-bottom: 1rem;">특정 유저의 오늘 아카이브를 조회하여 노출 컨텐츠를 확인합니다.</p>
+                
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <input type="number" id="user-id-input" placeholder="유저 ID를 입력하세요" 
+                           style="flex: 1; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff; font-size: 1rem;">
+                    <button id="fetch-user-archive" class="btn btn-primary">아카이브 조회</button>
+                    <button id="create-user-archive" class="btn btn-refresh">아카이브 생성</button>
+                </div>
+                
+                <div id="user-archive-container" style="margin-top: 1rem; display: none;">
+                    <h4 style="color: #00d4ff; margin-bottom: 0.5rem;">유저 정보</h4>
+                    <div id="user-info" style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
+                    <h4 style="color: #00d4ff; margin-bottom: 0.5rem;">오늘의 노출 컨텐츠</h4>
+                    <div id="user-archive-contents" class="content-grid">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
             <div id="category-keywords-container" style="margin-top: 1.5rem; display: none;">
                 <h3>카테고리 키워드</h3>
                 <p>키워드를 클릭하여 가중치를 수정할 수 있습니다.</p>
@@ -840,6 +864,10 @@
             document.getElementById('generate-summary').addEventListener('click', generateSummary);
             document.getElementById('save-summary').addEventListener('click', saveSummary);
             document.getElementById('create-exposure-content').addEventListener('click', createExposureContent);
+            
+            // Set up user archive fetch event
+            document.getElementById('fetch-user-archive').addEventListener('click', fetchUserArchive);
+            document.getElementById('create-user-archive').addEventListener('click', createUserArchive);
         });
         
         function fetchCategories() {
@@ -1779,6 +1807,158 @@
                 document.getElementById('create-exposure-content').disabled = false;
                 document.getElementById('create-exposure-content').textContent = '노출 컨텐츠로 설정';
                 showToast('노출 컨텐츠 생성에 실패했습니다.');
+            });
+        }
+        
+        function fetchUserArchive() {
+            const userId = document.getElementById('user-id-input').value;
+            
+            if (!userId) {
+                showToast('유저 ID를 입력해주세요.');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('fetch-user-archive').disabled = true;
+            document.getElementById('fetch-user-archive').textContent = '조회 중...';
+            
+            fetch(`./api/recommendations/users/${userId}/today-archive`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch user archive');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Reset button
+                    document.getElementById('fetch-user-archive').disabled = false;
+                    document.getElementById('fetch-user-archive').textContent = '아카이브 조회';
+                    
+                    // Show user info
+                    const userInfo = document.getElementById('user-info');
+                    userInfo.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>유저 ID:</strong> ${data.userId}<br>
+                                <strong>디바이스 토큰:</strong> ${data.deviceToken}<br>
+                                <strong>날짜:</strong> ${data.date}
+                            </div>
+                            <div style="color: ${data.exists ? '#00d4ff' : '#ff6464'}; font-weight: bold;">
+                                ${data.exists ? `${data.exposureContents.length}개의 노출 컨텐츠` : '아카이브가 존재하지 않음'}
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Show exposure contents
+                    const contentsContainer = document.getElementById('user-archive-contents');
+                    contentsContainer.innerHTML = '';
+                    
+                    if (!data.exists) {
+                        contentsContainer.innerHTML = `
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #a0aec0;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                                <h3>아카이브가 존재하지 않습니다</h3>
+                                <p>이 유저의 오늘 아카이브가 생성되지 않았습니다. "아카이브 생성" 버튼을 클릭하여 생성하세요.</p>
+                            </div>
+                        `;
+                    } else if (data.exposureContents.length === 0) {
+                        contentsContainer.innerHTML = `
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #a0aec0;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                                <h3>노출 컨텐츠가 없습니다</h3>
+                                <p>이 유저의 오늘 아카이브에 노출 컨텐츠가 없습니다.</p>
+                            </div>
+                        `;
+                    } else {
+                        data.exposureContents.forEach(exposureContent => {
+                            const contentCard = createExposureContentCard(exposureContent, null);
+                            contentsContainer.appendChild(contentCard);
+                        });
+                    }
+                    
+                    // Show the container
+                    document.getElementById('user-archive-container').style.display = 'block';
+                    
+                    showToast(data.exists ? '유저 아카이브를 성공적으로 조회했습니다.' : '아카이브가 존재하지 않습니다.');
+                })
+                .catch(error => {
+                    console.error('Error fetching user archive:', error);
+                    document.getElementById('fetch-user-archive').disabled = false;
+                    document.getElementById('fetch-user-archive').textContent = '아카이브 조회';
+                    showToast('유저 아카이브 조회에 실패했습니다.');
+                });
+        }
+        
+        function createUserArchive() {
+            const userId = document.getElementById('user-id-input').value;
+            
+            if (!userId) {
+                showToast('유저 ID를 입력해주세요.');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('create-user-archive').disabled = true;
+            document.getElementById('create-user-archive').textContent = '생성 중...';
+            
+            fetch(`./api/recommendations/users/${userId}/today-archive`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create user archive');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Reset button
+                document.getElementById('create-user-archive').disabled = false;
+                document.getElementById('create-user-archive').textContent = '아카이브 생성';
+                
+                // Show user info
+                const userInfo = document.getElementById('user-info');
+                userInfo.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>유저 ID:</strong> ${data.userId}<br>
+                            <strong>디바이스 토큰:</strong> ${data.deviceToken}<br>
+                            <strong>날짜:</strong> ${data.date}
+                        </div>
+                        <div style="color: #00d4ff; font-weight: bold;">
+                            ${data.exposureContents.length}개의 노출 컨텐츠
+                        </div>
+                    </div>
+                `;
+                
+                // Show exposure contents
+                const contentsContainer = document.getElementById('user-archive-contents');
+                contentsContainer.innerHTML = '';
+                
+                if (data.exposureContents.length === 0) {
+                    contentsContainer.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #a0aec0;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                            <h3>노출 컨텐츠가 없습니다</h3>
+                            <p>생성된 아카이브에 노출 컨텐츠가 없습니다.</p>
+                        </div>
+                    `;
+                } else {
+                    data.exposureContents.forEach(exposureContent => {
+                        const contentCard = createExposureContentCard(exposureContent, null);
+                        contentsContainer.appendChild(contentCard);
+                    });
+                }
+                
+                // Show the container
+                document.getElementById('user-archive-container').style.display = 'block';
+                
+                showToast('유저 아카이브가 성공적으로 생성되었습니다.');
+            })
+            .catch(error => {
+                console.error('Error creating user archive:', error);
+                document.getElementById('create-user-archive').disabled = false;
+                document.getElementById('create-user-archive').textContent = '아카이브 생성';
+                showToast('유저 아카이브 생성에 실패했습니다.');
             });
         }
     </script>

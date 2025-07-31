@@ -8,8 +8,9 @@ import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
-import com.nexters.external.resolver.DayContentResolver
+import com.nexters.external.resolver.DailyContentArchiveResolver
 import com.nexters.external.service.ExposureContentService
+import com.nexters.external.service.UserService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -19,19 +20,21 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/api/recommendations")
 class RecommendationController(
     private val categoryRepository: CategoryRepository,
-    private val dayContentResolver: DayContentResolver,
+    private val dayArchiveResolver: DailyContentArchiveResolver,
     private val categoryKeywordMappingRepository: CategoryKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
     private val exposureContentService: ExposureContentService,
     private val exposureContentRepository: ExposureContentRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentRepository: ContentRepository,
+    private val userService: UserService,
 ) {
     @GetMapping("/categories")
     fun getAllCategories(): ResponseEntity<List<Category>> = ResponseEntity.ok(categoryRepository.findAll())
@@ -40,9 +43,7 @@ class RecommendationController(
     fun getTodayRecommendedContents(
         @PathVariable categoryId: Long
     ): ResponseEntity<List<RecommendedContentResponse>> {
-        // 임시 userId 값 사용 (실제로는 인증된 사용자의 ID를 사용해야 함)
-        val userId = 1L
-        val contents = dayContentResolver.resolveTodayContents(userId, categoryId)
+        val contents = dayArchiveResolver.resolveArbitraryTodayContents()
 
         val response =
             contents.map { exposureContent ->
@@ -99,7 +100,7 @@ class RecommendationController(
     fun getCategoryNegativeKeywords(
         @PathVariable categoryId: Long
     ): ResponseEntity<List<CategoryKeywordResponse>> {
-        val negativeKeywords = dayContentResolver.getNegativeKeywords(categoryId)
+        val negativeKeywords = dayArchiveResolver.getNegativeKeywords(categoryId)
 
         val response =
             negativeKeywords.map { keyword ->
@@ -416,6 +417,81 @@ class RecommendationController(
             )
         )
     }
+
+    @GetMapping("/users/{userId}/today-archive")
+    fun getUserTodayArchive(
+        @PathVariable userId: Long
+    ): ResponseEntity<UserTodayArchiveResponse> {
+        val user = userService.getUserById(userId)
+
+        // Check if archive exists for today
+        val today = LocalDate.now()
+        val existingArchive = dayArchiveResolver.getTodayContentArchive(userId, today)
+
+        if (existingArchive == null) {
+            return ResponseEntity.ok(
+                UserTodayArchiveResponse(
+                    userId = user.id!!,
+                    deviceToken = user.deviceToken,
+                    date = today,
+                    exposureContents = emptyList(),
+                    exists = false
+                )
+            )
+        }
+
+        val response =
+            UserTodayArchiveResponse(
+                userId = user.id!!,
+                deviceToken = user.deviceToken,
+                date = existingArchive.date,
+                exposureContents =
+                    existingArchive.exposureContents.map { exposureContent ->
+                        ExposureContentResponse(
+                            id = exposureContent.id!!,
+                            contentId = exposureContent.content.id!!,
+                            title = exposureContent.content.title,
+                            provocativeKeyword = exposureContent.provocativeKeyword,
+                            provocativeHeadline = exposureContent.provocativeHeadline,
+                            summaryContent = exposureContent.summaryContent
+                        )
+                    },
+                exists = true
+            )
+
+        return ResponseEntity.ok(response)
+    }
+
+    @PostMapping("/users/{userId}/today-archive")
+    fun createUserTodayArchive(
+        @PathVariable userId: Long
+    ): ResponseEntity<UserTodayArchiveResponse> {
+        val user = userService.getUserById(userId)
+
+        // Create today's content archive for the user
+        val dailyContentArchive = dayArchiveResolver.resolveTodayContentArchive(userId)
+
+        val response =
+            UserTodayArchiveResponse(
+                userId = user.id!!,
+                deviceToken = user.deviceToken,
+                date = dailyContentArchive.date,
+                exposureContents =
+                    dailyContentArchive.exposureContents.map { exposureContent ->
+                        ExposureContentResponse(
+                            id = exposureContent.id!!,
+                            contentId = exposureContent.content.id!!,
+                            title = exposureContent.content.title,
+                            provocativeKeyword = exposureContent.provocativeKeyword,
+                            provocativeHeadline = exposureContent.provocativeHeadline,
+                            summaryContent = exposureContent.summaryContent
+                        )
+                    },
+                exists = true
+            )
+
+        return ResponseEntity.ok(response)
+    }
 }
 
 data class RecommendedContentResponse(
@@ -467,4 +543,12 @@ data class CreateExposureContentRequest(
     val provocativeKeyword: String,
     val provocativeHeadline: String,
     val summaryContent: String
+)
+
+data class UserTodayArchiveResponse(
+    val userId: Long,
+    val deviceToken: String,
+    val date: LocalDate,
+    val exposureContents: List<ExposureContentResponse>,
+    val exists: Boolean
 )

@@ -2,7 +2,7 @@ package com.nexters.api.controller
 
 import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
-import com.nexters.external.resolver.DayContentResolver
+import com.nexters.external.resolver.DailyContentArchiveResolver
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -14,7 +14,7 @@ import java.time.LocalDate
 @RequestMapping("/api/newsletters")
 @Tag(name = "Newsletter API", description = "뉴스레터 관련 API")
 class NewsletterApiController(
-    private val dayContentResolver: DayContentResolver
+    private val dayArchiveResolver: DailyContentArchiveResolver
 ) {
     @GetMapping("/contents/{userId}")
     fun getNewsletterContents(
@@ -24,7 +24,7 @@ class NewsletterApiController(
         ContentViewApiResponse(
             publishedDate = publishedDate,
             cards =
-                dayContentResolver.resolveArbitraryTodayContents().map {
+                dayArchiveResolver.resolveArbitraryTodayContents().map {
                     ContentCardApiResponse(
                         title = it.provocativeHeadline,
                         topKeyword = it.provocativeKeyword,

@@ -1,18 +1,25 @@
 package com.nexters.external.resolver
 
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentService
+import com.nexters.external.service.DailyContentArchiveService
 import com.nexters.external.service.ExposureContentService
+import com.nexters.external.service.UserService
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 
 @Service
-class DayContentResolver(
+class DailyContentArchiveResolver(
+    private val userService: UserService,
     private val categoryService: CategoryService,
     private val contentService: ContentService,
     private val exposureContentService: ExposureContentService,
+    private val dailyContentArchiveService: DailyContentArchiveService,
 ) {
     fun resolveArbitraryTodayContents(): List<ExposureContent> =
         resolveTodayContents(
@@ -20,7 +27,37 @@ class DayContentResolver(
             categoryService.getAllCategories().random().id!!,
         )
 
-    fun resolveTodayContents(
+    fun getTodayContentArchive(
+        userId: Long,
+        date: LocalDate = LocalDate.now(),
+    ): DailyContentArchive? = dailyContentArchiveService.findByDateAndUserId(userId, date)
+
+    @Transactional
+    fun resolveTodayContentArchive(
+        userId: Long,
+        date: LocalDate = LocalDate.now(),
+    ): DailyContentArchive {
+        val contentArchive = dailyContentArchiveService.findByDateAndUserId(userId, date)
+
+        if (contentArchive != null) {
+            return contentArchive
+        }
+
+        val user = userService.getUserById(userId)
+        val categoryId = user.categories.firstOrNull()?.id ?: categoryService.getAllCategories().random().id!!
+        val contents = resolveTodayContents(userId, categoryId)
+
+        val dailyContentArchive =
+            DailyContentArchive(
+                user = user,
+                date = date,
+                exposureContents = contents,
+            )
+
+        return dailyContentArchiveService.save(dailyContentArchive)
+    }
+
+    private fun resolveTodayContents(
         userId: Long,
         categoryId: Long,
     ): List<ExposureContent> {
