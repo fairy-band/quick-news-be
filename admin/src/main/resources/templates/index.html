@@ -425,6 +425,9 @@
             <a href="./" class="nav-link active">
                 🏠 홈
             </a>
+            <a href="./newsletter-sources" class="nav-link">
+                📧 뉴스레터 소스
+            </a>
             <a href="./metrics" class="nav-link">
                 📊 메트릭 대시보드
             </a>
@@ -473,11 +476,11 @@
                 </div>
 
                 <div id="results"></div>
-                
+
                 <div id="keywords-section" style="display: none; margin-top: 2rem;">
                     <h3 style="margin-bottom: 1rem; color: #00d4ff;">콘텐츠 연관 키워드</h3>
                     <div id="content-keywords" class="keywords"></div>
-                    
+
                     <h3 style="margin: 1.5rem 0 1rem; color: #00d4ff;">현재 키워드로 추출</h3>
                     <div id="keyword-selection">
                         <button id="extract-with-selected-btn" class="btn btn-keywords" disabled>
@@ -504,13 +507,13 @@
         }
 
         let selectedContentId = null;
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
-            
+
             // Fetch all contents when the page loads
             fetchContents();
-            
+
             // Set up button event listeners
             document.getElementById('generate-summary-btn').addEventListener('click', generateSummary);
             document.getElementById('extract-keywords-btn').addEventListener('click', extractKeywords);
@@ -538,7 +541,7 @@
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
         }
-        
+
         function fetchContents(page = 0, size = 10) {
             fetch(`./api/contents?page=${page}&size=${size}`)
                 .then(response => response.json())
@@ -551,39 +554,39 @@
                     showError('콘텐츠를 불러오는 중 오류가 발생했습니다.');
                 });
         }
-        
+
         function renderContentList(contents) {
             const container = document.getElementById('content-list');
             container.innerHTML = '';
-            
+
             if (contents.length === 0) {
                 container.innerHTML = '<p>콘텐츠가 없습니다</p>';
                 return;
             }
-            
+
             contents.forEach(content => {
                 const item = document.createElement('div');
                 item.className = 'content-item';
                 item.dataset.id = content.id;
-                
+
                 const title = document.createElement('div');
                 title.className = 'content-title';
                 title.textContent = content.title;
-                
+
                 const source = document.createElement('div');
                 source.className = 'content-source';
                 source.textContent = `출처: ${content.newsletterName}${content.newsletterSourceId ? ' (ID: ' + content.newsletterSourceId + ')' : ''}`;
-                
+
                 const preview = document.createElement('div');
                 preview.className = 'content-preview';
                 preview.textContent = content.content.substring(0, 150) + '...';
-                
+
                 item.appendChild(title);
                 item.appendChild(source);
                 item.appendChild(preview);
-                
+
                 item.addEventListener('click', () => selectContent(content.id, item));
-                
+
                 container.appendChild(item);
             });
         }
@@ -591,11 +594,11 @@
         function renderPagination(pageData) {
             const paginationContainer = document.getElementById('pagination');
             paginationContainer.innerHTML = '';
-            
+
             if (!pageData.totalPages || pageData.totalPages <= 1) {
                 return;
             }
-            
+
             // Previous button
             if (pageData.number > 0) {
                 const prevButton = document.createElement('div');
@@ -604,11 +607,11 @@
                 prevButton.addEventListener('click', () => fetchContents(pageData.number - 1, pageData.size));
                 paginationContainer.appendChild(prevButton);
             }
-            
+
             // Page numbers
             const startPage = Math.max(0, pageData.number - 2);
             const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
-            
+
             for (let i = startPage; i <= endPage; i++) {
                 const pageButton = document.createElement('div');
                 pageButton.className = 'pagination-item';
@@ -619,7 +622,7 @@
                 pageButton.addEventListener('click', () => fetchContents(i, pageData.size));
                 paginationContainer.appendChild(pageButton);
             }
-            
+
             // Next button
             if (pageData.number < pageData.totalPages - 1) {
                 const nextButton = document.createElement('div');
@@ -629,47 +632,47 @@
                 paginationContainer.appendChild(nextButton);
             }
         }
-        
+
         function selectContent(contentId, element) {
             // Remove active class from all items
             document.querySelectorAll('.content-item').forEach(item => {
                 item.classList.remove('active');
             });
-            
+
             // Add active class to selected item
             element.classList.add('active');
-            
+
             // Store selected content ID
             selectedContentId = contentId;
-            
+
             // Clear previous results
             document.getElementById('results').innerHTML = '';
-            
+
             // Enable buttons
             disableButtons(false);
-            
+
             // Show keywords section
             document.getElementById('keywords-section').style.display = 'block';
-            
+
             // Fetch content keywords
             fetchContentKeywords(contentId);
         }
-        
+
         async function fetchContentKeywords(contentId) {
             try {
                 const response = await fetch(`./api/process/content/${contentId}/keywords`);
                 const keywords = await response.json();
-                
+
                 const container = document.getElementById('content-keywords');
                 container.innerHTML = ''; // Clear previous keywords
-                
+
                 if (keywords.length === 0) {
                     container.innerHTML = '<p>연관된 키워드가 없습니다</p>';
                     return [];
                 }
-                
+
                 const keywordNames = [];
-                
+
                 keywords.forEach(keyword => {
                     const keywordElement = document.createElement('span');
                     keywordElement.className = 'keyword';
@@ -677,7 +680,7 @@
                     container.appendChild(keywordElement);
                     keywordNames.push(keyword.name);
                 });
-                
+
                 return keywordNames;
             } catch (error) {
                 console.error('Error fetching content keywords:', error);
@@ -685,7 +688,7 @@
                 return [];
             }
         }
-        
+
         // fetchAllReservedKeywords function is removed as per edit hint
 
         async function generateSummary() {
@@ -797,7 +800,7 @@
 
                     html += '</div>';
                     document.getElementById('results').innerHTML = html;
-                    
+
                     // Refresh content keywords after extraction
                     await fetchContentKeywords(selectedContentId);
                 } else {
@@ -808,16 +811,16 @@
                 showError('서버 오류가 발생했습니다: ' + error.message);
             }
         }
-        
+
         async function extractWithSelectedKeywords() {
             if (!selectedContentId) {
                 showError('콘텐츠를 선택해주세요.');
                 return;
             }
-            
+
             // Use the currently selected content's keywords for extraction
             const currentKeywords = await fetchContentKeywords(selectedContentId);
-            
+
             if (currentKeywords.length === 0) {
                 showError('현재 콘텐츠에 키워드가 없어 추출할 수 없습니다.');
                 return;
@@ -879,7 +882,7 @@
 
                     html += '</div>';
                     document.getElementById('results').innerHTML = html;
-                    
+
                     // Refresh content keywords after extraction
                     await fetchContentKeywords(selectedContentId);
                 } else {

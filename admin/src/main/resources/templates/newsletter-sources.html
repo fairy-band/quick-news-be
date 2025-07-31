@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뉴스레터 소스 관리 - Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+
+        .newsletter-source-item {
+            padding: 1.5rem;
+            margin: 1rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .newsletter-source-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+            border-color: #00d4ff;
+        }
+
+        .newsletter-source-item.selected {
+            border: 2px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .source-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .source-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .source-subject {
+            font-size: 1rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+
+        .source-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 1rem;
+        }
+
+        .source-content {
+            max-height: 200px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .source-content.expanded {
+            max-height: none;
+        }
+
+        .content-preview {
+            color: #a0aec0;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: #00d4ff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .expand-btn:hover {
+            text-decoration: underline;
+        }
+
+        .detail-content-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-content-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-content-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-body {
+            position: relative;
+        }
+
+        .content-preview {
+            color: #a0aec0;
+            line-height: 1.6;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        .content-full {
+            color: #a0aec0;
+            line-height: 1.6;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #000;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .form-select option {
+            background-color: #16213e;
+            color: #ffffff;
+        }
+
+        .row {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .col-md-6 {
+            flex: 1;
+        }
+
+        .pagination-container {
+            margin-top: 2rem;
+        }
+
+        .pagination-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .page-size-selector label {
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+
+        .page-size-selector .form-select {
+            width: auto;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .pagination-item {
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .pagination-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            transform: translateY(-1px);
+        }
+
+        .pagination-item.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .pagination-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-item.disabled:hover {
+            background: rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-icon {
+            margin-right: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .preview-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .preview-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .preview-icon {
+            font-size: 1.3rem;
+        }
+
+        .preview-content {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .preview-html {
+            background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+            color: #2d3748;
+            padding: 2rem;
+            border-radius: 12px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.7;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .preview-html h1, .preview-html h2, .preview-html h3 {
+            color: #1a202c;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .preview-html h2 {
+            font-size: 1.8rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .preview-html p {
+            margin-bottom: 1.2rem;
+            font-size: 1rem;
+        }
+
+        .preview-html strong {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .preview-html a {
+            color: #3182ce;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .preview-html a:hover {
+            text-decoration: underline;
+            color: #2c5aa0;
+        }
+
+        .preview-html hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 2rem 0;
+        }
+
+        .filter-section {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #a0aec0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .edit-form, .content-form {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #a0aec0;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .source-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="./contents" class="nav-link">🏠 홈</a>
+                    <a href="./newsletter-sources" class="nav-link active">📧 뉴스레터 소스</a>
+                    <a href="./metrics" class="nav-link">📊 메트릭</a>
+                    <a href="./keywords" class="nav-link">🔑 키워드</a>
+                    <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>뉴스레터 소스 관리</h2>
+
+            <div class="source-stats">
+                <div class="stat-item">
+                    총 소스: <span class="stat-value" id="total-sources">-</span>
+                </div>
+                <div class="stat-item">
+                    선택됨: <span class="stat-value" id="selected-sources">0</span>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label class="filter-label">발신자 이메일</label>
+                    <select id="sender-email-filter" class="form-select">
+                        <option value="">모든 발신자</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">제목 검색</label>
+                    <input type="text" id="subject-filter" class="form-control" placeholder="제목 키워드...">
+                </div>
+                <div class="filter-group">
+                    <button id="apply-filter-btn" class="btn btn-primary">필터 적용</button>
+                </div>
+                <div class="filter-group">
+                    <button id="clear-filter-btn" class="btn btn-secondary">필터 초기화</button>
+                </div>
+            </div>
+
+            <div id="newsletter-sources-list">
+                <!-- 뉴스레터 소스 목록이 여기에 표시됩니다 -->
+            </div>
+
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="pagination-info">전체 0개 중 0-0개 표시</span>
+                    <div class="page-size-selector">
+                        <label for="page-size-select">페이지 크기:</label>
+                        <select id="page-size-select" class="form-select">
+                            <option value="10" selected>10개</option>
+                            <option value="20">20개</option>
+                            <option value="50">50개</option>
+                            <option value="100">100개</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pagination" id="pagination">
+                    <!-- 페이지네이션이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="source-detail-section" style="display: none;">
+            <h2>뉴스레터 소스 상세</h2>
+            <div id="source-detail">
+                <!-- 선택된 뉴스레터 소스 상세 정보가 여기에 표시됩니다 -->
+            </div>
+
+            <div class="preview-container">
+                <div class="preview-header">
+                    <div class="preview-title">
+                        <span class="preview-icon">👁️</span>
+                        HTML 미리보기
+                    </div>
+                    <button id="toggle-preview-btn" class="btn btn-secondary">
+                        <span class="btn-icon">👁️</span>
+                        미리보기 토글
+                    </button>
+                </div>
+                <div id="preview-content" class="preview-content" style="display: none;">
+                    <!-- HTML 미리보기가 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="edit-source-btn" class="btn btn-primary">
+                    <span class="btn-icon">✏️</span>
+                    수정
+                </button>
+                <button id="create-content-btn" class="btn btn-success">
+                    <span class="btn-icon">📄</span>
+                    컨텐츠 생성
+                </button>
+            </div>
+
+            <div class="edit-form" id="edit-form" style="display: none;">
+                <h3>뉴스레터 소스 수정</h3>
+                <form id="edit-source-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">제목</label>
+                            <input type="text" id="edit-subject" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">발신자</label>
+                            <input type="text" id="edit-sender" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">발신자 이메일</label>
+                            <input type="email" id="edit-sender-email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">수신자</label>
+                            <input type="text" id="edit-recipient" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">수신자 이메일</label>
+                            <input type="email" id="edit-recipient-email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Content-Type</label>
+                            <input type="text" id="edit-content-type" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">내용</label>
+                        <textarea id="edit-content" class="form-control" rows="15" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">수정 완료</button>
+                        <button type="button" id="cancel-edit-btn" class="btn btn-secondary">취소</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="content-form" id="content-form" style="display: none;">
+                <h3>컨텐츠 생성</h3>
+                <form id="create-content-form">
+                    <div class="form-group">
+                        <label class="form-label">제목</label>
+                        <input type="text" id="content-title" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">뉴스레터 이름</label>
+                        <input type="text" id="newsletter-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">원본 URL</label>
+                        <input type="url" id="original-url" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">발행 날짜</label>
+                        <input type="date" id="published-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">내용</label>
+                        <textarea id="content-text" class="form-control" rows="10" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">컨텐츠 생성</button>
+                        <button type="button" id="cancel-content-btn" class="btn btn-secondary">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 100;
+
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+
+        let currentPage = 0;
+        let currentSize = 10;
+        let selectedSourceId = null;
+        let currentFilters = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+
+            // 초기 데이터 로드
+            loadNewsletterSources();
+            loadSenderEmails();
+
+            // 이벤트 리스너 설정
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // 필터 적용 버튼
+            document.getElementById('apply-filter-btn').addEventListener('click', function() {
+                currentFilters = {
+                    senderEmail: document.getElementById('sender-email-filter').value || null,
+                    subject: document.getElementById('subject-filter').value || null
+                };
+                currentPage = 0;
+                loadNewsletterSources();
+            });
+
+            // 필터 초기화 버튼
+            document.getElementById('clear-filter-btn').addEventListener('click', function() {
+                document.getElementById('sender-email-filter').value = '';
+                document.getElementById('subject-filter').value = '';
+                currentFilters = {};
+                currentPage = 0;
+                loadNewsletterSources();
+            });
+
+            // 미리보기 토글 버튼
+            document.getElementById('toggle-preview-btn').addEventListener('click', function() {
+                const previewContent = document.getElementById('preview-content');
+                const isVisible = previewContent.style.display !== 'none';
+
+                if (isVisible) {
+                    previewContent.style.display = 'none';
+                    this.textContent = '미리보기 보기';
+                } else {
+                    previewContent.style.display = 'block';
+                    this.textContent = '미리보기 숨기기';
+                    if (selectedSourceId) {
+                        loadSourcePreview(selectedSourceId);
+                    }
+                }
+            });
+
+            // 컨텐츠 생성 버튼
+            document.getElementById('create-content-btn').addEventListener('click', function() {
+                const contentForm = document.getElementById('content-form');
+                const isVisible = contentForm.style.display !== 'none';
+
+                if (isVisible) {
+                    contentForm.style.display = 'none';
+                    this.textContent = '컨텐츠 생성';
+                } else {
+                    contentForm.style.display = 'block';
+                    this.textContent = '생성 취소';
+                    if (selectedSourceId) {
+                        loadSourceForContentCreation(selectedSourceId);
+                    }
+                }
+            });
+
+            // 컨텐츠 생성 폼 제출
+            document.getElementById('create-content-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createContentFromSource();
+            });
+
+            // 취소 버튼
+            document.getElementById('cancel-content-btn').addEventListener('click', function() {
+                document.getElementById('content-form').style.display = 'none';
+                document.getElementById('create-content-btn').textContent = '컨텐츠 생성';
+            });
+
+            // 수정 버튼
+            document.getElementById('edit-source-btn').addEventListener('click', function() {
+                const editForm = document.getElementById('edit-form');
+                const isVisible = editForm.style.display !== 'none';
+
+                if (isVisible) {
+                    editForm.style.display = 'none';
+                    this.textContent = '수정';
+                } else {
+                    editForm.style.display = 'block';
+                    this.textContent = '수정 취소';
+                    if (selectedSourceId) {
+                        loadSourceForEdit(selectedSourceId);
+                    }
+                }
+            });
+
+            // 수정 폼 제출
+            document.getElementById('edit-source-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateNewsletterSource();
+            });
+
+            // 수정 취소 버튼
+            document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+                document.getElementById('edit-form').style.display = 'none';
+                document.getElementById('edit-source-btn').textContent = '수정';
+            });
+
+            // 페이지 크기 선택
+            document.getElementById('page-size-select').addEventListener('change', function() {
+                currentSize = parseInt(this.value);
+                currentPage = 0; // 페이지 크기가 변경되면 첫 페이지로 이동
+                loadNewsletterSources();
+            });
+        }
+
+        function loadNewsletterSources() {
+            showLoading();
+
+            let url = `./api/newsletter-sources?page=${currentPage}&size=${currentSize}`;
+
+            if (currentFilters.senderEmail) {
+                url += `&senderEmail=${encodeURIComponent(currentFilters.senderEmail)}`;
+            }
+            if (currentFilters.subject) {
+                url += `&subject=${encodeURIComponent(currentFilters.subject)}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    renderNewsletterSources(data.content);
+                    updatePaginationInfo(data);
+                    renderPagination(data);
+                    updateStats(data.totalElements);
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error loading newsletter sources:', error);
+                    showError('뉴스레터 소스를 불러오는 중 오류가 발생했습니다.');
+                });
+        }
+
+        function loadSenderEmails() {
+            fetch('./api/newsletter-sources/sender-emails')
+                .then(response => response.json())
+                .then(emails => {
+                    const select = document.getElementById('sender-email-filter');
+                    emails.forEach(email => {
+                        const option = document.createElement('option');
+                        option.value = email;
+                        option.textContent = email;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading sender emails:', error));
+        }
+
+        function renderNewsletterSources(sources) {
+            const container = document.getElementById('newsletter-sources-list');
+            container.innerHTML = '';
+
+            if (sources.length === 0) {
+                container.innerHTML = '<div class="loading">뉴스레터 소스가 없습니다.</div>';
+                return;
+            }
+
+            sources.forEach(source => {
+                const item = document.createElement('div');
+                item.className = 'newsletter-source-item';
+                item.dataset.id = source.id;
+
+                const receivedDate = new Date(source.receivedDate).toLocaleString('ko-KR');
+                const contentPreview = source.content.substring(0, 200) + (source.content.length > 200 ? '...' : '');
+
+                item.innerHTML = `
+                    <div class="source-header">
+                        <div>
+                            <div class="source-title">${source.subject || '제목 없음'}</div>
+                            <div class="source-subject">${source.sender} (${source.senderEmail})</div>
+                        </div>
+                        <div class="source-meta">
+                            <span>수신일: ${receivedDate}</span>
+                            <span>수신자: ${source.recipient}</span>
+                        </div>
+                    </div>
+                    <div class="source-content">
+                        <div class="content-preview">${contentPreview}</div>
+                        ${source.content.length > 200 ? '<button class="expand-btn">더 보기</button>' : ''}
+                    </div>
+                `;
+
+                // 더 보기 버튼 이벤트
+                const expandBtn = item.querySelector('.expand-btn');
+                if (expandBtn) {
+                    expandBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const contentDiv = item.querySelector('.source-content');
+                        const previewDiv = item.querySelector('.content-preview');
+
+                        if (contentDiv.classList.contains('expanded')) {
+                            contentDiv.classList.remove('expanded');
+                            previewDiv.textContent = contentPreview;
+                            this.textContent = '더 보기';
+                        } else {
+                            contentDiv.classList.add('expanded');
+                            previewDiv.textContent = source.content;
+                            this.textContent = '접기';
+                        }
+                    });
+                }
+
+                // 클릭 이벤트
+                item.addEventListener('click', () => {
+                    // 선택 상태 토글
+                    document.querySelectorAll('.newsletter-source-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+
+                    selectedSourceId = source.id;
+                    showSourceDetail(source);
+                    updateSelectedCount();
+                });
+
+                container.appendChild(item);
+            });
+        }
+
+        function updatePaginationInfo(pageData) {
+            const startItem = pageData.number * pageData.size + 1;
+            const endItem = Math.min((pageData.number + 1) * pageData.size, pageData.totalElements);
+            const infoElement = document.getElementById('pagination-info');
+
+            if (pageData.totalElements === 0) {
+                infoElement.textContent = '표시할 데이터가 없습니다.';
+            } else {
+                infoElement.textContent = `전체 ${pageData.totalElements}개 중 ${startItem}-${endItem}개 표시`;
+            }
+        }
+
+        function renderPagination(pageData) {
+            const paginationContainer = document.getElementById('pagination');
+            paginationContainer.innerHTML = '';
+
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+
+            // First page button
+            if (pageData.number > 0) {
+                const firstButton = document.createElement('div');
+                firstButton.className = 'pagination-item';
+                firstButton.textContent = '처음';
+                firstButton.addEventListener('click', () => {
+                    currentPage = 0;
+                    loadNewsletterSources();
+                });
+                paginationContainer.appendChild(firstButton);
+            }
+
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '‹';
+                prevButton.addEventListener('click', () => {
+                    currentPage = pageData.number - 1;
+                    loadNewsletterSources();
+                });
+                paginationContainer.appendChild(prevButton);
+            }
+
+            // Page numbers with ellipsis
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+
+            // Show ellipsis at the beginning if needed
+            if (startPage > 0) {
+                const ellipsisStart = document.createElement('div');
+                ellipsisStart.className = 'pagination-item disabled';
+                ellipsisStart.textContent = '...';
+                paginationContainer.appendChild(ellipsisStart);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => {
+                    currentPage = i;
+                    loadNewsletterSources();
+                });
+                paginationContainer.appendChild(pageButton);
+            }
+
+            // Show ellipsis at the end if needed
+            if (endPage < pageData.totalPages - 1) {
+                const ellipsisEnd = document.createElement('div');
+                ellipsisEnd.className = 'pagination-item disabled';
+                ellipsisEnd.textContent = '...';
+                paginationContainer.appendChild(ellipsisEnd);
+            }
+
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '›';
+                nextButton.addEventListener('click', () => {
+                    currentPage = pageData.number + 1;
+                    loadNewsletterSources();
+                });
+                paginationContainer.appendChild(nextButton);
+            }
+
+            // Last page button
+            if (pageData.number < pageData.totalPages - 1) {
+                const lastButton = document.createElement('div');
+                lastButton.className = 'pagination-item';
+                lastButton.textContent = '마지막';
+                lastButton.addEventListener('click', () => {
+                    currentPage = pageData.totalPages - 1;
+                    loadNewsletterSources();
+                });
+                paginationContainer.appendChild(lastButton);
+            }
+        }
+
+        function showSourceDetail(source) {
+            const detailContainer = document.getElementById('source-detail');
+            const detailSection = document.getElementById('source-detail-section');
+
+            const receivedDate = new Date(source.receivedDate).toLocaleString('ko-KR');
+
+            detailContainer.innerHTML = `
+                <h3>${source.subject || '제목 없음'}</h3>
+                <div class="source-meta">
+                    <div><strong>발신자:</strong> ${source.sender} (${source.senderEmail})</div>
+                    <div><strong>수신자:</strong> ${source.recipient} (${source.recipientEmail})</div>
+                    <div><strong>수신일:</strong> ${receivedDate}</div>
+                    <div><strong>Content-Type:</strong> ${source.contentType}</div>
+                </div>
+                <div class="detail-content-section">
+                    <div class="content-header">
+                        <strong>내용:</strong>
+                        <button class="toggle-content-btn">내용 토글</button>
+                    </div>
+                    <div class="content-body">
+                        <div class="content-full" style="display: none;">${source.content}</div>
+                    </div>
+                </div>
+            `;
+
+            // 토글 버튼 이벤트 리스너 추가
+            const toggleBtn = detailContainer.querySelector('.toggle-content-btn');
+            toggleBtn.addEventListener('click', function() {
+                const contentFull = detailContainer.querySelector('.content-full');
+                const isExpanded = contentFull.style.display !== 'none';
+
+                if (isExpanded) {
+                    contentFull.style.display = 'none';
+                    this.textContent = '내용 토글';
+                } else {
+                    contentFull.style.display = 'block';
+                    this.textContent = '내용 접기';
+                }
+            });
+
+            detailSection.style.display = 'block';
+            detailSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function loadSourcePreview(sourceId) {
+            fetch(`./api/newsletter-sources/${sourceId}`)
+                .then(response => response.json())
+                .then(source => {
+                    const previewContainer = document.getElementById('preview-content');
+
+                    // HTML 렌더링 (간단한 변환)
+                    let htmlContent = source.content;
+
+                    // 텍스트를 HTML로 변환 (기본적인 변환)
+                    htmlContent = htmlContent
+                        .replace(/\n/g, '<br>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+
+
+                    previewContainer.innerHTML = `
+                        <div class="preview-html">
+                            <h2>${source.subject || '제목 없음'}</h2>
+                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #3182ce;">
+                                <p style="margin: 0 0 0.5rem 0; color: #4a5568; font-size: 0.9rem;"><strong>📧 발신자:</strong> ${source.sender} (${source.senderEmail})</p>
+                                <p style="margin: 0; color: #4a5568; font-size: 0.9rem;"><strong>📅 수신일:</strong> ${new Date(source.receivedDate).toLocaleString('ko-KR')}</p>
+                            </div>
+                            <hr>
+                            <div style="margin-top: 1.5rem;">
+                                ${htmlContent}
+                            </div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error loading source preview:', error);
+                    document.getElementById('preview-content').innerHTML = '<p>미리보기를 불러오는 중 오류가 발생했습니다.</p>';
+                });
+        }
+
+        function loadSourceForContentCreation(sourceId) {
+            fetch(`./api/newsletter-sources/${sourceId}`)
+                .then(response => response.json())
+                .then(source => {
+                    // 폼 필드에 기본값 설정
+                    document.getElementById('content-title').value = source.subject || '';
+                    document.getElementById('newsletter-name').value = source.sender || '';
+                    document.getElementById('original-url').value = '';
+                    document.getElementById('published-date').value = new Date(source.receivedDate).toISOString().split('T')[0];
+                    document.getElementById('content-text').value = source.content;
+                })
+                .catch(error => {
+                    console.error('Error loading source for content creation:', error);
+                    showError('소스 정보를 불러오는 중 오류가 발생했습니다.');
+                });
+        }
+
+        function loadSourceForEdit(sourceId) {
+            fetch(`./api/newsletter-sources/${sourceId}`)
+                .then(response => response.json())
+                .then(source => {
+                    // 수정 폼 필드에 기본값 설정
+                    document.getElementById('edit-subject').value = source.subject || '';
+                    document.getElementById('edit-sender').value = source.sender || '';
+                    document.getElementById('edit-sender-email').value = source.senderEmail || '';
+                    document.getElementById('edit-recipient').value = source.recipient || '';
+                    document.getElementById('edit-recipient-email').value = source.recipientEmail || '';
+                    document.getElementById('edit-content-type').value = source.contentType || '';
+                    document.getElementById('edit-content').value = source.content || '';
+                })
+                .catch(error => {
+                    console.error('Error loading source for edit:', error);
+                    showError('소스 정보를 불러오는 중 오류가 발생했습니다.');
+                });
+        }
+
+        function updateNewsletterSource() {
+            if (!selectedSourceId) {
+                showError('뉴스레터 소스를 선택해주세요.');
+                return;
+            }
+
+            const subject = document.getElementById('edit-subject').value;
+            const sender = document.getElementById('edit-sender').value;
+            const senderEmail = document.getElementById('edit-sender-email').value;
+            const recipient = document.getElementById('edit-recipient').value;
+            const recipientEmail = document.getElementById('edit-recipient-email').value;
+            const contentType = document.getElementById('edit-content-type').value;
+            const content = document.getElementById('edit-content').value;
+
+            if (!sender || !senderEmail || !recipient || !recipientEmail || !contentType || !content) {
+                showError('필수 필드를 모두 입력해주세요.');
+                return;
+            }
+
+            const requestData = {
+                subject: subject,
+                content: content,
+                sender: sender,
+                senderEmail: senderEmail,
+                recipient: recipient,
+                recipientEmail: recipientEmail,
+                contentType: contentType
+            };
+
+            fetch(`./api/newsletter-sources/${selectedSourceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('뉴스레터 소스 수정에 실패했습니다.');
+                }
+                return response.json();
+            })
+            .then(updatedSource => {
+                showSuccess('뉴스레터 소스가 성공적으로 수정되었습니다!');
+
+                // 폼 초기화
+                document.getElementById('edit-source-form').reset();
+                document.getElementById('edit-form').style.display = 'none';
+                document.getElementById('edit-source-btn').textContent = '수정';
+
+                // 목록 새로고침
+                loadNewsletterSources();
+
+                // 상세 정보 업데이트
+                showSourceDetail(updatedSource);
+            })
+            .catch(error => {
+                console.error('Error updating newsletter source:', error);
+                showError('뉴스레터 소스 수정에 실패했습니다: ' + error.message);
+            });
+        }
+
+        function createContentFromSource() {
+            if (!selectedSourceId) {
+                showError('뉴스레터 소스를 선택해주세요.');
+                return;
+            }
+
+            const title = document.getElementById('content-title').value;
+            const newsletterName = document.getElementById('newsletter-name').value;
+            const originalUrl = document.getElementById('original-url').value;
+            const publishedDate = document.getElementById('published-date').value;
+            const content = document.getElementById('content-text').value;
+
+            if (!title || !newsletterName || !originalUrl || !content) {
+                showError('필수 필드를 모두 입력해주세요.');
+                return;
+            }
+
+            const requestData = {
+                title: title,
+                content: content,
+                newsletterName: newsletterName,
+                originalUrl: originalUrl,
+                publishedAt: publishedDate
+            };
+
+            fetch(`./api/newsletter-sources/${selectedSourceId}/create-content`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('컨텐츠 생성에 실패했습니다.');
+                }
+                return response.json();
+            })
+            .then(content => {
+                showSuccess('컨텐츠가 성공적으로 생성되었습니다!');
+
+                // 폼 초기화
+                document.getElementById('create-content-form').reset();
+                document.getElementById('content-form').style.display = 'none';
+                document.getElementById('create-content-btn').textContent = '컨텐츠 생성';
+
+                // 선택 해제
+                document.querySelectorAll('.newsletter-source-item').forEach(item => item.classList.remove('selected'));
+                selectedSourceId = null;
+                updateSelectedCount();
+            })
+            .catch(error => {
+                console.error('Error creating content:', error);
+                showError('컨텐츠 생성에 실패했습니다: ' + error.message);
+            });
+        }
+
+        function updateStats(totalElements) {
+            document.getElementById('total-sources').textContent = totalElements;
+        }
+
+        function updateSelectedCount() {
+            const selectedCount = document.querySelectorAll('.newsletter-source-item.selected').length;
+            document.getElementById('selected-sources').textContent = selectedCount;
+        }
+
+        function showLoading() {
+            const container = document.getElementById('newsletter-sources-list');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>뉴스레터 소스를 불러오는 중...</p>
+                </div>
+            `;
+        }
+
+        function hideLoading() {
+            // 로딩 상태는 renderNewsletterSources에서 처리됨
+        }
+
+        function showError(message) {
+            alert('오류: ' + message);
+        }
+
+        function showSuccess(message) {
+            alert('성공: ' + message);
+        }
+    </script>
+</body>
+</html>

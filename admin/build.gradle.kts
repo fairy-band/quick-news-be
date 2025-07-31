@@ -5,6 +5,7 @@ dependencies {
     implementation(libs.spring.boot.starter.thymeleaf)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.spring.boot.starter.data.mongodb)
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
 

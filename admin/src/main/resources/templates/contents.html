@@ -342,7 +342,7 @@
             background: rgba(0, 212, 255, 0.3);
             border-color: #00d4ff;
         }
-        
+
         .result-card {
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -390,7 +390,7 @@
             font-weight: 600;
             box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -405,7 +405,7 @@
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .keyword-tags-header {
             display: flex;
             justify-content: space-between;
@@ -413,12 +413,12 @@
             font-size: 0.9rem;
             color: #a0aec0;
         }
-        
+
         .keyword-count-total {
             font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.6);
         }
-        
+
         .keyword-tag {
             display: inline-flex;
             align-items: center;
@@ -430,18 +430,18 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .keyword-tag.selected {
             background: linear-gradient(45deg, #4facfe, #00f2fe);
             color: #000;
             border-color: transparent;
         }
-        
+
         .keyword-tag:hover {
             border-color: #00d4ff;
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
         }
-        
+
         .keyword-search {
             margin-bottom: 1rem;
             width: 100%;
@@ -451,22 +451,22 @@
             border-radius: 8px;
             color: white;
         }
-        
+
         .keyword-search::placeholder {
             color: rgba(255, 255, 255, 0.5);
         }
-        
+
         .keyword-tags-footer {
             display: flex;
             justify-content: space-between;
             margin-top: 0.5rem;
         }
-        
+
         .keyword-count {
             font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.6);
         }
-        
+
         .keyword-actions {
             display: flex;
             gap: 0.5rem;
@@ -479,7 +479,7 @@
             position: relative;
             cursor: not-allowed;
         }
-        
+
         .keyword-tag.existing::after {
             content: "✓";
             position: absolute;
@@ -501,13 +501,13 @@
             padding: 5px;
             border-radius: 5px;
         }
-        
+
         .keyword-checkbox.existing {
             opacity: 0.6;
             background-color: rgba(79, 172, 254, 0.1);
             border: 1px dashed rgba(79, 172, 254, 0.5);
         }
-        
+
         .existing-badge {
             font-size: 10px;
             background-color: #4facfe;
@@ -526,13 +526,14 @@
                 <h1 class="logo">Newsletter AI</h1>
                 <div class="nav-links">
                     <a href="./contents" class="nav-link active">🏠 홈</a>
+                    <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
                     <a href="./metrics" class="nav-link">📊 메트릭</a>
                     <a href="./keywords" class="nav-link">🔑 키워드</a>
                     <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
                 </div>
             </div>
         </div>
-        
+
         <div class="row">
             <!-- Category Filter Section -->
             <div class="col-md-6">
@@ -549,7 +550,7 @@
                         <button id="filter-btn" class="btn btn-primary">필터링</button>
                     </div>
                 </div>
-                
+
                 <!-- 정렬 옵션 선택 -->
                 <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
                     <div style="flex: 1;">
@@ -572,7 +573,7 @@
                 </div>
                 </div>
             </div>
-            
+
             <!-- Keyword Filter Section -->
             <div class="col-md-6">
                 <div class="section">
@@ -591,7 +592,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="section">
             <h2>콘텐츠 목록</h2>
             <div id="content-list">
@@ -601,13 +602,13 @@
                 <!-- Will be populated by JavaScript -->
             </div>
         </div>
-        
+
         <div class="section" id="content-detail-section" style="display: none;">
             <h2>콘텐츠 상세</h2>
             <div id="content-detail">
                 <!-- Will be populated by JavaScript -->
             </div>
-            
+
             <div style="margin-top: 2rem;">
                 <h3>콘텐츠 수정</h3>
                 <form id="edit-content-form">
@@ -642,7 +643,7 @@
                     </div>
                 </form>
             </div>
-            
+
             <div style="margin-top: 2rem;">
                 <h3>AI 처리</h3>
                 <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
@@ -653,14 +654,14 @@
                         🏷️ 키워드 추출
                     </button>
                 </div>
-                
+
                 <div class="loading" id="loading" style="display: none; text-align: center; margin: 1.5rem 0;">
                     <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
                     <p>AI가 열심히 분석 중입니다...</p>
                 </div>
-                
+
                 <div id="ai-results"></div>
-                
+
                 <div id="summary-save-section" style="display: none; margin-top: 2rem;">
                     <h3>요약 저장</h3>
                     <div style="margin-bottom: 1rem;">
@@ -682,7 +683,7 @@
                         <button id="save-summary-btn" class="btn btn-success" style="width: 100%;">요약 저장</button>
                     </div>
                 </div>
-                
+
                 <div id="saved-summaries-section" style="margin-top: 2rem; display: none;">
                     <h3>저장된 요약 목록</h3>
                     <div id="saved-summaries-list">
@@ -690,13 +691,13 @@
                     </div>
                 </div>
             </div>
-            
+
             <div style="margin-top: 2rem;">
                 <h3>키워드 관리</h3>
                 <div id="content-keywords">
                     <!-- Will be populated by JavaScript -->
                 </div>
-                
+
                 <div style="margin-top: 1.5rem;">
                     <h3>키워드 추가</h3>
                     <div>
@@ -714,7 +715,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div style="margin-top: 2rem;">
                     <h3>현재 키워드로 추출</h3>
                     <div id="keyword-selection">
@@ -723,7 +724,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div style="margin-top: 2rem;">
                     <h3>후보 키워드 추가</h3>
                     <div class="keyword-candidate-container">
@@ -742,11 +743,11 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Add Content Section -->
         <div class="section">
             <h2>새 콘텐츠 추가</h2>
-            
+
             <!-- 뉴스레터 정보 섹션 -->
             <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
                 <h3 style="color: #00d4ff; margin-bottom: 1rem;">뉴스레터 정보</h3>
@@ -768,7 +769,7 @@
                     <input type="date" id="published-at" class="form-control">
                 </div>
             </div>
-            
+
             <!-- 콘텐츠 추가 폼 -->
             <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
                 <h3 style="color: #00d4ff; margin-bottom: 1rem;">콘텐츠 정보</h3>
@@ -790,7 +791,7 @@
                     </div>
                 </form>
             </div>
-            
+
             <!-- 추가된 콘텐츠 목록 -->
             <div id="added-contents-section" style="display: none;">
                 <h3 style="color: #00d4ff; margin-bottom: 1rem;">추가된 콘텐츠 목록</h3>
@@ -803,13 +804,13 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         // Create stars
         function createStars() {
             const stars = document.getElementById('stars');
             const count = 100;
-            
+
             for (let i = 0; i < count; i++) {
                 const star = document.createElement('div');
                 star.className = 'star';
@@ -819,38 +820,38 @@
                 stars.appendChild(star);
             }
         }
-        
+
         // 전역 변수로 현재 정렬 옵션 저장
         let currentSortOption = 'publishedAt';
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
-            
+
             // URL에서 id 매개변수 확인
             const urlParams = new URLSearchParams(window.location.search);
             const contentId = urlParams.get('id');
-            
+
             // Fetch all categories
             fetchCategories();
-            
+
             // Fetch all reserved keywords
             fetchReservedKeywords();
-            
+
             // Fetch newsletter names for filter
             fetchNewsletterNames();
-            
+
             // If there's a content ID in the URL, load that content directly
             if (contentId) {
                 // Load content detail immediately
                 showContentDetail(contentId);
-                
+
                 // Also fetch the content list for navigation
                 fetchContents();
             } else {
                 // If no specific content ID, just load the content list
                 fetchContents();
             }
-            
+
             // Set up category filter button
             document.getElementById('filter-btn').addEventListener('click', function() {
                 const categoryId = document.getElementById('category-select').value;
@@ -860,24 +861,24 @@
                     fetchContents(0, 10);
                 }
             });
-            
+
             // 정렬 적용 버튼 이벤트 설정
             document.getElementById('apply-sort-btn').addEventListener('click', function() {
                 const button = this;
                 const originalText = button.textContent;
-                
+
                 // 버튼 텍스트 변경으로 피드백 제공
                 button.textContent = '적용 중...';
                 button.disabled = true;
-                
+
                 currentSortOption = document.getElementById('sort-option').value;
-                
+
                 // 정렬 옵션에 따라 시각적 표시 업데이트
                 updateSortOptionDisplay();
-                
+
                 // 현재 선택된 카테고리 확인
                 const categoryId = document.getElementById('category-select').value;
-                
+
                 // 서버에서 정렬된 데이터 다시 가져오기
                 setTimeout(() => {
                     if (categoryId) {
@@ -885,16 +886,16 @@
                     } else {
                         fetchContents(0, 10);
                     }
-                    
+
                     // 정렬 완료 후 버튼 상태 복원
                     button.textContent = originalText;
                     button.disabled = false;
                 }, 100); // 약간의 지연으로 UI 반응성 향상
             });
-            
+
             // 페이지 로드 시 정렬 옵션 표시 초기화
             updateSortOptionDisplay();
-            
+
             // Set up keyword filter button
             document.getElementById('keyword-filter-btn').addEventListener('click', function() {
                 const keywordId = document.getElementById('keyword-select').value;
@@ -905,58 +906,58 @@
                     fetchContents(0, 10);
                 }
             });
-            
+
             // Set up add keyword button
             document.getElementById('add-keyword-btn').addEventListener('click', function() {
                 const contentId = document.getElementById('content-detail').dataset.contentId;
                 const selectedTags = document.querySelectorAll('.keyword-tag.selected');
-                
+
                 if (!contentId) {
                     alert('콘텐츠를 선택해주세요');
                     return;
                 }
-                
+
                 if (selectedTags.length === 0) {
                     alert('추가할 키워드를 하나 이상 선택해주세요');
                     return;
                 }
-                
+
                 // 선택된 모든 키워드를 콘텐츠에 추가
                 addKeywordsToContent(contentId, Array.from(selectedTags).map(tag => tag.dataset.id));
             });
-            
+
             // Set up delete content button
             document.getElementById('delete-content-btn').addEventListener('click', function() {
                 const contentId = document.getElementById('edit-content-id').value;
-                
+
                 if (!contentId) {
                     alert('삭제할 콘텐츠가 선택되지 않았습니다');
                     return;
                 }
-                
+
                 if (confirm('정말로 이 콘텐츠를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
                     deleteContent(contentId);
                 }
             });
-            
+
             // 추가된 콘텐츠를 저장할 배열
             let addedContents = [];
-            
+
             // 뉴스레터 목록 버튼 이벤트 설정
             document.getElementById('load-newsletters-btn').addEventListener('click', function() {
                 loadNewsletterList();
             });
-            
+
             // 뉴스레터 목록을 가져와서 모달로 표시하는 함수
             function loadNewsletterList() {
                 showLoading();
-                
+
                 // 뉴스레터 목록 가져오기 (중복 제거된 이름 목록)
                 fetch('./api/contents/newsletter-names')
                     .then(response => response.json())
                     .then(data => {
                         hideLoading();
-                        
+
                         // 모달 생성
                         const modalContainer = document.createElement('div');
                         modalContainer.className = 'modal-container';
@@ -970,7 +971,7 @@
                         modalContainer.style.justifyContent = 'center';
                         modalContainer.style.alignItems = 'center';
                         modalContainer.style.zIndex = '1000';
-                        
+
                         const modalContent = document.createElement('div');
                         modalContent.className = 'modal-content';
                         modalContent.style.backgroundColor = 'rgba(26, 26, 46, 0.95)';
@@ -982,7 +983,7 @@
                         modalContent.style.overflowY = 'auto';
                         modalContent.style.border = '1px solid rgba(255, 255, 255, 0.1)';
                         modalContent.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
-                        
+
                         modalContent.innerHTML = `
                             <h2 style="color: #00d4ff; margin-bottom: 1.5rem;">뉴스레터 목록</h2>
                             <div style="margin-bottom: 1rem;">
@@ -995,19 +996,19 @@
                                 <button type="button" id="close-modal-btn" class="btn" style="background: rgba(255, 255, 255, 0.1);">닫기</button>
                             </div>
                         `;
-                        
+
                         modalContainer.appendChild(modalContent);
                         document.body.appendChild(modalContainer);
-                        
+
                         // 뉴스레터 목록 표시
                         const newsletterList = document.getElementById('newsletter-list');
-                        
+
                         if (data.length === 0) {
                             newsletterList.innerHTML = '<p>등록된 뉴스레터가 없습니다</p>';
                         } else {
                             // 뉴스레터 이름을 알파벳 순으로 정렬
                             const sortedNewsletters = [...data].sort((a, b) => a.localeCompare(b));
-                            
+
                             sortedNewsletters.forEach(name => {
                                 const item = document.createElement('div');
                                 item.className = 'content-item';
@@ -1015,21 +1016,21 @@
                                 item.style.marginBottom = '0.5rem';
                                 item.style.cursor = 'pointer';
                                 item.textContent = name;
-                                
+
                                 item.addEventListener('click', () => {
                                     document.getElementById('newsletter-name').value = name;
                                     document.body.removeChild(modalContainer);
                                 });
-                                
+
                                 newsletterList.appendChild(item);
                             });
                         }
-                        
+
                         // 검색 기능 설정
                         document.getElementById('newsletter-search').addEventListener('input', function() {
                             const searchTerm = this.value.toLowerCase().trim();
                             const items = newsletterList.querySelectorAll('.content-item');
-                            
+
                             items.forEach(item => {
                                 const newsletterName = item.textContent.toLowerCase();
                                 if (searchTerm === '' || newsletterName.includes(searchTerm)) {
@@ -1039,7 +1040,7 @@
                                 }
                             });
                         });
-                        
+
                         // 닫기 버튼 이벤트 설정
                         document.getElementById('close-modal-btn').addEventListener('click', function() {
                             document.body.removeChild(modalContainer);
@@ -1051,23 +1052,23 @@
                         alert('뉴스레터 목록을 불러오는 중 오류가 발생했습니다.');
                     });
             }
-            
+
             // Set up add content form submission
             document.getElementById('add-content-form').addEventListener('submit', function(e) {
                 e.preventDefault();
-                
+
                 const newsletterSourceId = document.getElementById('newsletter-source-id').value.trim();
                 const newsletterName = document.getElementById('newsletter-name').value;
                 const title = document.getElementById('content-title').value;
                 const originalUrl = document.getElementById('original-url').value;
                 const publishedAt = document.getElementById('published-at').value || null;
                 const content = document.getElementById('content-text').value;
-                
+
                 if (!newsletterName || !title || !originalUrl || !content) {
                     alert('필수 필드를 모두 입력해주세요');
                     return;
                 }
-                
+
                 // 콘텐츠 객체 생성
                 const contentObj = {
                     newsletterSourceId: newsletterSourceId || null,
@@ -1077,25 +1078,25 @@
                     publishedAt: publishedAt,
                     content: content
                 };
-                
+
                 // 콘텐츠를 배열에 추가
                 addedContents.push(contentObj);
-                
+
                 // 콘텐츠 목록 업데이트
                 updateAddedContentsList();
-                
+
                 // 콘텐츠 폼 초기화 (뉴스레터 정보는 유지)
                 document.getElementById('content-title').value = '';
                 document.getElementById('original-url').value = '';
                 document.getElementById('content-text').value = '';
-                
+
                 // 콘텐츠 제목 입력란에 포커스
                 document.getElementById('content-title').focus();
-                
+
                 // 추가된 콘텐츠 목록 섹션 표시
                 document.getElementById('added-contents-section').style.display = 'block';
             });
-            
+
             // 추가된 콘텐츠 목록 초기화 버튼
             document.getElementById('clear-added-contents').addEventListener('click', function() {
                 if (confirm('추가된 콘텐츠 목록을 초기화하시겠습니까?')) {
@@ -1104,17 +1105,17 @@
                     document.getElementById('added-contents-section').style.display = 'none';
                 }
             });
-            
+
             // 추가된 콘텐츠 목록 업데이트 함수
             function updateAddedContentsList() {
                 const container = document.getElementById('added-contents-list');
                 container.innerHTML = '';
-                
+
                 if (addedContents.length === 0) {
                     container.innerHTML = '<p>추가된 콘텐츠가 없습니다</p>';
                     return;
                 }
-                
+
                 // 콘텐츠 목록 생성
                 addedContents.forEach((content, index) => {
                     const item = document.createElement('div');
@@ -1122,7 +1123,7 @@
                     item.style.position = 'relative';
                     item.style.padding = '1.5rem';
                     item.style.marginBottom = '1rem';
-                    
+
                     // 제목
                     const title = document.createElement('div');
                     title.className = 'content-title';
@@ -1131,13 +1132,13 @@
                     title.style.fontWeight = '600';
                     title.style.marginBottom = '0.5rem';
                     title.style.paddingRight = '60px'; // 삭제 버튼 공간 확보
-                    
+
                     // URL
                     const url = document.createElement('div');
                     url.className = 'content-source';
                     url.innerHTML = `<strong>URL:</strong> <a href="${content.originalUrl}" target="_blank">${content.originalUrl}</a>`;
                     url.style.marginBottom = '0.5rem';
-                    
+
                     // 뉴스레터 정보
                     const newsletter = document.createElement('div');
                     newsletter.className = 'content-source';
@@ -1146,7 +1147,7 @@
                         newsletter.innerHTML += ` (ID: ${content.newsletterSourceId})`;
                     }
                     newsletter.style.marginBottom = '0.5rem';
-                    
+
                     // 발행일
                     if (content.publishedAt) {
                         const publishDate = document.createElement('div');
@@ -1155,7 +1156,7 @@
                         publishDate.style.marginBottom = '0.5rem';
                         item.appendChild(publishDate);
                     }
-                    
+
                     // 내용 미리보기
                     const preview = document.createElement('div');
                     preview.className = 'content-preview';
@@ -1163,7 +1164,7 @@
                     preview.style.marginTop = '0.5rem';
                     preview.style.color = '#a0aec0';
                     preview.style.fontSize = '0.9rem';
-                    
+
                     // 삭제 버튼
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'btn btn-danger';
@@ -1173,25 +1174,25 @@
                     removeBtn.style.top = '10px';
                     removeBtn.style.padding = '0.25rem 0.5rem';
                     removeBtn.style.fontSize = '0.8rem';
-                    
+
                     // 구분선
                     const divider = document.createElement('div');
                     divider.style.height = '1px';
                     divider.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                     divider.style.margin = '0.5rem 0';
-                    
+
                     removeBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
                         if (confirm('이 콘텐츠를 목록에서 삭제하시겠습니까?')) {
                             addedContents.splice(index, 1);
                             updateAddedContentsList();
-                            
+
                             if (addedContents.length === 0) {
                                 document.getElementById('added-contents-section').style.display = 'none';
                             }
                         }
                     });
-                    
+
                     // 순서 번호 표시
                     const orderBadge = document.createElement('div');
                     orderBadge.style.position = 'absolute';
@@ -1208,7 +1209,7 @@
                     orderBadge.style.fontWeight = 'bold';
                     orderBadge.style.fontSize = '0.8rem';
                     orderBadge.textContent = index + 1;
-                    
+
                     item.appendChild(title);
                     item.appendChild(url);
                     item.appendChild(newsletter);
@@ -1218,7 +1219,7 @@
                     item.appendChild(orderBadge);
                     container.appendChild(item);
                 });
-                
+
                 // 저장 버튼 컨테이너
                 const saveButtonContainer = document.createElement('div');
                 saveButtonContainer.style.marginTop = '1.5rem';
@@ -1226,7 +1227,7 @@
                 saveButtonContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
                 saveButtonContainer.style.borderRadius = '10px';
                 saveButtonContainer.style.textAlign = 'center';
-                
+
                 // 저장 정보 표시
                 const saveInfo = document.createElement('div');
                 saveInfo.style.marginBottom = '1rem';
@@ -1234,7 +1235,7 @@
                 saveInfo.style.fontWeight = '600';
                 saveInfo.innerHTML = `<span style="color: #00d4ff;">${addedContents.length}개</span>의 콘텐츠가 추가되었습니다`;
                 saveButtonContainer.appendChild(saveInfo);
-                
+
                 // 모든 콘텐츠 저장 버튼
                 const saveAllBtn = document.createElement('button');
                 saveAllBtn.className = 'btn btn-success';
@@ -1243,15 +1244,15 @@
                 saveAllBtn.style.padding = '0.75rem';
                 saveAllBtn.style.fontWeight = '600';
                 saveAllBtn.style.fontSize = '1.1rem';
-                
+
                 saveAllBtn.addEventListener('click', function() {
                     if (confirm(`${addedContents.length}개의 콘텐츠를 저장하시겠습니까?`)) {
                         saveAllContents();
                     }
                 });
-                
+
                 saveButtonContainer.appendChild(saveAllBtn);
-                
+
                 // 진행 상태 표시 영역 (초기에는 숨김)
                 const progressContainer = document.createElement('div');
                 progressContainer.id = 'save-progress-container';
@@ -1260,79 +1261,79 @@
                 progressContainer.style.padding = '1rem';
                 progressContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
                 progressContainer.style.borderRadius = '8px';
-                
+
                 const progressText = document.createElement('div');
                 progressText.id = 'save-progress-text';
                 progressText.style.marginBottom = '0.5rem';
                 progressText.style.textAlign = 'center';
                 progressText.textContent = '저장 중...';
-                
+
                 const progressBarOuter = document.createElement('div');
                 progressBarOuter.style.width = '100%';
                 progressBarOuter.style.height = '10px';
                 progressBarOuter.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                 progressBarOuter.style.borderRadius = '5px';
                 progressBarOuter.style.overflow = 'hidden';
-                
+
                 const progressBarInner = document.createElement('div');
                 progressBarInner.id = 'save-progress-bar';
                 progressBarInner.style.width = '0%';
                 progressBarInner.style.height = '100%';
                 progressBarInner.style.backgroundColor = '#00d4ff';
                 progressBarInner.style.transition = 'width 0.3s ease';
-                
+
                 progressBarOuter.appendChild(progressBarInner);
                 progressContainer.appendChild(progressText);
                 progressContainer.appendChild(progressBarOuter);
                 saveButtonContainer.appendChild(progressContainer);
-                
+
                 container.appendChild(saveButtonContainer);
             }
-            
+
             // 모든 콘텐츠 저장 함수
             function saveAllContents() {
                 if (addedContents.length === 0) {
                     alert('저장할 콘텐츠가 없습니다');
                     return;
                 }
-                
+
                 // 진행 상태 표시
                 const totalContents = addedContents.length;
                 let processedContents = 0;
                 let successCount = 0;
                 let failedContents = [];
-                
+
                 // 진행 상태 표시 영역 표시
                 const progressContainer = document.getElementById('save-progress-container');
                 const progressBar = document.getElementById('save-progress-bar');
                 const progressText = document.getElementById('save-progress-text');
-                
+
                 if (progressContainer) {
                     progressContainer.style.display = 'block';
                     progressBar.style.width = '0%';
                     progressText.textContent = `저장 중... (0/${totalContents})`;
                 }
-                
+
                 // 각 콘텐츠에 대해 순차적으로 처리
                 const processNextContent = (index) => {
                     if (index >= addedContents.length) {
                         // 모든 콘텐츠 처리 완료
                         hideLoading();
-                        
+
                         // 진행 상태 표시 영역 업데이트
                         if (progressContainer) {
                             progressBar.style.width = '100%';
                             progressText.textContent = `완료: ${successCount}/${totalContents} 저장됨`;
-                            
+
                             // 3초 후에 진행 상태 표시 영역 숨김
                             setTimeout(() => {
                                 progressContainer.style.display = 'none';
                             }, 3000);
                         }
-                        
+
                         // 결과 메시지 표시
                         let resultMessage = `총 ${totalContents}개 중 ${successCount}개의 콘텐츠가 저장되었습니다.`;
-                        
+
                         if (failedContents.length > 0) {
                             resultMessage += `\n\n저장에 실패한 콘텐츠 (${failedContents.length}개):\n`;
                             failedContents.forEach((title, i) => {
@@ -1343,31 +1344,31 @@
                                 }
                             });
                         }
-                        
+
                         alert(resultMessage);
-                        
+
                         // 성공적으로 저장된 콘텐츠가 있으면 목록 초기화
                         if (successCount > 0) {
                             addedContents = [];
                             updateAddedContentsList();
                             document.getElementById('added-contents-section').style.display = 'none';
-                            
+
                             // 콘텐츠 목록 새로고침
                             fetchContents();
                         }
-                        
+
                         return;
                     }
-                    
+
                     const contentData = addedContents[index];
-                    
+
                     // 진행 상태 표시 업데이트
                     if (progressContainer) {
                         const percent = Math.floor((index / totalContents) * 100);
                         progressBar.style.width = `${percent}%`;
                         progressText.textContent = `저장 중... (${index}/${totalContents})`;
                     }
-                    
+
                     fetch('./api/contents', {
                         method: 'POST',
                         headers: {
@@ -1377,7 +1378,7 @@
                     })
                     .then(response => {
                         processedContents++;
-                        
+
                         if (response.ok) {
                             successCount++;
                             return response.json();
@@ -1392,29 +1393,29 @@
                     })
                     .catch(error => {
                         console.error('Error creating content:', error);
-                        
+
                         // 오류가 발생해도 다음 콘텐츠 처리
                         processNextContent(index + 1);
                     });
                 };
-                
+
                 // 첫 번째 콘텐츠부터 처리 시작
                 processNextContent(0);
             }
-            
+
             // Set up AI processing buttons
             document.getElementById('generate-summary-btn').addEventListener('click', function() {
                 generateSummary(document.getElementById('edit-content-id').value);
             });
-            
+
             document.getElementById('extract-keywords-btn').addEventListener('click', function() {
                 extractKeywords(document.getElementById('edit-content-id').value);
             });
-            
+
             document.getElementById('extract-with-selected-btn').addEventListener('click', function() {
                 extractWithSelectedKeywords();
             });
-            
+
             // Set up headline selection
             document.getElementById('headline-select').addEventListener('change', function() {
                 const selectedHeadline = this.value;
@@ -1422,40 +1423,40 @@
                     document.getElementById('summary-title').value = selectedHeadline;
                 }
             });
-            
+
             // Set up summary save button
             document.getElementById('save-summary-btn').addEventListener('click', function() {
                 saveSummary(document.getElementById('edit-content-id').value);
             });
-            
+
             // Set up add selected keywords as candidates button
             document.getElementById('add-selected-as-candidates-btn').addEventListener('click', function() {
                 addSelectedKeywordsAsCandidates();
             });
-            
+
             // 선택한 키워드를 예약 키워드로 추가 버튼 이벤트 설정
             document.getElementById('add-selected-as-reserved-btn').addEventListener('click', async function() {
                 const selectedKeywords = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked:not(:disabled)');
-                
+
                 if (selectedKeywords.length === 0) {
                     alert('예약 키워드로 추가할 키워드를 하나 이상 선택해주세요.');
                     return;
                 }
-                
+
                 const keywordNames = Array.from(selectedKeywords).map(checkbox => checkbox.value);
                 await addKeywordsAsReserved(keywordNames);
             });
-            
+
             // 키워드 관련 이벤트 설정
             setupKeywordEvents();
         });
-        
+
         function fetchCategories() {
             fetch('./api/keywords/categories')
                 .then(response => response.json())
                 .then(data => {
                     const select = document.getElementById('category-select');
-                    
+
                     data.forEach(category => {
                         const option = document.createElement('option');
                         option.value = category.id;
@@ -1465,15 +1466,15 @@
                 })
                 .catch(error => console.error('Error fetching categories:', error));
         }
-        
+
         function fetchReservedKeywords() {
             // 현재 선택된 콘텐츠 ID 가져오기
             const contentDetailElement = document.getElementById('content-detail');
             const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
-            
+
             // 현재 콘텐츠의 키워드 목록 가져오기
             let existingKeywords = [];
-            
+
             // 콘텐츠가 선택되어 있으면 현재 키워드 가져오기
             const fetchExistingKeywords = async () => {
                 if (contentId) {
@@ -1488,7 +1489,7 @@
                 }
                 return [];
             };
-            
+
             // 모든 키워드 가져오기 (예약 키워드와 후보 키워드 모두)
             fetchExistingKeywords().then(existingKeywordIds => {
                 // 전체 예약 키워드 가져오기 (size=1000으로 설정하여 최대한 많은 키워드 가져오기)
@@ -1497,7 +1498,7 @@
                     .then(data => {
                         const keywordSelect = document.getElementById('keyword-select');
                         const keywordTagsContainer = document.getElementById('keyword-tags-container');
-                        
+
                         // 키워드 필터 드롭다운 업데이트
                         keywordSelect.innerHTML = '<option value="">모든 키워드</option>';
                         data.content.forEach(keyword => {
@@ -1506,10 +1507,10 @@
                             option.textContent = keyword.name;
                             keywordSelect.appendChild(option);
                         });
-                        
+
                         // 키워드 태그 컨테이너 업데이트
                         keywordTagsContainer.innerHTML = '';
-                        
+
                         // 헤더 추가 (전체 키워드 수 표시)
                         const headerDiv = document.createElement('div');
                         headerDiv.className = 'keyword-tags-header';
@@ -1518,27 +1519,27 @@
                             <div class="keyword-count-total">총 ${data.content.length}개</div>
                         `;
                         keywordTagsContainer.appendChild(headerDiv);
-                        
+
                         if (data.content.length === 0) {
                             keywordTagsContainer.innerHTML += '<p>등록된 키워드가 없습니다</p>';
                             return;
                         }
-                        
+
                         // 키워드를 알파벳 순으로 정렬
                         const sortedKeywords = [...data.content].sort((a, b) => a.name.localeCompare(b.name));
-                        
+
                         // 키워드 태그 컨테이너에 태그 추가
                         const tagsContainer = document.createElement('div');
                         tagsContainer.className = 'keyword-tags';
                         keywordTagsContainer.appendChild(tagsContainer);
-                        
+
                         sortedKeywords.forEach(keyword => {
                             const tag = document.createElement('div');
                             tag.className = 'keyword-tag';
-                            
+
                             // 이미 콘텐츠에 존재하는 키워드인지 확인
                             const isExisting = existingKeywordIds.includes(keyword.id.toString());
-                            
+
                             if (isExisting) {
                                 tag.classList.add('existing');
                                 tag.title = '이미 추가된 키워드';
@@ -1546,11 +1547,11 @@
                                 tag.style.backgroundColor = 'rgba(79, 172, 254, 0.3)';
                                 tag.style.borderColor = '#4facfe';
                             }
-                            
+
                             tag.dataset.id = keyword.id;
                             tag.dataset.name = keyword.name;
                             tag.textContent = keyword.name;
-                            
+
                             tag.addEventListener('click', () => {
                                 // 이미 존재하는 키워드는 선택 불가능하게 설정
                                 if (!isExisting) {
@@ -1560,13 +1561,13 @@
                                     alert('이미 추가된 키워드입니다.');
                                 }
                             });
-                            
+
                             tagsContainer.appendChild(tag);
                         });
-                        
+
                         // 검색 기능 설정
                         setupKeywordSearch();
-                        
+
                         // 선택된 개수 초기화
                         updateSelectedCount();
                     })
@@ -1577,11 +1578,11 @@
         function setupKeywordSearch() {
             const searchInput = document.getElementById('keyword-search');
             const tags = document.querySelectorAll('.keyword-tags .keyword-tag');
-            
+
             searchInput.addEventListener('input', () => {
                 const searchTerm = searchInput.value.toLowerCase().trim();
                 let visibleCount = 0;
-                
+
                 tags.forEach(tag => {
                     const keywordName = tag.dataset.name.toLowerCase();
                     if (searchTerm === '' || keywordName.includes(searchTerm)) {
@@ -1591,7 +1592,7 @@
                         tag.style.display = 'none';
                     }
                 });
-                
+
                 // 검색 결과 수 업데이트
                 const countTotal = document.querySelector('.keyword-count-total');
                 if (countTotal) {
@@ -1610,17 +1611,17 @@
             const countElement = document.getElementById('selected-count');
             countElement.textContent = selectedTags.length;
         }
-        
+
         function fetchContents(page = 0, size = 10) {
             // 정렬 옵션에 따라 API 호출
             const sortOption = document.getElementById('sort-option')?.value || 'publishedAt';
             const newsletterName = document.getElementById('newsletter-filter')?.value || '';
-            
+
             let url = `./api/contents/sorted?sortOption=${sortOption}&page=${page}&size=${size}`;
             if (newsletterName) {
                 url += `&newsletterName=${encodeURIComponent(newsletterName)}`;
             }
-            
+
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -1629,25 +1630,25 @@
                 })
                 .catch(error => console.error('Error fetching contents:', error));
         }
-        
+
         function renderPagination(pageData) {
             const paginationContainer = document.getElementById('pagination');
             paginationContainer.innerHTML = '';
-            
+
             if (!pageData.totalPages || pageData.totalPages <= 1) {
                 return;
             }
-            
+
             // 현재 필터 상태 확인
             const categoryId = document.getElementById('category-select').value;
             const keywordId = document.getElementById('keyword-select').value;
-            
+
             // Previous button
             if (pageData.number > 0) {
                 const prevButton = document.createElement('div');
                 prevButton.className = 'pagination-item';
                 prevButton.textContent = '이전';
-                
+
                 // 필터 상태에 따라 페이지네이션 함수 선택
                 if (keywordId) {
                     prevButton.addEventListener('click', () => fetchContentsByKeyword(keywordId, pageData.number - 1, pageData.size));
@@ -1656,14 +1657,14 @@
                 } else {
                     prevButton.addEventListener('click', () => fetchContents(pageData.number - 1, pageData.size));
                 }
-                
+
                 paginationContainer.appendChild(prevButton);
             }
-            
+
             // Page numbers
             const startPage = Math.max(0, pageData.number - 2);
             const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
-            
+
             for (let i = startPage; i <= endPage; i++) {
                 const pageButton = document.createElement('div');
                 pageButton.className = 'pagination-item';
@@ -1671,7 +1672,7 @@
                     pageButton.classList.add('active');
                 }
                 pageButton.textContent = i + 1;
-                
+
                 // 필터 상태에 따라 페이지네이션 함수 선택
                 if (keywordId) {
                     pageButton.addEventListener('click', () => fetchContentsByKeyword(keywordId, i, pageData.size));
@@ -1680,16 +1681,16 @@
                 } else {
                     pageButton.addEventListener('click', () => fetchContents(i, pageData.size));
                 }
-                
+
                 paginationContainer.appendChild(pageButton);
             }
-            
+
             // Next button
             if (pageData.number < pageData.totalPages - 1) {
                 const nextButton = document.createElement('div');
                 nextButton.className = 'pagination-item';
                 nextButton.textContent = '다음';
-                
+
                 // 필터 상태에 따라 페이지네이션 함수 선택
                 if (keywordId) {
                     nextButton.addEventListener('click', () => fetchContentsByKeyword(keywordId, pageData.number + 1, pageData.size));
@@ -1698,21 +1699,21 @@
                 } else {
                     nextButton.addEventListener('click', () => fetchContents(pageData.number + 1, pageData.size));
                 }
-                
+
                 paginationContainer.appendChild(nextButton);
             }
         }
-        
+
         function fetchContentsByCategory(categoryId, page = 0, size = 10) {
             // 정렬 옵션에 따라 API 호출
             const sortOption = document.getElementById('sort-option')?.value || 'publishedAt';
             const newsletterName = document.getElementById('newsletter-filter')?.value || '';
-            
+
             let url = `./api/contents/by-category/${categoryId}/sorted?sortOption=${sortOption}&page=${page}&size=${size}`;
             if (newsletterName) {
                 url += `&newsletterName=${encodeURIComponent(newsletterName)}`;
             }
-            
+
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -1721,27 +1722,27 @@
                 })
                 .catch(error => console.error('Error fetching contents by category:', error));
         }
-        
+
         function fetchContentsByKeyword(keywordId, page = 0, size = 10) {
             // 키워드 ID로 콘텐츠 필터링
             const url = `./api/contents/by-keyword/${keywordId}?page=${page}&size=${size}`;
-            
+
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     renderContentList(data.content);
                     renderPagination(data);
-                    
+
                     // 필터링 적용 상태 표시
                     const keywordSelect = document.getElementById('keyword-select');
                     const selectedKeywordText = keywordSelect.options[keywordSelect.selectedIndex].text;
-                    
+
                     // 기존 필터 정보 요소 제거
                     const existingFilterInfo = document.getElementById('keyword-filter-info');
                     if (existingFilterInfo) {
                         existingFilterInfo.remove();
                     }
-                    
+
                     // 필터 정보 요소 추가
                     const filterInfoElement = document.createElement('div');
                     filterInfoElement.id = 'keyword-filter-info';
@@ -1754,16 +1755,16 @@
                     filterInfoElement.style.display = 'flex';
                     filterInfoElement.style.justifyContent = 'space-between';
                     filterInfoElement.style.alignItems = 'center';
-                    
+
                     filterInfoElement.innerHTML = `
                         <span>현재 필터: <strong>${selectedKeywordText}</strong> 키워드 (${data.totalElements}개 콘텐츠)</span>
                         <button id="clear-keyword-filter" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: rgba(255, 255, 255, 0.1);">필터 해제</button>
                     `;
-                    
+
                     // 키워드 필터 섹션에 추가
                     const keywordFilterSection = document.querySelector('.section h2').parentElement;
                     keywordFilterSection.appendChild(filterInfoElement);
-                    
+
                     // 필터 해제 버튼 이벤트 설정
                     document.getElementById('clear-keyword-filter').addEventListener('click', function() {
                         document.getElementById('keyword-select').value = '';
@@ -1773,28 +1774,28 @@
                 })
                 .catch(error => console.error('Error fetching contents by keyword:', error));
         }
-        
+
         function renderContentList(contents) {
             const container = document.getElementById('content-list');
             container.innerHTML = '';
-            
+
             if (contents.length === 0) {
                 container.innerHTML = '<p>콘텐츠가 없습니다</p>';
                 return;
             }
-            
+
             // 콘텐츠 항목 렌더링
             contents.forEach(content => {
                 renderContentItem(content, content.isExposed, container);
             });
         }
-        
+
         // 개별 콘텐츠 항목을 렌더링하는 함수
         function renderContentItem(content, isExposed, container) {
             const item = document.createElement('div');
             item.className = 'content-item';
             item.dataset.id = content.id;
-            
+
             // 노출 상태에 따른 시각적 표시 추가
             if (!isExposed) {
                 // 노출하지 않는 항목 강조
@@ -1805,25 +1806,25 @@
                 item.style.borderLeft = '4px solid #f59e0b';
                 item.style.opacity = '0.8';
             }
-            
+
             const title = document.createElement('div');
             title.className = 'content-title';
             title.textContent = content.title;
-            
+
             const source = document.createElement('div');
             source.className = 'content-source';
             source.textContent = `출처: ${content.newsletterName}${content.newsletterSourceId ? ' (ID: ' + content.newsletterSourceId + ')' : ''}`;
-            
+
             const publishDate = document.createElement('div');
             publishDate.className = 'content-source';
-            publishDate.textContent = content.publishedAt 
-                ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}` 
+            publishDate.textContent = content.publishedAt
+                ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}`
                 : '';
-            
+
             // Create badges container
             const badgesContainer = document.createElement('div');
             badgesContainer.className = 'badges-container';
-            
+
             // Create badges first, then append them in order
             const summaryBadge = document.createElement('div');
             if (content.hasSummary) {
@@ -1833,7 +1834,7 @@
                 summaryBadge.className = 'no-summary-badge';
                 summaryBadge.textContent = '요약 없음';
             }
-            
+
             // Create exposure badge (now we already know the status)
             const exposureBadge = document.createElement('div');
             if (isExposed) {
@@ -1844,11 +1845,11 @@
                 exposureBadge.className = 'no-summary-badge';
                 exposureBadge.textContent = '노출 안 함';
             }
-            
+
             // Add badges in fixed order
             badgesContainer.appendChild(summaryBadge);
             badgesContainer.appendChild(exposureBadge);
-            
+
             // Get content keywords
             getContentKeywords(content.id, (keywords) => {
                 // Limit to 5 keywords to avoid cluttering
@@ -1859,7 +1860,7 @@
                     keywordBadge.textContent = keyword.name;
                     badgesContainer.appendChild(keywordBadge);
                 });
-                
+
                 // Show more indicator if there are more than 5 keywords
                 if (keywords.length > 5) {
                     const moreBadge = document.createElement('div');
@@ -1869,11 +1870,11 @@
                     badgesContainer.appendChild(moreBadge);
                 }
             });
-            
+
             const preview = document.createElement('div');
             preview.className = 'content-preview';
             preview.textContent = content.content.substring(0, 150) + '...';
-            
+
             item.appendChild(title);
             item.appendChild(source);
             if (content.publishedAt) {
@@ -1881,31 +1882,31 @@
             }
             item.appendChild(badgesContainer);
             item.appendChild(preview);
-            
+
             item.addEventListener('click', () => showContentDetail(content.id));
-            
+
             container.appendChild(item);
         }
-        
+
         function showContentDetail(contentId) {
             // Highlight selected content if it exists in the current view
             const contentItem = document.querySelector(`.content-item[data-id="${contentId}"]`);
-            
+
             if (contentItem) {
                 // Remove active class from all items
                 document.querySelectorAll('.content-item').forEach(item => {
                     item.classList.remove('active');
                 });
-                
+
                 // Add active class to the selected item
                 contentItem.classList.add('active');
             } else {
                 console.log(`Content item with ID ${contentId} not found in the current view. It might be on another page or filtered out.`);
             }
-            
+
             // Show detail section
             document.getElementById('content-detail-section').style.display = 'block';
-            
+
             // Fetch content details
             fetch(`./api/contents/${contentId}`)
                 .then(response => {
@@ -1917,7 +1918,7 @@
                 .then(content => {
                     const detailContainer = document.getElementById('content-detail');
                     detailContainer.dataset.contentId = content.id;
-                    
+
                     document.getElementById('edit-content-id').value = content.id;
                     document.getElementById('edit-newsletter-source-id').value = content.newsletterSourceId;
                     document.getElementById('edit-newsletter-name').value = content.newsletterName;
@@ -1925,15 +1926,15 @@
                     document.getElementById('edit-original-url').value = content.originalUrl;
                     document.getElementById('edit-published-at').value = content.publishedAt ? content.publishedAt : '';
                     document.getElementById('edit-content-text').value = content.content;
-                    
-                    const publishedDateText = content.publishedAt 
+
+                    const publishedDateText = content.publishedAt
                         ? new Date(content.publishedAt).toLocaleDateString('ko-KR', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
                           })
                         : '없음';
-                    
+
                     detailContainer.innerHTML = `
                         <h3>${content.title}</h3>
                         <div class="content-source">출처: ${content.newsletterName}</div>
@@ -1942,26 +1943,26 @@
                         <div class="content-source">발행 날짜: ${publishedDateText}</div>
                         <div class="content-text">${content.content}</div>
                     `;
-                    
+
                     // Fetch content keywords
                     fetchContentKeywords(contentId);
-                    
+
                     // Fetch saved summaries
                     fetchSavedSummaries(contentId);
-                    
+
                     // Clear previous AI results
                     document.getElementById('ai-results').innerHTML = '';
-                    
+
                     // Hide summary save section
                     document.getElementById('summary-save-section').style.display = 'none';
-                    
+
                     // 예약 키워드 목록 새로고침 (이미 추가된 키워드 표시를 위해)
                     fetchReservedKeywords();
-                    
+
                     // 후보 키워드 추가 섹션 초기화
                     document.getElementById('suggested-keywords-container').innerHTML = '';
                     document.getElementById('add-selected-as-candidates-btn').disabled = true;
-                    
+
                     // Scroll to the detail section
                     document.getElementById('content-detail-section').scrollIntoView({ behavior: 'smooth' });
                 })
@@ -1970,33 +1971,33 @@
                     document.getElementById('content-detail').innerHTML = '<p>콘텐츠를 불러오는 중 오류가 발생했습니다</p>';
                 });
         }
-        
+
         async function fetchContentKeywords(contentId, page = 0, size = 10) {
             try {
                 const response = await fetch(`./api/process/content/${contentId}/keywords?page=${page}&size=${size}`);
                 const data = await response.json();
-                
+
                 const container = document.getElementById('content-keywords');
                 container.innerHTML = '<h4>현재 키워드</h4>';
-                
+
                 if (data.content.length === 0) {
                     container.innerHTML += '<p>등록된 키워드가 없습니다</p>';
                     return [];
                 }
-                
+
                 const keywordList = document.createElement('div');
                 keywordList.className = 'keyword-list';
-                
+
                 const keywordNames = [];
-                
+
                 data.content.forEach(keyword => {
                     const keywordItem = document.createElement('div');
                     keywordItem.className = 'keyword-item';
-                    
+
                     const keywordName = document.createElement('span');
                     keywordName.textContent = keyword.name;
                     keywordNames.push(keyword.name);
-                    
+
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'btn btn-danger';
                     removeBtn.textContent = '삭제';
@@ -2006,18 +2007,18 @@
                         e.stopPropagation();
                         removeKeywordFromContent(contentId, keyword.id);
                     });
-                    
+
                     keywordItem.appendChild(keywordName);
                     keywordItem.appendChild(removeBtn);
                     keywordList.appendChild(keywordItem);
                 });
-                
+
                 container.appendChild(keywordList);
-                
+
                 // Add pagination
                 const paginationContainer = document.createElement('div');
                 paginationContainer.className = 'pagination';
-                
+
                 if (data.totalPages > 1) {
                     // Previous button
                     if (data.number > 0) {
@@ -2027,11 +2028,11 @@
                         prevButton.addEventListener('click', () => fetchContentKeywords(contentId, data.number - 1, data.size));
                         paginationContainer.appendChild(prevButton);
                     }
-                    
+
                     // Page numbers
                     const startPage = Math.max(0, data.number - 2);
                     const endPage = Math.min(data.totalPages - 1, data.number + 2);
-                    
+
                     for (let i = startPage; i <= endPage; i++) {
                         const pageButton = document.createElement('div');
                         pageButton.className = 'pagination-item';
@@ -2042,7 +2043,7 @@
                         pageButton.addEventListener('click', () => fetchContentKeywords(contentId, i, data.size));
                         paginationContainer.appendChild(pageButton);
                     }
-                    
+
                     // Next button
                     if (data.number < data.totalPages - 1) {
                         const nextButton = document.createElement('div');
@@ -2051,17 +2052,17 @@
                         nextButton.addEventListener('click', () => fetchContentKeywords(contentId, data.number + 1, data.size));
                         paginationContainer.appendChild(nextButton);
                     }
-                    
+
                     container.appendChild(paginationContainer);
                 }
-                
+
                 return keywordNames;
             } catch (error) {
                 console.error('Error fetching content keywords:', error);
                 return [];
             }
         }
-        
+
         function addKeywordToContent(contentId, keywordId) {
             fetch(`./api/contents/${contentId}/keywords`, {
                 method: 'POST',
@@ -2081,7 +2082,7 @@
             .then(() => {
                 // Refresh content keywords
                 fetchContentKeywords(contentId);
-                
+
                 // Clear input
                 document.getElementById('add-keyword-select').value = '';
             })
@@ -2090,7 +2091,7 @@
                 alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
             });
         }
-        
+
         function removeKeywordFromContent(contentId, keywordId) {
             fetch(`./api/contents/${contentId}/keywords/${keywordId}`, {
                 method: 'DELETE'
@@ -2101,13 +2102,13 @@
                 }
                 // Refresh content keywords
                 fetchContentKeywords(contentId);
-                
+
                 // 예약 키워드 목록 새로고침 (이미 추가된 키워드 표시를 위해)
                 fetchReservedKeywords();
             })
             .catch(error => console.error('Error removing keyword from content:', error));
         }
-        
+
         // createContent 함수는 saveAllContents 함수로 대체되었습니다.
 
         // Set up edit content form submission
@@ -2169,7 +2170,7 @@
                 alert('콘텐츠 수정에 실패했습니다.');
             });
         }
-        
+
         function deleteContent(contentId) {
             fetch(`./api/contents/${contentId}`, {
                 method: 'DELETE'
@@ -2178,7 +2179,7 @@
                 if (!response.ok) {
                     throw new Error('Failed to delete content');
                 }
-                
+
                 // Clear form
                 document.getElementById('edit-content-form').reset();
                 document.getElementById('edit-content-id').value = ''; // Clear hidden ID
@@ -2237,14 +2238,14 @@
 
                     html += '</div>';
                     document.getElementById('ai-results').innerHTML = html;
-                    
+
                     // Show summary save section
                     document.getElementById('summary-save-section').style.display = 'block';
-                    
+
                     // Populate headline select dropdown
                     const headlineSelect = document.getElementById('headline-select');
                     headlineSelect.innerHTML = '<option value="">직접 입력</option>';
-                    
+
                     if (data.provocativeHeadlines && data.provocativeHeadlines.length > 0) {
                         data.provocativeHeadlines.forEach(headline => {
                             const option = document.createElement('option');
@@ -2253,13 +2254,13 @@
                             headlineSelect.appendChild(option);
                         });
                     }
-                    
+
                     // Set summary text
                     document.getElementById('summary-text').value = data.summary;
-                    
+
                     // Set default title
                     document.getElementById('summary-title').value = document.getElementById('edit-content-title').value;
-                    
+
                     // Store model info
                     document.getElementById('summary-save-section').dataset.model = data.usedModel;
                 } else {
@@ -2330,10 +2331,10 @@
 
                     html += '</div>';
                     document.getElementById('ai-results').innerHTML = html;
-                    
+
                     // Refresh content keywords after extraction
                     fetchContentKeywords(contentId);
-                    
+
                     // Display suggested keywords for candidate selection
                     displaySuggestedKeywordsForSelection(data);
                 } else {
@@ -2345,20 +2346,20 @@
                 showError('서버 오류가 발생했습니다: ' + error.message);
             });
         }
-        
+
         async function extractWithSelectedKeywords() {
             // contentId를 전달하지 않고 함수 내에서 현재 선택된 콘텐츠 ID를 가져오도록 함
             const contentDetailElement = document.getElementById('content-detail');
             const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
-            
+
             if (!contentId) {
                 alert('콘텐츠를 선택해주세요.');
                 return;
             }
-            
+
             // 현재 키워드 다시 가져오기 (최신 상태 반영)
             const currentKeywords = await fetchContentKeywords(contentId);
-            
+
             if (currentKeywords.length === 0) {
                 alert('현재 콘텐츠에 등록된 키워드가 없습니다. 먼저 키워드를 추가해주세요.');
                 return;
@@ -2378,7 +2379,7 @@
                         keywords: currentKeywords
                     })
                 });
-                
+
                 const data = await response.json();
                 hideLoading();
 
@@ -2420,7 +2421,7 @@
 
                     html += '</div>';
                     document.getElementById('ai-results').innerHTML = html;
-                    
+
                     // Display suggested keywords for candidate selection
                     displaySuggestedKeywordsForSelection(data);
                 } else {
@@ -2431,7 +2432,7 @@
                 showError('서버 오류가 발생했습니다: ' + error.message);
             }
         }
-        
+
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
         }
@@ -2439,29 +2440,29 @@
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
         }
-        
+
         function showError(message) {
             const resultsDiv = document.getElementById('ai-results');
             resultsDiv.innerHTML = `<div class="error" style="background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); color: #fca5a5; padding: 1rem; border-radius: 8px; margin-top: 1rem;">❌ ${message}</div>`;
         }
-        
+
         function saveSummary(contentId) {
             if (!contentId) {
                 alert('콘텐츠를 선택해주세요.');
                 return;
             }
-            
+
             const title = document.getElementById('summary-title').value.trim();
             const summary = document.getElementById('summary-text').value.trim();
             const model = document.getElementById('summary-save-section').dataset.model || 'unknown';
-            
+
             if (!title || !summary) {
                 alert('제목과 요약 내용을 모두 입력해주세요.');
                 return;
             }
-            
+
             showLoading();
-            
+
             fetch(`./api/process/content/${contentId}/summary/save`, {
                 method: 'POST',
                 headers: {
@@ -2476,18 +2477,18 @@
             .then(response => response.json())
             .then(data => {
                 hideLoading();
-                
+
                 if (data.success) {
                     alert('요약이 성공적으로 저장되었습니다!');
-                    
+
                     // Clear form
                     document.getElementById('summary-title').value = '';
                     document.getElementById('summary-text').value = '';
                     document.getElementById('headline-select').selectedIndex = 0;
-                    
+
                     // Hide summary save section
                     document.getElementById('summary-save-section').style.display = 'none';
-                    
+
                     // Refresh saved summaries
                     fetchSavedSummaries(contentId);
                 } else {
@@ -2499,25 +2500,25 @@
                 alert('서버 오류가 발생했습니다: ' + error.message);
             });
         }
-        
+
         function fetchSavedSummaries(contentId, page = 0, size = 10) {
             fetch(`./api/process/content/${contentId}/summaries?page=${page}&size=${size}`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('saved-summaries-list');
                     container.innerHTML = '';
-                    
+
                     if (data.content.length === 0) {
                         document.getElementById('saved-summaries-section').style.display = 'none';
                         return;
                     }
-                    
+
                     document.getElementById('saved-summaries-section').style.display = 'block';
-                    
+
                     data.content.forEach(summary => {
                         const summaryCard = document.createElement('div');
                         summaryCard.className = 'result-card';
-                        
+
                         const summaryDate = new Date(summary.createdAt).toLocaleString('ko-KR', {
                             year: 'numeric',
                             month: 'long',
@@ -2525,17 +2526,17 @@
                             hour: '2-digit',
                             minute: '2-digit'
                         });
-                        
+
                         // Check if exposure content exists for this summary
                         checkExposureContentExists(summary.id, (exists, exposureContentId) => {
                             let exposureContentButton = '';
                             let activeStatus = '';
-                            
+
                             if (exists) {
                                 activeStatus = `<div style="margin-bottom: 0.5rem; background-color: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; font-size: 0.8rem;">✓ 현재 활성화된 요약</div>`;
                                 exposureContentButton = `
                                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                                        <button class="btn" style="flex: 1; background: linear-gradient(45deg, #3b82f6, #1d4ed8); color: #fff;" 
+                                        <button class="btn" style="flex: 1; background: linear-gradient(45deg, #3b82f6, #1d4ed8); color: #fff;"
                                                 onclick="editExposureContent(${exposureContentId})">
                                             노출 컨텐츠 수정
                                         </button>
@@ -2543,13 +2544,13 @@
                                 `;
                             } else {
                                 exposureContentButton = `
-                                    <button class="btn" style="background: linear-gradient(45deg, #f59e0b, #d97706); color: #fff;" 
+                                    <button class="btn" style="background: linear-gradient(45deg, #f59e0b, #d97706); color: #fff;"
                                             onclick="setActiveSummary(${summary.id})">
                                         이 요약을 활성화
                                     </button>
                                 `;
                             }
-                            
+
                             summaryCard.innerHTML = `
                                 <div class="result-title">${summary.title}</div>
                                 <div style="font-size: 0.8rem; color: #a0aec0; margin-bottom: 0.5rem;">
@@ -2561,15 +2562,15 @@
                                     ${exposureContentButton}
                                 </div>
                             `;
-                            
+
                             container.appendChild(summaryCard);
                         });
                     });
-                    
+
                     // Add pagination
                     const paginationContainer = document.createElement('div');
                     paginationContainer.className = 'pagination';
-                    
+
                     if (data.totalPages > 1) {
                         // Previous button
                         if (data.number > 0) {
@@ -2579,11 +2580,11 @@
                             prevButton.addEventListener('click', () => fetchSavedSummaries(contentId, data.number - 1, data.size));
                             paginationContainer.appendChild(prevButton);
                         }
-                        
+
                         // Page numbers
                         const startPage = Math.max(0, data.number - 2);
                         const endPage = Math.min(data.totalPages - 1, data.number + 2);
-                        
+
                         for (let i = startPage; i <= endPage; i++) {
                             const pageButton = document.createElement('div');
                             pageButton.className = 'pagination-item';
@@ -2594,7 +2595,7 @@
                             pageButton.addEventListener('click', () => fetchSavedSummaries(contentId, i, data.size));
                             paginationContainer.appendChild(pageButton);
                         }
-                        
+
                         // Next button
                         if (data.number < data.totalPages - 1) {
                             const nextButton = document.createElement('div');
@@ -2603,7 +2604,7 @@
                             nextButton.addEventListener('click', () => fetchSavedSummaries(contentId, data.number + 1, data.size));
                             paginationContainer.appendChild(nextButton);
                         }
-                        
+
                         document.getElementById('saved-summaries-section').appendChild(paginationContainer);
                     }
                 })
@@ -2612,7 +2613,7 @@
                     document.getElementById('saved-summaries-section').style.display = 'none';
                 });
         }
-        
+
         function checkExposureContentExists(summaryId, callback) {
             fetch(`./api/process/summary/${summaryId}/exposure-content-exists`)
                 .then(response => response.json())
@@ -2625,10 +2626,10 @@
                     callback(false, null);
                 });
         }
-        
+
         function updateExposureContent(exposureContentId, data) {
             showLoading();
-            
+
             fetch(`./api/recommendations/exposure-contents/${exposureContentId}`, {
                 method: 'PUT',
                 headers: {
@@ -2645,7 +2646,7 @@
                 .then(() => {
                     hideLoading();
                     alert('노출 컨텐츠가 성공적으로 수정되었습니다.');
-                    
+
                     // Refresh the summary list
                     const contentDetailElement = document.getElementById('content-detail');
                     const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
@@ -2659,14 +2660,14 @@
                     alert('노출 컨텐츠 수정 중 오류가 발생했습니다.');
                 });
         }
-        
+
         function setActiveSummary(summaryId) {
             if (!confirm('이 요약을 활성화하시겠습니까? 기존의 노출 컨텐츠는 삭제되고 이 요약이 노출 컨텐츠로 설정됩니다.')) {
                 return;
             }
-            
+
             showLoading();
-            
+
             fetch(`./api/recommendations/summaries/${summaryId}/set-active`, {
                 method: 'POST'
             })
@@ -2679,7 +2680,7 @@
                 .then(() => {
                     hideLoading();
                     alert('요약이 성공적으로 활성화되었습니다.');
-                    
+
                     // Refresh the summary list
                     const contentDetailElement = document.getElementById('content-detail');
                     const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
@@ -2693,32 +2694,32 @@
                     alert('요약 활성화 중 오류가 발생했습니다.');
                 });
         }
-        
+
         function createExposureContent(summaryId) {
             // Redirect to the new setActiveSummary function
             setActiveSummary(summaryId);
         }
-        
+
         async function displaySuggestedKeywordsForSelection(data) {
             const container = document.getElementById('suggested-keywords-container');
             container.innerHTML = '';
-            
+
             // Combine all keyword types
             const allKeywords = [
                 ...(data.suggestedKeywords || []),
                 ...(data.matchedKeywords || []),
                 ...(data.provocativeKeywords || [])
             ];
-            
+
             // Remove duplicates
             const uniqueKeywords = [...new Set(allKeywords)];
-            
+
             if (uniqueKeywords.length === 0) {
                 container.innerHTML = '<p>추가할 수 있는 키워드가 없습니다</p>';
                 document.getElementById('add-selected-as-candidates-btn').disabled = true;
                 return;
             }
-            
+
             // 이미 예약 키워드로 존재하는 키워드 목록 가져오기
             let existingReservedKeywords = [];
             try {
@@ -2731,60 +2732,60 @@
             } catch (error) {
                 console.error('Error fetching reserved keywords:', error);
             }
-            
+
             // Create checkboxes for each keyword
             uniqueKeywords.forEach(keyword => {
                 const keywordDiv = document.createElement('div');
                 keywordDiv.className = 'keyword-checkbox';
-                
+
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.id = `keyword-${keyword}`;
                 checkbox.value = keyword;
                 checkbox.style.marginRight = '0.5rem';
-                
+
                 // 이미 예약 키워드로 존재하는지 확인
                 const isExistingReserved = existingReservedKeywords.includes(keyword.toLowerCase());
-                
+
                 if (isExistingReserved) {
                     // 이미 예약 키워드로 존재하면 체크박스 비활성화
                     checkbox.disabled = true;
                     keywordDiv.classList.add('existing');
                     keywordDiv.title = '이미 예약 키워드로 존재합니다';
-                    
+
                     // 이미 존재하는 키워드 표시
                     const existingBadge = document.createElement('span');
                     existingBadge.textContent = '예약됨';
                     existingBadge.className = 'existing-badge';
-                    
+
                     const label = document.createElement('label');
                     label.htmlFor = `keyword-${keyword}`;
                     label.textContent = keyword + ' ';
                     label.appendChild(existingBadge);
-                    
+
                     keywordDiv.appendChild(checkbox);
                     keywordDiv.appendChild(label);
                 } else {
                     const label = document.createElement('label');
                     label.htmlFor = `keyword-${keyword}`;
                     label.textContent = keyword;
-                    
+
                     keywordDiv.appendChild(checkbox);
                     keywordDiv.appendChild(label);
                 }
-                
+
                 container.appendChild(keywordDiv);
             });
-            
+
             // Enable the add button
             document.getElementById('add-selected-as-candidates-btn').disabled = false;
         }
-        
+
         // 체크된 항목이 있는지 확인하여 버튼 상태 업데이트
         function updateAddButtonsState() {
             const checkedBoxes = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked:not(:disabled)');
             const hasCheckedItems = checkedBoxes.length > 0;
-            
+
             document.getElementById('add-selected-as-candidates-btn').disabled = !hasCheckedItems;
             document.getElementById('add-selected-as-reserved-btn').disabled = !hasCheckedItems;
         }
@@ -2792,7 +2793,7 @@
         function setupKeywordEvents() {
             // Add event listener to the suggested keywords container to handle checkbox changes
             const suggestedKeywordsContainer = document.getElementById('suggested-keywords-container');
-            
+
             // Use event delegation to handle checkbox changes
             suggestedKeywordsContainer.addEventListener('change', function(event) {
                 if (event.target.type === 'checkbox') {
@@ -2807,30 +2808,30 @@
             const totalKeywords = keywordIds.length;
             let processedKeywords = 0;
             let successCount = 0;
-            
+
             // 각 키워드에 대해 순차적으로 처리
             const processNextKeyword = (index) => {
                 if (index >= keywordIds.length) {
                     // 모든 키워드 처리 완료
                     alert(`총 ${totalKeywords}개 중 ${successCount}개의 키워드가 추가되었습니다.`);
-                    
+
                     // 키워드 선택 초기화
                     document.querySelectorAll('.keyword-tag.selected').forEach(tag => {
                         tag.classList.remove('selected');
                     });
                     updateSelectedCount();
-                    
+
                     // 콘텐츠 키워드 목록 새로고침
                     fetchContentKeywords(contentId);
-                    
+
                     // 예약 키워드 목록 새로고침 (이미 추가된 키워드 표시를 위해)
                     fetchReservedKeywords();
-                    
+
                     return;
                 }
-                
+
                 const keywordId = keywordIds[index];
-                
+
                 fetch(`./api/contents/${contentId}/keywords`, {
                     method: 'POST',
                     headers: {
@@ -2842,39 +2843,39 @@
                 })
                 .then(response => {
                     processedKeywords++;
-                    
+
                     if (response.ok) {
                         successCount++;
                     }
-                    
+
                     // 다음 키워드 처리
                     processNextKeyword(index + 1);
                 })
                 .catch(error => {
                     console.error('Error adding keyword to content:', error);
                     processedKeywords++;
-                    
+
                     // 오류가 발생해도 다음 키워드 처리
                     processNextKeyword(index + 1);
                 });
             };
-            
+
             // 첫 번째 키워드부터 처리 시작
             processNextKeyword(0);
         }
-        
+
         async function addSelectedKeywordsAsCandidates() {
             const checkboxes = document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked:not(:disabled)');
-            
+
             if (checkboxes.length === 0) {
                 alert('추가할 키워드를 하나 이상 선택해주세요.');
                 return;
             }
-            
+
             const selectedKeywords = Array.from(checkboxes).map(checkbox => checkbox.value);
-            
+
             showLoading();
-            
+
             try {
                 const response = await fetch('./api/process/candidate-keywords', {
                     method: 'POST',
@@ -2885,37 +2886,37 @@
                         keywords: selectedKeywords
                     })
                 });
-                
+
                 const data = await response.json();
                 hideLoading();
-                
+
                 if (data.success) {
                     let message = '';
-                    
+
                     if (data.addedKeywords.length > 0) {
                         message += `다음 키워드가 후보로 추가되었습니다: ${data.addedKeywords.join(', ')}\n`;
                     }
-                    
+
                     if (data.existingKeywords.length > 0) {
                         message += `다음 키워드는 이미 존재합니다: ${data.existingKeywords.join(', ')}\n`;
                     }
-                    
+
                     if (data.errorKeywords.length > 0) {
                         message += `다음 키워드는 추가에 실패했습니다: ${data.errorKeywords.join(', ')}`;
                     }
-                    
+
                     alert(message);
-                    
+
                     // Clear checkboxes
                     checkboxes.forEach(checkbox => {
                         checkbox.checked = false;
                     });
-                    
+
                     // 현재 AI 결과에서 키워드 목록을 다시 가져와서 표시
                     // 이미 예약 키워드로 추가된 항목을 업데이트하기 위함
                     const aiResultsElement = document.getElementById('ai-results');
                     const resultCardElement = aiResultsElement.querySelector('.result-card');
-                    
+
                     if (resultCardElement) {
                         // 현재 표시된 키워드 데이터를 다시 사용하여 displaySuggestedKeywordsForSelection 호출
                         const matchedKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(1) .keyword'))
@@ -2924,7 +2925,7 @@
                             .map(el => el.textContent);
                         const provocativeKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(3) .keyword'))
                             .map(el => el.textContent);
-                        
+
                         // 현재 데이터로 키워드 목록 다시 표시
                         await displaySuggestedKeywordsForSelection({
                             matchedKeywords,
@@ -2940,18 +2941,18 @@
                 alert('서버 오류가 발생했습니다: ' + error.message);
             }
         }
-        
+
         // 선택한 키워드를 예약 키워드로 추가하는 함수
         async function addKeywordsAsReserved(keywords) {
             showLoading();
-            
+
             // 각 키워드를 순차적으로 처리
             const processKeywords = async () => {
                 const results = {
                     success: [],
                     error: []
                 };
-                
+
                 for (const keyword of keywords) {
                     try {
                         const response = await fetch('./api/keywords/reserved', {
@@ -2963,7 +2964,7 @@
                                 name: keyword
                             })
                         });
-                        
+
                         if (response.ok) {
                             results.success.push(keyword);
                         } else {
@@ -2974,38 +2975,38 @@
                         results.error.push(keyword);
                     }
                 }
-                
+
                 return results;
             };
-            
+
             try {
                 const results = await processKeywords();
                 hideLoading();
-                
+
                 let message = '';
-                
+
                 if (results.success.length > 0) {
                     message += `다음 키워드가 예약 키워드로 추가되었습니다: ${results.success.join(', ')}\n`;
                 }
-                
+
                 if (results.error.length > 0) {
                     message += `다음 키워드는 추가에 실패했습니다: ${results.error.join(', ')}`;
                 }
-                
+
                 alert(message);
-                
+
                 // 체크박스 선택 해제
                 document.querySelectorAll('#suggested-keywords-container input[type="checkbox"]:checked').forEach(checkbox => {
                     checkbox.checked = false;
                 });
-                
+
                 // 예약 키워드 목록 새로고침
                 fetchReservedKeywords();
-                
+
                 // 현재 AI 결과 다시 표시 (이미 예약 키워드로 추가된 항목을 업데이트하기 위함)
                 const aiResultsElement = document.getElementById('ai-results');
                 const resultCardElement = aiResultsElement.querySelector('.result-card');
-                
+
                 if (resultCardElement) {
                     // 현재 표시된 키워드 데이터를 다시 사용하여 displaySuggestedKeywordsForSelection 호출
                     const matchedKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(1) .keyword'))
@@ -3014,7 +3015,7 @@
                         .map(el => el.textContent);
                     const provocativeKeywords = Array.from(resultCardElement.querySelectorAll('.keyword-group:nth-child(3) .keyword'))
                         .map(el => el.textContent);
-                    
+
                     // 현재 데이터로 키워드 목록 다시 표시
                     await displaySuggestedKeywordsForSelection({
                         matchedKeywords,
@@ -3046,7 +3047,7 @@
                     modalContainer.style.justifyContent = 'center';
                     modalContainer.style.alignItems = 'center';
                     modalContainer.style.zIndex = '1000';
-                    
+
                     const modalContent = document.createElement('div');
                     modalContent.className = 'modal-content';
                     modalContent.style.backgroundColor = 'rgba(26, 26, 46, 0.95)';
@@ -3058,7 +3059,7 @@
                     modalContent.style.overflowY = 'auto';
                     modalContent.style.border = '1px solid rgba(255, 255, 255, 0.1)';
                     modalContent.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
-                    
+
                     modalContent.innerHTML = `
                         <h2 style="color: #00d4ff; margin-bottom: 1.5rem;">노출 컨텐츠 수정</h2>
                         <form id="edit-exposure-form">
@@ -3081,29 +3082,29 @@
                             </div>
                         </form>
                     `;
-                    
+
                     modalContainer.appendChild(modalContent);
                     document.body.appendChild(modalContainer);
-                    
+
                     // Set up form submission
                     document.getElementById('edit-exposure-form').addEventListener('submit', function(e) {
                         e.preventDefault();
-                        
+
                         const exposureContentId = document.getElementById('exposure-content-id').value;
                         const provocativeKeyword = document.getElementById('provocative-keyword').value;
                         const provocativeHeadline = document.getElementById('provocative-headline').value;
                         const summaryContent = document.getElementById('summary-content').value;
-                        
+
                         updateExposureContent(exposureContentId, {
                             provocativeKeyword,
                             provocativeHeadline,
                             summaryContent
                         });
-                        
+
                         // Close the modal
                         document.body.removeChild(modalContainer);
                     });
-                    
+
                     // Set up cancel button
                     document.getElementById('cancel-edit-btn').addEventListener('click', function() {
                         document.body.removeChild(modalContainer);
@@ -3130,7 +3131,7 @@
                     callback([]);
                 });
         }
-        
+
         // 정렬 옵션에 따라 시각적 표시를 업데이트하는 함수
         function updateSortOptionDisplay() {
             // 현재 정렬 옵션에 따라 정렬 기준 표시
@@ -3141,7 +3142,7 @@
             sortInfoElement.style.borderRadius = '8px';
             sortInfoElement.style.fontSize = '0.9rem';
             sortInfoElement.style.color = '#a0aec0';
-            
+
             let sortDescription = '';
             switch (currentSortOption) {
                 case 'noSummary':
@@ -3164,15 +3165,15 @@
                     sortDescription = '발행일순 정렬';
                     break;
             }
-            
+
             sortInfoElement.innerHTML = `<span style="color: #00d4ff;">현재 정렬:</span> ${sortDescription}`;
-            
+
             // 기존 정렬 정보 요소 제거
             const existingSortInfo = document.getElementById('sort-info');
             if (existingSortInfo) {
                 existingSortInfo.remove();
             }
-            
+
             // 새 정렬 정보 요소 추가
             sortInfoElement.id = 'sort-info';
             const sortOptionContainer = document.getElementById('sort-option').parentElement.parentElement.parentElement;
@@ -3185,12 +3186,12 @@
                 .then(response => response.json())
                 .then(data => {
                     const newsletterFilter = document.getElementById('newsletter-filter');
-                    
+
                     // 기존 옵션 제거 (첫 번째 옵션 '모든 뉴스레터' 제외)
                     while (newsletterFilter.options.length > 1) {
                         newsletterFilter.remove(1);
                     }
-                    
+
                     // 뉴스레터 이름 옵션 추가
                     data.forEach(name => {
                         const option = document.createElement('option');
@@ -3203,4 +3204,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
