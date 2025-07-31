@@ -149,4 +149,20 @@ interface ContentRepository : JpaRepository<Content, Long> {
         @Param("keywordId") keywordId: Long,
         pageable: Pageable
     ): Page<Content>
+
+    @Query(
+        """
+        SELECT c FROM Content c
+         JOIN ContentKeywordMapping ckm ON c = ckm.content
+        WHERE c.id NOT IN (
+            SELECT uecm.contentId FROM UserExposedContentMapping uecm
+            WHERE uecm.userId = :userId
+        )
+         AND ckm.keyword.id IN :reservedKeywordIds
+        """
+    )
+    fun findNotExposedContents(
+        @Param("userId") userId: Long,
+        reservedKeywordIds: List<Long>
+    ): List<Content>
 }

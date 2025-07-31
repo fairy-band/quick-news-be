@@ -8,4 +8,9 @@ class ContentService(
     private val contentRepository: ContentRepository
 ) {
     fun getContentsByReservedKeywordIds(reservedKeywordIds: List<Long>) = contentRepository.findByReservedKeywordIds(reservedKeywordIds)
+
+    fun getNotExposedContentsByReservedKeywordIds(
+        userId: Long,
+        reservedKeywordIds: List<Long>
+    ) = contentRepository.findNotExposedContents(userId, reservedKeywordIds)
 }

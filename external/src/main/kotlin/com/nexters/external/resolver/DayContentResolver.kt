@@ -31,6 +31,7 @@ class DayContentResolver(
         // TODO: entity 의존성 없는 구조로 변경 필요
         val contents =
             resolveTodayContents(
+                userId = userId,
                 reservedKeywords = keywords,
                 keywordWeightsByKeyword = categoryKeywordWeights,
             )
@@ -40,12 +41,13 @@ class DayContentResolver(
     }
 
     private fun resolveTodayContents(
+        userId: Long,
         reservedKeywords: List<ReservedKeyword>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
     ): List<Content> {
         val reservedKeywordIds = reservedKeywords.map { it.id!! }
 
-        val possibleContents = contentService.getContentsByReservedKeywordIds(reservedKeywordIds)
+        val possibleContents = contentService.getNotExposedContentsByReservedKeywordIds(userId, reservedKeywordIds)
 
         // 카테고리에 해당하는 키워드 가중치 맵 생성
 

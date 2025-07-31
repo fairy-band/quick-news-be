@@ -107,10 +107,11 @@ CREATE TABLE IF NOT EXISTS content_keyword_mappings
     keyword_id BIGINT    NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (content_id, keyword_id),
-    FOREIGN KEY (content_id) REFERENCES contents (id),
-    FOREIGN KEY (keyword_id) REFERENCES reserved_keywords (id)
+    UNIQUE (content_id, keyword_id)
 );
+
+CREATE INDEX IF NOT EXISTS content_keyword_mapping_keyword_id
+    ON content_keyword_mappings (keyword_id);
 
 -- Newsletter sources table
 CREATE TABLE IF NOT EXISTS newsletter_sources
@@ -135,3 +136,14 @@ CREATE TABLE IF NOT EXISTS exposure_contents
 );
 
 CREATE INDEX IF NOT EXISTS idx_exposure_content_content_id ON exposure_contents (content_id);
+
+CREATE TABLE IF NOT EXISTS user_exposed_contents_mapping
+(
+    user_id    bigint  not null,
+    content_id integer not null,
+    created_at timestamp default CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS user_exposed_contents_user_id_content_id_index
+    ON user_exposed_contents_mapping (user_id, content_id);
+
