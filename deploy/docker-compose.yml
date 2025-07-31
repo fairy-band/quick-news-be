@@ -164,7 +164,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/ssl/certs:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
     depends_on:
       api:
         condition: service_healthy
@@ -173,7 +174,7 @@ services:
       admin:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://nginx:80/health" ]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:80/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
