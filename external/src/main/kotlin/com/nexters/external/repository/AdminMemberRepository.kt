@@ -1,5 +1,6 @@
-package com.nexters.admin.domain.admin
+package com.nexters.external.repository
 
+import com.nexters.external.entity.AdminMember
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
