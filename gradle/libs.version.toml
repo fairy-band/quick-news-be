@@ -42,6 +42,8 @@ spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spr
 spring-boot-starter-aop = { group = "org.springframework.boot", name = "spring-boot-starter-aop" }
 spring-boot-starter-data-mongodb = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb" }
 spring-boot-starter-thymeleaf = { group = "org.springframework.boot", name = "spring-boot-starter-thymeleaf" }
+spring-boot-starter-security = { group = "org.springframework.boot", name = "spring-boot-starter-security" }
+spring-boot-starter-oauth2-client = { group = "org.springframework.boot", name = "spring-boot-starter-oauth2-client" }
 
 # Spring Integration
 spring-integration-core = { group = "org.springframework.integration", name = "spring-integration-core", version.ref = "spring-integration" }
@@ -84,6 +86,7 @@ springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springd
 
 # Test dependencies
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+spring-boot-starter-security-test = { group = "org.springframework.boot", name = "spring-boot-starter-security-test" }
 spring-integration-test = { group = "org.springframework.integration", name = "spring-integration-test" }
 kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
