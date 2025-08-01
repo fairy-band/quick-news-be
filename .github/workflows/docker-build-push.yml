@@ -12,8 +12,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for changes
+        id: changes
+        run: |
+          echo "java_changed=$(git diff --name-only HEAD~1 HEAD | grep -E '\.(java|kt|gradle|yml)$' | grep -v 'docker-compose.yml\|\.github' | wc -l)" >> $GITHUB_OUTPUT
+          echo "config_changed=$(git diff --name-only HEAD~1 HEAD | grep -E '(docker-compose\.yml|nginx\.conf|deploy\.sh)$' | wc -l)" >> $GITHUB_OUTPUT
 
       - name: Set up JDK 21
+        if: steps.changes.outputs.java_changed > 0
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -83,6 +92,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    if: always() && (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
 
     steps:
       - name: Checkout code
