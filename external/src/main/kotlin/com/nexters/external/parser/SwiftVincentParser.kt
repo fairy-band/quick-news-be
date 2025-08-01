@@ -1,4 +1,4 @@
-package com.nexters.newsletterfeeder.parser
+package com.nexters.external.parser
 
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document

@@ -35,4 +35,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.postgresql)
     testImplementation(libs.h2)
+
+    // JSoup for HTML parsing
+    implementation(libs.jsoup)
 }

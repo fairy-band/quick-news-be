@@ -1,5 +1,6 @@
 package com.nexters.newsletterfeeder.parser
 
+import com.nexters.external.parser.ReactStatusParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

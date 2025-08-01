@@ -1,4 +1,4 @@
-package com.nexters.newsletterfeeder.parser
+package com.nexters.external.parser
 
 class KotlinWeeklyParser : MailParser {
     override fun isTarget(sender: String): Boolean =
@@ -13,16 +13,12 @@ class KotlinWeeklyParser : MailParser {
     }
 
     private fun extractPlainTextContent(content: String): String? {
-        val plainTextStartMarker = "Content-Type: text/plain;"
+        val plainTextStartMarker = "Plain Text:"
 
         val startIndex = content.indexOf(plainTextStartMarker)
         if (startIndex == -1) return content
 
-        var contentStartIndex = content.indexOf("\n\n", startIndex)
-        if (contentStartIndex == -1) contentStartIndex = content.indexOf("\r\n\r\n", startIndex)
-        if (contentStartIndex == -1) return content
-
-        return content.substring(contentStartIndex + 2)
+        return content.substring(startIndex + 2)
     }
 
     private data class IssueInfo(
@@ -46,7 +42,7 @@ class KotlinWeeklyParser : MailParser {
     ): List<MailContent> {
         val headerPositions =
             Section.entries
-                .associateWith { header -> content.indexOf("\n${header.label}\n") }
+                .associateWith { header -> content.indexOf(header.label) }
                 .filterValues { it >= 0 }
                 .toList()
                 .sortedBy { it.second }
@@ -56,12 +52,11 @@ class KotlinWeeklyParser : MailParser {
         }
 
         return headerPositions
-            .filter { it.first != Section.CONTRIBUTE }
             .flatMapIndexed { idx, (section, start) ->
                 val end = headerPositions.getOrNull(idx + 1)?.second ?: content.length
                 val sectionContent = content.substring(start, end)
                 parseSection(section, sectionContent, issueInfo)
-            }
+            }.filter { it.section != Section.CONTRIBUTE.label && it.section != Section.SPONSORED.label }
     }
 
     private fun parseSection(

@@ -1,7 +1,8 @@
-package com.nexters.newsletterfeeder.parser
+package com.nexters.external.parser
 
 import java.io.ByteArrayOutputStream
 import java.util.regex.Pattern
+import kotlin.collections.iterator
 
 object TextSanitizer {
     // 보이지 않는 문자 목록

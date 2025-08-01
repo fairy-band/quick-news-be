@@ -1,5 +1,6 @@
 package com.nexters.newsletterfeeder.parser
 
+import com.nexters.external.parser.TextSanitizer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

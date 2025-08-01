@@ -2,6 +2,8 @@ package com.nexters.admin.controller
 
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.parser.MailContent
+import com.nexters.external.parser.MailParserFactory
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
 import org.springframework.data.domain.Page
@@ -38,6 +40,8 @@ class NewsletterSourceApiController(
     private val newsletterSourceRepository: NewsletterSourceRepository,
     private val contentRepository: ContentRepository
 ) {
+    private val mailParserFactory = MailParserFactory()
+
     @GetMapping
     fun getAllNewsletterSources(
         @RequestParam(defaultValue = "0") page: Int,
@@ -160,6 +164,67 @@ class NewsletterSourceApiController(
         val savedNewsletterSource = newsletterSourceRepository.save(updatedNewsletterSource)
         return ResponseEntity.ok(savedNewsletterSource)
     }
+
+    @PostMapping("/{id}/test-parser")
+    fun testParser(
+        @PathVariable id: String
+    ): ResponseEntity<ParserTestResult> {
+        val newsletterSource =
+            newsletterSourceRepository
+                .findById(id)
+                .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
+
+        val parser = mailParserFactory.findParser(newsletterSource.senderEmail)
+        val isTarget = parser != null
+
+        val parsedContents =
+            if (isTarget && parser != null) {
+                try {
+                    parser.parse(newsletterSource.content)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            } else {
+                emptyList()
+            }
+
+        val result =
+            ParserTestResult(
+                isTarget = isTarget,
+                parsedContents = parsedContents,
+                originalContent = newsletterSource.content,
+                senderEmail = newsletterSource.senderEmail,
+                parserName = parser?.javaClass?.simpleName ?: "None"
+            )
+
+        return ResponseEntity.ok(result)
+    }
+
+    @PostMapping("/{id}/add-parsed-content")
+    fun addParsedContent(
+        @PathVariable id: String,
+        @RequestBody request: AddParsedContentRequest
+    ): ResponseEntity<Content> {
+        val newsletterSource =
+            newsletterSourceRepository
+                .findById(id)
+                .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
+
+        val newContent =
+            Content(
+                newsletterSourceId = newsletterSource.id,
+                title = request.title,
+                content = request.content,
+                newsletterName = request.newsletterName,
+                originalUrl = request.originalUrl,
+                publishedAt = request.publishedAt,
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+
+        val savedContent = contentRepository.save(newContent)
+        return ResponseEntity.ok(savedContent)
+    }
 }
 
 data class CreateContentFromNewsletterSourceRequest(
@@ -178,4 +243,20 @@ data class UpdateNewsletterSourceRequest(
     val recipient: String,
     val recipientEmail: String,
     val contentType: String
+)
+
+data class ParserTestResult(
+    val isTarget: Boolean,
+    val parsedContents: List<MailContent>,
+    val originalContent: String,
+    val senderEmail: String,
+    val parserName: String
+)
+
+data class AddParsedContentRequest(
+    val title: String,
+    val content: String,
+    val newsletterName: String,
+    val originalUrl: String,
+    val publishedAt: LocalDate
 )

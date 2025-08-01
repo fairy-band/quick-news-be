@@ -1,4 +1,4 @@
-package com.nexters.newsletterfeeder.parser
+package com.nexters.external.parser
 
 interface MailParser {
     fun isTarget(sender: String): Boolean

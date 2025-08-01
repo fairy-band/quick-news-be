@@ -1,4 +1,4 @@
-package com.nexters.newsletterfeeder.parser
+package com.nexters.external.parser
 
 class ReactStatusParser : MailParser {
     override fun isTarget(sender: String): Boolean =

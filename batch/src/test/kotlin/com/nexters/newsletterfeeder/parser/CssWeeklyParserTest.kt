@@ -1,5 +1,7 @@
 package com.nexters.newsletterfeeder.parser
 
+import com.nexters.external.parser.CssWeeklyParser
+import com.nexters.external.parser.MailContent
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
