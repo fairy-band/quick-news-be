@@ -159,6 +159,7 @@ services:
     image: nginx:alpine
     container_name: newsletter-nginx
     restart: always
+    user: "0:0"  # root 권한으로 실행
     ports:
       - "80:80"
       - "443:443"
