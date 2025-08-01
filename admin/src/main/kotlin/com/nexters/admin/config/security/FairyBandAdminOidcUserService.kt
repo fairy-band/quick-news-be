@@ -1,6 +1,6 @@
 package com.nexters.admin.config.security
 
-import com.nexters.admin.domain.admin.AdminMemberRepository
+import com.nexters.external.repository.AdminMemberRepository
 import mu.KotlinLogging
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService

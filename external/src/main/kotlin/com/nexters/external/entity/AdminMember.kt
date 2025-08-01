@@ -1,4 +1,4 @@
-package com.nexters.admin.domain.admin
+package com.nexters.external.entity
 
 import jakarta.persistence.*
 import java.time.LocalDateTime

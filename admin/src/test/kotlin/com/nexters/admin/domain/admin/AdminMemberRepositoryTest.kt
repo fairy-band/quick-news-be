@@ -1,5 +1,6 @@
 package com.nexters.admin.domain.admin
 
+import com.nexters.external.repository.AdminMemberRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
