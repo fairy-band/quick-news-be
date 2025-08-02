@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fairy Band Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo h1 {
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-details {
+            text-align: right;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .user-email {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .welcome-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .welcome-title {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .welcome-text {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .admin-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .admin-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .admin-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .card-description {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <h1>🧚‍♀️ Fairy Band Admin</h1>
+        </div>
+        <div class="user-info">
+            <div class="user-details">
+                <div class="user-name" th:text="${userName}">사용자</div>
+                <div class="user-email" th:text="${userEmail}">user@example.com</div>
+            </div>
+            <a href="/logout" class="logout-btn">로그아웃</a>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="welcome-card">
+            <h2 class="welcome-title">환영합니다! 👋</h2>
+            <p class="welcome-text">
+                Fairy Band 관리자 페이지입니다. 
+                뉴스레터 서비스 관리 및 모니터링을 위한 다양한 기능을 제공합니다.
+            </p>
+        </div>
+        
+        <div class="admin-cards">
+            <div class="admin-card">
+                <div class="card-icon">📊</div>
+                <div class="card-title">대시보드</div>
+                <div class="card-description">
+                    서비스 전체 현황과 주요 지표를 한눈에 확인할 수 있습니다.
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <div class="card-icon">📧</div>
+                <div class="card-title">뉴스레터 관리</div>
+                <div class="card-description">
+                    뉴스레터 발송 현황을 확인하고 관리할 수 있습니다.
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <div class="card-icon">👥</div>
+                <div class="card-title">사용자 관리</div>
+                <div class="card-description">
+                    가입된 사용자 정보를 조회하고 관리할 수 있습니다.
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <div class="card-icon">📈</div>
+                <div class="card-title">통계 및 분석</div>
+                <div class="card-description">
+                    서비스 이용 통계와 성과 분석 데이터를 확인할 수 있습니다.
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <div class="card-icon">⚙️</div>
+                <div class="card-title">시스템 설정</div>
+                <div class="card-description">
+                    서비스 설정을 변경하고 시스템을 관리할 수 있습니다.
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <div class="card-icon">🔍</div>
+                <div class="card-title">모니터링</div>
+                <div class="card-description">
+                    서버 상태와 서비스 헬스체크를 실시간으로 확인할 수 있습니다.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

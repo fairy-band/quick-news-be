@@ -75,6 +75,8 @@ services:
       ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
       SERVER_PORT: 8083
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OAUTH2_CLIENT_ID_GOOGLE: ${OAUTH2_CLIENT_ID_GOOGLE}
+      OAUTH2_CLIENT_SECRET_GOOGLE: ${OAUTH2_CLIENT_SECRET_GOOGLE}
     depends_on:
       postgres:
         condition: service_healthy
