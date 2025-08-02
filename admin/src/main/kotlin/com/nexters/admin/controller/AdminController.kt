@@ -25,18 +25,7 @@ class AdminController {
     }
 
     @GetMapping("/")
-    fun adminHome(
-        @AuthenticationPrincipal principal: OidcUser?,
-        model: Model
-    ): String {
-        principal?.let { user ->
-            val userInfo = extractUserInfo(user)
-            addUserInfoToModel(userInfo, model)
-            logHomeAccess(userInfo)
-        }
-
-        return ADMIN_HOME_VIEW
-    }
+    fun index(): String = "contents"
 
     @GetMapping("/admin")
     fun adminRedirect(): String = REDIRECT_TO_HOME
