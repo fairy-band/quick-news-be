@@ -1,7 +1,7 @@
 package com.nexters.api.dto
 
 data class UpdateUserPreferenceApiRequest(
-    val preference: Preference,
+    val preferences: List<Preference>,
     val workingExperience: WorkingExperience,
 )
 

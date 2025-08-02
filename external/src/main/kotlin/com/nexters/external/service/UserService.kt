@@ -22,7 +22,7 @@ class UserService(
     @Transactional
     fun updatePreferences(
         userId: Long,
-        categoryName: String,
+        categoryNames: List<String>,
         keywords: List<String>
     ) {
         val user =
@@ -30,14 +30,14 @@ class UserService(
                 IllegalArgumentException("User with ID $userId not found.")
             }
 
-        val category = categoryRepository.findByName(categoryName) ?: throw IllegalArgumentException("Category $categoryName not found.")
+        val categories = categoryRepository.findByNameIn(categoryNames)
         val keywords =
             reservedKeywordRepository.findByNameIn(keywords).ifEmpty {
                 throw IllegalArgumentException("No valid keywords found for the provided names: $keywords")
             }
 
-        user.categories.add(category)
-        user.keywords.addAll(keywords)
+        user.categories = categories.toMutableSet()
+        user.keywords = keywords.toMutableSet()
         userRepository.save(user)
     }
 

@@ -17,17 +17,17 @@ class UserApiController(
 ) {
     @PostMapping("/register")
     fun register(
-        @RequestBody request: CreateUserApiRequest
+        @RequestBody request: CreateUserApiRequest,
     ): Long = userService.register(request.deviceToken)
 
     @PutMapping("/{userId}")
     fun updatePreferences(
         @PathVariable userId: Long,
-        @RequestBody preferenceRequest: UpdateUserPreferenceApiRequest
+        @RequestBody preferenceRequest: UpdateUserPreferenceApiRequest,
     ) {
         userService.updatePreferences(
             userId,
-            preferenceRequest.preference.categoryName,
+            preferenceRequest.preferences.map { it.categoryName },
             listOf(preferenceRequest.workingExperience.keywordName),
         )
     }
