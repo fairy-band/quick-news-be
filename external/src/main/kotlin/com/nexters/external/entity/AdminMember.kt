@@ -9,23 +9,17 @@ class AdminMember(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0L,
-
     @Column(unique = true, nullable = false)
     val email: String,
-
     @Column(nullable = false)
     val name: String,
-
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
-
     @Column(name = "last_login_at")
     private var _lastLoginAt: LocalDateTime? = null,
-
     @Column(nullable = false)
     private var _active: Boolean = true
 ) {
-
     val lastLoginAt: LocalDateTime? get() = _lastLoginAt
     val isActive: Boolean get() = _active
 
@@ -51,12 +45,13 @@ class AdminMember(
 
     override fun hashCode(): Int = id.hashCode()
 
-    override fun toString(): String {
-        return "AdminMember(id=$id, email='$email', name='$name', active=$_active)"
-    }
+    override fun toString(): String = "AdminMember(id=$id, email='$email', name='$name', active=$_active)"
 
     companion object {
-        fun create(email: String, name: String): AdminMember {
+        fun create(
+            email: String,
+            name: String
+        ): AdminMember {
             require(email.isNotBlank()) { "이메일은 필수입니다" }
             require(name.isNotBlank()) { "이름은 필수입니다" }
 

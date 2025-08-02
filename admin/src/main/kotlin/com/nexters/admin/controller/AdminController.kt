@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam
 
 @Controller
 class AdminController {
-
     private val logger = KotlinLogging.logger {}
 
     @GetMapping("/login")
@@ -19,7 +18,6 @@ class AdminController {
         @RequestParam("logout", required = false) logout: String?,
         model: Model
     ): String {
-
         handleLoginError(error, model)
         handleLogoutMessage(logout, model)
 
@@ -43,28 +41,36 @@ class AdminController {
     @GetMapping("/admin")
     fun adminRedirect(): String = REDIRECT_TO_HOME
 
-    private fun handleLoginError(error: String?, model: Model) {
+    private fun handleLoginError(
+        error: String?,
+        model: Model
+    ) {
         error?.let {
             model.addAttribute(ERROR_MESSAGE_KEY, it)
             logger.warn { "로그인 실패: $it" }
         }
     }
 
-    private fun handleLogoutMessage(logout: String?, model: Model) {
+    private fun handleLogoutMessage(
+        logout: String?,
+        model: Model
+    ) {
         logout?.let {
             model.addAttribute(LOGOUT_MESSAGE_KEY, LOGOUT_SUCCESS_MESSAGE)
             logger.info { "로그아웃 완료" }
         }
     }
 
-    private fun extractUserInfo(oidcUser: OidcUser): UserInfo {
-        return UserInfo(
+    private fun extractUserInfo(oidcUser: OidcUser): UserInfo =
+        UserInfo(
             email = oidcUser.getAttribute<String>("email").orEmpty(),
             name = oidcUser.getAttribute<String>("name").orEmpty()
         )
-    }
 
-    private fun addUserInfoToModel(userInfo: UserInfo, model: Model) {
+    private fun addUserInfoToModel(
+        userInfo: UserInfo,
+        model: Model
+    ) {
         model.addAttribute(USER_EMAIL_KEY, userInfo.email)
         model.addAttribute(USER_NAME_KEY, userInfo.name)
     }
