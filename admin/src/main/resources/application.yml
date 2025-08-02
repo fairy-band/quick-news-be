@@ -18,7 +18,7 @@ spring:
           google:
             clientId: ${OAUTH2_CLIENT_ID_GOOGLE}
             clientSecret: ${OAUTH2_CLIENT_SECRET_GOOGLE}
-            redirect-uri: https://fairy-band.com/login/oauth2/code/google
+            redirect-uri: https://fairy-band.com/admin/login/oauth2/code/google
             scope:
               - openid
               - email
