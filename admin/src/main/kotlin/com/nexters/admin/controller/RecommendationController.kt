@@ -1,7 +1,6 @@
 package com.nexters.admin.controller
 
 import com.nexters.admin.repository.CategoryKeywordMappingRepository
-import com.nexters.external.entity.Category
 import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentRepository
@@ -37,7 +36,19 @@ class RecommendationController(
     private val userService: UserService,
 ) {
     @GetMapping("/categories")
-    fun getAllCategories(): ResponseEntity<List<Category>> = ResponseEntity.ok(categoryRepository.findAll())
+    fun getAllCategories(): ResponseEntity<List<CategoryResponse>> {
+        val categories = categoryRepository.findAll()
+        val response =
+            categories.map { category ->
+                CategoryResponse(
+                    id = category.id!!,
+                    name = category.name,
+                    createdAt = category.createdAt,
+                    updatedAt = category.updatedAt
+                )
+            }
+        return ResponseEntity.ok(response)
+    }
 
     @GetMapping("/categories/{categoryId}/contents")
     fun getTodayRecommendedContents(
@@ -551,4 +562,11 @@ data class UserTodayArchiveResponse(
     val date: LocalDate,
     val exposureContents: List<ExposureContentResponse>,
     val exists: Boolean
+)
+
+data class CategoryResponse(
+    val id: Long,
+    val name: String,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )

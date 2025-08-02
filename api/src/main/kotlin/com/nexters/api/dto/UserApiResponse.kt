@@ -1,3 +1,5 @@
 package com.nexters.api.dto
 
-data class UserApiResponse(val id: Long)
+data class UserApiResponse(
+    val id: Long
+)
