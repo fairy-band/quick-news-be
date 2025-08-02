@@ -8,15 +8,20 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface AdminMemberRepository : JpaRepository<AdminMember, Long> {
-
     @Query("SELECT am FROM AdminMember am WHERE am.email = :email AND am._active = true")
-    fun findActiveByEmail(@Param("email") email: String): AdminMember?
+    fun findActiveByEmail(
+        @Param("email") email: String
+    ): AdminMember?
 
     @Query("SELECT am FROM AdminMember am WHERE am.email = :email")
-    fun findByEmailIncludingInactive(@Param("email") email: String): AdminMember?
+    fun findByEmailIncludingInactive(
+        @Param("email") email: String
+    ): AdminMember?
 
     @Query("SELECT CASE WHEN COUNT(am) > 0 THEN true ELSE false END FROM AdminMember am WHERE am.email = :email AND am._active = true")
-    fun existsActiveByEmail(@Param("email") email: String): Boolean
+    fun existsActiveByEmail(
+        @Param("email") email: String
+    ): Boolean
 
     // 더 명확한 메서드명으로 alias 추가
     fun findByEmail(email: String): AdminMember? = findActiveByEmail(email)

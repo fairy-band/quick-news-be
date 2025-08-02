@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional
 class FairyBandAdminOidcUserService(
     private val adminMemberRepository: AdminMemberRepository
 ) : OAuth2UserService<OidcUserRequest, OidcUser> {
-
     private val logger = KotlinLogging.logger {}
     private val oidcUserService = OidcUserService()
 
@@ -58,26 +57,20 @@ class FairyBandAdminOidcUserService(
         }
     }
 
-    private fun extractUserInfo(oidcUser: OidcUser): UserInfo {
-        return UserInfo(
+    private fun extractUserInfo(oidcUser: OidcUser): UserInfo =
+        UserInfo(
             email = extractEmail(oidcUser),
             name = extractName(oidcUser)
         )
-    }
 
-    private fun extractEmail(oidcUser: OidcUser): String {
-        return oidcUser.getAttribute<String>("email")?.trim().orEmpty()
-    }
+    private fun extractEmail(oidcUser: OidcUser): String = oidcUser.getAttribute<String>("email")?.trim().orEmpty()
 
-    private fun extractName(oidcUser: OidcUser): String {
-        return oidcUser.getAttribute<String>("name")?.trim() ?: UNKNOWN_USER_NAME
-    }
+    private fun extractName(oidcUser: OidcUser): String = oidcUser.getAttribute<String>("name")?.trim() ?: UNKNOWN_USER_NAME
 
-    private fun throwAccessDeniedException(message: String): Nothing {
+    private fun throwAccessDeniedException(message: String): Nothing =
         throw OAuth2AuthenticationException(
             OAuth2Error("access_denied", message, null)
         )
-    }
 
     private data class UserInfo(
         val email: String,

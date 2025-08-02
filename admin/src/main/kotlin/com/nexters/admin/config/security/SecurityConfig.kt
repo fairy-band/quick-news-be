@@ -15,31 +15,36 @@ import java.nio.charset.StandardCharsets
 class SecurityConfig(
     private val fairyBandAdminOidcUserService: FairyBandAdminOidcUserService
 ) {
-
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        return http
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
+        http
             .csrf { it.disable() }
             .authorizeHttpRequests(::configureAuthorization)
             .oauth2Login(::configureOAuth2Login)
             .logout(::configureLogout)
             .build()
-    }
 
-    private fun configureAuthorization(auth: org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry) {
+    private fun configureAuthorization(
+        auth:
+            org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
+    ) {
         auth
-            .requestMatchers(*PUBLIC_ENDPOINTS).permitAll()
-            .requestMatchers(*STATIC_RESOURCES).permitAll()
-            .anyRequest().authenticated()
+            .requestMatchers(*PUBLIC_ENDPOINTS)
+            .permitAll()
+            .requestMatchers(*STATIC_RESOURCES)
+            .permitAll()
+            .anyRequest()
+            .authenticated()
     }
 
-    private fun configureOAuth2Login(oauth2: org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer<HttpSecurity>) {
+    private fun configureOAuth2Login(
+        oauth2: org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer<HttpSecurity>
+    ) {
         oauth2
             .loginPage(LOGIN_PAGE)
             .userInfoEndpoint { userInfo ->
                 userInfo.oidcUserService(fairyBandAdminOidcUserService)
-            }
-            .successHandler(createSuccessHandler())
+            }.successHandler(createSuccessHandler())
             .failureHandler(createFailureHandler())
     }
 
@@ -58,19 +63,17 @@ class SecurityConfig(
     @Bean
     fun authenticationFailureHandler(): AuthenticationFailureHandler = createFailureHandler()
 
-    private fun createSuccessHandler(): AuthenticationSuccessHandler {
-        return AuthenticationSuccessHandler { _, response, _ ->
+    private fun createSuccessHandler(): AuthenticationSuccessHandler =
+        AuthenticationSuccessHandler { _, response, _ ->
             response.sendRedirect(HOME_PAGE)
         }
-    }
 
-    private fun createFailureHandler(): AuthenticationFailureHandler {
-        return AuthenticationFailureHandler { _, response, exception ->
+    private fun createFailureHandler(): AuthenticationFailureHandler =
+        AuthenticationFailureHandler { _, response, exception ->
             val errorMessage = exception.message ?: DEFAULT_ERROR_MESSAGE
             val encodedMessage = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
             response.sendRedirect("$LOGIN_PAGE?error=$encodedMessage")
         }
-    }
 
     companion object {
         private val PUBLIC_ENDPOINTS = arrayOf("/health", "/error", "/login/**", "/oauth2/**")

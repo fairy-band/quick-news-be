@@ -7,7 +7,6 @@ import java.time.LocalDateTime
 
 @DisplayName("AdminMember 도메인 테스트")
 class AdminMemberTest {
-
     @Test
     @DisplayName("AdminMember 생성 테스트")
     fun `AdminMember를 생성할 수 있다`() {

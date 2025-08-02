@@ -17,7 +17,6 @@ class AdminMemberRepositoryTest(
     private val adminMemberRepository: AdminMemberRepository,
     private val entityManager: TestEntityManager
 ) {
-
     @Test
     @DisplayName("이메일로 활성 관리자 조회 테스트")
     fun `활성화된 관리자를 이메일로 조회할 수 있다`() {

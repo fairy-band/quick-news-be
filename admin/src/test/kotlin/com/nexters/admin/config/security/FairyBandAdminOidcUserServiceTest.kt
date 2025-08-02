@@ -8,14 +8,11 @@ import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
 
 @DisplayName("FairyBandAdminOidcUserService 테스트")
 class FairyBandAdminOidcUserServiceTest {
-
     private val adminMemberRepository: AdminMemberRepository = mockk()
     private val oidcUserService = FairyBandAdminOidcUserService(adminMemberRepository)
 
@@ -26,10 +23,11 @@ class FairyBandAdminOidcUserServiceTest {
         val email = "admin@example.com"
         val name = "관리자"
 
-        val oidcUser: OidcUser = mockk {
-            every { getAttribute<String>("email") } returns email
-            every { getAttribute<String>("name") } returns name
-        }
+        val oidcUser: OidcUser =
+            mockk {
+                every { getAttribute<String>("email") } returns email
+                every { getAttribute<String>("name") } returns name
+            }
 
         val userRequest: OidcUserRequest = mockk()
 
@@ -70,11 +68,12 @@ class FairyBandAdminOidcUserServiceTest {
         val email: String? = null
 
         // when & then
-        val isAdmin = if (email.isNullOrBlank()) {
-            false
-        } else {
-            adminMemberRepository.existsByEmailAndActiveTrue(email)
-        }
+        val isAdmin =
+            if (email.isNullOrBlank()) {
+                false
+            } else {
+                adminMemberRepository.existsByEmailAndActiveTrue(email)
+            }
 
         assertThat(isAdmin).isFalse()
     }
