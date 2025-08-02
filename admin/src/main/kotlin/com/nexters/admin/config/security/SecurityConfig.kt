@@ -81,7 +81,7 @@ class SecurityConfig(
         private val COOKIES_TO_DELETE = arrayOf("JSESSIONID")
 
         private const val LOGIN_PAGE = "/login"
-        private const val HOME_PAGE = "/"
+        private const val HOME_PAGE = "/admin/"
         private const val LOGOUT_URL = "/logout"
         private const val LOGOUT_SUCCESS_URL = "/login?logout"
         private const val DEFAULT_ERROR_MESSAGE = "로그인 실패"
