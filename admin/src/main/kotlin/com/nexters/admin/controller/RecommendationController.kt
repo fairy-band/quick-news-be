@@ -43,7 +43,7 @@ class RecommendationController(
     fun getTodayRecommendedContents(
         @PathVariable categoryId: Long
     ): ResponseEntity<List<RecommendedContentResponse>> {
-        val contents = dayArchiveResolver.resolveArbitraryTodayContents()
+        val contents = dayArchiveResolver.resolveTodayCategoryContents(categoryId)
 
         val response =
             contents.map { exposureContent ->
