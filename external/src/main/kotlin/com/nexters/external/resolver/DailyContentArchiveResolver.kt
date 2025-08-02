@@ -27,6 +27,12 @@ class DailyContentArchiveResolver(
             categoryService.getAllCategories().random().id!!,
         )
 
+    fun resolveTodayCategoryContents(categoryId: Long): List<ExposureContent> =
+        resolveTodayContents(
+            1L,
+            categoryId,
+        )
+
     fun getTodayContentArchive(
         userId: Long,
         date: LocalDate = LocalDate.now(),
