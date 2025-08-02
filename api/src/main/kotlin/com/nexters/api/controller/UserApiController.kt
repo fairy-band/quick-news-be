@@ -2,7 +2,9 @@ package com.nexters.api.controller
 
 import com.nexters.api.dto.CreateUserApiRequest
 import com.nexters.api.dto.UpdateUserPreferenceApiRequest
+import com.nexters.api.dto.UserApiResponse
 import com.nexters.external.service.UserService
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -18,7 +20,12 @@ class UserApiController(
     @PostMapping("/register")
     fun register(
         @RequestBody request: CreateUserApiRequest,
-    ): Long = userService.register(request.deviceToken)
+    ): UserApiResponse = UserApiResponse(userService.register(request.deviceToken))
+
+    @GetMapping("/login")
+    fun login(deviceToken: String): UserApiResponse =
+        userService.findUser(deviceToken)?.id?.let { UserApiResponse(it) }
+            ?: throw IllegalArgumentException("User not found with device token: $deviceToken")
 
     @PutMapping("/{userId}")
     fun updatePreferences(

@@ -19,6 +19,8 @@ class UserService(
         return user.id ?: throw IllegalStateException("User ID should not be null after saving.")
     }
 
+    fun findUser(deviceToken: String): User? = userRepository.findByDeviceToken(deviceToken)
+
     @Transactional
     fun updatePreferences(
         userId: Long,
