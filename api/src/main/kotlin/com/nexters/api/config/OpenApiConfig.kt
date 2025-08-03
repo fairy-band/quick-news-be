@@ -26,8 +26,8 @@ class OpenApiConfig(
                             .name("Nexters")
                             .url("https://github.com/Nexters/newsletter-feeder")
                     )
-            ).addServersItem(Server().url("http://121.78.130.82/api").description("가비아"))
-            .addServersItem(Server().url(swaggerBaseUrl).description("로컬 개발 서버"))
+            ).addServersItem(Server().url(swaggerBaseUrl).description("로컬 개발 서버"))
+            .addServersItem(Server().url("http://121.78.130.82/api").description("가비아"))
 
     @Bean
     fun forwardedHeaderFilter(): ForwardedHeaderFilter = ForwardedHeaderFilter()
