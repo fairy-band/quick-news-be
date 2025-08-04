@@ -13,9 +13,14 @@ springdoc:
   show-actuator: false
   default-produces-media-type: application/json
 
+# AI Configuration
+ai:
+  gemini:
+    key: ${AI_GEMINI_KEY:}
+
 # Firebase Configuration
 firebase:
-  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
+  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:}
   project-id: ${FIREBASE_PROJECT_ID:news-letter-da24c}
 
 # Logging
