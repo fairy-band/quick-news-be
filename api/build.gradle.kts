@@ -6,6 +6,10 @@ dependencies {
     implementation(libs.kotlin.reflect)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
 
+    // Firebase Admin SDK for push notifications
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
     annotationProcessor(libs.spring.boot.configuration.processor)
 
     testImplementation(libs.bundles.testing)

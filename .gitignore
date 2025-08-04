@@ -18,6 +18,10 @@ out/
 # 환경설정
 batch/.env
 *.local
+.env
+
+# Firebase
+firebase-service-account.json
 
 # 기타
 *.class
