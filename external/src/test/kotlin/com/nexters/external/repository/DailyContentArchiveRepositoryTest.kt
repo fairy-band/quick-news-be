@@ -69,6 +69,7 @@ class DailyContentArchiveRepositoryTest {
         // given
         val user =
             User(
+                id = 1L,
                 deviceToken = "test-device-token-2",
                 categories = mutableSetOf(),
                 keywords = mutableSetOf()

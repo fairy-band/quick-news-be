@@ -12,6 +12,3 @@ springdoc:
     display-request-duration: true
   show-actuator: false
   default-produces-media-type: application/json
-ai:
-  gemini:
-    key: ${AI_GEMINI_KEY:}

@@ -2,17 +2,16 @@ package com.nexters.admin.controller
 
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.NewsletterSource
-import com.nexters.external.parser.MailContent
-import com.nexters.external.parser.MailParserFactory
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
+import com.nexters.newsletter.parser.MailContent
+import com.nexters.newsletter.parser.MailParserFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
-import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -26,12 +25,9 @@ import java.time.LocalDateTime
 
 @Controller
 @RequestMapping("/newsletter-sources")
-class NewsletterSourceAdminController(
-    private val newsletterSourceRepository: NewsletterSourceRepository,
-    private val contentRepository: ContentRepository
-) {
+class NewsletterSourceAdminController {
     @GetMapping
-    fun getNewsletterSourcesPage(model: Model): String = "newsletter-sources"
+    fun getNewsletterSourcesPage(): String = "newsletter-sources"
 }
 
 @RestController

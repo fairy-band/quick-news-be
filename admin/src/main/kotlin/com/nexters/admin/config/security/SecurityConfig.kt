@@ -4,6 +4,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer
+import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer
+import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
@@ -13,7 +16,7 @@ import java.nio.charset.StandardCharsets
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val fairyBandAdminOidcUserService: FairyBandAdminOidcUserService
+    private val fairyBandAdminOidcUserService: FairyBandAdminOidcUserService,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
@@ -24,10 +27,7 @@ class SecurityConfig(
             .logout(::configureLogout)
             .build()
 
-    private fun configureAuthorization(
-        auth:
-            org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
-    ) {
+    private fun configureAuthorization(auth: AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry) {
         auth
             .requestMatchers(*PUBLIC_ENDPOINTS)
             .permitAll()
@@ -37,9 +37,7 @@ class SecurityConfig(
             .authenticated()
     }
 
-    private fun configureOAuth2Login(
-        oauth2: org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer<HttpSecurity>
-    ) {
+    private fun configureOAuth2Login(oauth2: OAuth2LoginConfigurer<HttpSecurity>,) {
         oauth2
             .loginPage(LOGIN_PAGE)
             .userInfoEndpoint { userInfo ->
@@ -48,7 +46,7 @@ class SecurityConfig(
             .failureHandler(createFailureHandler())
     }
 
-    private fun configureLogout(logout: org.springframework.security.config.annotation.web.configurers.LogoutConfigurer<HttpSecurity>) {
+    private fun configureLogout(logout: LogoutConfigurer<HttpSecurity>) {
         logout
             .logoutUrl(LOGOUT_URL)
             .logoutSuccessUrl(LOGOUT_SUCCESS_URL)

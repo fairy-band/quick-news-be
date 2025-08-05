@@ -1,5 +1,5 @@
 dependencies {
-    implementation(project(":external"))
+    implementation(project(":newsletter"))
 
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.thymeleaf)
@@ -15,11 +15,11 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     testImplementation(libs.spring.boot.starter.test)
-    testImplementation(libs.spring.boot.starter.security.test)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.mockk)
     testImplementation("com.ninja-squad:springmockk:4.0.2")
     testRuntimeOnly(libs.junit.platform.launcher)
+    testRuntimeOnly(libs.h2)
 }
 
 tasks.bootJar {

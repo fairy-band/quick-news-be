@@ -4,12 +4,11 @@ import com.nexters.admin.repository.CategoryKeywordMappingRepository
 import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentRepository
-import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
-import com.nexters.external.resolver.DailyContentArchiveResolver
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
+import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -30,7 +29,6 @@ class RecommendationController(
     private val categoryKeywordMappingRepository: CategoryKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
     private val exposureContentService: ExposureContentService,
-    private val exposureContentRepository: ExposureContentRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentRepository: ContentRepository,
     private val userService: UserService,

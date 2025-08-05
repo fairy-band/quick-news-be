@@ -6,7 +6,8 @@ import org.springframework.boot.runApplication
 @SpringBootApplication(
     scanBasePackages = [
         "com.nexters.api",
-        "com.nexters.external"
+        "com.nexters.external",
+        "com.nexters.newsletter",
     ]
 )
 class ApiApplication
