@@ -98,21 +98,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup SSH known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
       - name: Create Gabia private key file
         run: |
           echo "${{ secrets.GABIA_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
-
       - name: Create deploy directory and set permissions
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          export SSHPASS="${SSHPASS}"
           echo "Creating deploy directory..."
-          sshpass -e ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
+          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
 
       - name: Create .env file from secret
         run: |
@@ -126,42 +127,35 @@ jobs:
           echo "Firebase service account key file created with $(wc -c < firebase-service-account.json) bytes"
 
       - name: Deploy configuration files one by one
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          export SSHPASS="${SSHPASS}"
-
           # First copy docker-compose.yml
           echo "Deploying docker-compose.yml..."
-          sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no deploy/docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Then copy nginx.conf
           echo "Deploying nginx.conf..."
-          sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no deploy/nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Copy .env file
           echo "Deploying .env file..."
-          sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v .env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Copy Firebase service account key file
           echo "Deploying firebase-service-account.json..."
-          sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no firebase-service-account.json ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v firebase-service-account.json ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Finally copy deploy.sh
           echo "Deploying deploy.sh..."
-          sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no deploy/deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Make deploy.sh executable
           echo "Making deploy.sh executable..."
-          sshpass -e ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/deploy.sh"
+          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/deploy.sh"
 
       - name: Execute deployment script
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          export SSHPASS="${SSHPASS}"
           echo "Executing deployment script..."
-          sshpass -e ssh -i private_key.pem -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
+          ssh -i private_key.pem -v ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
 
       - name: Discord notification for deployment
         if: always()
