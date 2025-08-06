@@ -104,6 +104,9 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+          # Create empty known_hosts2 file to avoid SSH warning
+          touch ~/.ssh/known_hosts2
+          chmod 600 ~/.ssh/known_hosts2
 
       - name: Create Gabia private key file
         run: |
@@ -122,8 +125,8 @@ jobs:
 
       - name: Create Firebase service account key file
         run: |
-          # Extract FIREBASE_SERVICE_ACCOUNT_KEY from .env file and create JSON file
-          grep "^FIREBASE_SERVICE_ACCOUNT_KEY=" .env | cut -d'=' -f2- | sed 's/^"//;s/"$//' > firebase-service-account.json
+          # Create Firebase service account key file directly from GitHub Secrets
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > firebase-service-account.json
           echo "Firebase service account key file created with $(wc -c < firebase-service-account.json) bytes"
 
       - name: Deploy configuration files one by one
