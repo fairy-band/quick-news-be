@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
 import javax.annotation.PostConstruct
 
 @Configuration
@@ -32,9 +33,16 @@ class FirebaseConfig {
 
                 logger.info("Firebase 초기화 중...")
 
+                var cleanedJson = firebaseServiceAccountKey
+                if (cleanedJson.startsWith("\uFEFF")) {
+                    cleanedJson = cleanedJson.substring(1)
+                }
+
+                cleanedJson = cleanedJson.trim()
+
                 val credentials =
                     GoogleCredentials.fromStream(
-                        ByteArrayInputStream(firebaseServiceAccountKey.toByteArray())
+                        ByteArrayInputStream(cleanedJson.toByteArray(StandardCharsets.UTF_8))
                     )
 
                 val options =
