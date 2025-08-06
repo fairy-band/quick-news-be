@@ -119,6 +119,12 @@ jobs:
           echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
           cat .env | wc -l
 
+      - name: Create Firebase service account key file
+        run: |
+          # Extract FIREBASE_SERVICE_ACCOUNT_KEY from .env file and create JSON file
+          grep "^FIREBASE_SERVICE_ACCOUNT_KEY=" .env | cut -d'=' -f2- | sed 's/^"//;s/"$//' > firebase-service-account.json
+          echo "Firebase service account key file created with $(wc -c < firebase-service-account.json) bytes"
+
       - name: Deploy configuration files one by one
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
@@ -136,6 +142,10 @@ jobs:
           # Copy .env file
           echo "Deploying .env file..."
           sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+
+          # Copy Firebase service account key file
+          echo "Deploying firebase-service-account.json..."
+          sshpass -e scp -i private_key.pem -v -o StrictHostKeyChecking=no firebase-service-account.json ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
           # Finally copy deploy.sh
           echo "Deploying deploy.sh..."
