@@ -15,7 +15,7 @@ springdoc:
 
 # Firebase Configuration
 firebase:
-  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:}
+  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
   project-id: ${FIREBASE_PROJECT_ID:news-letter-da24c}
 
 # Logging

@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
+import java.io.File
+import java.io.FileInputStream
 import javax.annotation.PostConstruct
 
 @Configuration
@@ -16,8 +16,8 @@ import javax.annotation.PostConstruct
 class FirebaseConfig {
     private val logger = LoggerFactory.getLogger(FirebaseConfig::class.java)
 
-    @Value("\${firebase.service-account-key}")
-    private val firebaseServiceAccountKey: String = ""
+    @Value("\${firebase.service-account-key-path:firebase-service-account.json}")
+    private val firebaseServiceAccountKeyPath: String = ""
 
     @Value("\${firebase.project-id}")
     private val firebaseProjectId: String = ""
@@ -27,23 +27,14 @@ class FirebaseConfig {
         try {
             // 이미 초기화되어 있는지 확인
             if (FirebaseApp.getApps().isEmpty()) {
-                if (firebaseServiceAccountKey.isEmpty()) {
-                    throw RuntimeException("FIREBASE_SERVICE_ACCOUNT_KEY 환경 변수가 설정되지 않았습니다.")
+                val serviceAccountFile = File(firebaseServiceAccountKeyPath)
+                if (!serviceAccountFile.exists()) {
+                    throw RuntimeException("Firebase service account key file not found at: $firebaseServiceAccountKeyPath")
                 }
 
                 logger.info("Firebase 초기화 중...")
 
-                var cleanedJson = firebaseServiceAccountKey
-                if (cleanedJson.startsWith("\uFEFF")) {
-                    cleanedJson = cleanedJson.substring(1)
-                }
-
-                cleanedJson = cleanedJson.trim()
-
-                val credentials =
-                    GoogleCredentials.fromStream(
-                        ByteArrayInputStream(cleanedJson.toByteArray(StandardCharsets.UTF_8))
-                    )
+                val credentials = GoogleCredentials.fromStream(FileInputStream(serviceAccountFile))
 
                 val options =
                     FirebaseOptions
