@@ -6,10 +6,12 @@ import com.google.firebase.FirebaseOptions
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import java.io.ByteArrayInputStream
 import javax.annotation.PostConstruct
 
 @Configuration
+@Profile("prod")
 class FirebaseConfig {
     private val logger = LoggerFactory.getLogger(FirebaseConfig::class.java)
 
