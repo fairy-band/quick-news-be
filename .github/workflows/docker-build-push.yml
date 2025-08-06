@@ -112,7 +112,7 @@ jobs:
         run: |
           export SSHPASS="${SSHPASS}"
           echo "Creating deploy directory..."
-          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
+          sshpass -e ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
 
       - name: Create .env file from secret
         run: |
