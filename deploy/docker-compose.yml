@@ -13,7 +13,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
-      FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
+      FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
