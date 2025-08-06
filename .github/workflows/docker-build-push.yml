@@ -151,7 +151,7 @@ jobs:
         run: |
           export SSHPASS="${SSHPASS}"
           echo "Executing deployment script..."
-          sshpass -e ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
+          sshpass -e ssh -i private_key.pem -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
 
       - name: Discord notification for deployment
         if: always()
