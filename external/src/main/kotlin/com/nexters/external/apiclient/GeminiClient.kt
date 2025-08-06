@@ -8,9 +8,11 @@ import com.google.genai.types.Type
 import com.nexters.external.dto.GeminiModel
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 @Component
+@Profile("prod")
 class GeminiClient(
     @Value("\${ai.gemini.key}") private val apiKey: String
 ) {
@@ -112,7 +114,7 @@ class GeminiClient(
         - provocativeHeadlines: 클릭을 유도하는 자극적이고 흥미로운 헤드라인 (최대 5개, 한글로)
         - 헤드라인은 호기심을 자극하고 클릭하고 싶게 만드는 완전한 문장으로 구성
         - 각 헤드라인은 15-30자 내외로 작성
-        
+
         개발 관련 자극적인 헤드라인 예시:
         - "실리콘밸리 개발자들이 숨기는 비밀"
         - "이 코드 한 줄로 연봉이 2배 올랐다"

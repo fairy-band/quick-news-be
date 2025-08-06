@@ -9,9 +9,11 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 
 @Service
+@Profile("prod")
 class SummaryService(
     private val geminiClient: GeminiClient,
     private val summaryRepository: SummaryRepository,
