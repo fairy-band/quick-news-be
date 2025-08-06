@@ -27,6 +27,8 @@ dependencies {
 
     implementation(libs.micrometer.core)
 
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+
     testImplementation(libs.bundles.testing)
     testImplementation(libs.de.flapdoodle.embed.mongo.spring)
     testRuntimeOnly(libs.junit.platform.launcher)

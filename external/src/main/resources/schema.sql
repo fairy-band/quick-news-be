@@ -147,3 +147,19 @@ CREATE TABLE IF NOT EXISTS user_exposed_contents_mapping
 CREATE INDEX IF NOT EXISTS user_exposed_contents_user_id_content_id_index
     ON user_exposed_contents_mapping (user_id, content_id);
 
+-- FCM tokens table for push notifications
+CREATE TABLE IF NOT EXISTS fcm_tokens
+(
+    id           SERIAL PRIMARY KEY,
+    user_id      BIGINT       NOT NULL,
+    device_token VARCHAR(500) NOT NULL,
+    device_type  VARCHAR(20)  NOT NULL CHECK (device_type IN ('ANDROID', 'IOS')),
+    is_active    BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_user_device_token UNIQUE (user_id, device_token)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_id_active ON fcm_tokens (user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_device_token ON fcm_tokens (device_token);
+
