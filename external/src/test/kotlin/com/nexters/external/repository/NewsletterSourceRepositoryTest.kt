@@ -23,7 +23,8 @@ class NewsletterSourceRepositoryTest {
                 senderEmail = "test@example.com",
                 recipient = "recipient",
                 recipientEmail = "recipient@example.com",
-                content = "Test content",
+                plainText = "Test content",
+                htmlText = "<p>Test content</p>",
                 contentType = "text/plain",
                 receivedDate = LocalDateTime.now(),
             )
@@ -47,7 +48,8 @@ class NewsletterSourceRepositoryTest {
                 senderEmail = "duplicate@test.com",
                 recipient = "recipient",
                 recipientEmail = "recipient@test.com",
-                content = "content",
+                plainText = "Test content",
+                htmlText = "<p>Test content</p>",
                 contentType = "text/plain",
                 receivedDate = date,
             )

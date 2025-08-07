@@ -68,7 +68,8 @@ class MailProcessor(
             senderEmail = senderInfo.second,
             recipient = "newsletter.feeding@gmail.com", // 현재 설정된 수신 이메일
             recipientEmail = "newsletter.feeding@gmail.com",
-            content = emailMessage.extractedContent,
+            plainText = emailMessage.textContent,
+            htmlText = emailMessage.htmlContent,
             contentType = emailMessage.contentType ?: "text/plain",
             receivedDate =
                 emailMessage.sentDate?.atZone(ZoneId.systemDefault())?.toLocalDateTime()

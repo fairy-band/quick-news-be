@@ -148,7 +148,8 @@ class NewsletterSourceApiController(
         val updatedNewsletterSource =
             newsletterSource.copy(
                 subject = request.subject,
-                content = request.content,
+                plainText = request.plainText,
+                htmlText = request.htmlText,
                 sender = request.sender,
                 senderEmail = request.senderEmail,
                 recipient = request.recipient,
@@ -176,7 +177,7 @@ class NewsletterSourceApiController(
         val parsedContents =
             if (isTarget && parser != null) {
                 try {
-                    parser.parse(newsletterSource.content)
+                    parser.parse(newsletterSource.plainText ?: "")
                 } catch (e: Exception) {
                     emptyList()
                 }
@@ -188,7 +189,7 @@ class NewsletterSourceApiController(
             ParserTestResult(
                 isTarget = isTarget,
                 parsedContents = parsedContents,
-                originalContent = newsletterSource.content,
+                originalContent = newsletterSource.plainText ?: "",
                 senderEmail = newsletterSource.senderEmail,
                 parserName = parser?.javaClass?.simpleName ?: "None"
             )
@@ -233,7 +234,8 @@ data class CreateContentFromNewsletterSourceRequest(
 
 data class UpdateNewsletterSourceRequest(
     val subject: String?,
-    val content: String,
+    val plainText: String?,
+    val htmlText: String?,
     val sender: String,
     val senderEmail: String,
     val recipient: String,
