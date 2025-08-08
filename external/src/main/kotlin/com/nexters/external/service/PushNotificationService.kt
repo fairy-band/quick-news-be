@@ -35,7 +35,7 @@ class PushNotificationService(
 
         var successCount = 0
         tokens.forEach { token ->
-            if (sendNotification(token.deviceToken, title, body, data)) {
+            if (sendNotification(token.fcmToken, title, body, data)) {
                 successCount++
             }
         }
@@ -92,19 +92,19 @@ class PushNotificationService(
      */
     fun registerToken(
         userId: Long,
-        deviceToken: String,
+        fcmToken: String,
         deviceType: DeviceType
     ): Boolean =
         try {
             // 기존 토큰이 있는지 확인
-            val existingToken = fcmTokenRepository.findByDeviceTokenAndIsActiveTrue(deviceToken)
+            val existingToken = fcmTokenRepository.findByFcmTokenAndIsActiveTrue(fcmToken)
 
             if (existingToken == null) {
                 // 새 토큰 등록
                 val newToken =
                     FcmToken(
                         userId = userId,
-                        deviceToken = deviceToken,
+                        fcmToken = fcmToken,
                         deviceType = deviceType
                     )
                 fcmTokenRepository.save(newToken)
@@ -121,13 +121,13 @@ class PushNotificationService(
     /**
      * 토큰 해제
      */
-    fun unregisterToken(deviceToken: String): Boolean =
+    fun unregisterToken(fcmToken: String): Boolean =
         try {
-            val deactivatedCount = fcmTokenRepository.deactivateToken(deviceToken)
+            val deactivatedCount = fcmTokenRepository.deactivateToken(fcmToken)
             logger.info("Deactivated $deactivatedCount token(s)")
             deactivatedCount > 0
         } catch (e: Exception) {
-            logger.error("Failed to unregister FCM token: $deviceToken", e)
+            logger.error("Failed to unregister FCM token: $fcmToken", e)
             false
         }
 

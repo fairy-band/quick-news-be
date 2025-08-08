@@ -33,7 +33,7 @@ class FcmToken(
     @Column(name = "user_id", nullable = false)
     val userId: Long,
     @Column(name = "device_token", nullable = false, length = 500)
-    val deviceToken: String,
+    val fcmToken: String,
     @Enumerated(EnumType.STRING)
     @Column(name = "device_type", nullable = false)
     val deviceType: DeviceType,
@@ -49,10 +49,10 @@ class FcmToken(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is FcmToken) return false
-        return userId == other.userId && deviceToken == other.deviceToken
+        return userId == other.userId && fcmToken == other.fcmToken
     }
 
-    override fun hashCode(): Int = Objects.hash(userId, deviceToken)
+    override fun hashCode(): Int = Objects.hash(userId, fcmToken)
 }
 
 enum class DeviceType {

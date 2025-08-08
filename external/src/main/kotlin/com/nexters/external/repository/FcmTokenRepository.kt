@@ -11,12 +11,12 @@ import org.springframework.stereotype.Repository
 interface FcmTokenRepository : JpaRepository<FcmToken, Long> {
     fun findByUserIdAndIsActiveTrue(userId: Long): List<FcmToken>
 
-    fun findByDeviceTokenAndIsActiveTrue(deviceToken: String): FcmToken?
+    fun findByFcmTokenAndIsActiveTrue(fcmToken: String): FcmToken?
 
     @Modifying
-    @Query("UPDATE FcmToken f SET f.isActive = false WHERE f.deviceToken = :deviceToken")
+    @Query("UPDATE FcmToken f SET f.isActive = false WHERE f.fcmToken = :fcmToken")
     fun deactivateToken(
-        @Param("deviceToken") deviceToken: String
+        @Param("fcmToken") fcmToken: String
     ): Int
 
     @Modifying
@@ -25,8 +25,8 @@ interface FcmTokenRepository : JpaRepository<FcmToken, Long> {
         @Param("userId") userId: Long
     ): Int
 
-    fun existsByUserIdAndDeviceTokenAndIsActiveTrue(
+    fun existsByUserIdAndFcmTokenAndIsActiveTrue(
         userId: Long,
-        deviceToken: String
+        fcmToken: String
     ): Boolean
 }

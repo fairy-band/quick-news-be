@@ -29,7 +29,7 @@ class NotificationApiController(
         val success =
             pushNotificationService.registerToken(
                 userId = request.userId,
-                deviceToken = request.deviceToken,
+                fcmToken = request.fcmToken,
                 deviceType = request.deviceType
             )
 
@@ -43,9 +43,9 @@ class NotificationApiController(
     @Operation(summary = "FCM 토큰 해제", description = "특정 디바이스 토큰을 해제합니다.")
     @DeleteMapping("/token")
     fun unregisterToken(
-        @RequestParam deviceToken: String
+        @RequestParam fcmToken: String
     ): ResponseEntity<ApiResponse<String>> {
-        val success = pushNotificationService.unregisterToken(deviceToken)
+        val success = pushNotificationService.unregisterToken(fcmToken)
 
         return if (success) {
             ResponseEntity.ok(ApiResponse(true, "Token unregistered successfully"))
