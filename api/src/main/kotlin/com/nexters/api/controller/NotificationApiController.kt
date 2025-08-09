@@ -28,7 +28,7 @@ class NotificationApiController(
     ): ResponseEntity<ApiResponse<String>> {
         val success =
             pushNotificationService.registerToken(
-                userId = request.userId,
+                deviceToken = request.deviceToken,
                 fcmToken = request.fcmToken,
                 deviceType = request.deviceType
             )
@@ -54,29 +54,29 @@ class NotificationApiController(
         }
     }
 
-    @Operation(summary = "사용자의 모든 토큰 해제", description = "특정 사용자의 모든 토큰을 해제합니다.")
-    @DeleteMapping("/token/user/{userId}")
-    fun unregisterAllUserTokens(
-        @PathVariable userId: Long
+    @Operation(summary = "디바이스 토큰 해제", description = "특정 디바이스의 토큰을 해제합니다.")
+    @DeleteMapping("/token/device/{deviceToken}")
+    fun unregisterDeviceToken(
+        @PathVariable deviceToken: String
     ): ResponseEntity<ApiResponse<String>> {
-        val success = pushNotificationService.unregisterAllUserTokens(userId)
+        val success = pushNotificationService.unregisterDeviceToken(deviceToken)
 
         return if (success) {
-            ResponseEntity.ok(ApiResponse(true, "All user tokens unregistered successfully"))
+            ResponseEntity.ok(ApiResponse(true, "Device token unregistered successfully"))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(false, "Failed to unregister user tokens"))
+            ResponseEntity.badRequest().body(ApiResponse(false, "Failed to unregister device token"))
         }
     }
 
-    @Operation(summary = "특정 사용자에게 알림 발송", description = "특정 사용자에게 푸시 알림을 발송합니다. (테스트용)")
-    @PostMapping("/send/{userId}")
-    fun sendToUser(
-        @PathVariable userId: Long,
+    @Operation(summary = "특정 디바이스에 알림 발송", description = "특정 디바이스에 푸시 알림을 발송합니다. (테스트용)")
+    @PostMapping("/send/device/{deviceToken}")
+    fun sendToDevice(
+        @PathVariable deviceToken: String,
         @RequestBody request: NotificationApiRequest
     ): ResponseEntity<ApiResponse<String>> {
         val success =
-            pushNotificationService.sendToUser(
-                userId = userId,
+            pushNotificationService.sendToDevice(
+                deviceToken = deviceToken,
                 title = request.title,
                 body = request.body,
                 data = request.data

@@ -3,7 +3,7 @@ package com.nexters.api.dto
 import com.nexters.external.entity.DeviceType
 
 data class TokenRegistrationApiRequest(
-    val userId: Long,
+    val deviceToken: String,
     val fcmToken: String,
     val deviceType: DeviceType
 )

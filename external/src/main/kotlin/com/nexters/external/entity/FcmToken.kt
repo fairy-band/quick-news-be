@@ -9,7 +9,6 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
-import jakarta.persistence.UniqueConstraint
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
 import java.time.LocalDateTime
@@ -18,21 +17,18 @@ import java.util.Objects
 @Entity
 @Table(
     name = "fcm_tokens",
-    uniqueConstraints = [
-        UniqueConstraint(columnNames = ["user_id", "device_token"]),
-    ],
     indexes = [
-        Index(name = "idx_user_id_active", columnList = "user_id, is_active"),
         Index(name = "idx_device_token", columnList = "device_token"),
+        Index(name = "idx_fcm_token", columnList = "fcm_token"),
     ],
 )
 class FcmToken(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @Column(name = "user_id", nullable = false)
-    val userId: Long,
-    @Column(name = "device_token", nullable = false, length = 500)
+    @Column(name = "device_token", nullable = false, length = 255, unique = true)
+    val deviceToken: String,
+    @Column(name = "fcm_token", nullable = false, length = 255, unique = true)
     val fcmToken: String,
     @Enumerated(EnumType.STRING)
     @Column(name = "device_type", nullable = false)
@@ -49,10 +45,10 @@ class FcmToken(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is FcmToken) return false
-        return userId == other.userId && fcmToken == other.fcmToken
+        return deviceToken == other.deviceToken && fcmToken == other.fcmToken
     }
 
-    override fun hashCode(): Int = Objects.hash(userId, fcmToken)
+    override fun hashCode(): Int = Objects.hash(deviceToken, fcmToken)
 }
 
 enum class DeviceType {
