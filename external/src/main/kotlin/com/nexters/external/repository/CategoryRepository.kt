@@ -30,18 +30,21 @@ interface CategoryRepository : JpaRepository<Category, Long> {
         SELECT rk
         FROM ReservedKeyword rk
         JOIN CategoryKeywordMapping ckm ON rk.id = ckm.keyword.id
-        WHERE ckm.category.id = :categoryId
+        WHERE ckm.category.id IN (:categoryIds)
         ORDER BY ckm.weight DESC
     """,
     )
-    fun findKeywordsByCategoryId(categoryId: Long): List<ReservedKeyword>
+    fun findKeywordsByCategoryIds(categoryIds: List<Long>): List<ReservedKeyword>
 
     @Query(
         """
         SELECT ckm
         FROM CategoryKeywordMapping ckm
-        WHERE ckm.category.id = :categoryId
+        WHERE ckm.category.id IN (:categoryIds)
     """,
     )
-    fun findCategoryKeywordMappingByCategoryId(categoryId: Long): List<CategoryKeywordMapping>
+    fun findCategoryKeywordMappingByCategoryIds(categoryIds: List<Long>): List<CategoryKeywordMapping>
+
+    @Suppress("ktlint")
+    fun findByUsers_Id(userId: Long): List<Category>
 }

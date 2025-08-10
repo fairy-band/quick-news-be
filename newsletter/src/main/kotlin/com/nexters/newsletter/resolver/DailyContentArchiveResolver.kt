@@ -23,16 +23,32 @@ class DailyContentArchiveResolver(
 ) {
     private val calculator = RecommendScoreCalculator()
 
+    fun resolveTodayContents(userId: Long): List<ExposureContent> {
+        val userCategories = categoryService.getCategoriesByUserId(userId)
+
+        val categories =
+            if (userCategories.isEmpty()) {
+                categoryService.getAllCategories()
+            } else {
+                userCategories
+            }
+
+        return resolveTodayContents(
+            userId,
+            categories.map { it.id!! },
+        )
+    }
+
     fun resolveArbitraryTodayContents(): List<ExposureContent> =
         resolveTodayContents(
             ARBITRARY_USER_ID,
-            categoryService.getAllCategories().random().id!!,
+            categoryService.getAllCategories().map { it.id!! },
         )
 
     fun resolveTodayCategoryContents(categoryId: Long): List<ExposureContent> =
         resolveTodayContents(
             ARBITRARY_USER_ID,
-            categoryId,
+            listOf(categoryId),
         )
 
     fun getTodayContentArchive(
@@ -52,8 +68,15 @@ class DailyContentArchiveResolver(
         }
 
         val user = userService.getUserById(userId)
-        val categoryId = user.categories.firstOrNull()?.id ?: categoryService.getAllCategories().random().id!!
-        val contents = resolveTodayContents(userId, categoryId)
+        val userCategories = user.categories.map { it.id!! }
+        val categoryIds =
+            if (userCategories.isNotEmpty()) {
+                userCategories
+            } else {
+                categoryService.getAllCategories().map { it.id!! }
+            }
+
+        val contents = resolveTodayContents(userId, categoryIds)
 
         val dailyContentArchive =
             DailyContentArchive(
@@ -67,11 +90,11 @@ class DailyContentArchiveResolver(
 
     private fun resolveTodayContents(
         userId: Long,
-        categoryId: Long,
+        categoryIds: List<Long>,
     ): List<ExposureContent> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
-        val keywords: List<ReservedKeyword> = categoryService.getKeywordsByCategoryId(categoryId)
-        val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryId(categoryId)
+        val keywords: List<ReservedKeyword> = categoryService.getKeywordsByCategoryIds(categoryIds)
+        val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
 
         // TODO: entity 의존성 없는 구조로 변경 필요
         val contents =
@@ -118,8 +141,8 @@ class DailyContentArchiveResolver(
                     .calculate(
                         RecommendCalculateSource(
                             positiveKeywords.map { PositiveKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
-                            negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) }
-                        )
+                            negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
+                        ),
                     ).recommendScore
             }
 
@@ -135,8 +158,8 @@ class DailyContentArchiveResolver(
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
      */
-    fun getNegativeKeywords(categoryId: Long): List<ReservedKeyword> {
-        val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryId(categoryId)
+    fun getNegativeKeywords(categoryIds: List<Long>): List<ReservedKeyword> {
+        val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
 
         return categoryKeywordWeights.entries
             .filter { it.value < 0 }

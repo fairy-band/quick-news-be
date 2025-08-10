@@ -109,7 +109,7 @@ class RecommendationController(
     fun getCategoryNegativeKeywords(
         @PathVariable categoryId: Long
     ): ResponseEntity<List<CategoryKeywordResponse>> {
-        val negativeKeywords = dayArchiveResolver.getNegativeKeywords(categoryId)
+        val negativeKeywords = dayArchiveResolver.getNegativeKeywords(listOf(categoryId))
 
         val response =
             negativeKeywords.map { keyword ->
