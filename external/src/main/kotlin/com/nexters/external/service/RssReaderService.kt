@@ -40,21 +40,11 @@ class RssReaderService {
             val url = URL(feedUrl)
             val connection = url.openConnection()
             
-            // User-Agent 및 헤더 설정으로 접근 차단 방지
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml, text/html, application/xhtml+xml, */*")
-            connection.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br")
-            connection.setRequestProperty("Cache-Control", "no-cache")
-            connection.setRequestProperty("Pragma", "no-cache")
-            connection.setRequestProperty("DNT", "1")
-            connection.setRequestProperty("Upgrade-Insecure-Requests", "1")
-            connection.setRequestProperty("Sec-Fetch-Dest", "document")
-            connection.setRequestProperty("Sec-Fetch-Mode", "navigate")
-            connection.setRequestProperty("Sec-Fetch-Site", "none")
-            connection.setRequestProperty("Sec-Fetch-User", "?1")
-            connection.connectTimeout = 10000
-            connection.readTimeout = 10000
+            // 간단한 헤더 설정으로 RSS 피드 접근
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; RSS Reader)")
+            connection.setRequestProperty("Accept", "*/*")
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
             
             val input = SyndFeedInput()
             val feed: SyndFeed = input.build(XmlReader(connection.getInputStream()))
