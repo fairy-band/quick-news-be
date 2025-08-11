@@ -1,5 +1,6 @@
 dependencies {
     implementation(project(":newsletter"))
+    implementation(project(":external"))
 
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.thymeleaf)

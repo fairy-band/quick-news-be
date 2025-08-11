@@ -40,4 +40,7 @@ dependencies {
 
     // JSoup for HTML parsing
     implementation(libs.jsoup)
+
+    // RSS Feed parsing
+    implementation(libs.rome)
 }
