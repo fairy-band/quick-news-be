@@ -13,4 +13,12 @@ class ContentService(
         userId: Long,
         reservedKeywordIds: List<Long>
     ) = contentRepository.findNotExposedContents(userId, reservedKeywordIds)
+
+    fun findContentsByKeywords(keywords: List<String>) =
+        contentRepository.findAll().filter { content ->
+            keywords.any { keyword ->
+                content.title.contains(keyword, ignoreCase = true) ||
+                    content.content.contains(keyword, ignoreCase = true)
+            }
+        }
 }

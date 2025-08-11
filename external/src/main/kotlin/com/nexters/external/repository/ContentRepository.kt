@@ -166,6 +166,16 @@ interface ContentRepository : JpaRepository<Content, Long> {
         reservedKeywordIds: List<Long>
     ): List<Content>
 
+    // RSS 피드용 메서드들
+    fun findByOriginalUrl(originalUrl: String): Content?
+
+    fun findByNewsletterName(newsletterName: String): List<Content>
+
+    fun findByPublishedAtBetween(
+        startDate: java.time.LocalDate,
+        endDate: java.time.LocalDate
+    ): List<Content>
+
     fun existsByNewsletterSourceId(newsletterSourceId: String): Boolean
 
     fun findByNewsletterSourceId(newsletterSourceId: String): List<Content>
