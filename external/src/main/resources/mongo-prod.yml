@@ -5,7 +5,7 @@ spring:
       auto-index-creation: false
 
 rss:
-  feeds: ${RSS_FEEDS:https://feeds2.feedburner.com/rss_outsider_dev,https://blog.isquaredsoftware.com/index.xml,https://www.joshuakgoldberg.com/rss.xml,https://spoqa.github.io/atom.xml,https://tech.cloud.nongshim.co.kr/feed/,https://makinarocks.github.io/feed,https://devblogs.microsoft.com/typescript/feed/,https://blog.jetbrains.com/ko/feed/,https://medium.com/feed/ssgtech,https://medium.com/feed/naver-place-dev,https://medium.com/feed/lemonbase,https://medium.com/feed/pinkfong,https://medium.com/feed/yanolja,https://medium.com/feed/musinsa-tech,https://medium.com/feed/29cm,https://medium.com/feed/wantedjobs,https://riiidtechblog.medium.com/feed,https://www.44bits.io/ko/feed/all,https://zuminternet.github.io/feed.xml,https://techblog.gccompany.co.kr/feed,https://techblog.yogiyo.co.kr/feed,https://www.blog.kcd.co.kr/feed,http://meetup.toast.com/rss,https://vuejsdevelopers.com/feed.xml,https://tech.kakao.com/feed/,https://woowabros.github.io/feed.xml,https://kofearticle.substack.com/feed,https://smartstudio.tech/feed/,https://techblog.woowahan.com/feed/,https://medium.com/feed/daangn,https://d2.naver.com/d2.atom,https://engineering.linecorp.com/ko/feed/}
+  feeds: ${RSS_FEEDS:https://blog.jetbrains.com/ko/feed/,https://tech.kakao.com/feed/,https://woowabros.github.io/feed.xml,https://techblog.woowahan.com/feed/,https://medium.com/feed/daangn,https://engineering.linecorp.com/ko/feed/,https://kofearticle.substack.com/feed,https://devblogs.microsoft.com/typescript/feed/,https://zuminternet.github.io/feed.xml,https://spoqa.github.io/atom.xml,https://medium.com/feed/musinsa-tech,https://medium.com/feed/29cm,https://medium.com/feed/wantedjobs}
   scheduler:
     fetch:
       delay: ${RSS_FETCH_DELAY:1800000}
