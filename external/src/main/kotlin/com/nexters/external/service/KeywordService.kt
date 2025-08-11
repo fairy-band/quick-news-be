@@ -9,12 +9,10 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-@Profile("prod")
 class KeywordService(
     private val geminiClient: GeminiClient,
     private val reservedKeywordRepository: ReservedKeywordRepository,
