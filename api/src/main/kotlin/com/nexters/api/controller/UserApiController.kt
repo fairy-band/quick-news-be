@@ -3,6 +3,7 @@ package com.nexters.api.controller
 import com.nexters.api.dto.CreateUserApiRequest
 import com.nexters.api.dto.UpdateUserPreferenceApiRequest
 import com.nexters.api.dto.UserApiResponse
+import com.nexters.api.exception.UserNotFoundException
 import com.nexters.external.service.UserService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -25,7 +26,7 @@ class UserApiController(
     @GetMapping("/login")
     fun login(deviceToken: String): UserApiResponse =
         userService.findUser(deviceToken)?.id?.let { UserApiResponse(it) }
-            ?: throw IllegalArgumentException("User not found with device token: $deviceToken")
+            ?: throw UserNotFoundException("User not found with device token: $deviceToken")
 
     @PutMapping("/{userId}")
     fun updatePreferences(
