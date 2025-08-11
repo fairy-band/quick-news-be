@@ -38,8 +38,16 @@ class RssReaderService {
     fun readRssFeed(feedUrl: String): RssFeedMetadata? =
         try {
             val url = URL(feedUrl)
+            val connection = url.openConnection()
+            
+            // User-Agent 및 헤더 설정으로 접근 차단 방지
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+            connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            
             val input = SyndFeedInput()
-            val feed: SyndFeed = input.build(XmlReader(url))
+            val feed: SyndFeed = input.build(XmlReader(connection.getInputStream()))
 
             val feedMetadata =
                 RssFeedMetadata(
