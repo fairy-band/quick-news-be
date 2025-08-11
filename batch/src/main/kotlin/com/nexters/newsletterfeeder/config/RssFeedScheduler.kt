@@ -43,18 +43,18 @@ class RssFeedScheduler(
     }
 
     @Scheduled(cron = "\${rss.scheduler.stats.cron:0 0 */6 * * *}")
-    fun logContentStats() {
-        val stats = rssNewsletterService.getContentStats()
+    fun logSourceStats() {
+        val stats = rssNewsletterService.getSourceStats()
 
-        logger.info("=== RSS Content Statistics ===")
-        stats.forEach { (feedUrl, stat) ->
-            logger.info("Feed: $feedUrl")
+        logger.info("=== RSS Source Statistics ===")
+        stats.forEach { (feedName, stat) ->
+            logger.info("Feed: $feedName")
             logger.info("  Total: ${stat.totalCount}, Processed: ${stat.processedCount}, Unprocessed: ${stat.unprocessedCount}")
             logger.info("  Last updated: ${stat.lastUpdated}")
         }
 
-        val totalContent = stats.values.sumOf { it.totalCount }
+        val totalSources = stats.values.sumOf { it.totalCount }
         val totalProcessed = stats.values.sumOf { it.processedCount }
-        logger.info("Overall: Total content: $totalContent, Processed: $totalProcessed")
+        logger.info("Overall: Total sources: $totalSources, Processed: $totalProcessed")
     }
 }

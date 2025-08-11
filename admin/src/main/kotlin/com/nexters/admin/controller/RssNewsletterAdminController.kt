@@ -1,6 +1,6 @@
 package com.nexters.admin.controller
 
-import com.nexters.external.entity.Content
+import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.service.RssNewsletterService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
@@ -79,24 +79,14 @@ class RssNewsletterAdminController(
 
     // RSS 컨텐츠는 저장시 즉시 요약이 생성되므로 별도 처리 불필요
 
-    @GetMapping("/search")
-    fun searchByKeywords(
-        @RequestParam keywords: List<String>
-    ): ResponseEntity<List<Content>> {
-        logger.info("Searching RSS content by keywords: $keywords")
-
-        val contents = rssNewsletterService.searchContentByKeywords(keywords)
-        return ResponseEntity.ok(contents)
-    }
-
     @GetMapping("/recent")
-    fun getRecentContent(
+    fun getRecentSources(
         @RequestParam(defaultValue = "7") days: Int
-    ): ResponseEntity<List<Content>> {
-        logger.info("Getting recent RSS content for last $days days")
+    ): ResponseEntity<List<NewsletterSource>> {
+        logger.info("Getting recent RSS sources for last $days days")
 
-        val contents = rssNewsletterService.getRecentContent(days)
-        return ResponseEntity.ok(contents)
+        val sources = rssNewsletterService.getRecentSources(days)
+        return ResponseEntity.ok(sources)
     }
 
     @GetMapping("/feeds")
@@ -108,11 +98,11 @@ class RssNewsletterAdminController(
     }
 
     @GetMapping("/stats")
-    fun getContentStats(): ResponseEntity<Map<String, Any>> {
-        logger.info("Getting RSS content statistics")
+    fun getSourceStats(): ResponseEntity<Map<String, Any>> {
+        logger.info("Getting RSS source statistics")
 
         return try {
-            val stats = rssNewsletterService.getContentStats()
+            val stats = rssNewsletterService.getSourceStats()
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
@@ -120,7 +110,7 @@ class RssNewsletterAdminController(
                 )
             )
         } catch (e: Exception) {
-            logger.error("Error getting RSS content stats", e)
+            logger.error("Error getting RSS source stats", e)
             ResponseEntity.badRequest().body(
                 mapOf<String, Any>(
                     "success" to false,
