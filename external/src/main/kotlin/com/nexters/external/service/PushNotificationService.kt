@@ -18,30 +18,22 @@ class PushNotificationService(
     private val logger = LoggerFactory.getLogger(PushNotificationService::class.java)
 
     /**
-     * 특정 사용자에게 알림 발송
+     * 특정 디바이스에 알림 발송
      */
-    fun sendToUser(
-        userId: Long,
+    fun sendToDevice(
+        deviceToken: String,
         title: String,
         body: String,
         data: Map<String, String> = emptyMap()
     ): Boolean {
-        val tokens = fcmTokenRepository.findByUserIdAndIsActiveTrue(userId)
+        val token = fcmTokenRepository.findByDeviceTokenAndIsActiveTrue(deviceToken)
 
-        if (tokens.isEmpty()) {
-            logger.warn("No active tokens found for user: $userId")
+        if (token == null) {
+            logger.warn("No active token found for device: $deviceToken")
             return false
         }
 
-        var successCount = 0
-        tokens.forEach { token ->
-            if (sendNotification(token.deviceToken, title, body, data)) {
-                successCount++
-            }
-        }
-
-        logger.info("Sent notification to $successCount/${tokens.size} devices for user: $userId")
-        return successCount > 0
+        return sendNotification(token.fcmToken, title, body, data)
     }
 
     /**
@@ -91,56 +83,56 @@ class PushNotificationService(
      * FCM 토큰 등록/갱신
      */
     fun registerToken(
-        userId: Long,
         deviceToken: String,
+        fcmToken: String,
         deviceType: DeviceType
     ): Boolean =
         try {
             // 기존 토큰이 있는지 확인
-            val existingToken = fcmTokenRepository.findByDeviceTokenAndIsActiveTrue(deviceToken)
+            val existingToken = fcmTokenRepository.findByFcmTokenAndIsActiveTrue(fcmToken)
 
             if (existingToken == null) {
                 // 새 토큰 등록
                 val newToken =
                     FcmToken(
-                        userId = userId,
                         deviceToken = deviceToken,
+                        fcmToken = fcmToken,
                         deviceType = deviceType
                     )
                 fcmTokenRepository.save(newToken)
-                logger.info("New FCM token registered for user: $userId, deviceType: $deviceType")
+                logger.info("New FCM token registered, deviceType: $deviceType")
             } else {
-                logger.info("FCM token already exists for user: $userId")
+                logger.info("FCM token already exists for device: ${existingToken.deviceToken}")
             }
             true
         } catch (e: Exception) {
-            logger.error("Failed to register FCM token for user: $userId", e)
+            logger.error("Failed to register FCM token", e)
             false
         }
 
     /**
      * 토큰 해제
      */
-    fun unregisterToken(deviceToken: String): Boolean =
+    fun unregisterToken(fcmToken: String): Boolean =
         try {
-            val deactivatedCount = fcmTokenRepository.deactivateToken(deviceToken)
+            val deactivatedCount = fcmTokenRepository.deactivateToken(fcmToken)
             logger.info("Deactivated $deactivatedCount token(s)")
             deactivatedCount > 0
         } catch (e: Exception) {
-            logger.error("Failed to unregister FCM token: $deviceToken", e)
+            logger.error("Failed to unregister FCM token: $fcmToken", e)
             false
         }
 
     /**
-     * 사용자의 모든 토큰 해제
+     * 디바이스 토큰 해제
      */
-    fun unregisterAllUserTokens(userId: Long): Boolean =
+    fun unregisterDeviceToken(deviceToken: String): Boolean =
         try {
-            val deactivatedCount = fcmTokenRepository.deactivateAllUserTokens(userId)
-            logger.info("Deactivated $deactivatedCount token(s) for user: $userId")
+            val deactivatedCount = fcmTokenRepository.deactivateDeviceToken(deviceToken)
+            logger.info("Deactivated $deactivatedCount token(s) for device: $deviceToken")
             deactivatedCount > 0
         } catch (e: Exception) {
-            logger.error("Failed to unregister all tokens for user: $userId", e)
+            logger.error("Failed to unregister device token: $deviceToken", e)
             false
         }
 
