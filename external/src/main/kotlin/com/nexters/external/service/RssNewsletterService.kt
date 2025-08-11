@@ -1,9 +1,7 @@
 package com.nexters.external.service
 
-import com.nexters.external.entity.Content
-import com.nexters.external.repository.ContentRepository
-import com.nexters.external.service.ContentService
-import com.nexters.external.service.SummaryService
+import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.repository.NewsletterSourceRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
@@ -15,9 +13,7 @@ import java.time.LocalDateTime
 @Profile("prod")
 class RssNewsletterService(
     private val rssReaderService: RssReaderService,
-    private val contentRepository: ContentRepository,
-    private val contentService: ContentService,
-    private val summaryService: SummaryService
+    private val newsletterSourceRepository: NewsletterSourceRepository
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterService::class.java)
 
@@ -33,28 +29,35 @@ class RssNewsletterService(
 
         var savedCount = 0
         feedMetadata.items.forEach { item ->
-            val existingContent = contentRepository.findByOriginalUrl(item.link)
+            // RSS 항목의 URL을 기반으로 중복 체크 (NewsletterSource에는 originalUrl 필드가 없으므로 content로 체크)
+            val existingSource = newsletterSourceRepository.findBySenderAndSubject(feedMetadata.title, item.title)
 
-            if (existingContent == null) {
+            if (existingSource == null) {
                 val contentText = buildContentText(item)
 
-                val content =
-                    Content(
-                        title = item.title,
-                        content = contentText,
-                        newsletterName = feedMetadata.title,
-                        originalUrl = item.link,
-                        publishedAt = item.publishedDate?.toLocalDate() ?: LocalDate.now()
+                val newsletterSource = NewsletterSource(
+                    subject = item.title,
+                    sender = feedMetadata.title, // RSS 피드 제목을 sender로 사용
+                    senderEmail = "rss@${extractDomainFromUrl(item.link)}", // URL에서 도메인 추출하여 이메일 형태로
+                    recipient = "system",
+                    recipientEmail = "system@newsletter.ai",
+                    content = contentText,
+                    contentType = "text/html", // RSS는 HTML 형태
+                    receivedDate = item.publishedDate ?: LocalDateTime.now(),
+                    headers = mapOf(
+                        "RSS-Feed-URL" to feedUrl,
+                        "RSS-Item-URL" to item.link,
+                        "RSS-Categories" to item.categories.joinToString(",")
                     )
+                )
 
-                val savedContent = contentRepository.save(content)
+                newsletterSourceRepository.save(newsletterSource)
                 savedCount++
-                logger.debug("Saved new RSS content: ${item.title}")
+                logger.debug("Saved new RSS source: ${item.title}")
 
-                // 요약 생성
-                summaryService.summarizeAndSave(savedContent)
+                // RSS는 기존 뉴스레터 소스처럼 원문만 저장 (요약 생성 스킵)
             } else {
-                logger.debug("RSS content already exists: ${item.link}")
+                logger.debug("RSS source already exists: ${item.title}")
             }
         }
 
@@ -64,20 +67,58 @@ class RssNewsletterService(
 
     private fun buildContentText(item: RssReaderService.RssFeedItem): String =
         buildString {
-            item.description?.let { append("$it\n\n") }
-            item.content?.let { append("$it\n\n") }
+            item.description?.let { 
+                val cleanDescription = cleanHtmlContent(it)
+                if (cleanDescription.isNotBlank()) {
+                    append("$cleanDescription\n\n")
+                }
+            }
+            item.content?.let { 
+                val cleanContent = cleanHtmlContent(it)
+                if (cleanContent.isNotBlank()) {
+                    append("$cleanContent\n\n")
+                }
+            }
             item.author?.let { append("Author: $it\n") }
             if (item.categories.isNotEmpty()) {
                 append("Categories: ${item.categories.joinToString(", ")}\n")
             }
         }.trim()
 
+    private fun cleanHtmlContent(htmlContent: String): String {
+        return htmlContent
+            // HTML 태그 제거
+            .replace(Regex("<[^>]+>"), " ")
+            // HTML 엔티티 디코딩
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&apos;", "'")
+            // 연속된 공백을 하나로
+            .replace(Regex("\\s+"), " ")
+            // 연속된 줄바꿈을 두 개로 제한
+            .replace(Regex("\n{3,}"), "\n\n")
+            .trim()
+    }
+
+    private fun extractDomainFromUrl(url: String): String {
+        return try {
+            val domain = url.substringAfter("://").substringBefore("/").substringBefore(":")
+            domain.removePrefix("www.")
+        } catch (e: Exception) {
+            "unknown.com"
+        }
+    }
+
     @Transactional
-    fun fetchAndProcessRssFeed(feedUrl: String): List<Content> {
+    fun fetchAndProcessRssFeed(feedUrl: String): List<NewsletterSource> {
         val savedCount = fetchAndSaveRssFeed(feedUrl)
         logger.info("Fetched $savedCount new items")
 
-        return getContentByFeedUrl(feedUrl)
+        return getSourcesByFeedUrl(feedUrl)
     }
 
     @Transactional
@@ -97,44 +138,44 @@ class RssNewsletterService(
         return results
     }
 
-    fun searchContentByKeywords(keywords: List<String>): List<Content> = contentService.findContentsByKeywords(keywords)
-
-    fun getRecentContent(days: Int = 7): List<Content> {
-        val endDate = LocalDate.now()
+    fun getRecentSources(days: Int = 7): List<NewsletterSource> {
+        val endDate = LocalDateTime.now()
         val startDate = endDate.minusDays(days.toLong())
-        return contentRepository.findByPublishedAtBetween(startDate, endDate)
+        return newsletterSourceRepository.findByReceivedDateBetween(startDate, endDate)
     }
 
     fun getAllFeeds(): List<String> =
-        contentRepository
+        newsletterSourceRepository
             .findAll()
-            .map { it.newsletterName }
+            .filter { it.senderEmail.startsWith("rss@") } // RSS 소스만 필터링
+            .map { it.sender }
             .distinct()
 
-    fun getContentByFeedUrl(feedUrl: String): List<Content> {
+    fun getSourcesByFeedUrl(feedUrl: String): List<NewsletterSource> {
         val feedMetadata = rssReaderService.readRssFeed(feedUrl)
         if (feedMetadata == null) return emptyList()
 
         val feedTitle = feedMetadata.title
-        return contentRepository.findByNewsletterName(feedTitle)
+        return newsletterSourceRepository.findBySender(feedTitle)
     }
 
-    fun getContentStats(): Map<String, ContentStats> {
-        val allContent = contentRepository.findAll()
+    fun getSourceStats(): Map<String, SourceStats> {
+        val allSources = newsletterSourceRepository.findAll()
+            .filter { it.senderEmail.startsWith("rss@") } // RSS 소스만
 
-        return allContent
-            .groupBy { it.newsletterName }
-            .mapValues { (_, contents) ->
-                ContentStats(
-                    totalCount = contents.size,
-                    processedCount = contents.size, // 모든 content는 저장 시 요약이 생성됨
+        return allSources
+            .groupBy { it.sender }
+            .mapValues { (_, sources) ->
+                SourceStats(
+                    totalCount = sources.size,
+                    processedCount = sources.size, // RSS 소스는 원문만 저장 (기존 뉴스레터 소스와 동일)
                     unprocessedCount = 0,
-                    lastUpdated = contents.maxOfOrNull { it.createdAt }
+                    lastUpdated = sources.mapNotNull { it.createdAt }.maxOrNull()
                 )
             }
     }
 
-    data class ContentStats(
+    data class SourceStats(
         val totalCount: Int,
         val processedCount: Int,
         val unprocessedCount: Int,

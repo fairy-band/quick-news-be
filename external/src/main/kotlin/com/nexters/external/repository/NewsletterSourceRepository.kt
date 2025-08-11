@@ -21,4 +21,8 @@ interface NewsletterSourceRepository : MongoRepository<NewsletterSource, String>
         subject: String,
         receivedDate: LocalDateTime
     ): Boolean
+
+    fun findBySender(sender: String): List<NewsletterSource>
+
+    fun findBySenderAndSubject(sender: String, subject: String): NewsletterSource?
 }
