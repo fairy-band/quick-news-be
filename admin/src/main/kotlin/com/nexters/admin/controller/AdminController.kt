@@ -38,6 +38,9 @@ class AdminController {
     @GetMapping("/recommendations")
     fun recommendations(): String = "recommendations"
 
+    @GetMapping("/rss-reader")
+    fun rssReader(): String = "rss-reader"
+
     @GetMapping("/admin")
     fun adminRedirect(): String = REDIRECT_TO_HOME
 

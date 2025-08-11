@@ -5,6 +5,7 @@ import com.nexters.external.service.RssNewsletterService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.http.ResponseEntity
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -15,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController
 @Profile("prod")
 @RequestMapping("/admin/rss-newsletter")
 class RssNewsletterAdminController(
-    private val rssNewsletterService: RssNewsletterService
+    private val rssNewsletterService: RssNewsletterService,
+    @Value("\${rss.feeds:}") private val rssFeeds: String
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterAdminController::class.java)
 
@@ -106,10 +108,61 @@ class RssNewsletterAdminController(
     }
 
     @GetMapping("/stats")
-    fun getContentStats(): ResponseEntity<Map<String, RssNewsletterService.ContentStats>> {
+    fun getContentStats(): ResponseEntity<Map<String, Any>> {
         logger.info("Getting RSS content statistics")
 
-        val stats = rssNewsletterService.getContentStats()
-        return ResponseEntity.ok(stats)
+        return try {
+            val stats = rssNewsletterService.getContentStats()
+            ResponseEntity.ok(
+                mapOf<String, Any>(
+                    "success" to true,
+                    "stats" to stats
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Error getting RSS content stats", e)
+            ResponseEntity.badRequest().body(
+                mapOf<String, Any>(
+                    "success" to false,
+                    "error" to (e.message ?: "Unknown error")
+                )
+            )
+        }
+    }
+
+    @PostMapping("/fetch-all")
+    fun fetchAllFeeds(): ResponseEntity<Map<String, Any>> {
+        logger.info("Fetching all RSS feeds")
+
+        if (rssFeeds.isBlank()) {
+            return ResponseEntity.badRequest().body(
+                mapOf<String, Any>(
+                    "success" to false,
+                    "error" to "No RSS feeds configured"
+                )
+            )
+        }
+
+        return try {
+            val feedUrls = rssFeeds.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            val results = rssNewsletterService.fetchMultipleFeeds(feedUrls)
+
+            ResponseEntity.ok(
+                mapOf<String, Any>(
+                    "success" to true,
+                    "results" to results,
+                    "totalFeeds" to feedUrls.size,
+                    "message" to "Fetched all configured RSS feeds"
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Error fetching all RSS feeds", e)
+            ResponseEntity.badRequest().body(
+                mapOf<String, Any>(
+                    "success" to false,
+                    "error" to (e.message ?: "Unknown error")
+                )
+            )
+        }
     }
 }

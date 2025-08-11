@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 @Profile("prod")
 class RssFeedScheduler(
     private val rssNewsletterService: RssNewsletterService,
-    @field:Value("\${rss.feeds:}") private val rssFeeds: String
+    @Value("\${rss.feeds:}") private val rssFeeds: String
 ) {
     private val logger = LoggerFactory.getLogger(RssFeedScheduler::class.java)
 
