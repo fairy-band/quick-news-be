@@ -3,15 +3,9 @@ spring:
     import:
         - postgresql-dev.yml
         - mongo-dev.yml
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            clientId: ${OAUTH2_CLIENT_ID_GOOGLE:your-dev-client-id}
-            clientSecret: ${OAUTH2_CLIENT_SECRET_GOOGLE:your-dev-client-secret}
-            redirect-uri: http://localhost:8083/login/oauth2/code/google
-            scope:
-              - openid
-              - email
-              - profile
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientWebSecurityAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+

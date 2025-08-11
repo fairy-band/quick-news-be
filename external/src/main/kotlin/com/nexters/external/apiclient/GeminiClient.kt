@@ -8,11 +8,9 @@ import com.google.genai.types.Type
 import com.nexters.external.dto.GeminiModel
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 @Component
-@Profile("prod")
 class GeminiClient(
     @Value("\${ai.gemini.key}") private val apiKey: String
 ) {

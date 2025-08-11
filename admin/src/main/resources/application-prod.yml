@@ -3,3 +3,15 @@ spring:
     import:
         - postgresql-prod.yml
         - mongo-prod.yml
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            clientId: ${OAUTH2_CLIENT_ID_GOOGLE}
+            clientSecret: ${OAUTH2_CLIENT_SECRET_GOOGLE}
+            redirect-uri: https://fairy-band.com/admin/login/oauth2/code/google
+            scope:
+              - openid
+              - email
+              - profile
