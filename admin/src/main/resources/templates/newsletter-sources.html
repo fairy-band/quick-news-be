@@ -867,8 +867,12 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">내용</label>
-                        <textarea id="edit-content" class="form-control" rows="15" required></textarea>
+                        <label class="form-label">Plain Text 내용</label>
+                        <textarea id="edit-plain-text" class="form-control" rows="10"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">HTML 내용</label>
+                        <textarea id="edit-html-text" class="form-control" rows="10"></textarea>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">수정 완료</button>
@@ -1126,7 +1130,8 @@
                 item.dataset.id = source.id;
 
                 const receivedDate = new Date(source.receivedDate).toLocaleString('ko-KR');
-                const contentPreview = source.content.substring(0, 200) + (source.content.length > 200 ? '...' : '');
+                const plainText = source.plainText || source.htmlText || source.content || '';
+                const contentPreview = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
 
                 item.innerHTML = `
                     <div class="source-header">
@@ -1141,7 +1146,7 @@
                     </div>
                     <div class="source-content">
                         <div class="content-preview">${contentPreview}</div>
-                        ${source.content.length > 200 ? '<button class="expand-btn">더 보기</button>' : ''}
+                        ${plainText.length > 200 ? '<button class="expand-btn">더 보기</button>' : ''}
                     </div>
                 `;
 
@@ -1159,7 +1164,7 @@
                             this.textContent = '더 보기';
                         } else {
                             contentDiv.classList.add('expanded');
-                            previewDiv.textContent = source.content;
+                            previewDiv.textContent = plainText;
                             this.textContent = '접기';
                         }
                     });
@@ -1299,27 +1304,50 @@
                 </div>
                 <div class="detail-content-section">
                     <div class="content-header">
-                        <strong>내용:</strong>
-                        <button class="toggle-content-btn">내용 토글</button>
+                        <strong>Plain Text 내용:</strong>
+                        <button class="toggle-plain-content-btn">Plain Text 토글</button>
                     </div>
                     <div class="content-body">
-                        <div class="content-full" style="display: none;">${source.content}</div>
+                        <div class="plain-content-full" style="display: none;">${source.plainText || source.content || '없음'}</div>
+                    </div>
+                </div>
+                <div class="detail-content-section">
+                    <div class="content-header">
+                        <strong>HTML 내용:</strong>
+                        <button class="toggle-html-content-btn">HTML 토글</button>
+                    </div>
+                    <div class="content-body">
+                        <div class="html-content-full" style="display: none;">${source.htmlText || source.content || '없음'}</div>
                     </div>
                 </div>
             `;
 
             // 토글 버튼 이벤트 리스너 추가
-            const toggleBtn = detailContainer.querySelector('.toggle-content-btn');
-            toggleBtn.addEventListener('click', function() {
-                const contentFull = detailContainer.querySelector('.content-full');
+            const togglePlainBtn = detailContainer.querySelector('.toggle-plain-content-btn');
+            togglePlainBtn.addEventListener('click', function() {
+                const contentFull = detailContainer.querySelector('.plain-content-full');
                 const isExpanded = contentFull.style.display !== 'none';
 
                 if (isExpanded) {
                     contentFull.style.display = 'none';
-                    this.textContent = '내용 토글';
+                    this.textContent = 'Plain Text 토글';
                 } else {
                     contentFull.style.display = 'block';
-                    this.textContent = '내용 접기';
+                    this.textContent = 'Plain Text 접기';
+                }
+            });
+
+            const toggleHtmlBtn = detailContainer.querySelector('.toggle-html-content-btn');
+            toggleHtmlBtn.addEventListener('click', function() {
+                const contentFull = detailContainer.querySelector('.html-content-full');
+                const isExpanded = contentFull.style.display !== 'none';
+
+                if (isExpanded) {
+                    contentFull.style.display = 'none';
+                    this.textContent = 'HTML 토글';
+                } else {
+                    contentFull.style.display = 'block';
+                    this.textContent = 'HTML 접기';
                 }
             });
 
@@ -1333,14 +1361,19 @@
                 .then(source => {
                     const previewContainer = document.getElementById('preview-content');
 
-                    // HTML 렌더링 (간단한 변환)
-                    let htmlContent = source.content;
-
-                    // 텍스트를 HTML로 변환 (기본적인 변환)
-                    htmlContent = htmlContent
-                        .replace(/\n/g, '<br>')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    // HTML 렌더링 - htmlText → plainText → content 순서로 폴백
+                    let htmlContent = source.htmlText;
+                    
+                    if (!htmlContent) {
+                        const textContent = source.plainText || source.content;
+                        if (textContent) {
+                            // 텍스트를 HTML로 변환 (기본적인 변환)
+                            htmlContent = textContent
+                                .replace(/\n/g, '<br>')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                        }
+                    }
 
 
 
@@ -1373,7 +1406,7 @@
                     document.getElementById('newsletter-name').value = source.sender || '';
                     document.getElementById('original-url').value = '';
                     document.getElementById('published-date').value = new Date(source.receivedDate).toISOString().split('T')[0];
-                    document.getElementById('content-text').value = source.content;
+                    document.getElementById('content-text').value = source.plainText || source.htmlText || source.content || '';
                 })
                 .catch(error => {
                     console.error('Error loading source for content creation:', error);
@@ -1392,7 +1425,8 @@
                     document.getElementById('edit-recipient').value = source.recipient || '';
                     document.getElementById('edit-recipient-email').value = source.recipientEmail || '';
                     document.getElementById('edit-content-type').value = source.contentType || '';
-                    document.getElementById('edit-content').value = source.content || '';
+                    document.getElementById('edit-plain-text').value = source.plainText || source.content || '';
+                    document.getElementById('edit-html-text').value = source.htmlText || '';
                 })
                 .catch(error => {
                     console.error('Error loading source for edit:', error);
@@ -1412,16 +1446,18 @@
             const recipient = document.getElementById('edit-recipient').value;
             const recipientEmail = document.getElementById('edit-recipient-email').value;
             const contentType = document.getElementById('edit-content-type').value;
-            const content = document.getElementById('edit-content').value;
+            const plainText = document.getElementById('edit-plain-text').value;
+            const htmlText = document.getElementById('edit-html-text').value;
 
-            if (!sender || !senderEmail || !recipient || !recipientEmail || !contentType || !content) {
+            if (!sender || !senderEmail || !recipient || !recipientEmail || !contentType) {
                 showError('필수 필드를 모두 입력해주세요.');
                 return;
             }
 
             const requestData = {
                 subject: subject,
-                content: content,
+                plainText: plainText,
+                htmlText: htmlText,
                 sender: sender,
                 senderEmail: senderEmail,
                 recipient: recipient,
