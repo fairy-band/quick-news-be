@@ -82,12 +82,15 @@ class RssAiProcessingService(
         // RSS Item URL 가져오기
         val originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: ""
 
+        // NewsletterSource content 가져오기
+        val contentText = newsletterSource.content
+
         // Content 생성 (요약과 키워드는 별도 테이블)
         val content =
             Content(
                 newsletterSourceId = newsletterSource.id,
                 title = newsletterSource.subject ?: "Untitled",
-                content = newsletterSource.content,
+                content = contentText,
                 newsletterName = newsletterSource.sender,
                 originalUrl = originalUrl,
                 publishedAt = newsletterSource.receivedDate.toLocalDate(),
@@ -98,7 +101,7 @@ class RssAiProcessingService(
         val savedContent = contentRepository.save(content)
 
         // 요약 생성 및 저장
-        val summaryResult = summaryService.summarize(newsletterSource.content)
+        val summaryResult = summaryService.summarize(contentText)
         val summary =
             Summary(
                 content = savedContent,
@@ -111,7 +114,7 @@ class RssAiProcessingService(
         summaryRepository.save(summary)
 
         // 키워드 추출 및 저장 (KeywordService는 이미 CandidateKeyword에 저장함)
-        keywordService.extractKeywords(emptyList(), newsletterSource.content)
+        keywordService.extractKeywords(emptyList(), contentText)
 
         // 처리 상태 업데이트
         status.aiProcessed = true
