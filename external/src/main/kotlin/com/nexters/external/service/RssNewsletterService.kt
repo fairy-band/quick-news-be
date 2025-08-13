@@ -1,19 +1,21 @@
 package com.nexters.external.service
 
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.entity.RssProcessingStatus
 import com.nexters.external.repository.NewsletterSourceRepository
+import com.nexters.external.repository.RssProcessingStatusRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
 @Profile("prod")
 class RssNewsletterService(
     private val rssReaderService: RssReaderService,
-    private val newsletterSourceRepository: NewsletterSourceRepository
+    private val newsletterSourceRepository: NewsletterSourceRepository,
+    private val rssProcessingStatusRepository: RssProcessingStatusRepository
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterService::class.java)
 
@@ -29,35 +31,50 @@ class RssNewsletterService(
 
         var savedCount = 0
         feedMetadata.items.forEach { item ->
-            // RSS 항목의 URL을 기반으로 중복 체크 (NewsletterSource에는 originalUrl 필드가 없으므로 content로 체크)
-            val existingSource = newsletterSourceRepository.findBySenderAndSubject(feedMetadata.title, item.title)
+            // 처리 상태 테이블에서 중복 체크
+            val existingStatus = rssProcessingStatusRepository.findByItemUrl(item.link)
 
-            if (existingSource == null) {
+            if (existingStatus == null) {
                 val contentText = buildContentText(item)
 
-                val newsletterSource = NewsletterSource(
-                    subject = item.title,
-                    sender = feedMetadata.title, // RSS 피드 제목을 sender로 사용
-                    senderEmail = "rss@${extractDomainFromUrl(item.link)}", // URL에서 도메인 추출하여 이메일 형태로
-                    recipient = "system",
-                    recipientEmail = "system@newsletter.ai",
-                    content = contentText,
-                    contentType = "text/html", // RSS는 HTML 형태
-                    receivedDate = item.publishedDate ?: LocalDateTime.now(),
-                    headers = mapOf(
-                        "RSS-Feed-URL" to feedUrl,
-                        "RSS-Item-URL" to item.link,
-                        "RSS-Categories" to item.categories.joinToString(",")
+                val newsletterSource =
+                    NewsletterSource(
+                        subject = item.title,
+                        sender = feedMetadata.title, // RSS 피드 제목을 sender로 사용
+                        senderEmail = "rss@${extractDomainFromUrl(item.link)}", // URL에서 도메인 추출하여 이메일 형태로
+                        recipient = "system",
+                        recipientEmail = "system@newsletter.ai",
+                        content = contentText,
+                        contentType = "text/html", // RSS는 HTML 형태
+                        receivedDate = item.publishedDate ?: LocalDateTime.now(),
+                        headers =
+                            mapOf(
+                                "RSS-Feed-URL" to feedUrl,
+                                "RSS-Item-URL" to item.link,
+                                "RSS-Categories" to item.categories.joinToString(",")
+                            )
                     )
-                )
 
-                newsletterSourceRepository.save(newsletterSource)
+                val savedSource = newsletterSourceRepository.save(newsletterSource)
+
+                // 처리 상태 저장 (우선순위 계산)
+                val priority = calculatePriority(feedMetadata.title)
+                val processingStatus =
+                    RssProcessingStatus(
+                        newsletterSourceId = savedSource.id!!,
+                        rssUrl = feedUrl,
+                        itemUrl = item.link,
+                        title = item.title,
+                        isProcessed = true,
+                        aiProcessed = false,
+                        priority = priority
+                    )
+                rssProcessingStatusRepository.save(processingStatus)
+
                 savedCount++
                 logger.debug("Saved new RSS source: ${item.title}")
-
-                // RSS는 기존 뉴스레터 소스처럼 원문만 저장 (요약 생성 스킵)
             } else {
-                logger.debug("RSS source already exists: ${item.title}")
+                logger.debug("RSS item already exists: ${item.link}")
             }
         }
 
@@ -67,13 +84,13 @@ class RssNewsletterService(
 
     private fun buildContentText(item: RssReaderService.RssFeedItem): String =
         buildString {
-            item.description?.let { 
+            item.description?.let {
                 val cleanDescription = cleanHtmlContent(it)
                 if (cleanDescription.isNotBlank()) {
                     append("$cleanDescription\n\n")
                 }
             }
-            item.content?.let { 
+            item.content?.let {
                 val cleanContent = cleanHtmlContent(it)
                 if (cleanContent.isNotBlank()) {
                     append("$cleanContent\n\n")
@@ -85,8 +102,8 @@ class RssNewsletterService(
             }
         }.trim()
 
-    private fun cleanHtmlContent(htmlContent: String): String {
-        return htmlContent
+    private fun cleanHtmlContent(htmlContent: String): String =
+        htmlContent
             // HTML 태그 제거
             .replace(Regex("<[^>]+>"), " ")
             // HTML 엔티티 디코딩
@@ -102,16 +119,26 @@ class RssNewsletterService(
             // 연속된 줄바꿈을 두 개로 제한
             .replace(Regex("\n{3,}"), "\n\n")
             .trim()
-    }
 
-    private fun extractDomainFromUrl(url: String): String {
-        return try {
+    private fun extractDomainFromUrl(url: String): String =
+        try {
             val domain = url.substringAfter("://").substringBefore("/").substringBefore(":")
             domain.removePrefix("www.")
         } catch (e: Exception) {
             "unknown.com"
         }
-    }
+
+    private fun calculatePriority(feedTitle: String): Int =
+        when {
+            feedTitle.contains("카카오") -> 100
+            feedTitle.contains("우아한") -> 90
+            feedTitle.contains("당근") -> 85
+            feedTitle.contains("라인") || feedTitle.contains("LINE") -> 80
+            feedTitle.contains("JetBrains") -> 75
+            feedTitle.contains("Microsoft") || feedTitle.contains("TypeScript") -> 70
+            feedTitle.contains("무신사") || feedTitle.contains("29CM") || feedTitle.contains("원티드") -> 65
+            else -> 50
+        }
 
     @Transactional
     fun fetchAndProcessRssFeed(feedUrl: String): List<NewsletterSource> {
@@ -160,8 +187,10 @@ class RssNewsletterService(
     }
 
     fun getSourceStats(): Map<String, SourceStats> {
-        val allSources = newsletterSourceRepository.findAll()
-            .filter { it.senderEmail.startsWith("rss@") } // RSS 소스만
+        val allSources =
+            newsletterSourceRepository
+                .findAll()
+                .filter { it.senderEmail.startsWith("rss@") } // RSS 소스만
 
         return allSources
             .groupBy { it.sender }

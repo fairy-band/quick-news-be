@@ -24,5 +24,8 @@ interface NewsletterSourceRepository : MongoRepository<NewsletterSource, String>
 
     fun findBySender(sender: String): List<NewsletterSource>
 
-    fun findBySenderAndSubject(sender: String, subject: String): NewsletterSource?
+    fun findBySenderAndSubject(
+        sender: String,
+        subject: String
+    ): NewsletterSource?
 }

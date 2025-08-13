@@ -1,11 +1,12 @@
 package com.nexters.admin.controller
 
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.service.RssAiProcessingService
 import com.nexters.external.service.RssNewsletterService
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.http.ResponseEntity
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/admin/rss-newsletter")
 class RssNewsletterAdminController(
     private val rssNewsletterService: RssNewsletterService,
+    private val rssAiProcessingService: RssAiProcessingService,
     @Value("\${rss.feeds:}") private val rssFeeds: String
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterAdminController::class.java)
@@ -147,6 +149,58 @@ class RssNewsletterAdminController(
             )
         } catch (e: Exception) {
             logger.error("Error fetching all RSS feeds", e)
+            ResponseEntity.badRequest().body(
+                mapOf<String, Any>(
+                    "success" to false,
+                    "error" to (e.message ?: "Unknown error")
+                )
+            )
+        }
+    }
+
+    @PostMapping("/process-ai")
+    fun processRssWithAi(): ResponseEntity<Map<String, Any>> {
+        logger.info("Starting manual RSS AI processing")
+
+        return try {
+            val result = rssAiProcessingService.processDailyRssWithAi()
+            ResponseEntity.ok(
+                mapOf<String, Any>(
+                    "success" to true,
+                    "message" to result.message,
+                    "processedCount" to result.processedCount,
+                    "errorCount" to result.errorCount,
+                    "totalProcessedToday" to result.totalProcessedToday
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Error processing RSS with AI", e)
+            ResponseEntity.badRequest().body(
+                mapOf<String, Any>(
+                    "success" to false,
+                    "error" to (e.message ?: "Unknown error")
+                )
+            )
+        }
+    }
+
+    @GetMapping("/processing-stats")
+    fun getProcessingStats(): ResponseEntity<Map<String, Any>> {
+        logger.info("Getting RSS AI processing statistics")
+
+        return try {
+            val stats = rssAiProcessingService.getProcessingStats()
+            ResponseEntity.ok(
+                mapOf<String, Any>(
+                    "success" to true,
+                    "processedToday" to stats.processedToday,
+                    "dailyLimit" to stats.dailyLimit,
+                    "pending" to stats.pending,
+                    "remainingQuota" to stats.remainingQuota
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Error getting RSS AI processing stats", e)
             ResponseEntity.badRequest().body(
                 mapOf<String, Any>(
                     "success" to false,

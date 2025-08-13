@@ -39,13 +39,13 @@ class RssReaderService {
         try {
             val url = URL(feedUrl)
             val connection = url.openConnection()
-            
+
             // 간단한 헤더 설정으로 RSS 피드 접근
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; RSS Reader)")
             connection.setRequestProperty("Accept", "*/*")
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
-            
+
             val input = SyndFeedInput()
             val feed: SyndFeed = input.build(XmlReader(connection.getInputStream()))
 
