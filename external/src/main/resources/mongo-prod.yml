@@ -13,3 +13,5 @@ rss:
       delay: ${RSS_PROCESS_DELAY:900000}
     stats:
       cron: ${RSS_STATS_CRON:0 0 */3 * * *}
+  ai:
+    daily-limit: ${RSS_AI_DAILY_LIMIT:100}
