@@ -290,6 +290,10 @@
                 <button class="btn btn-secondary" id="get-stats-btn">
                     📊 통계 새로고침
                 </button>
+                
+                <button class="btn btn-primary" id="process-ai-btn">
+                    🤖 AI 처리 실행
+                </button>
 
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
@@ -359,6 +363,7 @@
             // 이벤트 리스너 설정
             document.getElementById('fetch-feeds-btn').addEventListener('click', fetchAllFeeds);
             document.getElementById('get-stats-btn').addEventListener('click', getStats);
+            document.getElementById('process-ai-btn').addEventListener('click', processAi);
 
             // 페이지 로드 시 통계 자동 로드
             getStats();
@@ -369,12 +374,14 @@
             document.getElementById('result-message').innerHTML = '';
             document.getElementById('fetch-feeds-btn').disabled = true;
             document.getElementById('get-stats-btn').disabled = true;
+            document.getElementById('process-ai-btn').disabled = true;
         }
 
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('fetch-feeds-btn').disabled = false;
             document.getElementById('get-stats-btn').disabled = false;
+            document.getElementById('process-ai-btn').disabled = false;
         }
 
         function showMessage(message, type = 'info') {
@@ -428,6 +435,36 @@
                 }
             } catch (error) {
                 showMessage(`❌ 통계 조회 오류: ${error.message}`, 'error');
+            }
+        }
+
+        async function processAi() {
+            showLoading();
+            
+            try {
+                const response = await fetch('./rss-newsletter/process-ai', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.success) {
+                    showMessage(`
+                        🤖 AI 처리 완료!<br>
+                        • 처리된 항목: ${data.processedCount}개<br>
+                        • 오류 항목: ${data.errorCount}개<br>
+                        • 오늘 총 처리: ${data.totalProcessedToday}개
+                    `, 'success');
+                    
+                    // 통계 자동 새로고침
+                    setTimeout(() => getStats(), 2000);
+                } else {
+                    showMessage(`❌ AI 처리 실패: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage(`❌ AI 처리 오류: ${error.message}`, 'error');
             }
         }
 

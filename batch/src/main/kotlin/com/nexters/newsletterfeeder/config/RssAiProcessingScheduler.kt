@@ -15,7 +15,7 @@ class RssAiProcessingScheduler(
 ) {
     private val logger = LoggerFactory.getLogger(RssAiProcessingScheduler::class.java)
 
-    @Scheduled(cron = "0 0 23 * * *") // 매일 오후 11시에 실행
+    @Scheduled(cron = "0 0 0 * * *") // 매일 자정에 실행
     fun processRssWithAi() {
         logger.info("Starting RSS AI processing scheduler")
         val result = rssAiProcessingService.processDailyRssWithAi()
