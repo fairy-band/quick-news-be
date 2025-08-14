@@ -673,6 +673,29 @@
             text-decoration: underline;
         }
 
+        .content-status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+            border: 1px solid;
+        }
+
+        .content-status-badge.created {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: #ffffff;
+            border-color: #38a169;
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+        }
+
+        .content-status-badge.not-created {
+            background: rgba(255, 255, 255, 0.05);
+            color: #a0aec0;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
         .content-text {
             background: rgba(0, 0, 0, 0.1);
             border-radius: 4px;
@@ -748,6 +771,9 @@
             <div class="source-stats">
                 <div class="stat-item">
                     총 소스: <span class="stat-value" id="total-sources">-</span>
+                </div>
+                <div class="stat-item">
+                    컨텐츠 생성됨: <span class="stat-value" id="content-created-sources">-</span>
                 </div>
                 <div class="stat-item">
                     선택됨: <span class="stat-value" id="selected-sources">0</span>
@@ -1091,7 +1117,7 @@
                     renderNewsletterSources(data.content);
                     updatePaginationInfo(data);
                     renderPagination(data);
-                    updateStats(data.totalElements);
+                    updateStats(data.totalElements, data.content);
                 })
                 .catch(error => {
                     hideLoading();
@@ -1133,10 +1159,18 @@
                 const plainText = source.plainText || source.htmlText || source.content || '';
                 const contentPreview = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
 
+                // 컨텐츠 생성 상태 배지 생성
+                const contentStatusBadge = source.hasContent 
+                    ? '<span class="content-status-badge created">✅ 컨텐츠 생성됨</span>'
+                    : '<span class="content-status-badge not-created">⏳ 미생성</span>';
+
                 item.innerHTML = `
                     <div class="source-header">
                         <div>
-                            <div class="source-title">${source.subject || '제목 없음'}</div>
+                            <div class="source-title">
+                                ${source.subject || '제목 없음'}
+                                ${contentStatusBadge}
+                            </div>
                             <div class="source-subject">${source.sender} (${source.senderEmail})</div>
                         </div>
                         <div class="source-meta">
@@ -1667,8 +1701,13 @@
             });
         }
 
-        function updateStats(totalElements) {
+        function updateStats(totalElements, sources = []) {
             document.getElementById('total-sources').textContent = totalElements;
+            
+            // 현재 페이지의 소스들 중 컨텐츠가 생성된 소스의 수 계산
+            const contentCreatedCount = sources.filter(source => source.hasContent).length;
+            document.getElementById('content-created-sources').textContent = 
+                `${contentCreatedCount}/${sources.length}`;
         }
 
         function updateSelectedCount() {
@@ -1767,8 +1806,14 @@
 
                 if (errorCount === 0) {
                     showSuccess(`모든 컨텐츠(${successCount}개)가 성공적으로 추가되었습니다!`);
+                    // 목록 새로고침하여 컨텐츠 생성 상태 업데이트
+                    loadNewsletterSources();
                 } else {
                     showError(`컨텐츠 추가 완료: 성공 ${successCount}개, 실패 ${errorCount}개`);
+                    // 일부라도 성공했다면 목록 새로고침
+                    if (successCount > 0) {
+                        loadNewsletterSources();
+                    }
                 }
             });
         }

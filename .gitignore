@@ -36,3 +36,4 @@ test-output/
 # Data directories
 data/
 *.log
+bin/

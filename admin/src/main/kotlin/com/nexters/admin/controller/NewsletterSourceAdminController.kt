@@ -43,8 +43,9 @@ class NewsletterSourceApiController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
         @RequestParam(required = false) senderEmail: String?,
-        @RequestParam(required = false) subject: String?
-    ): ResponseEntity<Page<NewsletterSource>> {
+        @RequestParam(required = false) subject: String?,
+        @RequestParam(required = false) hasContent: Boolean?
+    ): ResponseEntity<Page<NewsletterSourceWithContentStatus>> {
         val pageable =
             PageRequest.of(
                 page,
@@ -73,18 +74,39 @@ class NewsletterSourceApiController(
                 else -> newsletterSourceRepository.findAll(pageable)
             }
 
-        return ResponseEntity.ok(newsletterSources)
+        // 각 NewsletterSource에 대해 Content 존재 여부 확인
+        val sourcesWithContentStatus =
+            newsletterSources.content.map { source ->
+                val hasContent =
+                    source.id?.let { id ->
+                        contentRepository.existsByNewsletterSourceId(id)
+                    } ?: false
+                NewsletterSourceWithContentStatus.from(source, hasContent)
+            }
+
+        val resultPage =
+            PageImpl(
+                sourcesWithContentStatus,
+                pageable,
+                newsletterSources.totalElements
+            )
+
+        return ResponseEntity.ok(resultPage)
     }
 
     @GetMapping("/{id}")
     fun getNewsletterSourceById(
         @PathVariable id: String
-    ): ResponseEntity<NewsletterSource> {
+    ): ResponseEntity<NewsletterSourceWithContentStatus> {
         val newsletterSource =
             newsletterSourceRepository
                 .findById(id)
                 .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
-        return ResponseEntity.ok(newsletterSource)
+
+        val hasContent = contentRepository.existsByNewsletterSourceId(id)
+        val sourceWithContentStatus = NewsletterSourceWithContentStatus.from(newsletterSource, hasContent)
+
+        return ResponseEntity.ok(sourceWithContentStatus)
     }
 
     @PostMapping("/{id}/create-content")
@@ -258,3 +280,47 @@ data class AddParsedContentRequest(
     val originalUrl: String,
     val publishedAt: LocalDate
 )
+
+data class NewsletterSourceWithContentStatus(
+    val id: String?,
+    val subject: String?,
+    val sender: String,
+    val senderEmail: String,
+    val recipient: String,
+    val recipientEmail: String,
+    val plainText: String?,
+    val htmlText: String?,
+    val content: String?,
+    val contentType: String,
+    val receivedDate: LocalDateTime,
+    val headers: Map<String, String>,
+    val attachments: List<Any>,
+    val createdAt: LocalDateTime?,
+    val updatedAt: LocalDateTime?,
+    val hasContent: Boolean
+) {
+    companion object {
+        fun from(
+            newsletterSource: NewsletterSource,
+            hasContent: Boolean
+        ): NewsletterSourceWithContentStatus =
+            NewsletterSourceWithContentStatus(
+                id = newsletterSource.id,
+                subject = newsletterSource.subject,
+                sender = newsletterSource.sender,
+                senderEmail = newsletterSource.senderEmail,
+                recipient = newsletterSource.recipient,
+                recipientEmail = newsletterSource.recipientEmail,
+                plainText = newsletterSource.plainText,
+                htmlText = newsletterSource.htmlText,
+                content = newsletterSource.content,
+                contentType = newsletterSource.contentType,
+                receivedDate = newsletterSource.receivedDate,
+                headers = newsletterSource.headers,
+                attachments = newsletterSource.attachments,
+                createdAt = newsletterSource.createdAt,
+                updatedAt = newsletterSource.updatedAt,
+                hasContent = hasContent
+            )
+    }
+}

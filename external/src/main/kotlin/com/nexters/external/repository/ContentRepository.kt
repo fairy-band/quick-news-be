@@ -165,4 +165,8 @@ interface ContentRepository : JpaRepository<Content, Long> {
         @Param("userId") userId: Long,
         reservedKeywordIds: List<Long>
     ): List<Content>
+
+    fun existsByNewsletterSourceId(newsletterSourceId: String): Boolean
+
+    fun findByNewsletterSourceId(newsletterSourceId: String): List<Content>
 }
