@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
-    
+
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
@@ -30,6 +30,7 @@ jobs:
               - 'api/**'
               - 'batch/**'
               - 'external/**'
+              - 'newsletter/**'
               - 'build.gradle.kts'
               - 'gradle/**'
               - 'settings.gradle.kts'
@@ -140,11 +141,11 @@ jobs:
           script: |
             const ktlintResult = '${{ needs.ktlint.result }}';
             const testResult = '${{ needs.test.result }}';
-            
-            const allSuccess = ktlintResult === 'success' && 
+
+            const allSuccess = ktlintResult === 'success' &&
                               testResult === 'success';
             const status = allSuccess ? '성공' : '❌ 실패';
-            
+
             const getIcon = (result) => {
               switch(result) {
                 case 'success': return '✅';
@@ -154,30 +155,30 @@ jobs:
                 default: return '❓';
               }
             };
-            
+
             const body = `### PR 빌드 ${status}
-            
+
             | 단계 | 결과 | 상태 |
             |------|------|------|
             | Ktlint 검사 | ${getIcon(ktlintResult)} | ${ktlintResult} |
             | 테스트 | ${getIcon(testResult)} | ${testResult} |
-            
+
             **커밋:** \`${context.sha.substring(0, 7)}\`
             **실행 시간:** ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
             **워크플로우:** [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
-            
+
             // 이전 봇 코멘트 찾기
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
               comment.body.includes('### PR 빌드')
             );
-            
+
             if (botComment) {
               // 기존 코멘트 업데이트
               await github.rest.issues.updateComment({
