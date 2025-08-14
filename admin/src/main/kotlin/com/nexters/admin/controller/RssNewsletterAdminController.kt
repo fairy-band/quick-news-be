@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@Profile("prod")
+@Profile("prod", "dev")
 @RequestMapping("/admin/rss-newsletter")
 class RssNewsletterAdminController(
     private val rssNewsletterService: RssNewsletterService,
