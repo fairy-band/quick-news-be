@@ -4,6 +4,7 @@ import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.entity.RssProcessingStatus
 import com.nexters.external.repository.NewsletterSourceRepository
 import com.nexters.external.repository.RssProcessingStatusRepository
+import com.nexters.external.service.RssAiProcessingService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
@@ -15,7 +16,8 @@ import java.time.LocalDateTime
 class RssNewsletterService(
     private val rssReaderService: RssReaderService,
     private val newsletterSourceRepository: NewsletterSourceRepository,
-    private val rssProcessingStatusRepository: RssProcessingStatusRepository
+    private val rssProcessingStatusRepository: RssProcessingStatusRepository,
+    private val rssAiProcessingService: RssAiProcessingService
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterService::class.java)
 
@@ -57,7 +59,7 @@ class RssNewsletterService(
 
                 val savedSource = newsletterSourceRepository.save(newsletterSource)
 
-                // 처리 상태 저장 (우선순위 계산)
+                // 처리 상태 저장 (우선순위 계산) - 즉시 AI 처리
                 val priority = calculatePriority(feedMetadata.title)
                 val processingStatus =
                     RssProcessingStatus(
@@ -66,10 +68,19 @@ class RssNewsletterService(
                         itemUrl = item.link,
                         title = item.title,
                         isProcessed = true,
-                        aiProcessed = false,
+                        aiProcessed = false, // 아직 AI 처리 안됨
                         priority = priority
                     )
-                rssProcessingStatusRepository.save(processingStatus)
+                val savedStatus = rssProcessingStatusRepository.save(processingStatus)
+                
+                // 즉시 AI 처리 (Content, Summary, 키워드 생성)
+                try {
+                    rssAiProcessingService.processRssItemImmediately(savedStatus)
+                    logger.info("Immediately processed RSS item with AI: ${item.title}")
+                } catch (e: Exception) {
+                    logger.error("Failed to process RSS item immediately: ${item.title}", e)
+                    // AI 처리 실패해도 RSS 수집은 성공으로 처리
+                }
 
                 savedCount++
                 logger.debug("Saved new RSS source: ${item.title}")

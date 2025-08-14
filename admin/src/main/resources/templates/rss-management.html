@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS 관리</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <h1>RSS 관리</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>RSS 수집</h5>
+                </div>
+                <div class="card-body">
+                    <button id="fetchAllBtn" class="btn btn-primary">전체 RSS 피드 수집</button>
+                    <div id="fetchResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>AI 처리</h5>
+                </div>
+                <div class="card-body">
+                    <button id="processAiBtn" class="btn btn-success">AI 처리 실행</button>
+                    <div id="processResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>처리 통계</h5>
+                </div>
+                <div class="card-body">
+                    <button id="statsBtn" class="btn btn-info">통계 조회</button>
+                    <div id="statsResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>최근 RSS 소스</h5>
+                </div>
+                <div class="card-body">
+                    <button id="recentBtn" class="btn btn-secondary">최근 소스 조회</button>
+                    <div id="recentResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 전체 RSS 피드 수집
+    document.getElementById('fetchAllBtn').addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = '수집 중...';
+        
+        try {
+            const response = await fetch('/admin/rss-newsletter/fetch-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('fetchResult').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>성공!</strong> ${result.message}<br>
+                        총 ${result.totalFeeds}개 피드에서 새로운 아이템을 수집했습니다.
+                    </div>
+                `;
+            } else {
+                document.getElementById('fetchResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>오류!</strong> ${result.error}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            document.getElementById('fetchResult').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>오류!</strong> ${error.message}
+                </div>
+            `;
+        } finally {
+            this.disabled = false;
+            this.textContent = '전체 RSS 피드 수집';
+        }
+    });
+
+    // AI 처리 실행
+    document.getElementById('processAiBtn').addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = 'AI 처리 중...';
+        
+        try {
+            const response = await fetch('/admin/rss-newsletter/process-ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('processResult').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>AI 처리 완료!</strong><br>
+                        처리된 아이템: ${result.processedCount}개<br>
+                        오류 아이템: ${result.errorCount}개<br>
+                        오늘 총 처리: ${result.totalProcessedToday}개
+                    </div>
+                `;
+            } else {
+                document.getElementById('processResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>오류!</strong> ${result.error}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            document.getElementById('processResult').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>오류!</strong> ${error.message}
+                </div>
+            `;
+        } finally {
+            this.disabled = false;
+            this.textContent = 'AI 처리 실행';
+        }
+    });
+
+    // 통계 조회
+    document.getElementById('statsBtn').addEventListener('click', async function() {
+        try {
+            const response = await fetch('/admin/rss-newsletter/processing-stats');
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('statsResult').innerHTML = `
+                    <div class="alert alert-info">
+                        <strong>AI 처리 통계</strong><br>
+                        오늘 처리된 아이템: ${result.processedToday}개<br>
+                        일일 제한: ${result.dailyLimit}개<br>
+                        대기 중인 아이템: ${result.pending}개<br>
+                        남은 할당량: ${result.remainingQuota}개
+                    </div>
+                `;
+            } else {
+                document.getElementById('statsResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>오류!</strong> ${result.error}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            document.getElementById('statsResult').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>오류!</strong> ${error.message}
+                </div>
+            `;
+        }
+    });
+
+    // 최근 소스 조회
+    document.getElementById('recentBtn').addEventListener('click', async function() {
+        try {
+            const response = await fetch('/admin/rss-newsletter/recent?days=3');
+            const sources = await response.json();
+            
+            if (sources.length > 0) {
+                let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>제목</th><th>발신자</th><th>수신 시간</th></tr></thead><tbody>';
+                
+                sources.forEach(source => {
+                    html += `
+                        <tr>
+                            <td>${source.subject || 'N/A'}</td>
+                            <td>${source.sender}</td>
+                            <td>${new Date(source.receivedDate).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('recentResult').innerHTML = html;
+            } else {
+                document.getElementById('recentResult').innerHTML = `
+                    <div class="alert alert-warning">
+                        최근 3일 내 RSS 소스가 없습니다.
+                    </div>
+                `;
+            }
+        } catch (error) {
+            document.getElementById('recentResult').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>오류!</strong> ${error.message}
+                </div>
+            `;
+        }
+    });
+
+    // 페이지 로드 시 통계 자동 조회
+    document.getElementById('statsBtn').click();
+});
+</script>
+</body>
+</html>

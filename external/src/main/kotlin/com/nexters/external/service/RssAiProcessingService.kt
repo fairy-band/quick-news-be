@@ -176,6 +176,12 @@ class RssAiProcessingService(
 
         logger.info("Fully processed RSS item: ${savedContent.title} (ID: ${savedContent.id}) - Content, Summary, Keywords, ExposureContent created")
     }
+    
+    @Transactional
+    fun processRssItemImmediately(status: RssProcessingStatus) {
+        logger.info("Starting immediate RSS AI processing for: ${status.title}")
+        processRssItem(status)
+    }
 
     fun getProcessingStats(): ProcessingStats {
         val todayStart = LocalDate.now().atStartOfDay()
