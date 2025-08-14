@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 @Service
-@Profile("prod")
+@Profile({"prod", "dev"})
 class RssReaderService {
     private val logger = LoggerFactory.getLogger(RssReaderService::class.java)
 

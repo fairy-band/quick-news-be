@@ -20,7 +20,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
-@Profile("prod")
+@Profile({"prod", "dev"})
 class RssAiProcessingService(
     private val rssProcessingStatusRepository: RssProcessingStatusRepository,
     private val newsletterSourceRepository: NewsletterSourceRepository,

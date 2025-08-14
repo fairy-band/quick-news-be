@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
 
 @Component
 @EnableScheduling
-@Profile("prod")
+@Profile({"prod", "dev"})
 class RssFeedScheduler(
     private val rssNewsletterService: RssNewsletterService,
     @Value("\${rss.feeds:}") private val rssFeeds: String
