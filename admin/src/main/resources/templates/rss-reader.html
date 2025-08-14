@@ -393,7 +393,7 @@
             showLoading();
             
             try {
-                const response = await fetch('./rss-newsletter/fetch-all', {
+                const response = await fetch('./admin/rss-newsletter/fetch-all', {
                     method: 'POST'
                 });
                 
@@ -424,7 +424,7 @@
 
         async function getStats() {
             try {
-                const response = await fetch('./rss-newsletter/stats');
+                const response = await fetch('./admin/rss-newsletter/stats');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -442,7 +442,7 @@
             showLoading();
             
             try {
-                const response = await fetch('./rss-newsletter/process-ai', {
+                const response = await fetch('./admin/rss-newsletter/process-ai', {
                     method: 'POST'
                 });
                 
