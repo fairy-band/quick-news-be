@@ -9,13 +9,13 @@ import org.springframework.stereotype.Component
 
 @Component
 @EnableScheduling
-@Profile({"prod", "dev"})
+@Profile("prod", "dev")
 class RssAiProcessingScheduler(
     private val rssAiProcessingService: RssAiProcessingService
 ) {
     private val logger = LoggerFactory.getLogger(RssAiProcessingScheduler::class.java)
 
-    @Scheduled(cron = "0 25 22 * * *") // 매일 오후 10시 25분에 실행
+    @Scheduled(cron = "0 0 23 * * *") // 매일 오후 11시에 실행
     fun processRssWithAi() {
         logger.info("Starting RSS AI processing scheduler")
         val result = rssAiProcessingService.processDailyRssWithAi()

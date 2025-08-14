@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
-@Profile({"prod", "dev"})
+@Profile("prod", "dev")
 class RssNewsletterService(
     private val rssReaderService: RssReaderService,
     private val newsletterSourceRepository: NewsletterSourceRepository,
