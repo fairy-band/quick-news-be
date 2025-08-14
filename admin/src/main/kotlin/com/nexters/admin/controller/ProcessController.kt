@@ -11,6 +11,7 @@ import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
+import com.nexters.external.service.RssAiProcessingService
 import com.nexters.external.service.SummaryService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -33,7 +34,8 @@ class ProcessController(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
-    private val exposureContentService: ExposureContentService
+    private val exposureContentService: ExposureContentService,
+    private val rssAiProcessingService: RssAiProcessingService
 ) {
     @GetMapping("/content/{contentId}/keywords")
     fun getContentKeywords(
@@ -390,6 +392,45 @@ class ProcessController(
 
         return ResponseEntity.ok(result)
     }
+
+    @PostMapping("/rss/process-ai")
+    fun processRssWithAi(): ResponseEntity<RssProcessingResponse> {
+        return try {
+            val result = rssAiProcessingService.processDailyRssWithAi()
+            ResponseEntity.ok(
+                RssProcessingResponse(
+                    success = true,
+                    message = result.message,
+                    processedCount = result.processedCount,
+                    errorCount = result.errorCount,
+                    totalProcessedToday = result.totalProcessedToday
+                )
+            )
+        } catch (e: Exception) {
+            ResponseEntity.ok(
+                RssProcessingResponse(
+                    success = false,
+                    message = "RSS AI processing failed: ${e.message}",
+                    processedCount = 0,
+                    errorCount = 1,
+                    totalProcessedToday = 0
+                )
+            )
+        }
+    }
+
+    @GetMapping("/rss/stats")
+    fun getRssProcessingStats(): ResponseEntity<RssStatsResponse> {
+        val stats = rssAiProcessingService.getProcessingStats()
+        return ResponseEntity.ok(
+            RssStatsResponse(
+                processedToday = stats.processedToday,
+                dailyLimit = stats.dailyLimit,
+                pending = stats.pending,
+                remainingQuota = stats.remainingQuota
+            )
+        )
+    }
 }
 
 data class SummaryResponse(
@@ -450,4 +491,19 @@ data class AddCandidateKeywordsResponse(
 
 data class BulkContentExposureStatusRequest(
     val contentIds: List<Long>
+)
+
+data class RssProcessingResponse(
+    val success: Boolean,
+    val message: String,
+    val processedCount: Int,
+    val errorCount: Int,
+    val totalProcessedToday: Int
+)
+
+data class RssStatsResponse(
+    val processedToday: Int,
+    val dailyLimit: Int,
+    val pending: Int,
+    val remainingQuota: Int
 )
