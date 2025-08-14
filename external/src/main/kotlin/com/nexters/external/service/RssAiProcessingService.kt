@@ -1,10 +1,13 @@
 package com.nexters.external.service
 
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.RssProcessingStatus
 import com.nexters.external.entity.Summary
+import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
+import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.RssProcessingStatusRepository
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
@@ -25,6 +28,9 @@ class RssAiProcessingService(
     private val summaryRepository: SummaryRepository,
     private val summaryService: SummaryService,
     private val keywordService: KeywordService,
+    private val exposureContentService: ExposureContentService,
+    private val reservedKeywordRepository: ReservedKeywordRepository,
+    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     @Value("\${rss.ai.daily-limit:100}")
     private val dailyLimit: Int = 100
 ) {
@@ -102,19 +108,65 @@ class RssAiProcessingService(
 
         // 요약 생성 및 저장
         val summaryResult = summaryService.summarize(contentText)
+        
+        // 첫 번째 추천 제목 사용 (provocativeHeadlines가 있으면 첫 번째, 없으면 원래 제목)
+        val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: savedContent.title
+        
         val summary =
             Summary(
                 content = savedContent,
-                title = savedContent.title,
+                title = recommendedTitle,
                 summarizedContent = summaryResult.summary,
                 model = summaryResult.usedModel?.modelName ?: "unknown",
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
             )
-        summaryRepository.save(summary)
+        val savedSummary = summaryRepository.save(summary)
 
-        // 키워드 추출 및 저장 (KeywordService는 이미 CandidateKeyword에 저장함)
-        keywordService.extractKeywords(emptyList(), contentText)
+        // 키워드 추출 및 실제 키워드만 매핑
+        val keywordResult = keywordService.extractKeywords(emptyList(), contentText)
+        
+        // matchedKeywords 중에서 실제 ReservedKeyword에 있는 것만 Content에 매핑
+        keywordResult.matchedKeywords.forEach { keywordName ->
+            val reservedKeyword = reservedKeywordRepository.findByName(keywordName)
+            if (reservedKeyword != null) {
+                // 이미 매핑되어 있는지 확인
+                val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(savedContent, reservedKeyword)
+                if (existingMapping == null) {
+                    val mapping = ContentKeywordMapping(
+                        content = savedContent,
+                        keyword = reservedKeyword,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                    contentKeywordMappingRepository.save(mapping)
+                    logger.debug("Mapped keyword '${keywordName}' to content ID: ${savedContent.id}")
+                }
+            } else {
+                logger.debug("Keyword '${keywordName}' not found in reserved keywords, skipping mapping")
+            }
+        }
+
+        // ExposureContent 자동 생성 (노출 확정)
+        try {
+            val provocativeKeyword = keywordResult.matchedKeywords.firstOrNull { keywordName ->
+                reservedKeywordRepository.findByName(keywordName) != null
+            } ?: "일반"
+            
+            val provocativeHeadline = recommendedTitle
+            
+            exposureContentService.createOrUpdateExposureContent(
+                content = savedContent,
+                summary = savedSummary,
+                provocativeKeyword = provocativeKeyword,
+                provocativeHeadline = provocativeHeadline,
+                summaryContent = summaryResult.summary
+            )
+            
+            logger.info("Created ExposureContent for content ID: ${savedContent.id}")
+        } catch (e: Exception) {
+            logger.error("Failed to create ExposureContent for content ID: ${savedContent.id}", e)
+        }
 
         // 처리 상태 업데이트
         status.aiProcessed = true
@@ -122,7 +174,7 @@ class RssAiProcessingService(
         status.contentId = savedContent.id
         rssProcessingStatusRepository.save(status)
 
-        logger.debug("Created content from RSS: ${content.title} (ID: ${savedContent.id})")
+        logger.info("Fully processed RSS item: ${savedContent.title} (ID: ${savedContent.id}) - Content, Summary, Keywords, ExposureContent created")
     }
 
     fun getProcessingStats(): ProcessingStats {
