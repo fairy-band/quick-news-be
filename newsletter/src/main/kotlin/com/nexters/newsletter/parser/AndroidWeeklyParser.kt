@@ -27,11 +27,11 @@ class AndroidWeeklyParser : MailParser {
     )
 
     private fun extractIssueInfo(content: String): IssueInfo {
-        // Extract issue number from header (e.g., "687 August 10th, 2025" or "Android Weekly #685 🤖")
-        val issueMatch = ISSUE_HEADER_REGEX.find(content) ?: ISSUE_SUBJECT_REGEX.find(content)
+        // Extract issue number from header (e.g., "684 July 20th, 2025")
+        val issueMatch = ISSUE_HEADER_REGEX.find(content)
         val issueNumber = issueMatch?.groupValues?.get(1) ?: "Unknown"
 
-        // Extract date (e.g., "July 27th, 2025")
+        // Extract date (e.g., "July 20th, 2025")
         val dateMatch = ISSUE_DATE_REGEX.find(content)
         val issueDate = dateMatch?.value ?: "Unknown date"
 
@@ -42,113 +42,104 @@ class AndroidWeeklyParser : MailParser {
         content: String,
         issueInfo: IssueInfo
     ): List<MailContent> {
-        val headerPositions =
-            Section.entries
-                .associateWith { header -> content.indexOf(header.label) }
-                .filterValues { it >= 0 }
-                .toList()
-                .sortedBy { it.second }
-
-        if (headerPositions.isEmpty()) {
-            return listOf()
-        }
-
-        return headerPositions
-            .flatMapIndexed { idx, (section, start) ->
-                val end = headerPositions.getOrNull(idx + 1)?.second ?: content.length
-                val sectionContent = content.substring(start, end)
-                parseSection(section, sectionContent, issueInfo)
-            }.filter {
-                // Filter out sponsored content and non-article sections
-                it.section != Section.SPONSORED.label &&
-                    it.section != Section.JOBS.label &&
-                    it.section != Section.MERCHANDISE.label &&
-                    it.section != Section.PATREON.label
-            }
-    }
-
-    private fun parseSection(
-        section: Section,
-        rawSectionText: String,
-        issueInfo: IssueInfo
-    ): List<MailContent> {
-        val lines = rawSectionText.lines()
-        val seenTitles = mutableSetOf<String>()
         val results = mutableListOf<MailContent>()
 
-        var currentTitle: String? = null
-        var currentAuthor: String? = null
-        var currentDescription = StringBuilder()
-        var currentUrl: String? = null
+        // Articles & Tutorials 섹션만 파싱 (가장 중요한 섹션)
+        val articlesStart = content.indexOf("Articles & Tutorials")
+        if (articlesStart == -1) return results
 
-        for (line in lines) {
-            val trimmedLine = line.trim()
+        // 다음 섹션까지 또는 끝까지
+        val nextSectionStart = findNextSectionStart(content, articlesStart + "Articles & Tutorials".length)
+        val articlesEnd = nextSectionStart ?: content.length
 
-            // Skip empty lines and section headers
-            if (trimmedLine.isBlank() || Section.fromLabel(trimmedLine) != null) {
-                continue
-            }
+        val articlesContent = content.substring(articlesStart, articlesEnd)
 
-            // Skip sponsored markers
-            if (trimmedLine == "Sponsored" || trimmedLine.contains("Place a sponsored post")) {
-                continue
-            }
+        // URL 기반으로 아티클 분리
+        return parseArticlesByUrls(articlesContent, issueInfo)
+    }
 
-            // Check if this looks like a URL
-            if (URL_PATTERN.containsMatchIn(trimmedLine)) {
-                currentUrl = URL_PATTERN.find(trimmedLine)?.value?.cleanUrl()
+    private fun findNextSectionStart(
+        content: String,
+        fromIndex: Int
+    ): Int? {
+        val sections = listOf("Libraries & Code", "Videos & Podcasts", "Jobs", "Sponsored")
+        return sections
+            .mapNotNull { section ->
+                val index = content.indexOf(section, fromIndex)
+                if (index >= 0) index else null
+            }.minOrNull()
+    }
 
-                // If we have collected enough info, save the item
-                if (currentTitle != null && currentUrl != null && !seenTitles.contains(currentTitle!!)) {
-                    seenTitles.add(currentTitle!!)
-                    val contentText = "[${section.label}] Issue #${issueInfo.number} (${issueInfo.date}): ${currentAuthor ?: "Unknown"} - ${currentDescription.toString().trim()}"
+    private fun parseArticlesByUrls(
+        content: String,
+        issueInfo: IssueInfo
+    ): List<MailContent> {
+        val results = mutableListOf<MailContent>()
+        val urls = URL_PATTERN.findAll(content).toList()
+
+        if (urls.isEmpty()) return results
+
+        for (i in urls.indices) {
+            val url = urls[i].value.cleanUrl()
+
+            // URL 앞의 텍스트에서 제목과 설명 추출 (간단한 방식)
+            val startPos =
+                if (i == 0) {
+                    // 첫 번째 URL의 경우 "Articles & Tutorials" 이후부터
+                    val articlesIndex = content.indexOf("Articles & Tutorials")
+                    if (articlesIndex >= 0) articlesIndex + "Articles & Tutorials".length else 0
+                } else {
+                    urls[i - 1].range.last + 1
+                }
+            val endPos = urls[i].range.first
+
+            if (startPos < endPos) {
+                val textBeforeUrl = content.substring(startPos, endPos).trim()
+
+                // 스폰서 콘텐츠 스킵
+                if (textBeforeUrl.contains("Sponsored", ignoreCase = true) ||
+                    textBeforeUrl.contains("Advertise", ignoreCase = true) ||
+                    textBeforeUrl.contains("QA Wolf", ignoreCase = true)
+                ) {
+                    continue
+                }
+
+                // 간단한 제목 추출: 첫 번째 의미있는 문장
+                val title = extractSimpleTitle(textBeforeUrl)
+
+                if (title.isNotBlank() && title.length > 10) {
+                    val contentText = "[Articles & Tutorials] Issue #${issueInfo.number} (${issueInfo.date}): $textBeforeUrl"
                     results +=
                         MailContent(
-                            title = currentTitle!!,
+                            title = title,
                             content = contentText.take(500),
-                            link = currentUrl!!,
-                            section = section.label
+                            link = url,
+                            section = "Articles & Tutorials"
                         )
-                }
-
-                // Reset for next item
-                currentTitle = null
-                currentAuthor = null
-                currentDescription = StringBuilder()
-                currentUrl = null
-                continue
-            }
-
-            // Collect title, author, and description
-            when {
-                currentTitle == null && isLikelyTitle(trimmedLine) -> {
-                    currentTitle = trimmedLine
-                }
-                currentTitle != null && currentAuthor == null && isLikelyAuthor(trimmedLine) -> {
-                    currentAuthor = trimmedLine
-                }
-                currentTitle != null -> {
-                    if (currentDescription.isNotEmpty()) currentDescription.append(" ")
-                    currentDescription.append(trimmedLine)
                 }
             }
         }
 
-        return results
+        return results.take(10) // 최대 10개로 제한
     }
 
-    private fun isLikelyTitle(line: String): Boolean {
-        // Titles are usually longer and don't contain certain patterns
-        return line.length > 5 &&
-            !line.startsWith("http") &&
-            !line.contains("@") &&
-            !line.matches(Regex("^[A-Z][a-z]+ [A-Z][a-z]+$")) // Not just a name
-    }
+    private fun extractSimpleTitle(text: String): String {
+        // 가장 간단한 방식: 첫 번째 대문자로 시작하는 문장을 제목으로
+        val sentences = text.split(Regex("[.!?]")).map { it.trim() }
 
-    private fun isLikelyAuthor(line: String): Boolean {
-        // Authors are usually names
-        return line.matches(Regex("^[A-Z][a-z]+ [A-Z][a-z]+.*")) ||
-            line.matches(Regex("^[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+.*"))
+        for (sentence in sentences) {
+            if (sentence.length in 10..80 &&
+                sentence.firstOrNull()?.isUpperCase() == true &&
+                !sentence.contains("http", ignoreCase = true) &&
+                sentence.count { it == ' ' } in 2..12
+            ) {
+                return sentence
+            }
+        }
+
+        // 문장이 없으면 첫 번째 몇 단어를 제목으로
+        val words = text.split(Regex("\\s+")).take(6)
+        return if (words.isNotEmpty()) words.joinToString(" ") else text.take(50)
     }
 
     private fun String.cleanUrl(): String =
@@ -167,7 +158,6 @@ class AndroidWeeklyParser : MailParser {
     companion object {
         // Issue patterns
         private val ISSUE_HEADER_REGEX = Regex("(\\d{3})\\s+[A-Za-z]+ \\d+[a-z]{2}, \\d{4}")
-        private val ISSUE_SUBJECT_REGEX = Regex("Android Weekly #(\\d+)")
         private val ISSUE_DATE_REGEX = Regex("[A-Za-z]+ \\d+[a-z]{2}, \\d{4}")
 
         // Content patterns
@@ -175,24 +165,5 @@ class AndroidWeeklyParser : MailParser {
 
         private const val NEWSLETTER_NAME = "Android Weekly"
         private const val NEWSLETTER_MAIL_ADDRESS = "contact@androidweekly.net"
-    }
-
-    private enum class Section(
-        val label: String
-    ) {
-        ARTICLES("Articles & Tutorials"),
-        SPONSORED("Sponsored"),
-        LIBRARIES("Libraries & Code"),
-        VIDEOS("Videos & Podcasts"),
-        JOBS("Jobs"),
-        MERCHANDISE("MERCHANDISE"),
-        PATREON("PATREON");
-
-        companion object {
-            fun fromLabel(label: String) =
-                entries.firstOrNull {
-                    it.label.equals(label, ignoreCase = true)
-                }
-        }
     }
 }

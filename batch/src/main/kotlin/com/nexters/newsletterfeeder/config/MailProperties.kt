@@ -8,5 +8,5 @@ data class MailProperties(
     var port: Int = 0, // val -> var로 변경
     var username: String = "", // val -> var로 변경
     var password: String = "", // val -> var로 변경
-    var protocol: String = "" // val -> var로 변경
+    var protocol: String = "", // val -> var로 변경
 )
