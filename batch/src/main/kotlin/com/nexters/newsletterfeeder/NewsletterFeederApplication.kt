@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @EnableScheduling
 @IntegrationComponentScan
 @ConfigurationPropertiesScan
-@ComponentScan(basePackages = ["com.nexters.newsletterfeeder", "com.nexters.external"])
+@ComponentScan(basePackages = ["com.nexters.newsletterfeeder", "com.nexters.external", "com.nexters.newsletter"])
 class NewsletterFeederApplication
 
 fun main(args: Array<String>) {
