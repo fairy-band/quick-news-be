@@ -159,7 +159,6 @@ class RssAiProcessingService(
 
             exposureContentService.createOrUpdateExposureContent(
                 content = savedContent,
-                summary = savedSummary,
                 provocativeKeyword = provocativeKeyword,
                 provocativeHeadline = provocativeHeadline,
                 summaryContent = summaryResult.summary

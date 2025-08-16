@@ -146,7 +146,6 @@ class ExposureContentService(
     @Transactional
     fun createOrUpdateExposureContent(
         content: Content,
-        summary: Summary?,
         provocativeKeyword: String,
         provocativeHeadline: String,
         summaryContent: String
