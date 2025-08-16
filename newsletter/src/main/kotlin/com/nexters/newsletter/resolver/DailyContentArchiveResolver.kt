@@ -142,6 +142,7 @@ class DailyContentArchiveResolver(
                         RecommendCalculateSource(
                             positiveKeywords.map { PositiveKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                             negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
+                            content.publishedAt
                         ),
                     ).recommendScore
             }
