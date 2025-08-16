@@ -1,5 +1,5 @@
 dependencies {
-    implementation(project(":external"))
+    implementation(project(":newsletter"))
     implementation(libs.bundles.spring.boot.batch)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.kotlin.stdlib.jdk8)

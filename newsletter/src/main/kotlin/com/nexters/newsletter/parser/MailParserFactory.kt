@@ -4,10 +4,6 @@ class MailParserFactory {
     private val parsers =
         listOf(
             KotlinWeeklyParser(),
-            CssWeeklyParser(),
-            SwiftVincentParser(),
-            ReactStatusParser(),
-            IlbunParser(),
             AndroidWeeklyParser()
         )
 
