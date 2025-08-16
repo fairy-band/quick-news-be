@@ -72,7 +72,7 @@ class RssNewsletterService(
                         priority = priority
                     )
                 val savedStatus = rssProcessingStatusRepository.save(processingStatus)
-                
+
                 // 즉시 AI 처리 (Content, Summary, 키워드 생성)
                 try {
                     rssAiProcessingService.processRssItemImmediately(savedStatus)

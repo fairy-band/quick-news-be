@@ -108,10 +108,10 @@ class RssAiProcessingService(
 
         // 요약 생성 및 저장
         val summaryResult = summaryService.summarize(contentText)
-        
+
         // 첫 번째 추천 제목 사용 (provocativeHeadlines가 있으면 첫 번째, 없으면 원래 제목)
         val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: savedContent.title
-        
+
         val summary =
             Summary(
                 content = savedContent,
@@ -125,7 +125,7 @@ class RssAiProcessingService(
 
         // 키워드 추출 및 실제 키워드만 매핑
         val keywordResult = keywordService.extractKeywords(emptyList(), contentText)
-        
+
         // matchedKeywords 중에서 실제 ReservedKeyword에 있는 것만 Content에 매핑
         keywordResult.matchedKeywords.forEach { keywordName ->
             val reservedKeyword = reservedKeywordRepository.findByName(keywordName)
@@ -133,28 +133,30 @@ class RssAiProcessingService(
                 // 이미 매핑되어 있는지 확인
                 val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(savedContent, reservedKeyword)
                 if (existingMapping == null) {
-                    val mapping = ContentKeywordMapping(
-                        content = savedContent,
-                        keyword = reservedKeyword,
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now()
-                    )
+                    val mapping =
+                        ContentKeywordMapping(
+                            content = savedContent,
+                            keyword = reservedKeyword,
+                            createdAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now()
+                        )
                     contentKeywordMappingRepository.save(mapping)
-                    logger.debug("Mapped keyword '${keywordName}' to content ID: ${savedContent.id}")
+                    logger.debug("Mapped keyword '$keywordName' to content ID: ${savedContent.id}")
                 }
             } else {
-                logger.debug("Keyword '${keywordName}' not found in reserved keywords, skipping mapping")
+                logger.debug("Keyword '$keywordName' not found in reserved keywords, skipping mapping")
             }
         }
 
         // ExposureContent 자동 생성 (노출 확정)
         try {
-            val provocativeKeyword = keywordResult.matchedKeywords.firstOrNull { keywordName ->
-                reservedKeywordRepository.findByName(keywordName) != null
-            } ?: "일반"
-            
+            val provocativeKeyword =
+                keywordResult.matchedKeywords.firstOrNull { keywordName ->
+                    reservedKeywordRepository.findByName(keywordName) != null
+                } ?: "일반"
+
             val provocativeHeadline = recommendedTitle
-            
+
             exposureContentService.createOrUpdateExposureContent(
                 content = savedContent,
                 summary = savedSummary,
@@ -162,7 +164,7 @@ class RssAiProcessingService(
                 provocativeHeadline = provocativeHeadline,
                 summaryContent = summaryResult.summary
             )
-            
+
             logger.info("Created ExposureContent for content ID: ${savedContent.id}")
         } catch (e: Exception) {
             logger.error("Failed to create ExposureContent for content ID: ${savedContent.id}", e)
@@ -174,9 +176,11 @@ class RssAiProcessingService(
         status.contentId = savedContent.id
         rssProcessingStatusRepository.save(status)
 
-        logger.info("Fully processed RSS item: ${savedContent.title} (ID: ${savedContent.id}) - Content, Summary, Keywords, ExposureContent created")
+        logger.info(
+            "Fully processed RSS item: ${savedContent.title} (ID: ${savedContent.id}) - Content, Summary, Keywords, ExposureContent created"
+        )
     }
-    
+
     @Transactional
     fun processRssItemImmediately(status: RssProcessingStatus) {
         logger.info("Starting immediate RSS AI processing for: ${status.title}")
