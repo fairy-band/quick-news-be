@@ -726,6 +726,18 @@
                 </div>
 
                 <div style="margin-top: 2rem;">
+                    <h3>AI 예약 키워드 매칭</h3>
+                    <div id="reserved-keyword-selection">
+                        <button id="extract-with-reserved-btn" class="btn btn-primary">
+                            🤖 AI 예약 키워드 자동 매칭
+                        </button>
+                        <p style="font-size: 0.9rem; color: #a0aec0; margin-top: 0.5rem;">
+                            AI가 콘텐츠 내용을 분석하여 예약 키워드와 매칭되는 항목을 찾아 자동으로 키워드를 설정하고, 추가 키워드도 추천합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
                     <h3>후보 키워드 추가</h3>
                     <div class="keyword-candidate-container">
                         <div id="suggested-keywords-container" style="margin-bottom: 1rem;">
@@ -1414,6 +1426,10 @@
 
             document.getElementById('extract-with-selected-btn').addEventListener('click', function() {
                 extractWithSelectedKeywords();
+            });
+
+            document.getElementById('extract-with-reserved-btn').addEventListener('click', function() {
+                extractWithReservedKeywords();
             });
 
             // Set up headline selection
@@ -2426,6 +2442,129 @@
                     displaySuggestedKeywordsForSelection(data);
                 } else {
                     showError(data.error || '키워드 추출에 실패했습니다.');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        async function extractWithReservedKeywords() {
+            // 현재 선택된 콘텐츠 ID 가져오기
+            const contentDetailElement = document.getElementById('content-detail');
+            const contentId = contentDetailElement ? contentDetailElement.dataset.contentId : null;
+
+            if (!contentId) {
+                alert('콘텐츠를 선택해주세요.');
+                return;
+            }
+
+            // Clear previous results
+            document.getElementById('ai-results').innerHTML = '';
+            showLoading();
+
+            try {
+                // 새로운 API 호출: 예약 키워드와 매칭하여 자동 설정
+                const response = await fetch(`./api/contents/${contentId}/keywords/match-reserved`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (data.success) {
+                    let html = '<div class="result-card"><div class="result-title">🏷️ AI 기반 예약 키워드 매칭 결과</div>';
+                    html += `<div style="font-size: 0.9rem; color: #a0aec0; margin-bottom: 1rem;">${data.message}</div>`;
+
+                    if (data.matchedKeywords && data.matchedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">📌 AI가 매칭한 키워드 (${data.matchedKeywords.length}개)</div>
+                                <div class="keywords">
+                                    ${data.matchedKeywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.addedKeywords && data.addedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">✅ 새로 추가된 키워드 (${data.addedKeywords.length}개)</div>
+                                <div class="keywords">
+                                    ${data.addedKeywords.map(keyword => `<span class="keyword" style="background: linear-gradient(45deg, #43e97b, #38f9d7);">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.alreadyExistingKeywords && data.alreadyExistingKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">ℹ️ 이미 존재하는 키워드 (${data.alreadyExistingKeywords.length}개)</div>
+                                <div class="keywords">
+                                    ${data.alreadyExistingKeywords.map(keyword => `<span class="keyword" style="background: rgba(255, 255, 255, 0.2);">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.suggestedKeywords && data.suggestedKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">💡 AI 추천 키워드 (${data.suggestedKeywords.length}개)</div>
+                                <div class="keywords">
+                                    ${data.suggestedKeywords.map(keyword => `<span class="keyword" style="background: linear-gradient(45deg, #667eea, #764ba2);">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.provocativeKeywords && data.provocativeKeywords.length > 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">🔥 AI 추천 자극적인 키워드 (${data.provocativeKeywords.length}개)</div>
+                                <div class="keywords">
+                                    ${data.provocativeKeywords.map(keyword => `<span class="keyword" style="background: linear-gradient(45deg, #f093fb, #f5576c);">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.matchedKeywords.length === 0) {
+                        html += `
+                            <div class="keyword-group">
+                                <div class="keyword-label">⚠️ 매칭 결과</div>
+                                <p style="color: #a0aec0;">AI가 콘텐츠에서 예약 키워드와 일치하는 내용을 찾을 수 없습니다.</p>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('ai-results').innerHTML = html;
+
+                    // Display AI suggestions for candidate selection if available
+                    if ((data.suggestedKeywords && data.suggestedKeywords.length > 0) || 
+                        (data.provocativeKeywords && data.provocativeKeywords.length > 0)) {
+                        displaySuggestedKeywordsForSelection({
+                            matchedKeywords: data.matchedKeywords || [],
+                            suggestedKeywords: data.suggestedKeywords || [],
+                            provocativeKeywords: data.provocativeKeywords || []
+                        });
+                    }
+
+                    // 키워드가 추가된 경우 콘텐츠 키워드 목록 새로고침
+                    if (data.addedKeywords.length > 0) {
+                        fetchContentKeywords(contentId);
+                        
+                        // 예약 키워드 목록도 새로고침 (이미 추가된 키워드 표시를 위해)
+                        fetchReservedKeywords();
+                    }
+                } else {
+                    showError(data.error || '키워드 매칭에 실패했습니다.');
                 }
             } catch (error) {
                 hideLoading();
