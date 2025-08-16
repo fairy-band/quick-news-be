@@ -103,12 +103,13 @@ class PushNotificationService(
                     // FCM 토큰이 다르면 업데이트 (기존 토큰 비활성화 후 새로 등록)
                     fcmTokenRepository.deactivateDeviceToken(deviceToken)
                     logger.info("Updated FCM token for existing device: $deviceToken")
-                    
-                    val newToken = FcmToken(
-                        deviceToken = deviceToken,
-                        fcmToken = fcmToken,
-                        deviceType = deviceType
-                    )
+
+                    val newToken =
+                        FcmToken(
+                            deviceToken = deviceToken,
+                            fcmToken = fcmToken,
+                            deviceType = deviceType
+                        )
                     fcmTokenRepository.save(newToken)
                     logger.info("New FCM token registered for device: $deviceToken, deviceType: $deviceType")
                 }
@@ -121,12 +122,13 @@ class PushNotificationService(
                     fcmTokenRepository.deactivateToken(fcmToken)
                     logger.info("Deactivated FCM token from other device: ${existingFcmToken.deviceToken}")
                 }
-                
-                val newToken = FcmToken(
-                    deviceToken = deviceToken,
-                    fcmToken = fcmToken,
-                    deviceType = deviceType
-                )
+
+                val newToken =
+                    FcmToken(
+                        deviceToken = deviceToken,
+                        fcmToken = fcmToken,
+                        deviceType = deviceType
+                    )
                 fcmTokenRepository.save(newToken)
                 logger.info("New FCM token registered for new device: $deviceToken, deviceType: $deviceType")
             }
