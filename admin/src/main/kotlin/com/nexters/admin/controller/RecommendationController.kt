@@ -409,7 +409,6 @@ class RecommendationController(
         val exposureContent =
             exposureContentService.createOrUpdateExposureContent(
                 content = content,
-                summary = summary,
                 provocativeKeyword = request.provocativeKeyword,
                 provocativeHeadline = request.provocativeHeadline,
                 summaryContent = request.summaryContent

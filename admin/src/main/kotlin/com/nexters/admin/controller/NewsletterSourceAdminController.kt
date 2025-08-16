@@ -4,6 +4,9 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
+import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.ExposureContentService
+import com.nexters.external.service.KeywordService
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParserFactory
 import org.springframework.data.domain.Page
@@ -34,7 +37,10 @@ class NewsletterSourceAdminController {
 @RequestMapping("/api/newsletter-sources")
 class NewsletterSourceApiController(
     private val newsletterSourceRepository: NewsletterSourceRepository,
-    private val contentRepository: ContentRepository
+    private val contentRepository: ContentRepository,
+    private val summaryRepository: SummaryRepository,
+    private val keywordService: KeywordService,
+    private val exposureContentService: ExposureContentService
 ) {
     private val mailParserFactory = MailParserFactory()
 
@@ -249,6 +255,137 @@ class NewsletterSourceApiController(
         val savedContent = contentRepository.save(newContent)
         return ResponseEntity.ok(savedContent)
     }
+
+    @PostMapping("/{id}/match-keywords")
+    fun matchKeywordsForNewsletterSource(
+        @PathVariable id: String
+    ): ResponseEntity<MatchKeywordsResponse> {
+        val newsletterSource =
+            newsletterSourceRepository
+                .findById(id)
+                .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
+
+        // Get all contents created from this newsletter source
+        val contents = contentRepository.findByNewsletterSourceId(id)
+
+        if (contents.isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                MatchKeywordsResponse(
+                    success = false,
+                    message = "이 뉴스레터 소스에서 생성된 컨텐츠가 없습니다. 먼저 컨텐츠를 생성해주세요.",
+                    totalContents = 0,
+                    processedContents = 0,
+                    matchedKeywords = emptyList()
+                )
+            )
+        }
+
+        val allMatchedKeywords = mutableSetOf<String>()
+        var processedCount = 0
+
+        contents.forEach { content ->
+            try {
+                val matchedKeywords = keywordService.matchReservedKeywords(content.content)
+                matchedKeywords.forEach { keyword ->
+                    allMatchedKeywords.add(keyword.name)
+                }
+                processedCount++
+            } catch (e: Exception) {
+                // 개별 컨텐츠 처리 실패는 로그만 남기고 계속 진행
+                println("Failed to match keywords for content ${content.id}: ${e.message}")
+            }
+        }
+
+        return ResponseEntity.ok(
+            MatchKeywordsResponse(
+                success = true,
+                message = "키워드 매칭이 완료되었습니다.",
+                totalContents = contents.size,
+                processedContents = processedCount,
+                matchedKeywords = allMatchedKeywords.toList()
+            )
+        )
+    }
+
+    @PostMapping("/{id}/create-exposure-content")
+    fun createExposureContentForNewsletterSource(
+        @PathVariable id: String
+    ): ResponseEntity<CreateExposureContentResponse> {
+        val newsletterSource =
+            newsletterSourceRepository
+                .findById(id)
+                .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
+
+        // Get all contents created from this newsletter source
+        val contents = contentRepository.findByNewsletterSourceId(id)
+
+        if (contents.isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                CreateExposureContentResponse(
+                    success = false,
+                    message = "이 뉴스레터 소스에서 생성된 컨텐츠가 없습니다. 먼저 컨텐츠를 생성해주세요.",
+                    processedContents = 0,
+                    createdExposureContents = emptyList()
+                )
+            )
+        }
+
+        val createdExposureContents = mutableListOf<ExposureContentInfo>()
+
+        contents.forEach { content ->
+            try {
+                // Check if the content has any summaries
+                val summaries = summaryRepository.findByContent(content)
+
+                if (summaries.isNotEmpty()) {
+                    // Use the latest summary to create exposure content
+                    val latestSummary = summaries.first()
+                    val exposureContent = exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
+
+                    createdExposureContents.add(
+                        ExposureContentInfo(
+                            contentId = content.id!!,
+                            contentTitle = content.title,
+                            exposureContentId = exposureContent.id!!,
+                            provocativeKeyword = exposureContent.provocativeKeyword,
+                            provocativeHeadline = exposureContent.provocativeHeadline
+                        )
+                    )
+                } else {
+                    // If no summary exists, create a basic exposure content using the content directly
+                    val exposureContent =
+                        exposureContentService.createOrUpdateExposureContent(
+                            content = content,
+                            provocativeKeyword = "Newsletter",
+                            provocativeHeadline = content.title,
+                            summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else ""
+                        )
+
+                    createdExposureContents.add(
+                        ExposureContentInfo(
+                            contentId = content.id!!,
+                            contentTitle = content.title,
+                            exposureContentId = exposureContent.id!!,
+                            provocativeKeyword = exposureContent.provocativeKeyword,
+                            provocativeHeadline = exposureContent.provocativeHeadline
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                // 개별 컨텐츠 처리 실패는 로그만 남기고 계속 진행
+                println("Failed to create exposure content for content ${content.id}: ${e.message}")
+            }
+        }
+
+        return ResponseEntity.ok(
+            CreateExposureContentResponse(
+                success = true,
+                message = "노출 컨텐츠 생성이 완료되었습니다.",
+                processedContents = createdExposureContents.size,
+                createdExposureContents = createdExposureContents
+            )
+        )
+    }
 }
 
 data class CreateContentFromNewsletterSourceRequest(
@@ -283,6 +420,29 @@ data class AddParsedContentRequest(
     val newsletterName: String,
     val originalUrl: String,
     val publishedAt: LocalDate
+)
+
+data class MatchKeywordsResponse(
+    val success: Boolean,
+    val message: String,
+    val totalContents: Int,
+    val processedContents: Int,
+    val matchedKeywords: List<String>
+)
+
+data class CreateExposureContentResponse(
+    val success: Boolean,
+    val message: String,
+    val processedContents: Int,
+    val createdExposureContents: List<ExposureContentInfo>
+)
+
+data class ExposureContentInfo(
+    val contentId: Long,
+    val contentTitle: String,
+    val exposureContentId: Long,
+    val provocativeKeyword: String,
+    val provocativeHeadline: String
 )
 
 data class NewsletterSourceWithContentStatus(
