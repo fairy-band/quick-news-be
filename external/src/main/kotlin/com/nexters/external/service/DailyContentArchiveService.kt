@@ -19,7 +19,7 @@ class DailyContentArchiveService(
     ) = dailyContentArchiveRepository.findByDateAndUserId(date, userId)
 
     @Transactional
-    fun save(dailyContentArchive: DailyContentArchive): DailyContentArchive {
+    fun saveWithHistory(dailyContentArchive: DailyContentArchive): DailyContentArchive {
         dailyContentArchive.exposureContents.forEach {
             userExposedContentMappingRepository.save(
                 UserExposedContentMapping(

@@ -85,7 +85,7 @@ class DailyContentArchiveResolver(
                 exposureContents = contents,
             )
 
-        return dailyContentArchiveService.save(dailyContentArchive)
+        return dailyContentArchiveService.saveWithHistory(dailyContentArchive)
     }
 
     private fun resolveTodayContents(
