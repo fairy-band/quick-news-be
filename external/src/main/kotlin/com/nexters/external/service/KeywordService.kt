@@ -5,18 +5,23 @@ import com.google.gson.JsonSyntaxException
 import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.dto.KeywordResult
+import com.nexters.external.entity.Content
+import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class KeywordService(
     private val geminiClient: GeminiClient,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
+    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val gson: Gson = Gson(),
 ) {
     private val logger = LoggerFactory.getLogger(KeywordService::class.java)
@@ -83,6 +88,31 @@ class KeywordService(
         candidateKeywordRepository.delete(candidateKeyword)
 
         return reservedKeyword
+    }
+
+    @Transactional
+    fun assignKeywordsToContent(
+        content: Content,
+        matchedKeywords: List<ReservedKeyword>,
+    ) {
+        matchedKeywords.forEach { keyword ->
+            // 이미 매핑되어 있는지 확인
+            val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(content, keyword)
+            if (existingMapping == null) {
+                // 새로운 매핑 생성
+                val mapping =
+                    ContentKeywordMapping(
+                        content = content,
+                        keyword = keyword,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now(),
+                    )
+                contentKeywordMappingRepository.save(mapping)
+                logger.debug("Assigned keyword '${keyword.name}' to content ID: ${content.id}")
+            } else {
+                logger.debug("Keyword '${keyword.name}' already assigned to content ID: ${content.id}")
+            }
+        }
     }
 
     private fun parseJsonResponse(responseText: String?): KeywordResult? =

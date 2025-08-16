@@ -1857,219 +1857,55 @@
             autoProcessBtn.disabled = true;
             autoProcessBtn.innerHTML = '<span class="btn-icon">⏳</span>처리 중...';
 
-            // 생성된 컨텐츠 ID들을 저장할 변수
-            let createdContentIds = [];
-            let newsletterSourceData = null;
-
-            // 단계별 진행 상황을 보여주는 함수
-            const updateProgress = (step, message) => {
-                autoProcessBtn.innerHTML = `<span class="btn-icon">⏳</span>${step}: ${message}`;
-            };
-
-            // 먼저 뉴스레터 소스 정보를 가져와서 날짜 정보 확보
-            updateProgress('0/5', '뉴스레터 소스 정보 조회 중...');
-            
-            fetch(`./api/newsletter-sources/${sourceId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('뉴스레터 소스 정보를 가져올 수 없습니다.');
-                    }
-                    return response.json();
-                })
-                .then(sourceData => {
-                    newsletterSourceData = sourceData;
-                    
-                    // 1단계: 파서 테스트 실행
-                    updateProgress('1/5', '파서 테스트 중...');
-            
-                    return fetch(`./api/newsletter-sources/${sourceId}/test-parser`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                })
+            // NewsletterProcessingService를 사용한 통합 처리
+            fetch(`./api/newsletter-sources/${sourceId}/auto-process`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('파서 테스트에 실패했습니다.');
+                    throw new Error('자동 처리에 실패했습니다.');
                 }
                 return response.json();
             })
             .then(result => {
-                if (!result.isTarget) {
-                    throw new Error('이 뉴스레터는 지원되는 파서의 대상이 아닙니다.');
+                if (!result.success) {
+                    throw new Error(result.message || '자동 처리에 실패했습니다.');
                 }
 
-                if (result.parsedContents.length === 0) {
-                    throw new Error('파싱된 컨텐츠가 없습니다.');
-                }
-
-                // 2단계: 컨텐츠 생성
-                updateProgress('2/5', `컨텐츠 생성 중... (${result.parsedContents.length}개)`);
-                
-                // 뉴스레터 소스의 receivedDate를 사용 (LocalDateTime에서 LocalDate로 변환)
-                const sourceReceivedDate = new Date(newsletterSourceData.receivedDate).toISOString().split('T')[0];
-                const addContentPromises = result.parsedContents.map(content => {
-                    const requestData = {
-                        title: content.title,
-                        content: content.content,
-                        newsletterName: content.section || 'Newsletter',
-                        originalUrl: content.link,
-                        publishedAt: sourceReceivedDate
-                    };
-
-                    return fetch(`./api/newsletter-sources/${sourceId}/add-parsed-content`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(requestData)
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`컨텐츠 "${content.title}" 추가 실패`);
-                        }
-                        return response.json();
-                    })
-                    .then(createdContent => {
-                        // 생성된 컨텐츠 ID 저장
-                        createdContentIds.push(createdContent.id);
-                        return createdContent;
-                    });
-                });
-
-                return Promise.allSettled(addContentPromises);
-            })
-            .then(results => {
-                const successCount = results.filter(result => result.status === 'fulfilled').length;
-                const errorCount = results.filter(result => result.status === 'rejected').length;
-
-                if (errorCount > 0) {
-                    console.warn(`컨텐츠 생성 중 일부 실패: 성공 ${successCount}개, 실패 ${errorCount}개`);
-                }
-
-                // 3단계: 요약 생성 (각 컨텐츠별로)
-                updateProgress('3/5', `요약 생성 중... (${createdContentIds.length}개 컨텐츠)`);
-                
-                // 생성된 모든 컨텐츠에 대해 요약 생성
-                const summaryPromises = createdContentIds.map(contentId => {
-                    return fetch(`./api/process/content/${contentId}/summary`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            console.warn(`컨텐츠 ${contentId}의 요약 생성에 실패했습니다.`);
-                            return null;
-                        }
-                        return response.json();
-                    })
-                    .then(summaryData => {
-                        if (summaryData && summaryData.success) {
-                            // 요약 저장 API 호출
-                            return fetch(`./api/process/content/${contentId}/summary/save`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    title: summaryData.provocativeHeadlines && summaryData.provocativeHeadlines.length > 0 
-                                        ? summaryData.provocativeHeadlines[0] 
-                                        : '요약',
-                                    summary: summaryData.summary,
-                                    model: summaryData.usedModel || 'unknown'
-                                })
-                            });
-                        }
-                        return null;
-                    })
-                    .catch(error => {
-                        console.warn(`컨텐츠 ${contentId}의 요약 처리 중 오류:`, error);
-                        return null;
-                    });
-                });
-                
-                return Promise.allSettled(summaryPromises);
-            })
-            .then(() => {
-                // 4단계: AI 예약 키워드 매칭 (키워드 생성 + 매칭을 한번에)
-                updateProgress('4/5', `AI 키워드 매칭 중... (${createdContentIds.length}개 컨텐츠)`);
-                
-                // 생성된 모든 컨텐츠에 대해 AI 예약 키워드 매칭 실행
-                const keywordMatchPromises = createdContentIds.map(contentId => {
-                    return fetch(`./api/contents/${contentId}/keywords/match-reserved`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            console.warn(`컨텐츠 ${contentId}의 키워드 매칭에 실패했습니다.`);
-                            return null;
-                        }
-                        return response.json();
-                    })
-                    .catch(error => {
-                        console.warn(`컨텐츠 ${contentId}의 키워드 매칭 중 오류:`, error);
-                        return null;
-                    });
-                });
-                
-                return Promise.allSettled(keywordMatchPromises);
-            })
-            .then(() => {
-                // 5단계: 노출 컨텐츠 생성
-                updateProgress('5/5', '노출 컨텐츠 생성 중...');
-                
-                return fetch(`./api/newsletter-sources/${sourceId}/create-exposure-content`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            })
-            .then(response => {
-                if (!response.ok) {
-                    console.warn('노출 컨텐츠 생성에 실패했습니다. 계속 진행합니다.');
-                    return null;
-                }
-                return response.json();
-            })
-            .then(() => {
                 // 완료
                 autoProcessBtn.innerHTML = '<span class="btn-icon">✅</span>처리 완료!';
                 autoProcessBtn.style.background = 'linear-gradient(45deg, #48bb78, #38a169)';
                 
-                showSuccess('자동 처리가 완료되었습니다! (파싱 + 컨텐츠 생성 + 요약 + AI 키워드 매칭 + 노출 컨텐츠)');
+                showSuccess(`자동 처리가 완료되었습니다! (${result.processedContentCount}개 컨텐츠 처리됨)`);
                 
                 // 목록 새로고침
                 loadNewsletterSources();
                 
                 // 3초 후 버튼 원상복구
-                    setTimeout(() => {
-                        autoProcessBtn.disabled = false;
-                        autoProcessBtn.innerHTML = originalContent;
-                        autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
-                    }, 3000);
-                })
-                .catch(error => {
-                    console.error('Error in auto processing:', error);
-                    
-                    autoProcessBtn.innerHTML = '<span class="btn-icon">❌</span>처리 실패';
-                    autoProcessBtn.style.background = 'linear-gradient(45deg, #e53e3e, #c53030)';
-                    
-                    showError('자동 처리에 실패했습니다: ' + error.message);
-                    
-                    // 3초 후 버튼 원상복구
-                    setTimeout(() => {
-                        autoProcessBtn.disabled = false;
-                        autoProcessBtn.innerHTML = originalContent;
-                        autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
-                    }, 3000);
-                });
+                setTimeout(() => {
+                    autoProcessBtn.disabled = false;
+                    autoProcessBtn.innerHTML = originalContent;
+                    autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error in auto processing:', error);
+                
+                autoProcessBtn.innerHTML = '<span class="btn-icon">❌</span>처리 실패';
+                autoProcessBtn.style.background = 'linear-gradient(45deg, #e53e3e, #c53030)';
+                
+                showError('자동 처리에 실패했습니다: ' + error.message);
+                
+                // 3초 후 버튼 원상복구
+                setTimeout(() => {
+                    autoProcessBtn.disabled = false;
+                    autoProcessBtn.innerHTML = originalContent;
+                    autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+                }, 3000);
+            });
         }
     </script>
 </body>
