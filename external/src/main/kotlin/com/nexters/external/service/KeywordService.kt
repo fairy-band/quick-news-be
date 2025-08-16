@@ -21,6 +21,17 @@ class KeywordService(
 ) {
     private val logger = LoggerFactory.getLogger(KeywordService::class.java)
 
+    fun matchReservedKeywords(content: String): List<ReservedKeyword> {
+        val reservedKeywords =
+            reservedKeywordRepository
+                .findAll()
+                .map { it.name }
+                .toList()
+
+        val keywordResult = extractKeywords(reservedKeywords, content)
+        return reservedKeywordRepository.findByNameIn(keywordResult.matchedKeywords)
+    }
+
     fun extractKeywords(
         inputKeywords: List<String>,
         content: String,

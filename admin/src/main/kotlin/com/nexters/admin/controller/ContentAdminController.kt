@@ -9,6 +9,7 @@ import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.KeywordService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -48,7 +49,8 @@ class ContentApiController(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
-    private val exposureContentRepository: ExposureContentRepository
+    private val exposureContentRepository: ExposureContentRepository,
+    private val keywordService: KeywordService
 ) {
     @GetMapping
     fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
@@ -467,6 +469,64 @@ class ContentApiController(
 
         return ResponseEntity.ok(contentResponses)
     }
+
+    @PostMapping("/{contentId}/keywords/match-reserved")
+    fun matchReservedKeywords(
+        @PathVariable contentId: Long
+    ): ResponseEntity<MatchReservedKeywordsResponse> {
+        val content =
+            contentRepository
+                .findById(contentId)
+                .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
+
+        // Use KeywordService to match reserved keywords
+        val matchedKeywords = keywordService.matchReservedKeywords(content.content)
+
+        // Get all reserved keywords for total count and suggestions
+        val allReservedKeywords = reservedKeywordRepository.findAll()
+        val reservedKeywordNames = allReservedKeywords.map { it.name }
+
+        // Get full keyword result for suggestions and provocative keywords
+        val keywordResult = keywordService.extractKeywords(reservedKeywordNames, content.content)
+
+        // Process matched keywords and add them to content
+        val addedKeywords = mutableListOf<String>()
+        val alreadyExistingKeywords = mutableListOf<String>()
+
+        matchedKeywords.forEach { keyword ->
+            // Check if mapping already exists
+            val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(content, keyword)
+            if (existingMapping == null) {
+                // Add keyword to content
+                val mapping =
+                    ContentKeywordMapping(
+                        content = content,
+                        keyword = keyword,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                contentKeywordMappingRepository.save(mapping)
+                addedKeywords.add(keyword.name)
+            } else {
+                alreadyExistingKeywords.add(keyword.name)
+            }
+        }
+
+        return ResponseEntity.ok(
+            MatchReservedKeywordsResponse(
+                success = true,
+                totalReservedKeywords = allReservedKeywords.size,
+                matchedKeywords = matchedKeywords.map { it.name },
+                addedKeywords = addedKeywords,
+                alreadyExistingKeywords = alreadyExistingKeywords,
+                suggestedKeywords = keywordResult.suggestedKeywords,
+                provocativeKeywords = keywordResult.provocativeKeywords,
+                message =
+                    "총 ${allReservedKeywords.size}개의 예약 키워드 중 ${matchedKeywords.size}개가 매칭되었습니다. " +
+                        "${addedKeywords.size}개가 새로 추가되었고, ${alreadyExistingKeywords.size}개는 이미 존재합니다."
+            )
+        )
+    }
 }
 
 data class AddKeywordToContentRequest(
@@ -516,4 +576,15 @@ data class ContentWithSortInfoResponse(
     val updatedAt: LocalDateTime,
     val hasSummary: Boolean,
     val isExposed: Boolean = false
+)
+
+data class MatchReservedKeywordsResponse(
+    val success: Boolean,
+    val totalReservedKeywords: Int,
+    val matchedKeywords: List<String>,
+    val addedKeywords: List<String>,
+    val alreadyExistingKeywords: List<String>,
+    val suggestedKeywords: List<String>,
+    val provocativeKeywords: List<String>,
+    val message: String
 )
