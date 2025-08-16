@@ -29,16 +29,15 @@ class NewsletterProcessingService(
 
     @Transactional
     fun processNewsletter(newsletterSourceId: String): List<ExposureContent> {
-        logger.info("Starting complete newsletter processing for source ID: $newsletterSourceId")
-
         try {
             val newsletterSource = newsletterSourceService.findById(newsletterSourceId)!!
 
             val parser = mailParserFactory.findParser(newsletterSource.senderEmail)
             if (parser == null) {
-                logger.warn("No parser found for sender email: ${newsletterSource.senderEmail}. Skipping processing.")
-                throw IllegalArgumentException("No parser found for sender email: ${newsletterSource.senderEmail}")
+                return listOf() // 파서가 없는 경우 처리하지 않는다.
             }
+
+            logger.info("Starting complete newsletter processing for source ID: $newsletterSourceId")
 
             val parsedContents =
                 try {
@@ -58,7 +57,9 @@ class NewsletterProcessingService(
 
             matchKeywords(createdContents)
 
-            return createExposureContents(createdContents)
+            val exposureContents = createExposureContents(createdContents)
+            logger.info("End complete newsletter processing for source ID: $newsletterSourceId")
+            return exposureContents
         } catch (e: Exception) {
             logger.error("Failed to process newsletter source ID: $newsletterSourceId", e)
         }

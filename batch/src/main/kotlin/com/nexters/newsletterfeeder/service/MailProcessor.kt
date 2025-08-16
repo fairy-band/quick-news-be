@@ -2,6 +2,7 @@ package com.nexters.newsletterfeeder.service
 
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.service.NewsletterSourceService
+import com.nexters.newsletter.service.NewsletterProcessingService
 import com.nexters.newsletterfeeder.dto.EmailMessage
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -19,44 +20,17 @@ data class MailProcessingResult(
 @Service
 class MailProcessor(
     private val newsletterSourceService: NewsletterSourceService,
+    private val newsletterProcessingService: NewsletterProcessingService,
 ) {
-    fun processEmail(emailMessage: EmailMessage): MailProcessingResult {
-        val startTime = System.currentTimeMillis()
-
-        try {
-            logger.info("Processing email from: ${emailMessage.from.joinToString(", ")}")
-            logger.info("Subject: ${emailMessage.subject}")
-            logger.info("Sent Date: ${emailMessage.sentDate}")
-
-            return MailProcessingResult(
-                success = true,
-                emailMessage = emailMessage,
-                processingTime = System.currentTimeMillis() - startTime,
-            )
-        } catch (e: IllegalArgumentException) {
-            logger.warn("Newsletter already exists: ${e.message}")
-            return MailProcessingResult(
-                success = false,
-                emailMessage = emailMessage,
-                errorMessage = "Newsletter already exists: ${e.message}",
-                processingTime = System.currentTimeMillis() - startTime,
-            )
-        } catch (e: Exception) {
-            logger.error("Error processing email", e)
-            return MailProcessingResult(
-                success = false,
-                emailMessage = emailMessage,
-                errorMessage = "Error processing email: ${e.message}",
-                processingTime = System.currentTimeMillis() - startTime,
-            )
-        }
-    }
-
     fun saveNewsletterSource(emailMessage: EmailMessage): NewsletterSource {
         val newsletterSource = convertToNewsletterSource(emailMessage)
         val savedNewsletter = newsletterSourceService.save(newsletterSource)
         logger.info("Newsletter saved successfully with ID: ${savedNewsletter.id}")
         return savedNewsletter
+    }
+
+    fun processNewsletterSource(newsletterSourceId: String) {
+        newsletterProcessingService.processNewsletter(newsletterSourceId)
     }
 
     private fun convertToNewsletterSource(emailMessage: EmailMessage): NewsletterSource {

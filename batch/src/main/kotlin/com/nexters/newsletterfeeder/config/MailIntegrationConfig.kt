@@ -1,5 +1,6 @@
 package com.nexters.newsletterfeeder.config
 
+import com.nexters.external.entity.NewsletterSource
 import com.nexters.newsletterfeeder.dto.EmailMessage
 import com.nexters.newsletterfeeder.service.MailProcessor
 import com.nexters.newsletterfeeder.service.MailReader
@@ -159,9 +160,10 @@ class MailIntegrationConfig(
         mailOutputChannel: MessageChannel
     ): IntegrationFlow =
         integrationFlow(mailSavedChannel) {
-            handle<Any> { payload, headers ->
+            handle<NewsletterSource> { payload, headers ->
                 val subject = headers["savedSubject"] ?: "알 수 없는 제목"
                 logger.info("메일 저장 완료: $subject")
+                mailProcessor.processNewsletterSource(payload.id!!)
                 payload
             }
 
