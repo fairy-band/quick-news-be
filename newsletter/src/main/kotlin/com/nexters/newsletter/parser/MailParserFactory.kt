@@ -7,7 +7,8 @@ class MailParserFactory {
             CssWeeklyParser(),
             SwiftVincentParser(),
             ReactStatusParser(),
-            IlbunParser()
+            IlbunParser(),
+            AndroidWeeklyParser()
         )
 
     fun findParser(sender: String): MailParser? = parsers.find { it.isTarget(sender) }

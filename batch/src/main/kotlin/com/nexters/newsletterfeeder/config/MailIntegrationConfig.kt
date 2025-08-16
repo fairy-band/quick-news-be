@@ -183,7 +183,7 @@ class MailIntegrationConfig(
 
     private fun mailReceiverUrl(): String {
         val protocol = mailProperties.protocol
-        val userName = URLEncoder.encode(mailProperties.userName, "UTF-8")
+        val userName = URLEncoder.encode(mailProperties.username, "UTF-8")
         val password = mailProperties.password
         val host = mailProperties.host
 
@@ -193,7 +193,7 @@ class MailIntegrationConfig(
     private fun mailAuthenticator(): Authenticator =
         object : Authenticator() {
             override fun getPasswordAuthentication(): PasswordAuthentication =
-                PasswordAuthentication(mailProperties.userName, mailProperties.password)
+                PasswordAuthentication(mailProperties.username, mailProperties.password)
         }
 
     private fun mailProperties(): Properties =
