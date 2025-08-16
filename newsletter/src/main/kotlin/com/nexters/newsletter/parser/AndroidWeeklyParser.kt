@@ -76,123 +76,79 @@ class AndroidWeeklyParser : MailParser {
         val seenTitles = mutableSetOf<String>()
         val results = mutableListOf<MailContent>()
 
-        var i = 0
-        while (i < lines.size) {
-            val line = lines[i].trim()
+        var currentTitle: String? = null
+        var currentAuthor: String? = null
+        var currentDescription = StringBuilder()
+        var currentUrl: String? = null
+
+        for (line in lines) {
+            val trimmedLine = line.trim()
 
             // Skip empty lines and section headers
-            if (line.isBlank() || Section.fromLabel(line) != null) {
-                i++
+            if (trimmedLine.isBlank() || Section.fromLabel(trimmedLine) != null) {
                 continue
             }
 
             // Skip sponsored markers
-            if (line == "Sponsored" || line.contains("Place a sponsored post")) {
-                i++
+            if (trimmedLine == "Sponsored" || trimmedLine.contains("Place a sponsored post")) {
                 continue
             }
 
-            // Try to find title and author on current line
-            val titleMatch = TITLE_PATTERN.find(line)
-            if (titleMatch != null && i + 1 < lines.size) {
-                val title = titleMatch.value.trim()
-                val nextLine = lines[i + 1].trim()
+            // Check if this looks like a URL
+            if (URL_PATTERN.containsMatchIn(trimmedLine)) {
+                currentUrl = URL_PATTERN.find(trimmedLine)?.value?.cleanUrl()
 
-                // Check if next line contains author information
-                if (nextLine.isNotBlank() && !nextLine.startsWith("http") && Section.fromLabel(nextLine) == null) {
-                    // This is likely the author line
-                    val author = nextLine
-
-                    // Collect description (skip author line)
-                    val description = collectDescription(lines, i + 2)
-
-                    // Extract URL from description or following lines
-                    val url = extractUrl(lines, i + 2) ?: ""
-
-                    if (title.isNotBlank() && !seenTitles.contains(title) && url.isNotBlank()) {
-                        seenTitles.add(title)
-                        val contentText = "[${section.label}] Issue #${issueInfo.number} (${issueInfo.date}): $author - $description"
-                        results +=
-                            MailContent(
-                                title = title,
-                                content = contentText.take(500), // Limit content length
-                                link = url,
-                                section = section.label
-                            )
-                    }
-
-                    // Skip processed lines
-                    i += 3
-                    continue
+                // If we have collected enough info, save the item
+                if (currentTitle != null && currentUrl != null && !seenTitles.contains(currentTitle!!)) {
+                    seenTitles.add(currentTitle!!)
+                    val contentText = "[${section.label}] Issue #${issueInfo.number} (${issueInfo.date}): ${currentAuthor ?: "Unknown"} - ${currentDescription.toString().trim()}"
+                    results +=
+                        MailContent(
+                            title = currentTitle!!,
+                            content = contentText.take(500),
+                            link = currentUrl!!,
+                            section = section.label
+                        )
                 }
+
+                // Reset for next item
+                currentTitle = null
+                currentAuthor = null
+                currentDescription = StringBuilder()
+                currentUrl = null
+                continue
             }
 
-            i++
+            // Collect title, author, and description
+            when {
+                currentTitle == null && isLikelyTitle(trimmedLine) -> {
+                    currentTitle = trimmedLine
+                }
+                currentTitle != null && currentAuthor == null && isLikelyAuthor(trimmedLine) -> {
+                    currentAuthor = trimmedLine
+                }
+                currentTitle != null -> {
+                    if (currentDescription.isNotEmpty()) currentDescription.append(" ")
+                    currentDescription.append(trimmedLine)
+                }
+            }
         }
 
         return results
     }
 
-    private fun extractUrl(
-        lines: List<String>,
-        startIndex: Int
-    ): String? {
-        // Look for URL in the next few lines
-        for (i in startIndex until minOf(startIndex + 5, lines.size)) {
-            val urlMatch = URL_PATTERN.find(lines[i])
-            if (urlMatch != null) {
-                return urlMatch.value.cleanUrl()
-            }
-        }
-        return null
-    }
-
-    private fun collectDescription(
-        lines: List<String>,
-        from: Int
-    ): String {
-        val description = StringBuilder()
-        var i = from
-
-        while (i < lines.size) {
-            val line = lines[i].trim()
-
-            // Stop at boundaries
-            if (line.isBlank() ||
-                Section.fromLabel(line) != null ||
-                line == "Sponsored" ||
-                URL_PATTERN.containsMatchIn(line)
-            ) {
-                break
-            }
-
-            // Stop at next article title (usually followed by author)
-            if (i + 1 < lines.size && isLikelyTitle(line) && isLikelyAuthor(lines[i + 1])) {
-                break
-            }
-
-            if (description.isNotEmpty()) description.append(" ")
-            description.append(line)
-            i++
-        }
-
-        return description.toString().trim()
-    }
-
     private fun isLikelyTitle(line: String): Boolean {
         // Titles are usually longer and don't contain certain patterns
-        return line.length > 10 &&
+        return line.length > 5 &&
             !line.startsWith("http") &&
             !line.contains("@") &&
             !line.matches(Regex("^[A-Z][a-z]+ [A-Z][a-z]+$")) // Not just a name
     }
 
     private fun isLikelyAuthor(line: String): Boolean {
-        // Authors are usually names or contain certain patterns
+        // Authors are usually names
         return line.matches(Regex("^[A-Z][a-z]+ [A-Z][a-z]+.*")) ||
-            // Name pattern
-            line.contains(" by ") ||
-            line.contains(" on ")
+            line.matches(Regex("^[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+.*"))
     }
 
     private fun String.cleanUrl(): String =
@@ -207,7 +163,6 @@ class AndroidWeeklyParser : MailParser {
             .replace("=\r\n", "")
             .replace("=\n", "")
             .replace("=\r", "")
-            .replace("=", "")
 
     companion object {
         // Issue patterns
@@ -216,7 +171,6 @@ class AndroidWeeklyParser : MailParser {
         private val ISSUE_DATE_REGEX = Regex("[A-Za-z]+ \\d+[a-z]{2}, \\d{4}")
 
         // Content patterns
-        private val TITLE_PATTERN = Regex("^[A-Z].*[a-zA-Z].*$")
         private val URL_PATTERN = Regex("https?://[^\\s]+")
 
         private const val NEWSLETTER_NAME = "Android Weekly"
