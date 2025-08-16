@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Reader - Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #a0aec0;
+            margin-bottom: 1rem;
+        }
+
+        .nav-back {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: #ffffff;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-back:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            margin: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .feed-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feed-title {
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .feed-url {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+
+        .feed-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: #a0aec0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .success {
+            background: rgba(72, 187, 120, 0.1);
+            border: 1px solid rgba(72, 187, 120, 0.3);
+            color: #68d391;
+        }
+
+        .error {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fca5a5;
+        }
+
+        .info {
+            background: rgba(66, 153, 225, 0.1);
+            border: 1px solid rgba(66, 153, 225, 0.3);
+            color: #90cdf4;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+
+    <div class="container">
+        <header class="header">
+            <a href="./" class="nav-back">← 홈으로 돌아가기</a>
+            <h1 class="logo">📡 RSS 리더 관리</h1>
+            <p class="subtitle">RSS 피드를 관리하고 콘텐츠 수집 상태를 확인하세요</p>
+        </header>
+
+        <div class="main-content">
+            <div class="section-card">
+                <h2 class="section-title">
+                    🎮 RSS 피드 제어
+                </h2>
+                
+                <button class="btn btn-primary" id="fetch-feeds-btn">
+                    🔄 모든 피드 수집 시작
+                </button>
+                
+                <button class="btn btn-secondary" id="get-stats-btn">
+                    📊 통계 새로고침
+                </button>
+                
+                <button class="btn btn-primary" id="process-ai-btn">
+                    🤖 AI 처리 실행
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>처리 중입니다...</p>
+                </div>
+
+                <div id="result-message"></div>
+            </div>
+
+            <div class="section-card">
+                <h2 class="section-title">
+                    📈 실시간 통계
+                </h2>
+                
+                <div id="stats-content">
+                    <p class="info">통계를 불러오려면 '통계 새로고침' 버튼을 클릭하세요</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="overall-stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="total-feeds">0</div>
+                <div class="stat-label">총 피드 수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-content">0</div>
+                <div class="stat-label">총 콘텐츠</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="processed-content">0</div>
+                <div class="stat-label">처리된 콘텐츠</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="success-rate">0%</div>
+                <div class="stat-label">처리 성공률</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2 class="section-title">
+                📋 피드별 상세 통계
+            </h2>
+            <div class="feed-list" id="feed-list">
+                <p class="info">통계를 불러오려면 '통계 새로고침' 버튼을 클릭하세요</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 별 배경 생성
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+
+            // 이벤트 리스너 설정
+            document.getElementById('fetch-feeds-btn').addEventListener('click', fetchAllFeeds);
+            document.getElementById('get-stats-btn').addEventListener('click', getStats);
+            document.getElementById('process-ai-btn').addEventListener('click', processAi);
+
+            // 페이지 로드 시 통계 자동 로드
+            getStats();
+        });
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result-message').innerHTML = '';
+            document.getElementById('fetch-feeds-btn').disabled = true;
+            document.getElementById('get-stats-btn').disabled = true;
+            document.getElementById('process-ai-btn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('fetch-feeds-btn').disabled = false;
+            document.getElementById('get-stats-btn').disabled = false;
+            document.getElementById('process-ai-btn').disabled = false;
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.getElementById('result-message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function fetchAllFeeds() {
+            showLoading();
+            
+            try {
+                const response = await fetch('./admin/rss-newsletter/fetch-all', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.success) {
+                    const totalFeeds = Object.keys(data.results).length;
+                    const successfulFeeds = Object.values(data.results).filter(count => count >= 0).length;
+                    const totalNewItems = Object.values(data.results).filter(count => count >= 0).reduce((sum, count) => sum + count, 0);
+                    
+                    showMessage(`
+                        ✅ 피드 수집 완료!<br>
+                        • 처리된 피드: ${successfulFeeds}/${totalFeeds}<br>
+                        • 새로 수집된 항목: ${totalNewItems}개
+                    `, 'success');
+                    
+                    // 통계 자동 새로고침
+                    setTimeout(() => getStats(), 2000);
+                } else {
+                    showMessage(`❌ 피드 수집 실패: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage(`❌ 서버 오류: ${error.message}`, 'error');
+            }
+        }
+
+        async function getStats() {
+            try {
+                const response = await fetch('./admin/rss-newsletter/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStats(data.stats);
+                    showMessage('📊 통계가 업데이트되었습니다', 'success');
+                } else {
+                    showMessage(`❌ 통계 조회 실패: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ 통계 조회 오류: ${error.message}`, 'error');
+            }
+        }
+
+        async function processAi() {
+            showLoading();
+            
+            try {
+                const response = await fetch('./admin/rss-newsletter/process-ai', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
+                }
+                
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.success) {
+                    showMessage(`
+                        🤖 AI 처리 완료!<br>
+                        • 처리된 항목: ${data.processedCount}개<br>
+                        • 오류 항목: ${data.errorCount}개<br>
+                        • 오늘 총 처리: ${data.totalProcessedToday}개
+                    `, 'success');
+                    
+                    // 통계 자동 새로고침
+                    setTimeout(() => getStats(), 2000);
+                } else {
+                    showMessage(`❌ AI 처리 실패: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage(`❌ AI 처리 오류: ${error.message}`, 'error');
+            }
+        }
+
+        function displayStats(stats) {
+            const feedListDiv = document.getElementById('feed-list');
+            const statsContentDiv = document.getElementById('stats-content');
+            const overallStatsDiv = document.getElementById('overall-stats');
+            
+            if (Object.keys(stats).length === 0) {
+                feedListDiv.innerHTML = '<p class="info">수집된 RSS 데이터가 없습니다</p>';
+                statsContentDiv.innerHTML = '<p class="info">통계 데이터가 없습니다</p>';
+                return;
+            }
+            
+            // 전체 통계 계산
+            let totalFeeds = Object.keys(stats).length;
+            let totalContent = 0;
+            let processedContent = 0;
+            
+            Object.values(stats).forEach(stat => {
+                totalContent += stat.totalCount;
+                processedContent += stat.processedCount;
+            });
+            
+            const successRate = totalContent > 0 ? Math.round((processedContent / totalContent) * 100) : 0;
+            
+            // 전체 통계 표시
+            document.getElementById('total-feeds').textContent = totalFeeds;
+            document.getElementById('total-content').textContent = totalContent;
+            document.getElementById('processed-content').textContent = processedContent;
+            document.getElementById('success-rate').textContent = successRate + '%';
+            overallStatsDiv.style.display = 'grid';
+            
+            // 피드별 상세 통계
+            let feedListHtml = '';
+            Object.entries(stats).forEach(([feedName, stat]) => {
+                const lastUpdated = stat.lastUpdated ? 
+                    new Date(stat.lastUpdated).toLocaleString('ko-KR') : '없음';
+                
+                feedListHtml += `
+                    <div class="feed-item">
+                        <div class="feed-title">${feedName}</div>
+                        <div class="feed-stats">
+                            <span>총 콘텐츠: ${stat.totalCount}</span>
+                            <span>처리됨: ${stat.processedCount}</span>
+                            <span>미처리: ${stat.unprocessedCount}</span>
+                        </div>
+                        <div class="feed-url">마지막 업데이트: ${lastUpdated}</div>
+                    </div>
+                `;
+            });
+            
+            feedListDiv.innerHTML = feedListHtml;
+            
+            // 요약 정보 표시
+            statsContentDiv.innerHTML = `
+                <div class="success">
+                    📊 총 ${totalFeeds}개 피드에서 ${totalContent}개 콘텐츠 수집<br>
+                    🎯 ${processedContent}개 처리 완료 (${successRate}% 성공률)
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

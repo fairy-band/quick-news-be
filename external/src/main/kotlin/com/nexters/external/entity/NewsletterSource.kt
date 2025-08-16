@@ -15,10 +15,7 @@ data class NewsletterSource(
     val senderEmail: String,
     val recipient: String,
     val recipientEmail: String,
-    val plainText: String?,
-    val htmlText: String?,
-    @Deprecated("Use plainText or htmlText instead", ReplaceWith("plainText"))
-    val content: String? = null, // 하위호환성을 위해 유지
+    val content: String,
     val contentType: String,
     val receivedDate: LocalDateTime,
     val headers: Map<String, String> = emptyMap(),

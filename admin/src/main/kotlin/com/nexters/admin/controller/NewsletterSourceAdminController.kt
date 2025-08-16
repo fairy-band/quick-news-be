@@ -119,13 +119,16 @@ class NewsletterSourceApiController(
                 .findById(id)
                 .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
 
+        // RSS 소스의 경우 헤더에서 원본 URL 추출, 없으면 요청된 URL 사용
+        val finalOriginalUrl = newsletterSource.headers["RSS-Item-URL"] ?: request.originalUrl
+
         val newContent =
             Content(
                 newsletterSourceId = newsletterSource.id,
                 title = request.title,
                 content = request.content,
                 newsletterName = request.newsletterName,
-                originalUrl = request.originalUrl,
+                originalUrl = finalOriginalUrl,
                 publishedAt = request.publishedAt,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
@@ -170,8 +173,7 @@ class NewsletterSourceApiController(
         val updatedNewsletterSource =
             newsletterSource.copy(
                 subject = request.subject,
-                plainText = request.plainText,
-                htmlText = request.htmlText,
+                content = request.content,
                 sender = request.sender,
                 senderEmail = request.senderEmail,
                 recipient = request.recipient,
@@ -199,7 +201,7 @@ class NewsletterSourceApiController(
         val parsedContents =
             if (isTarget && parser != null) {
                 try {
-                    parser.parse(newsletterSource.plainText ?: "")
+                    parser.parse(newsletterSource.content)
                 } catch (e: Exception) {
                     emptyList()
                 }
@@ -211,7 +213,7 @@ class NewsletterSourceApiController(
             ParserTestResult(
                 isTarget = isTarget,
                 parsedContents = parsedContents,
-                originalContent = newsletterSource.plainText ?: "",
+                originalContent = newsletterSource.content,
                 senderEmail = newsletterSource.senderEmail,
                 parserName = parser?.javaClass?.simpleName ?: "None"
             )
@@ -229,13 +231,16 @@ class NewsletterSourceApiController(
                 .findById(id)
                 .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
 
+        // RSS 소스의 경우 헤더에서 원본 URL 추출, 없으면 요청된 URL 사용
+        val finalOriginalUrl = newsletterSource.headers["RSS-Item-URL"] ?: request.originalUrl
+
         val newContent =
             Content(
                 newsletterSourceId = newsletterSource.id,
                 title = request.title,
                 content = request.content,
                 newsletterName = request.newsletterName,
-                originalUrl = request.originalUrl,
+                originalUrl = finalOriginalUrl,
                 publishedAt = request.publishedAt,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
@@ -256,8 +261,7 @@ data class CreateContentFromNewsletterSourceRequest(
 
 data class UpdateNewsletterSourceRequest(
     val subject: String?,
-    val plainText: String?,
-    val htmlText: String?,
+    val content: String,
     val sender: String,
     val senderEmail: String,
     val recipient: String,
@@ -311,8 +315,8 @@ data class NewsletterSourceWithContentStatus(
                 senderEmail = newsletterSource.senderEmail,
                 recipient = newsletterSource.recipient,
                 recipientEmail = newsletterSource.recipientEmail,
-                plainText = newsletterSource.plainText,
-                htmlText = newsletterSource.htmlText,
+                plainText = newsletterSource.content,
+                htmlText = newsletterSource.content,
                 content = newsletterSource.content,
                 contentType = newsletterSource.contentType,
                 receivedDate = newsletterSource.receivedDate,
