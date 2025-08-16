@@ -394,29 +394,27 @@ class ProcessController(
     }
 
     @PostMapping("/rss/process-ai")
-    fun processRssWithAi(): ResponseEntity<RssProcessingResponse> {
-        return try {
-            val result = rssAiProcessingService.processDailyRssWithAi()
-            ResponseEntity.ok(
-                RssProcessingResponse(
-                    success = true,
-                    message = result.message,
-                    processedCount = result.processedCount,
-                    errorCount = result.errorCount,
-                    totalProcessedToday = result.totalProcessedToday
-                )
+    fun processRssWithAi(): ResponseEntity<RssProcessingResponse> = try {
+        val result = rssAiProcessingService.processDailyRssWithAi()
+        ResponseEntity.ok(
+            RssProcessingResponse(
+                success = true,
+                message = result.message,
+                processedCount = result.processedCount,
+                errorCount = result.errorCount,
+                totalProcessedToday = result.totalProcessedToday
             )
-        } catch (e: Exception) {
-            ResponseEntity.ok(
-                RssProcessingResponse(
-                    success = false,
-                    message = "RSS AI processing failed: ${e.message}",
-                    processedCount = 0,
-                    errorCount = 1,
-                    totalProcessedToday = 0
-                )
+        )
+    } catch (e: Exception) {
+        ResponseEntity.ok(
+            RssProcessingResponse(
+                success = false,
+                message = "RSS AI processing failed: ${e.message}",
+                processedCount = 0,
+                errorCount = 1,
+                totalProcessedToday = 0
             )
-        }
+        )
     }
 
     @GetMapping("/rss/stats")
