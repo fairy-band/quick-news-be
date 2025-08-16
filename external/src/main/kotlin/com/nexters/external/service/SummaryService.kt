@@ -74,6 +74,10 @@ class SummaryService(
         return result
     }
 
+    fun save(summary: Summary): Summary = summaryRepository.save(summary)
+
+    fun getPrioritizedSummaryByContent(content: Content): List<Summary> = summaryRepository.findByContent(content)
+
     private fun parseJsonResponse(
         responseText: String?,
         model: GeminiModel

@@ -1,5 +1,6 @@
 package com.nexters.external.service
 
+import com.nexters.external.entity.Content
 import com.nexters.external.repository.ContentRepository
 import org.springframework.stereotype.Service
 
@@ -21,4 +22,6 @@ class ContentService(
                     content.content.contains(keyword, ignoreCase = true)
             }
         }
+
+    fun save(content: Content): Content = contentRepository.save(content)
 }

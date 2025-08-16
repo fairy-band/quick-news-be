@@ -4,6 +4,7 @@ import com.google.genai.types.GenerateContentResponse
 import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import io.mockk.clearMocks
 import io.mockk.every
@@ -23,8 +24,18 @@ class KeywordServiceTest {
     @Autowired
     lateinit var candidateKeywordRepository: CandidateKeywordRepository
 
+    @Autowired
+    lateinit var contentKeywordMappingRepository: ContentKeywordMappingRepository
+
     private val geminiClient = mockk<GeminiClient>()
-    private val sut by lazy { KeywordService(geminiClient, reservedKeywordRepository, candidateKeywordRepository) }
+    private val sut by lazy {
+        KeywordService(
+            geminiClient,
+            reservedKeywordRepository,
+            candidateKeywordRepository,
+            contentKeywordMappingRepository,
+        )
+    }
 
     @BeforeEach
     fun setUp() {

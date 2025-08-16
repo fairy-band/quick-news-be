@@ -9,6 +9,7 @@ import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParserFactory
+import com.nexters.newsletter.service.NewsletterProcessingService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -40,7 +41,8 @@ class NewsletterSourceApiController(
     private val contentRepository: ContentRepository,
     private val summaryRepository: SummaryRepository,
     private val keywordService: KeywordService,
-    private val exposureContentService: ExposureContentService
+    private val exposureContentService: ExposureContentService,
+    private val newsletterProcessingService: NewsletterProcessingService
 ) {
     private val mailParserFactory = MailParserFactory()
 
@@ -386,6 +388,32 @@ class NewsletterSourceApiController(
             )
         )
     }
+
+    @PostMapping("/{id}/auto-process")
+    fun autoProcessNewsletterSource(
+        @PathVariable id: String
+    ): ResponseEntity<AutoProcessResponse> =
+        try {
+            val exposureContents = newsletterProcessingService.processNewsletter(id)
+
+            ResponseEntity.ok(
+                AutoProcessResponse(
+                    success = true,
+                    message = "자동 처리가 완료되었습니다.",
+                    processedContentCount = exposureContents.size,
+                    exposureContentIds = exposureContents.mapNotNull { it.id }
+                )
+            )
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(
+                AutoProcessResponse(
+                    success = false,
+                    message = "자동 처리 중 오류가 발생했습니다: ${e.message}",
+                    processedContentCount = 0,
+                    exposureContentIds = emptyList()
+                )
+            )
+        }
 }
 
 data class CreateContentFromNewsletterSourceRequest(
@@ -443,6 +471,13 @@ data class ExposureContentInfo(
     val exposureContentId: Long,
     val provocativeKeyword: String,
     val provocativeHeadline: String
+)
+
+data class AutoProcessResponse(
+    val success: Boolean,
+    val message: String,
+    val processedContentCount: Int,
+    val exposureContentIds: List<Long>
 )
 
 data class NewsletterSourceWithContentStatus(
