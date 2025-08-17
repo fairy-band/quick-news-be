@@ -12,6 +12,7 @@ import com.nexters.external.service.UserService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.util.concurrent.locks.ReentrantLock
 
 @Service
 class DailyContentArchiveResolver(
@@ -22,6 +23,7 @@ class DailyContentArchiveResolver(
     private val dailyContentArchiveService: DailyContentArchiveService,
 ) {
     private val calculator = RecommendScoreCalculator()
+    private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
 
     fun resolveTodayContents(userId: Long): List<ExposureContent> {
         val userCategories = categoryService.getCategoriesByUserId(userId)
@@ -61,31 +63,36 @@ class DailyContentArchiveResolver(
         userId: Long,
         date: LocalDate = LocalDate.now(),
     ): DailyContentArchive {
-        val contentArchive = dailyContentArchiveService.findByDateAndUserId(userId, date)
+        lock.lock()
+        try {
+            val contentArchive = dailyContentArchiveService.findByDateAndUserId(userId, date)
 
-        if (contentArchive != null) {
-            return contentArchive
-        }
-
-        val user = userService.getUserById(userId)
-        val userCategories = user.categories.map { it.id!! }
-        val categoryIds =
-            if (userCategories.isNotEmpty()) {
-                userCategories
-            } else {
-                categoryService.getAllCategories().map { it.id!! }
+            if (contentArchive != null) {
+                return contentArchive
             }
 
-        val contents = resolveTodayContents(userId, categoryIds)
+            val user = userService.getUserById(userId)
+            val userCategories = user.categories.map { it.id!! }
+            val categoryIds =
+                if (userCategories.isNotEmpty()) {
+                    userCategories
+                } else {
+                    categoryService.getAllCategories().map { it.id!! }
+                }
 
-        val dailyContentArchive =
-            DailyContentArchive(
-                user = user,
-                date = date,
-                exposureContents = contents,
-            )
+            val contents = resolveTodayContents(userId, categoryIds)
 
-        return dailyContentArchiveService.saveWithHistory(dailyContentArchive)
+            val dailyContentArchive =
+                DailyContentArchive(
+                    user = user,
+                    date = date,
+                    exposureContents = contents,
+                )
+
+            return dailyContentArchiveService.saveWithHistory(dailyContentArchive)
+        } finally {
+            lock.unlock()
+        }
     }
 
     private fun resolveTodayContents(
@@ -142,7 +149,7 @@ class DailyContentArchiveResolver(
                         RecommendCalculateSource(
                             positiveKeywords.map { PositiveKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                             negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
-                            content.publishedAt
+                            content.publishedAt,
                         ),
                     ).recommendScore
             }
