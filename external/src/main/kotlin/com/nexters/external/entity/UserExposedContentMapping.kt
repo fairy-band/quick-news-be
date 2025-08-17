@@ -1,6 +1,7 @@
 package com.nexters.external.entity
 
 import jakarta.persistence.Column
+import jakarta.persistence.Embeddable
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
@@ -32,6 +33,7 @@ class UserExposedContentMapping(
     @JoinColumn(name = "content_id", insertable = false, updatable = false)
     val content: Content? = null
 
+    @Embeddable
     data class UserExposedContentMappingId(
         val userId: Long,
         val contentId: Long
