@@ -14,4 +14,10 @@ class GlobalExceptionHandler {
         ResponseEntity
             .status(HttpStatus.NOT_FOUND)
             .body(ApiResponse(success = false, message = ex.message ?: "User not found"))
+
+    @ExceptionHandler(NoSuchElementException::class)
+    fun handleNoSuchElementException(ex: NoSuchElementException): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse(success = false, message = ex.message ?: "Resource not found"))
 }

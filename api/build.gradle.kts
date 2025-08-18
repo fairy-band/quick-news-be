@@ -9,6 +9,9 @@ dependencies {
     // Firebase Admin SDK for push notifications
     implementation("com.google.firebase:firebase-admin:9.2.0")
 
+    // For OG HTML page generation
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     annotationProcessor(libs.spring.boot.configuration.processor)
 

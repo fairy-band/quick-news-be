@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Newsletter Share</title>
+    
+    <!-- Open Graph Meta Tags for Kakao Share -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" th:content="${title}">
+    <meta property="og:description" th:content="${category}">
+    <meta property="og:url" th:content="${shareUrl}">
+    <meta property="og:image" th:content="${shareUrl} + '/preview'">
+    <meta property="og:image:width" content="600">
+    <meta property="og:image:height" content="315">
+    <meta property="og:site_name" content="Newsletter Feeder">
+    
+    <!-- Kakao specific meta tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" th:content="${title}">
+    <meta name="twitter:description" th:content="${category}">
+    <meta name="twitter:image" th:content="${shareUrl} + '/preview'">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, [[${backgroundColor}]], [[${backgroundColor}]]88);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: [[${textColor}]];
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 600px;
+            height: 315px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, [[${backgroundColor}]], [[${backgroundColor}]]CC);
+            z-index: -1;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 132%;
+            margin-top: 67.5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .category {
+            font-size: 16px;
+            font-weight: normal;
+            margin-top: 12px;
+            margin-bottom: 67.5px;
+            opacity: 0.9;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .share-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                width: 100%;
+                max-width: 100%;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .title {
+                font-size: 18px;
+            }
+            
+            .category {
+                font-size: 12px;
+                margin-top: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title" th:text="${title}">네온, PostgreSQL, 전문가도 놓친 치명적 실수</div>
+        
+        <div class="category" th:text="${category + ' | ' + newsletterName}">Kotlin | 안드로이드 위클리</div>
+    </div>
+</body>
+</html>
