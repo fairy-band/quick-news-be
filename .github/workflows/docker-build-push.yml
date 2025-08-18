@@ -4,6 +4,16 @@ on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      deployment_strategy:
+        description: '배포 전략 선택'
+        required: true
+        default: 'blue-green-gradual'
+        type: choice
+        options:
+        - 'traditional'
+        - 'blue-green-gradual'
+        - 'blue-green-immediate'
 
 jobs:
   build-and-push:
@@ -129,36 +139,60 @@ jobs:
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > firebase-service-account.json
           echo "Firebase service account key file created with $(wc -c < firebase-service-account.json) bytes"
 
-      - name: Deploy configuration files one by one
+      - name: Deploy configuration files for Blue-Green deployment
         run: |
-          # First copy docker-compose.yml
-          echo "Deploying docker-compose.yml..."
+          # Copy all Blue-Green deployment files
+          echo "Deploying Blue-Green configuration files..."
+          
+          # Docker compose files
+          scp -i private_key.pem -v deploy/docker-compose-blue.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/docker-compose-green.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/docker-compose-nginx.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          
+          # Original compose for backward compatibility
           scp -i private_key.pem -v deploy/docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
-          # Then copy nginx.conf
-          echo "Deploying nginx.conf..."
+          # Nginx configurations
           scp -i private_key.pem -v deploy/nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/nginx-blue-green.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/active-env.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
-          # Copy .env file
-          echo "Deploying .env file..."
+          # Environment and credentials
           scp -i private_key.pem -v .env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
-
-          # Copy Firebase service account key file
-          echo "Deploying firebase-service-account.json..."
           scp -i private_key.pem -v firebase-service-account.json ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
-          # Finally copy deploy.sh
-          echo "Deploying deploy.sh..."
+          # Deployment scripts
           scp -i private_key.pem -v deploy/deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/deploy-blue-green.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/switch-env.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
-          # Make deploy.sh executable
-          echo "Making deploy.sh executable..."
-          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/deploy.sh"
+          # Make scripts executable
+          echo "Making scripts executable..."
+          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/*.sh"
 
       - name: Execute deployment script
         run: |
-          echo "Executing deployment script..."
-          ssh -i private_key.pem -v ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
+          DEPLOYMENT_STRATEGY="${{ github.event.inputs.deployment_strategy || 'blue-green-gradual' }}"
+          echo "Executing deployment with strategy: $DEPLOYMENT_STRATEGY"
+          
+          case $DEPLOYMENT_STRATEGY in
+            "traditional")
+              echo "Running traditional deployment..."
+              ssh -i private_key.pem -v ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && ./deploy.sh"
+              ;;
+            "blue-green-gradual")
+              echo "Running Blue-Green gradual deployment..."
+              ssh -i private_key.pem -v ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && CI=true ./deploy-blue-green.sh gradual"
+              ;;
+            "blue-green-immediate")
+              echo "Running Blue-Green immediate deployment..."
+              ssh -i private_key.pem -v ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && CI=true ./deploy-blue-green.sh immediate"
+              ;;
+            *)
+              echo "Unknown deployment strategy: $DEPLOYMENT_STRATEGY, falling back to Blue-Green gradual"
+              ssh -i private_key.pem -v ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd ~/deploy && CI=true ./deploy-blue-green.sh gradual"
+              ;;
+          esac
 
       - name: Discord notification for deployment
         if: always()
@@ -169,6 +203,7 @@ jobs:
           description: |
             **상태**: ${{ job.status }}
             **브랜치**: ${{ github.ref_name }}
+            **배포 전략**: ${{ github.event.inputs.deployment_strategy || 'blue-green-gradual (auto)' }}
             **커밋**: ${{ github.sha }}
             **커밋 메시지**: ${{ github.event.head_commit.message }}
             **배포 시간**: ${{ github.event.repository.updated_at }}

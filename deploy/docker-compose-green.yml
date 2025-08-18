@@ -1,0 +1,177 @@
+# Green 환경 (운영용)
+services:
+  api-green:
+    image: ahj0/fairy-band:api
+    container_name: newsletter-api-green
+    restart: always
+    ports:
+      - "8090:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
+      FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - newsletter-network
+    labels:
+      - "environment=green"
+
+  batch-green:
+    image: ahj0/fairy-band:batch
+    container_name: newsletter-batch-green
+    restart: always
+    ports:
+      - "8092:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SERVER_PORT: 8082
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8082/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - newsletter-network
+    labels:
+      - "environment=green"
+
+  admin-green:
+    image: ahj0/fairy-band:admin
+    container_name: newsletter-admin-green
+    restart: always
+    ports:
+      - "8093:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
+      SERVER_PORT: 8083
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OAUTH2_CLIENT_ID_GOOGLE: ${OAUTH2_CLIENT_ID_GOOGLE}
+      OAUTH2_CLIENT_SECRET_GOOGLE: ${OAUTH2_CLIENT_SECRET_GOOGLE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8083/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - newsletter-network
+    labels:
+      - "environment=green"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: newsletter-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - newsletter-network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: newsletter-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+      - ./data/mongodb-config:/data/configdb
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - newsletter-network
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: newsletter-mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+      ME_CONFIG_SITE_BASEURL: /mongo-express/
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: wget --quiet --tries=1 --spider http://localhost:8081 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - newsletter-network
+
+networks:
+  newsletter-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongodb_data:
