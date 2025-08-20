@@ -7,7 +7,6 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.ManyToMany
 import jakarta.persistence.Table
-import org.springframework.data.annotation.Transient
 import java.time.LocalDateTime
 
 @Entity
@@ -18,7 +17,6 @@ class Category(
     val id: Long? = null,
     @Column(nullable = false, unique = true)
     val name: String,
-    @Transient
     @ManyToMany(mappedBy = "categories")
     val users: Set<User> = emptySet(),
     @Column(name = "created_at", nullable = false)

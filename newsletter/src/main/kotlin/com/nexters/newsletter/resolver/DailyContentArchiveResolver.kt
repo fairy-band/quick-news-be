@@ -64,7 +64,7 @@ class DailyContentArchiveResolver(
 
             val dailyContentArchive =
                 DailyContentArchive(
-                    user = user,
+                    user = DailyContentArchive.UserSnapshot.from(user),
                     date = date,
                     exposureContents = contents,
                 )
