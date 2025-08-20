@@ -30,6 +30,7 @@ ktlint = "12.1.1"
 
 [libraries]
 # Spring Boot starters
+spring-web = { group = "org.springframework", name = "spring-web" }
 spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-starter" }
 spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-boot-starter-web" }
 spring-boot-starter-mail = { group = "org.springframework.boot", name = "spring-boot-starter-mail" }

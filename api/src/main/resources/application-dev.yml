@@ -2,3 +2,10 @@ spring:
   config:
     import:
       - postgresql-dev.yml
+
+# Development Discord Webhook Configuration
+notification:
+  discord:
+    user-registration:
+      enabled: false
+      webhook-url: "https://discord.com/api/webhooks/1407711978016735325/0U0D4qlIX6i_vt5Dlj1PPFLFkt8c2YH-uq_w9v02n9k8_nDVqY-f37Xpxs6ua6Gcc4n3"

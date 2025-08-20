@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.kotlin.stdlib.jdk8)
     implementation(libs.spring.boot.starter)
     implementation(libs.spring.boot.starter.aop)
+    implementation(libs.spring.web)
 
     // Google Cloud Vertex AI
     implementation(libs.google.genai)

@@ -6,17 +6,38 @@ import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.concurrent.locks.ReentrantLock
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val categoryRepository: CategoryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
+    private val notificationService: NotificationService,
 ) {
+    private val userRegistrationLock = ReentrantLock() // TODO: 이후 upsert로 변경
+
     fun register(deviceToken: String): Long {
-        val entity = User(deviceToken = deviceToken)
-        val user = userRepository.save(entity)
-        return user.id ?: throw IllegalStateException("User ID should not be null after saving.")
+        userRegistrationLock.lock()
+        try {
+            // 먼저 기존 유저가 있는지 확인
+            val existingUser = userRepository.findByDeviceToken(deviceToken)
+            if (existingUser != null) {
+                // 기존 유저가 있으면 해당 유저의 ID 반환
+                return existingUser.id ?: throw IllegalStateException("Existing user ID should not be null.")
+            }
+
+            // 기존 유저가 없으면 새로 생성
+            val entity = User(deviceToken = deviceToken)
+            val user = userRepository.save(entity)
+            val userId = user.id ?: throw IllegalStateException("User ID should not be null after saving.")
+
+            notificationService.notifyUserRegistration(userId, deviceToken) // TODO: 이후 알림 많아지면 일반화 후 AOP로 분리
+
+            return userId
+        } finally {
+            userRegistrationLock.unlock()
+        }
     }
 
     fun findUser(deviceToken: String): User? = userRepository.findByDeviceToken(deviceToken)
