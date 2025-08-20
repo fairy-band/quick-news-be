@@ -594,6 +594,65 @@
             </div>
         </div>
 
+        <!-- 요약 없음 콘텐츠 일괄 처리 섹션 -->
+        <div class="section">
+            <h2>요약 없음 콘텐츠 일괄 처리</h2>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                <button id="load-no-summary-contents-btn" class="btn btn-primary">
+                    📋 요약 없음 콘텐츠 불러오기
+                </button>
+                <div style="flex: 1;">
+                    <select id="no-summary-newsletter-filter" class="form-select">
+                        <option value="">모든 뉴스레터</option>
+                        <!-- Will be populated by JavaScript -->
+                    </select>
+                </div>
+                <button id="select-all-no-summary-btn" class="btn" style="background: rgba(255, 255, 255, 0.1);" disabled>
+                    전체 선택
+                </button>
+                <button id="deselect-all-no-summary-btn" class="btn" style="background: rgba(255, 255, 255, 0.1);" disabled>
+                    선택 해제
+                </button>
+            </div>
+            
+            <div id="no-summary-contents-section" style="display: none;">
+                <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div id="no-summary-count-info" style="color: #00d4ff; font-weight: 600;">
+                            총 0개의 요약 없음 콘텐츠
+                        </div>
+                        <div id="selected-no-summary-count-info" style="color: #10b981; font-weight: 600;">
+                            0개 선택됨
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="bulk-auto-process-btn" class="btn" style="flex: 1; padding: 1rem; font-size: 1.1rem; font-weight: 600; background: linear-gradient(45deg, #10b981, #059669); color: #fff;" disabled>
+                            🚀 선택된 콘텐츠 일괄 자동 처리
+                        </button>
+                    </div>
+                    
+                    <div id="bulk-processing-progress" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                        <div id="bulk-progress-text" style="text-align: center; margin-bottom: 0.5rem;">처리 중...</div>
+                        <div style="width: 100%; height: 10px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
+                            <div id="bulk-progress-bar" style="width: 0%; height: 100%; background-color: #00d4ff; transition: width 0.3s ease;"></div>
+                        </div>
+                        <div id="bulk-progress-details" style="font-size: 0.9rem; color: #a0aec0; margin-top: 0.5rem; text-align: center;">
+                            <!-- Progress details will be shown here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="no-summary-contents-list" style="max-height: 600px; overflow-y: auto;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <div class="pagination" id="no-summary-pagination">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
         <div class="section">
             <h2>콘텐츠 목록</h2>
             <div id="content-list">
@@ -1481,6 +1540,9 @@
 
             // 키워드 관련 이벤트 설정
             setupKeywordEvents();
+
+            // 요약 없음 콘텐츠 관련 이벤트 설정
+            setupNoSummaryContentEvents();
         });
 
         function fetchCategories() {
@@ -3416,10 +3478,14 @@
                 .then(response => response.json())
                 .then(data => {
                     const newsletterFilter = document.getElementById('newsletter-filter');
+                    const noSummaryNewsletterFilter = document.getElementById('no-summary-newsletter-filter');
 
                     // 기존 옵션 제거 (첫 번째 옵션 '모든 뉴스레터' 제외)
                     while (newsletterFilter.options.length > 1) {
                         newsletterFilter.remove(1);
+                    }
+                    while (noSummaryNewsletterFilter.options.length > 1) {
+                        noSummaryNewsletterFilter.remove(1);
                     }
 
                     // 뉴스레터 이름 옵션 추가
@@ -3428,9 +3494,367 @@
                         option.value = name;
                         option.textContent = name;
                         newsletterFilter.appendChild(option);
+
+                        const noSummaryOption = document.createElement('option');
+                        noSummaryOption.value = name;
+                        noSummaryOption.textContent = name;
+                        noSummaryNewsletterFilter.appendChild(noSummaryOption);
                     });
                 })
                 .catch(error => console.error('Error fetching newsletter names:', error));
+        }
+
+        // 요약 없음 콘텐츠 관련 이벤트 설정
+        function setupNoSummaryContentEvents() {
+            // 요약 없음 콘텐츠 불러오기 버튼
+            document.getElementById('load-no-summary-contents-btn').addEventListener('click', function() {
+                loadNoSummaryContents();
+            });
+
+            // 전체 선택 버튼
+            document.getElementById('select-all-no-summary-btn').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                updateSelectedNoSummaryCount();
+            });
+
+            // 선택 해제 버튼
+            document.getElementById('deselect-all-no-summary-btn').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectedNoSummaryCount();
+            });
+
+            // 일괄 자동 처리 버튼
+            document.getElementById('bulk-auto-process-btn').addEventListener('click', function() {
+                bulkAutoProcessContents();
+            });
+
+            // 뉴스레터 필터 변경 시 자동으로 목록 새로고침
+            document.getElementById('no-summary-newsletter-filter').addEventListener('change', function() {
+                const noSummarySection = document.getElementById('no-summary-contents-section');
+                if (noSummarySection.style.display !== 'none') {
+                    loadNoSummaryContents();
+                }
+            });
+        }
+
+        // 요약 없음 콘텐츠 불러오기
+        function loadNoSummaryContents(page = 0, size = 20) {
+            const newsletterName = document.getElementById('no-summary-newsletter-filter').value;
+            let url = `./api/contents/sorted?sortOption=noSummary&page=${page}&size=${size}`;
+            
+            if (newsletterName) {
+                url += `&newsletterName=${encodeURIComponent(newsletterName)}`;
+            }
+
+            showLoading();
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    renderNoSummaryContentsList(data.content);
+                    renderNoSummaryPagination(data);
+                    
+                    // 섹션 표시
+                    document.getElementById('no-summary-contents-section').style.display = 'block';
+                    
+                    // 카운트 정보 업데이트
+                    document.getElementById('no-summary-count-info').textContent = `총 ${data.totalElements}개의 요약 없음 콘텐츠`;
+                    
+                    // 버튼 활성화
+                    document.getElementById('select-all-no-summary-btn').disabled = false;
+                    document.getElementById('deselect-all-no-summary-btn').disabled = false;
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error fetching no-summary contents:', error);
+                    alert('요약 없음 콘텐츠를 불러오는 중 오류가 발생했습니다.');
+                });
+        }
+
+        // 요약 없음 콘텐츠 목록 렌더링
+        function renderNoSummaryContentsList(contents) {
+            const container = document.getElementById('no-summary-contents-list');
+            container.innerHTML = '';
+
+            if (contents.length === 0) {
+                container.innerHTML = '<p>요약 없음 콘텐츠가 없습니다</p>';
+                return;
+            }
+
+            contents.forEach(content => {
+                const item = document.createElement('div');
+                item.className = 'content-item';
+                item.style.padding = '1rem';
+                item.style.marginBottom = '0.5rem';
+                item.style.position = 'relative';
+                item.style.borderLeft = '4px solid #f59e0b';
+                item.style.backgroundColor = 'rgba(245, 158, 11, 0.05)';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = content.id;
+                checkbox.style.position = 'absolute';
+                checkbox.style.top = '1rem';
+                checkbox.style.right = '1rem';
+                checkbox.style.transform = 'scale(1.2)';
+                checkbox.addEventListener('change', updateSelectedNoSummaryCount);
+
+                const title = document.createElement('div');
+                title.className = 'content-title';
+                title.textContent = content.title;
+                title.style.paddingRight = '30px';
+
+                const source = document.createElement('div');
+                source.className = 'content-source';
+                source.textContent = `출처: ${content.newsletterName}`;
+
+                const publishDate = document.createElement('div');
+                publishDate.className = 'content-source';
+                publishDate.textContent = content.publishedAt 
+                    ? `발행일: ${new Date(content.publishedAt).toLocaleDateString('ko-KR')}`
+                    : '';
+
+                const preview = document.createElement('div');
+                preview.className = 'content-preview';
+                preview.textContent = content.content.substring(0, 100) + '...';
+
+                item.appendChild(checkbox);
+                item.appendChild(title);
+                item.appendChild(source);
+                if (content.publishedAt) {
+                    item.appendChild(publishDate);
+                }
+                item.appendChild(preview);
+
+                // 클릭 시 상세 페이지로 이동 (체크박스 클릭 제외)
+                item.addEventListener('click', function(e) {
+                    if (e.target.type !== 'checkbox') {
+                        showContentDetail(content.id);
+                    }
+                });
+
+                container.appendChild(item);
+            });
+
+            // 선택된 항목 수 업데이트
+            updateSelectedNoSummaryCount();
+        }
+
+        // 요약 없음 콘텐츠 페이지네이션 렌더링
+        function renderNoSummaryPagination(pageData) {
+            const paginationContainer = document.getElementById('no-summary-pagination');
+            paginationContainer.innerHTML = '';
+
+            if (!pageData.totalPages || pageData.totalPages <= 1) {
+                return;
+            }
+
+            // Previous button
+            if (pageData.number > 0) {
+                const prevButton = document.createElement('div');
+                prevButton.className = 'pagination-item';
+                prevButton.textContent = '이전';
+                prevButton.addEventListener('click', () => loadNoSummaryContents(pageData.number - 1, pageData.size));
+                paginationContainer.appendChild(prevButton);
+            }
+
+            // Page numbers
+            const startPage = Math.max(0, pageData.number - 2);
+            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = 'pagination-item';
+                if (i === pageData.number) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.textContent = i + 1;
+                pageButton.addEventListener('click', () => loadNoSummaryContents(i, pageData.size));
+                paginationContainer.appendChild(pageButton);
+            }
+
+            // Next button
+            if (pageData.number < pageData.totalPages - 1) {
+                const nextButton = document.createElement('div');
+                nextButton.className = 'pagination-item';
+                nextButton.textContent = '다음';
+                nextButton.addEventListener('click', () => loadNoSummaryContents(pageData.number + 1, pageData.size));
+                paginationContainer.appendChild(nextButton);
+            }
+        }
+
+        // 선택된 요약 없음 콘텐츠 수 업데이트
+        function updateSelectedNoSummaryCount() {
+            const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]:checked');
+            const count = checkboxes.length;
+            
+            document.getElementById('selected-no-summary-count-info').textContent = `${count}개 선택됨`;
+            
+            // 일괄 처리 버튼 상태 업데이트
+            document.getElementById('bulk-auto-process-btn').disabled = count === 0;
+        }
+
+        // 선택된 콘텐츠들에 대한 일괄 자동 처리
+        async function bulkAutoProcessContents() {
+            const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('처리할 콘텐츠를 하나 이상 선택해주세요.');
+                return;
+            }
+
+            const contentIds = Array.from(checkboxes).map(checkbox => checkbox.value);
+            
+            if (!confirm(`선택된 ${contentIds.length}개의 콘텐츠에 대해 일괄 자동 처리를 시작하시겠습니까?\n\n각 콘텐츠에 대해 다음 작업이 수행됩니다:\n• AI 요약 생성\n• 키워드 자동 매칭\n• 노출 컨텐츠 생성\n\n처리 시간이 다소 소요될 수 있습니다.`)) {
+                return;
+            }
+
+            // 진행 상황 표시
+            const progressContainer = document.getElementById('bulk-processing-progress');
+            const progressBar = document.getElementById('bulk-progress-bar');
+            const progressText = document.getElementById('bulk-progress-text');
+            const progressDetails = document.getElementById('bulk-progress-details');
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = '일괄 자동 처리를 시작합니다...';
+            progressDetails.textContent = '';
+
+            // 처리 결과 추적
+            const totalContents = contentIds.length;
+            let processedContents = 0;
+            let successCount = 0;
+            let failedContents = [];
+
+            // 각 콘텐츠를 순차적으로 처리
+            const processNextContent = async (index) => {
+                if (index >= contentIds.length) {
+                    // 모든 콘텐츠 처리 완료
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '일괄 처리가 완료되었습니다!';
+                    progressDetails.innerHTML = `
+                        <div style="color: #10b981;">✅ 성공: ${successCount}개</div>
+                        ${failedContents.length > 0 ? `<div style="color: #f87171;">❌ 실패: ${failedContents.length}개</div>` : ''}
+                    `;
+
+                    // 결과 메시지 표시
+                    let resultMessage = `총 ${totalContents}개 중 ${successCount}개의 콘텐츠가 성공적으로 처리되었습니다.`;
+                    
+                    if (failedContents.length > 0) {
+                        resultMessage += `\n\n처리에 실패한 콘텐츠 (${failedContents.length}개):\n`;
+                        failedContents.forEach((title, i) => {
+                            if (i < 5) {
+                                resultMessage += `- ${title}\n`;
+                            } else if (i === 5) {
+                                resultMessage += `... 외 ${failedContents.length - 5}개`;
+                            }
+                        });
+                    }
+
+                    alert(resultMessage);
+
+                    // 3초 후 진행 상황 숨기기
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                    }, 3000);
+
+                    // 목록 새로고침
+                    if (successCount > 0) {
+                        loadNoSummaryContents();
+                        fetchContents(); // 메인 콘텐츠 목록도 새로고침
+                    }
+
+                    return;
+                }
+
+                const contentId = contentIds[index];
+                
+                // 진행률 업데이트
+                const percent = Math.floor((index / totalContents) * 100);
+                progressBar.style.width = `${percent}%`;
+                progressText.textContent = `콘텐츠 ${index + 1}/${totalContents} 처리 중...`;
+                progressDetails.textContent = `현재까지 성공: ${successCount}개, 실패: ${failedContents.length}개`;
+
+                try {
+                    const response = await fetch(`./api/process/content/${contentId}/auto-process`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    processedContents++;
+
+                    if (data.success) {
+                        successCount++;
+                        
+                        // 성공한 콘텐츠는 체크박스 해제하고 시각적으로 표시
+                        const checkbox = document.querySelector(`#no-summary-contents-list input[value="${contentId}"]`);
+                        if (checkbox) {
+                            checkbox.checked = false;
+                            checkbox.disabled = true;
+                            const item = checkbox.closest('.content-item');
+                            if (item) {
+                                item.style.opacity = '0.5';
+                                item.style.borderLeft = '4px solid #10b981';
+                                item.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+                                
+                                // 성공 표시 추가
+                                const successBadge = document.createElement('div');
+                                successBadge.style.position = 'absolute';
+                                successBadge.style.top = '0.5rem';
+                                successBadge.style.left = '0.5rem';
+                                successBadge.style.backgroundColor = '#10b981';
+                                successBadge.style.color = '#fff';
+                                successBadge.style.padding = '0.25rem 0.5rem';
+                                successBadge.style.borderRadius = '4px';
+                                successBadge.style.fontSize = '0.8rem';
+                                successBadge.style.fontWeight = '600';
+                                successBadge.textContent = '처리 완료';
+                                item.appendChild(successBadge);
+                            }
+                        }
+                    } else {
+                        // 실패한 콘텐츠 제목 가져오기
+                        const failedItem = document.querySelector(`#no-summary-contents-list input[value="${contentId}"]`)?.closest('.content-item');
+                        const failedTitle = failedItem?.querySelector('.content-title')?.textContent || `ID: ${contentId}`;
+                        failedContents.push(failedTitle);
+                    }
+
+                    // 선택된 항목 수 업데이트
+                    updateSelectedNoSummaryCount();
+
+                    // 다음 콘텐츠 처리 (약간의 지연을 두어 서버 부하 분산)
+                    setTimeout(() => {
+                        processNextContent(index + 1);
+                    }, 500);
+
+                } catch (error) {
+                    console.error(`Error processing content ${contentId}:`, error);
+                    processedContents++;
+                    
+                    // 실패한 콘텐츠 제목 가져오기
+                    const failedItem = document.querySelector(`#no-summary-contents-list input[value="${contentId}"]`)?.closest('.content-item');
+                    const failedTitle = failedItem?.querySelector('.content-title')?.textContent || `ID: ${contentId}`;
+                    failedContents.push(failedTitle);
+
+                    // 다음 콘텐츠 처리
+                    setTimeout(() => {
+                        processNextContent(index + 1);
+                    }, 500);
+                }
+            };
+
+            // 첫 번째 콘텐츠부터 처리 시작
+            await processNextContent(0);
         }
     </script>
 </body>
