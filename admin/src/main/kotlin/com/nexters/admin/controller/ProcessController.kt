@@ -13,6 +13,7 @@ import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
 import com.nexters.external.service.RssAiProcessingService
 import com.nexters.external.service.SummaryService
+import com.nexters.newsletter.service.NewsletterProcessingService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -35,7 +36,8 @@ class ProcessController(
     private val summaryRepository: SummaryRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
     private val exposureContentService: ExposureContentService,
-    private val rssAiProcessingService: RssAiProcessingService
+    private val rssAiProcessingService: RssAiProcessingService,
+    private val newsletterProcessingService: NewsletterProcessingService,
 ) {
     @GetMapping("/content/{contentId}/keywords")
     fun getContentKeywords(
@@ -430,6 +432,31 @@ class ProcessController(
             )
         )
     }
+
+    @PostMapping("/content/{contentId}/auto-process")
+    fun autoProcessContent(
+        @PathVariable contentId: Long
+    ): ResponseEntity<AutoProcessResponse> =
+        try {
+            val content = contentRepository.findById(contentId).orElseThrow()
+            val exposureContent = newsletterProcessingService.processExistingContent(content)
+
+            ResponseEntity.ok(
+                AutoProcessResponse(
+                    success = true,
+                    message = "콘텐츠가 성공적으로 자동 처리되었습니다.",
+                    exposureContentId = exposureContent?.id
+                )
+            )
+        } catch (e: Exception) {
+            ResponseEntity.ok(
+                AutoProcessResponse(
+                    success = false,
+                    message = "자동 처리 중 오류가 발생했습니다: ${e.message}",
+                    exposureContentId = null
+                )
+            )
+        }
 }
 
 data class SummaryResponse(
@@ -505,4 +532,10 @@ data class RssStatsResponse(
     val dailyLimit: Int,
     val pending: Int,
     val remainingQuota: Int
+)
+
+data class AutoProcessResponse(
+    val success: Boolean,
+    val message: String,
+    val exposureContentId: Long? = null
 )

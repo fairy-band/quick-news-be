@@ -647,6 +647,17 @@
 
             <div style="margin-top: 2rem;">
                 <h3>AI 처리</h3>
+                <!-- 자동 처리 버튼 -->
+                <div style="margin-bottom: 1.5rem;">
+                    <button id="auto-process-btn" class="btn" style="width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 600; background: linear-gradient(45deg, #10b981, #059669); color: #fff;">
+                        🚀 자동 처리 (요약 + 키워드 + 노출컨텐츠 생성)
+                    </button>
+                    <p style="font-size: 0.9rem; color: #a0aec0; margin-top: 0.5rem; text-align: center;">
+                        AI가 요약을 생성하고, 키워드를 자동으로 매칭하고, 노출 컨텐츠를 생성합니다.
+                    </p>
+                </div>
+
+                <!-- 개별 처리 버튼들 -->
                 <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
                     <button id="generate-summary-btn" class="btn btn-primary" style="flex: 1;">
                         🧠 AI 요약 생성
@@ -1417,6 +1428,10 @@
             }
 
             // Set up AI processing buttons
+            document.getElementById('auto-process-btn').addEventListener('click', function() {
+                autoProcessContent(document.getElementById('edit-content-id').value);
+            });
+
             document.getElementById('generate-summary-btn').addEventListener('click', function() {
                 generateSummary(document.getElementById('edit-content-id').value);
             });
@@ -2215,6 +2230,81 @@
             });
         }
 
+        function autoProcessContent(contentId) {
+            if (!contentId) {
+                alert('콘텐츠를 선택해주세요.');
+                return;
+            }
+
+            if (!confirm('자동 처리를 시작하시겠습니까?\n\n이 작업은 다음을 순차적으로 수행합니다:\n• AI 요약 생성\n• 키워드 자동 매칭\n• 노출 컨텐츠 생성\n\n처리 시간이 다소 소요될 수 있습니다.')) {
+                return;
+            }
+
+            // Clear previous results
+            document.getElementById('ai-results').innerHTML = '';
+            showLoading();
+
+            // Update loading message for auto-processing
+            const loadingElement = document.getElementById('loading');
+            const loadingText = loadingElement.querySelector('p');
+            loadingText.textContent = 'AI가 전체 콘텐츠를 자동으로 처리하고 있습니다...';
+
+            fetch(`./api/process/content/${contentId}/auto-process`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.success) {
+                    let html = `
+                        <div class="result-card">
+                            <div class="result-title">🚀 자동 처리 완료!</div>
+                            <p style="color: #10b981; font-weight: 600; margin-bottom: 1rem;">${data.message}</p>
+                            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                                <h4 style="color: #10b981; margin-bottom: 0.5rem;">✅ 완료된 작업:</h4>
+                                <ul style="color: #a0aec0; margin-left: 1rem;">
+                                    <li>🧠 AI 요약 자동 생성 및 저장</li>
+                                    <li>🏷️ 예약 키워드 자동 매칭 및 할당</li>
+                                    <li>🌟 노출 컨텐츠 생성 및 활성화</li>
+                                </ul>
+                    `;
+
+                    if (data.exposureContentId) {
+                        html += `
+                                <div style="margin-top: 1rem;">
+                                    <span style="color: #00d4ff;">📋 생성된 노출 컨텐츠 ID:</span>
+                                    <span style="color: #fff; font-family: monospace;">${data.exposureContentId}</span>
+                                </div>
+                        `;
+                    }
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('ai-results').innerHTML = html;
+
+                    // Refresh content keywords and summaries
+                    fetchContentKeywords(contentId);
+                    fetchSavedSummaries(contentId);
+
+                    // Refresh the main content list to show updated exposure status
+                    fetchContents();
+                } else {
+                    showError(data.message || '자동 처리에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('서버 오류가 발생했습니다: ' + error.message);
+            });
+        }
+
         function generateSummary(contentId) {
             if (!contentId) {
                 alert('콘텐츠를 선택해주세요.');
@@ -2548,7 +2638,7 @@
                     document.getElementById('ai-results').innerHTML = html;
 
                     // Display AI suggestions for candidate selection if available
-                    if ((data.suggestedKeywords && data.suggestedKeywords.length > 0) || 
+                    if ((data.suggestedKeywords && data.suggestedKeywords.length > 0) ||
                         (data.provocativeKeywords && data.provocativeKeywords.length > 0)) {
                         displaySuggestedKeywordsForSelection({
                             matchedKeywords: data.matchedKeywords || [],
@@ -2560,7 +2650,7 @@
                     // 키워드가 추가된 경우 콘텐츠 키워드 목록 새로고침
                     if (data.addedKeywords.length > 0) {
                         fetchContentKeywords(contentId);
-                        
+
                         // 예약 키워드 목록도 새로고침 (이미 추가된 키워드 표시를 위해)
                         fetchReservedKeywords();
                     }

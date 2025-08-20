@@ -22,10 +22,32 @@ class NewsletterProcessingService(
     private val contentService: ContentService,
     private val summaryService: SummaryService,
     private val keywordService: KeywordService,
-    private val exposureContentService: ExposureContentService
+    private val exposureContentService: ExposureContentService,
 ) {
     private val logger = LoggerFactory.getLogger(NewsletterProcessingService::class.java)
     private val mailParserFactory = MailParserFactory()
+
+    @Transactional
+    fun processExistingContent(content: Content): ExposureContent {
+        try {
+            logger.info("Starting complete processing for existing content ID: $content.id")
+
+            // Generate summary
+            generateSummary(content)
+
+            // Match keywords
+            matchKeywords(listOf(content))
+
+            // Create exposure content
+            val exposureContent = createExposureContent(content)
+
+            logger.info("End complete processing for existing content ID: $content.id")
+            return exposureContent
+        } catch (e: Exception) {
+            logger.error("Failed to process existing content ID: $content.id", e)
+            throw e
+        }
+    }
 
     @Transactional
     fun processNewsletter(newsletterSourceId: String): List<ExposureContent> {
@@ -53,13 +75,8 @@ class NewsletterProcessingService(
 
             val createdContents = parseContents(newsletterSource, parsedContents)
 
-            generateSummaries(createdContents)
-
-            matchKeywords(createdContents)
-
-            val exposureContents = createExposureContents(createdContents)
             logger.info("End complete newsletter processing for source ID: $newsletterSourceId")
-            return exposureContents
+            return createdContents.map { processExistingContent(it) }
         } catch (e: Exception) {
             logger.error("Failed to process newsletter source ID: $newsletterSourceId", e)
         }
@@ -69,7 +86,7 @@ class NewsletterProcessingService(
 
     private fun parseContents(
         newsletterSource: NewsletterSource,
-        parsedContents: List<MailContent>
+        parsedContents: List<MailContent>,
     ): List<Content> {
         logger.info("Creating ${parsedContents.size} contents from parsed data")
 
@@ -86,7 +103,7 @@ class NewsletterProcessingService(
                     originalUrl = originalUrl,
                     publishedAt = newsletterSource.receivedDate.toLocalDate(),
                     createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
+                    updatedAt = LocalDateTime.now(),
                 )
 
             val savedContent = contentService.save(content)
@@ -95,31 +112,30 @@ class NewsletterProcessingService(
         }
     }
 
-    private fun generateSummaries(contents: List<Content>) {
-        logger.info("Generating summaries for ${contents.size} contents")
+    private fun generateSummary(content: Content): Summary? {
+        logger.info("Generating summary for content: ${content.title}")
 
-        contents.forEach { content ->
-            try {
-                val summaryResult = summaryService.summarize(content.content)
+        return try {
+            val summaryResult = summaryService.summarize(content.content)
 
-                // Use first provocative headline if available, otherwise use original title
-                val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: content.title
+            // Use first provocative headline if available, otherwise use original title
+            val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: content.title
 
-                val summary =
-                    Summary(
-                        content = content,
-                        title = recommendedTitle,
-                        summarizedContent = summaryResult.summary,
-                        model = summaryResult.usedModel?.modelName ?: "unknown",
-                        summarizedAt = LocalDateTime.now(),
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now()
-                    )
+            val summary =
+                Summary(
+                    content = content,
+                    title = recommendedTitle,
+                    summarizedContent = summaryResult.summary,
+                    model = summaryResult.usedModel?.modelName ?: "unknown",
+                    summarizedAt = LocalDateTime.now(),
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now(),
+                )
 
-                summaryService.save(summary)
-            } catch (e: Exception) {
-                logger.error("Failed to create summary for content: ${content.title}", e)
-            }
+            summaryService.save(summary)
+        } catch (e: Exception) {
+            logger.error("Failed to create summary for content: ${content.title}", e)
+            null
         }
     }
 
@@ -141,24 +157,22 @@ class NewsletterProcessingService(
         }
     }
 
-    private fun createExposureContents(contents: List<Content>): List<ExposureContent> {
-        logger.info("Creating exposure contents for ${contents.size} contents")
+    private fun createExposureContent(content: Content): ExposureContent {
+        logger.info("Creating exposure content for content: ${content.title}")
 
-        return contents.map { content ->
-            val summaries = summaryService.getPrioritizedSummaryByContent(content)
+        val summaries = summaryService.getPrioritizedSummaryByContent(content)
 
-            if (summaries.isNotEmpty()) {
-                val latestSummary = summaries.first()
-                exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
-            } else {
-                // Fallback: create basic exposure content
-                exposureContentService.createOrUpdateExposureContent(
-                    content = content,
-                    provocativeKeyword = "Newsletter",
-                    provocativeHeadline = content.title,
-                    summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else ""
-                )
-            }
+        return if (summaries.isNotEmpty()) {
+            val latestSummary = summaries.first()
+            exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
+        } else {
+            // Fallback: create basic exposure content
+            exposureContentService.createOrUpdateExposureContent(
+                content = content,
+                provocativeKeyword = "Newsletter",
+                provocativeHeadline = content.title,
+                summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else "",
+            )
         }
     }
 }

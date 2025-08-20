@@ -261,12 +261,12 @@ class NewsletterSourceApiController(
     @PostMapping("/{id}/auto-process")
     fun autoProcessNewsletterSource(
         @PathVariable id: String
-    ): ResponseEntity<AutoProcessResponse> =
+    ): ResponseEntity<AutoProcessListResponse> =
         try {
             val exposureContents = newsletterProcessingService.processNewsletter(id)
 
             ResponseEntity.ok(
-                AutoProcessResponse(
+                AutoProcessListResponse(
                     success = true,
                     message = "자동 처리가 완료되었습니다.",
                     processedContentCount = exposureContents.size,
@@ -275,7 +275,7 @@ class NewsletterSourceApiController(
             )
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(
-                AutoProcessResponse(
+                AutoProcessListResponse(
                     success = false,
                     message = "자동 처리 중 오류가 발생했습니다: ${e.message}",
                     processedContentCount = 0,
@@ -319,7 +319,7 @@ data class AddParsedContentRequest(
     val publishedAt: LocalDate
 )
 
-data class AutoProcessResponse(
+data class AutoProcessListResponse(
     val success: Boolean,
     val message: String,
     val processedContentCount: Int,
