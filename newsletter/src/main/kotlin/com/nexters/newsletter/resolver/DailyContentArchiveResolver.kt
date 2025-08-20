@@ -9,9 +9,11 @@ import com.nexters.external.service.ContentService
 import com.nexters.external.service.DailyContentArchiveService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.util.SortedMap
 import java.util.concurrent.locks.ReentrantLock
 
 @Service
@@ -24,28 +26,6 @@ class DailyContentArchiveResolver(
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
-
-    fun resolveTodayContents(userId: Long): List<ExposureContent> {
-        val userCategories = categoryService.getCategoriesByUserId(userId)
-
-        val categories =
-            if (userCategories.isEmpty()) {
-                categoryService.getAllCategories()
-            } else {
-                userCategories
-            }
-
-        return resolveTodayContents(
-            userId,
-            categories.map { it.id!! },
-        )
-    }
-
-    fun resolveArbitraryTodayContents(): List<ExposureContent> =
-        resolveTodayContents(
-            ARBITRARY_USER_ID,
-            categoryService.getAllCategories().map { it.id!! },
-        )
 
     fun resolveTodayCategoryContents(categoryId: Long): List<ExposureContent> =
         resolveTodayContents(
@@ -124,44 +104,119 @@ class DailyContentArchiveResolver(
 
         val possibleContents = contentService.getNotExposedContentsByReservedKeywordIds(userId, reservedKeywordIds)
 
-        // 카테고리에 해당하는 키워드 가중치 맵 생성
+        // 개수가 충분치 않으면 바로 반환
+        if (possibleContents.size <= MAX_CONTENT_SIZE) {
+            logger.error(
+                "추천할 콘텐츠가 부족합니다. userId: {}, 키워드 수: {}, 가능한 콘텐츠 수: {}, 최대 콘텐츠 크기: {}",
+                userId,
+                reservedKeywords.size,
+                possibleContents.size,
+                MAX_CONTENT_SIZE,
+            )
+            return possibleContents
+        }
 
-        val contentWeights =
-            possibleContents.associateWith { content ->
-                // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
-                val relevantKeywords =
-                    content.reservedKeywords.filter { keyword ->
-                        keywordWeightsByKeyword[keyword] != null
-                    }
+        // 카테고리에 해당하는 키워드 가중치 맵 생성 (기본 가중치 1.0 사용)
+        val contentSources =
+            createRecommendSources(
+                possibleContents = possibleContents,
+                keywordWeightsByKeyword = keywordWeightsByKeyword,
+                multiplier = 1.0,
+            )
 
-                val positiveKeywords =
-                    relevantKeywords.filter { keyword ->
-                        keywordWeightsByKeyword[keyword]!! > 0
-                    }
-
-                val negativeKeywords =
-                    relevantKeywords.filter { keyword ->
-                        keywordWeightsByKeyword[keyword]!! < 0
-                    }
-
+        val sortedSources: SortedMap<Content, RecommendCalculateSource> =
+            contentSources.toSortedMap { a, b ->
                 calculator
-                    .calculate(
-                        RecommendCalculateSource(
-                            positiveKeywords.map { PositiveKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
-                            negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
-                            content.publishedAt,
-                        ),
-                    ).recommendScore
+                    .calculate(contentSources[b]!!)
+                    .recommendScore
+                    .compareTo(
+                        calculator.calculate(contentSources[a]!!).recommendScore,
+                    )
             }
 
-        // 가중치가 0인 컨텐츠 필터링하고 가중치 내림차순으로 정렬
-        return contentWeights
-            .filter { it.value > 0 }
-            .toList()
-            .sortedByDescending { it.second }
-            .map { it.first }
-            .take(MAX_CONTENT_SIZE)
+        // 1단계: recommendScore > 0인 컨텐츠들 필터링
+        val positiveScoreContents =
+            sortedSources.entries
+                .filter { (content, source) ->
+                    calculator.calculate(source).recommendScore > 0
+                }.map { it.key }
+
+        // 2단계: 충분한 컨텐츠가 있으면 바로 리턴
+        if (positiveScoreContents.size >= MAX_CONTENT_SIZE) {
+            return positiveScoreContents.take(MAX_CONTENT_SIZE)
+        }
+
+        // 3단계: 부족하면 가중치를 2배, 3배, 4배로 늘려가며 추가 컨텐츠 찾기
+        val selectedContents = positiveScoreContents.toMutableList()
+        val multipliers = listOf(2.0, 3.0, 4.0)
+
+        for (multiplier in multipliers) {
+            if (selectedContents.size >= MAX_CONTENT_SIZE) {
+                break
+            }
+
+            val amplifiedRecommendSources =
+                createRecommendSources(
+                    possibleContents = possibleContents,
+                    keywordWeightsByKeyword = keywordWeightsByKeyword,
+                    multiplier = multiplier,
+                )
+
+            // 재계산된 결과로 정렬하고 기존에 선택되지 않은 positive score 컨텐츠들 필터링
+            val amplifiedSortedSources: SortedMap<Content, RecommendCalculateSource> =
+                amplifiedRecommendSources.toSortedMap { a, b ->
+                    calculator
+                        .calculate(amplifiedRecommendSources[b]!!)
+                        .recommendScore
+                        .compareTo(
+                            calculator.calculate(amplifiedRecommendSources[a]!!).recommendScore,
+                        )
+                }
+
+            val amplifiedContents =
+                amplifiedSortedSources.entries
+                    .filter { (content, source) -> !selectedContents.contains(content) }
+                    .filter { (content, source) -> calculator.calculate(source).recommendScore > 0 }
+                    .map { it.key }
+
+            val additionalNeeded = MAX_CONTENT_SIZE - selectedContents.size
+            selectedContents.addAll(amplifiedContents.take(additionalNeeded))
+        }
+
+        return selectedContents.take(MAX_CONTENT_SIZE)
     }
+
+    /**
+     * 가중치를 적용해서 추천 계산을 위한 소스를 생성합니다.
+     */
+    private fun createRecommendSources(
+        possibleContents: List<Content>,
+        keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+        multiplier: Double,
+    ): Map<Content, RecommendCalculateSource> =
+        possibleContents.associateWith { content ->
+            // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
+            val relevantKeywords =
+                content.reservedKeywords.filter { keyword ->
+                    keywordWeightsByKeyword[keyword] != null
+                }
+
+            val positiveKeywords =
+                relevantKeywords.filter { keyword ->
+                    keywordWeightsByKeyword[keyword]!! > 0
+                }
+
+            val negativeKeywords =
+                relevantKeywords.filter { keyword ->
+                    keywordWeightsByKeyword[keyword]!! < 0
+                }
+
+            RecommendCalculateSource(
+                positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
+                negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
+                content.publishedAt,
+            )
+        }
 
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
@@ -176,6 +231,7 @@ class DailyContentArchiveResolver(
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(DailyContentArchiveResolver::class.java)
         private const val MAX_CONTENT_SIZE = 6
         private const val ARBITRARY_USER_ID = 1L // 임시로 사용되는 유저 ID
     }
