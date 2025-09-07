@@ -8,26 +8,27 @@ import kotlin.math.abs
 class AlarmMessageResolver {
     fun resolveTodayMessage(deviceToken: String): String {
         val currentHour = LocalTime.now().hour
-        
-        val messages = if (isNightTime(currentHour)) {
-            // 밤 시간대 메시지 (18시 ~ 5시)
-            listOf(
-                "하루를 마무리하며 오늘의 뉴스를 확인해보세요 🌙",
-                "오늘 놓친 중요한 소식들이 있어요 ⭐",
-                "잠들기 전 세상의 이야기를 들어보세요 📰",
-                "하루의 마지막, 오늘의 핫한 뉴스 체크 🔥",
-                "내일을 위한 정보 업데이트가 도착했어요 🌃"
-            )
-        } else {
-            // 아침/낮 시간대 메시지 (6시 ~ 17시)
-            listOf(
-                "좋은 아침! 오늘의 핫한 뉴스가 기다리고 있어요 ☀️",
-                "새로운 하루, 새로운 소식을 확인해보세요 🌅",
-                "오늘 하루 시작하기 전, 세상 소식 체크하기 📱",
-                "아침 커피와 함께 오늘의 뉴스는 어떠세요? ☕",
-                "활기찬 하루를 위한 최신 소식이 도착했어요 🚀"
-            )
-        }
+
+        val messages =
+            if (isNightTime(currentHour)) {
+                // 밤 시간대 메시지 (18시 ~ 5시)
+                listOf(
+                    "하루를 마무리하며 오늘의 뉴스를 확인해보세요 🌙",
+                    "오늘 놓친 중요한 소식들이 있어요 ⭐",
+                    "잠들기 전 세상의 이야기를 들어보세요 📰",
+                    "하루의 마지막, 오늘의 핫한 뉴스 체크 🔥",
+                    "내일을 위한 정보 업데이트가 도착했어요 🌃"
+                )
+            } else {
+                // 아침/낮 시간대 메시지 (6시 ~ 17시)
+                listOf(
+                    "좋은 아침! 오늘의 핫한 뉴스가 기다리고 있어요 ☀️",
+                    "새로운 하루, 새로운 소식을 확인해보세요 🌅",
+                    "오늘 하루 시작하기 전, 세상 소식 체크하기 📱",
+                    "아침 커피와 함께 오늘의 뉴스는 어떠세요? ☕",
+                    "활기찬 하루를 위한 최신 소식이 도착했어요 🚀"
+                )
+            }
 
         // deviceToken 해시를 이용해 사용자별로 일관된 메시지 선택
         val messageIndex = abs(deviceToken.hashCode()) % messages.size
