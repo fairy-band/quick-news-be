@@ -10,6 +10,9 @@ dependencies {
     // Logging
     implementation(libs.spring.boot.starter.logging)
 
+    // Firebase Admin SDK for FCM
+    implementation(libs.firebase.admin)
+
     // JSoup for HTML parsing
     implementation(libs.jsoup)
 

@@ -24,6 +24,7 @@ rest-assured = "5.4.0"
 postgresql = "42.7.2"
 h2 = "2.2.224"
 thymeleaf = "3.1.2.RELEASE"
+firebase-admin = "9.2.0"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -65,6 +66,9 @@ jakarta-activation-api = { group = "jakarta.activation", name = "jakarta.activat
 
 # Google  AI
 google-genai = { group = "com.google.genai", name = "google-genai", version.ref = "google-genai" }
+
+# Firebase
+firebase-admin = { group = "com.google.firebase", name = "firebase-admin", version.ref = "firebase-admin" }
 
 # Gson
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }

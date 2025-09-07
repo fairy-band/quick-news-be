@@ -28,14 +28,14 @@ dependencies {
 
     implementation(libs.micrometer.core)
 
-    implementation("com.google.firebase:firebase-admin:9.2.0")
+    implementation(libs.firebase.admin)
 
     testImplementation(libs.bundles.testing)
     testImplementation(libs.de.flapdoodle.embed.mongo.spring)
     testRuntimeOnly(libs.junit.platform.launcher)
 
     // JPA and Database dependencies
-    implementation(libs.spring.boot.starter.data.jpa)
+    api(libs.spring.boot.starter.data.jpa)
     implementation(libs.postgresql)
     testImplementation(libs.h2)
 

@@ -22,6 +22,7 @@ class DailyContentArchiveRepositoryTest {
         // given
         val user =
             User(
+                id = 1L,
                 deviceToken = "test-device-token",
                 categories = mutableSetOf(),
                 keywords = mutableSetOf()
@@ -45,7 +46,7 @@ class DailyContentArchiveRepositoryTest {
         val dailyContentArchive =
             DailyContentArchive(
                 date = LocalDate.now(),
-                user = user,
+                user = DailyContentArchive.UserSnapshot.from(user),
                 exposureContents = listOf(exposureContent)
             )
 
@@ -96,7 +97,7 @@ class DailyContentArchiveRepositoryTest {
         val dailyContentArchive =
             DailyContentArchive(
                 date = date,
-                user = user,
+                user = DailyContentArchive.UserSnapshot.from(user),
                 exposureContents = listOf(exposureContent)
             )
         sut.save(dailyContentArchive)

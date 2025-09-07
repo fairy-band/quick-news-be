@@ -49,6 +49,11 @@ logging:
 server:
   port: 8082
 
+# Firebase Configuration
+firebase:
+  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
+  project-id: ${FIREBASE_PROJECT_ID:news-letter-da24c}
+
 # RSS Configuration
 rss:
   feeds: ${RSS_FEEDS:https://feeds2.feedburner.com/rss_outsider_dev,https://blog.isquaredsoftware.com/index.xml,https://www.joshuakgoldberg.com/rss.xml,https://ppss.kr/archives/category/tech/feed,https://spoqa.github.io/atom.xml,https://www.samsungsds.com/kr/insights/insight_ko_rss.xml,https://tech.cloud.nongshim.co.kr/feed/,http://hacks.mozilla.or.kr/feed/,https://makinarocks.github.io/feed,https://devblogs.microsoft.com/typescript/feed/,https://blog.jetbrains.com/ko/feed/,http://kotlin.kr/feed.xml,https://medium.com/feed/ssgtech,https://medium.com/feed/naver-place-dev,https://medium.com/feed/lemonbase,https://medium.com/feed/pinkfong,https://medium.com/feed/yanolja,https://medium.com/feed/musinsa-tech,https://medium.com/feed/29cm,https://medium.com/feed/wantedjobs,https://riiidtechblog.medium.com/feed,https://www.44bits.io/ko/feed/all,https://zuminternet.github.io/feed.xml,https://techblog.gccompany.co.kr/feed,https://techblog.yogiyo.co.kr/feed,https://www.blog.kcd.co.kr/feed,http://meetup.toast.com/rss,http://feeds.feedburner.com/CSS-Weekly?format=xml,http://kentcdodds.com/blog/rss.xml,https://vuejsdevelopers.com/feed.xml,http://react.statuscode.com/rss,http://frontendfoc.us/rss,http://javascriptweekly.com/rss,https://tech.kakao.com/feed/,https://medium.com/feed/coupang-tech,http://thefarmersfront.github.io/feed.xml,https://woowabros.github.io/feed.xml,https://kofearticle.substack.com/feed,https://fe-developers.kakaoent.com/rss.xml,https://smartstudio.tech/feed/,https://techblog.woowahan.com/feed/,https://medium.com/feed/daangn,https://d2.naver.com/d2.atom,https://engineering.linecorp.com/ko/feed/index.html,https://github.com/naver/fe-news/commits/master.atom}
