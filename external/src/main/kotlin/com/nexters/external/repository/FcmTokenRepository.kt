@@ -29,4 +29,6 @@ interface FcmTokenRepository : JpaRepository<FcmToken, Long> {
         deviceToken: String,
         fcmToken: String
     ): Boolean
+
+    fun findAllByIsActiveTrue(): List<FcmToken>
 }

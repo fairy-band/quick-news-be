@@ -7,7 +7,7 @@ dependencies {
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
 
     // Firebase Admin SDK for push notifications
-    implementation("com.google.firebase:firebase-admin:9.2.0")
+    implementation(libs.firebase.admin)
 
     // For OG HTML page generation
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
