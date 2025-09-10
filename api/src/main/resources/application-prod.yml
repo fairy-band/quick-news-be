@@ -7,9 +7,9 @@ server:
   forward-headers-strategy: framework
   url: https://fairy-band.com/api
 
-# Production Discord Webhook Configuration
+# Notification Configuration
 notification:
   discord:
     user-registration:
-      enabled: true
-      webhook-url: "https://discord.com/api/webhooks/1407711978016735325/0U0D4qlIX6i_vt5Dlj1PPFLFkt8c2YH-uq_w9v02n9k8_nDVqY-f37Xpxs6ua6Gcc4n3"
+      enabled: ${DISCORD_USER_REGISTRATION_ENABLED:false}
+      webhook-url: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL:}

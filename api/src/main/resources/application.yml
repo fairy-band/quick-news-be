@@ -23,13 +23,6 @@ firebase:
   service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
   project-id: ${FIREBASE_PROJECT_ID:news-letter-da24c}
 
-# Notification Configuration
-notification:
-  discord:
-    user-registration:
-      enabled: ${DISCORD_USER_REGISTRATION_ENABLED:false}
-      webhook-url: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL:}
-
 # Logging
 logging:
   level:
