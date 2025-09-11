@@ -80,10 +80,13 @@ class RssAiProcessingService(
 
     private fun processRssItem(status: RssProcessingStatus) {
         // NewsletterSource 조회
-        val newsletterSource =
-            newsletterSourceRepository
-                .findById(status.newsletterSourceId)
-                .orElseThrow { NoSuchElementException("NewsletterSource not found: ${status.newsletterSourceId}") }
+        val newsletterSource = newsletterSourceRepository.findById(status.newsletterSourceId).orElse(null)
+
+        if (newsletterSource == null) {
+            logger.warn("NewsletterSource not found for ID: ${status.newsletterSourceId}, removing RssProcessingStatus")
+            rssProcessingStatusRepository.delete(status)
+            return
+        }
 
         // RSS Item URL 가져오기
         val originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: ""
