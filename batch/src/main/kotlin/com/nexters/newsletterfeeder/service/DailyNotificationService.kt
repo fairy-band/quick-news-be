@@ -20,7 +20,7 @@ class DailyNotificationService(
 ) {
     private val logger = LoggerFactory.getLogger(DailyNotificationService::class.java)
 
-    @Scheduled(cron = "0 0 11,23 * * *")
+    @Scheduled(cron = "0 0 8 * * *")
     fun sendDailyNotification() {
         logger.info("일일 FCM 알림 전송 시작")
 
