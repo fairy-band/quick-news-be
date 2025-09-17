@@ -4,6 +4,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.mongodb.core.mapping.Document
+import org.springframework.lang.Nullable
 import java.time.LocalDateTime
 
 @Document(collection = "newsletter_sources")
@@ -17,6 +18,8 @@ data class NewsletterSource(
     val recipientEmail: String,
     val content: String,
     val contentType: String,
+    @Nullable
+    val htmlContent: String? = null,
     val receivedDate: LocalDateTime,
     val headers: Map<String, String> = emptyMap(),
     val attachments: List<Attachment> = emptyList(),

@@ -357,7 +357,7 @@ data class NewsletterSourceWithContentStatus(
                 recipient = newsletterSource.recipient,
                 recipientEmail = newsletterSource.recipientEmail,
                 plainText = newsletterSource.content,
-                htmlText = newsletterSource.content,
+                htmlText = newsletterSource.htmlContent,
                 content = newsletterSource.content,
                 contentType = newsletterSource.contentType,
                 receivedDate = newsletterSource.receivedDate,
