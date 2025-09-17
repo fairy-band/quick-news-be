@@ -1455,7 +1455,7 @@
                     document.getElementById('original-url').value = '';
                     // 뉴스레터 소스의 receivedDate를 사용하여 발행일 설정
                     document.getElementById('published-date').value = new Date(source.receivedDate).toISOString().split('T')[0];
-                    document.getElementById('content-text').value = source.plainText || source.htmlText || source.content || '';
+                    document.getElementById('content-text').value = source.plainText || source.content || '';
                 })
                 .catch(error => {
                     console.error('Error loading source for content creation:', error);
