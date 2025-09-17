@@ -3,6 +3,20 @@
     <!-- Console appender with explicit configuration -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender with rolling policy -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/app/logs/admin.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>/app/logs/admin.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
@@ -12,7 +26,7 @@
         <appender name="DISCORD" class="com.nexters.external.logging.DiscordWebhookAppender">
             <webhookUri>${ERROR_DISCORD_WEBHOOK_URI}</webhookUri>
             <username>Newsletter Feeder - Admin Error</username>
-            <avatarUrl>https://cdn.discordapp.com/embed/avatars/0.png</avatarUrl>
+            <avatarUrl>https://cdn.discordapp.com/embed/avatars/2.png</avatarUrl>
             <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
                 <level>ERROR</level>
             </filter>
@@ -23,16 +37,19 @@
     <springProfile name="local">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
         </root>
     </springProfile>
     <springProfile name="dev">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
         </root>
     </springProfile>
-    <springProfile name = "prod">
+    <springProfile name="prod">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
             <appender-ref ref="DISCORD"/>
         </root>
     </springProfile>

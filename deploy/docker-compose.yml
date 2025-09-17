@@ -18,6 +18,7 @@ services:
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+      - ./logs/api:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,6 +57,7 @@ services:
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+      - ./logs/batch:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -88,6 +90,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       OAUTH2_CLIENT_ID_GOOGLE: ${OAUTH2_CLIENT_ID_GOOGLE}
       OAUTH2_CLIENT_SECRET_GOOGLE: ${OAUTH2_CLIENT_SECRET_GOOGLE}
+    volumes:
+      - ./logs/admin:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
