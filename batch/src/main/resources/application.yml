@@ -52,3 +52,11 @@ rss:
       delay: ${RSS_FETCH_DELAY:3600000}
     stats:
       cron: ${RSS_STATS_CRON:0 0 */6 * * *}
+
+# Google Analytics Configuration
+google:
+  analytics:
+    property:
+      id: ${GA_PROPERTY_ID:496409651}
+    credentials:
+      path: ${GA_CREDENTIALS_PATH:firebase-service-account.json}

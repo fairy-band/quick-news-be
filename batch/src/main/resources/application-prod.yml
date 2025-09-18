@@ -3,3 +3,10 @@ spring:
     import:
       - mongo-prod.yml
       - postgresql.yml
+
+# Notification Configuration
+notification:
+  discord:
+    user-registration:
+      enabled: ${DISCORD_USER_REGISTRATION_ENABLED:false}
+      webhook-url: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL:}
