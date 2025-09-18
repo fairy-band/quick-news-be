@@ -16,6 +16,10 @@ dependencies {
     // JSoup for HTML parsing
     implementation(libs.jsoup)
 
+    // Google Analytics API
+    implementation("com.google.analytics:google-analytics-data:0.50.0")
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+
     annotationProcessor(libs.spring.boot.configuration.processor)
 
     testImplementation(libs.bundles.testing)

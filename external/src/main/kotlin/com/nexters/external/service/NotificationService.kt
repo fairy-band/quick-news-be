@@ -62,6 +62,63 @@ class NotificationService(
         }
     }
 
+    fun sendAnalyticsReport(reportContent: String): Boolean {
+        return try {
+            if (!userRegistrationEnabled) {
+                logger.debug("User registration notification is disabled")
+                return false
+            }
+
+            if (userRegistrationWebhookUrl.isBlank()) {
+                logger.warn("User registration webhook URL is not configured for analytics report")
+                return false
+            }
+
+            val request =
+                DiscordWebhookRequest(
+                    content = reportContent,
+                    username = "Analytics Bot"
+                )
+
+            val success = discordWebhookClient.sendMessage(userRegistrationWebhookUrl, request)
+            if (success) {
+                logger.info("Analytics report sent successfully")
+            } else {
+                logger.warn("Failed to send analytics report")
+            }
+            success
+        } catch (e: Exception) {
+            logger.error("Error occurred while sending analytics report", e)
+            false
+        }
+    }
+
+    fun sendTestMessage(message: String): Boolean {
+        return try {
+            if (userRegistrationWebhookUrl.isBlank()) {
+                logger.warn("User registration webhook URL is not configured for test message")
+                return false
+            }
+
+            val request =
+                DiscordWebhookRequest(
+                    content = message,
+                    username = "Analytics Bot"
+                )
+
+            val success = discordWebhookClient.sendMessage(userRegistrationWebhookUrl, request)
+            if (success) {
+                logger.info("Test message sent successfully")
+            } else {
+                logger.warn("Failed to send test message")
+            }
+            success
+        } catch (e: Exception) {
+            logger.error("Error occurred while sending test message", e)
+            false
+        }
+    }
+
     private fun createUserRegistrationEmbed(
         userId: Long,
         deviceToken: String
