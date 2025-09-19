@@ -66,7 +66,6 @@ class GoogleAnalyticsService(
 
             val response = analyticsClient.runReport(userStatsRequest)
 
-            var totalUsers = 0L
             var newUsers = 0L
             var returningUsers = 0L
             var sessions = 0L
@@ -79,7 +78,6 @@ class GoogleAnalyticsService(
                 val sessionCount = row.getMetricValues(1).value.toLongOrNull() ?: 0L
                 val pageViewCount = row.getMetricValues(2).value.toLongOrNull() ?: 0L
 
-                totalUsers += users
                 sessions += sessionCount
                 pageViews += pageViewCount
 
@@ -88,6 +86,9 @@ class GoogleAnalyticsService(
                     "returning" -> returningUsers = users
                 }
             }
+
+            // 총 사용자는 신규 + 재방문 사용자의 합
+            val totalUsers = newUsers + returningUsers
 
             val returningUserRate =
                 if (totalUsers > 0) {
@@ -232,7 +233,6 @@ class GoogleAnalyticsService(
 
             val response = analyticsClient.runReport(userStatsRequest)
 
-            var totalUsers = 0L
             var newUsers = 0L
             var returningUsers = 0L
             var sessions = 0L
@@ -245,7 +245,6 @@ class GoogleAnalyticsService(
                 val sessionCount = row.getMetricValues(1).value.toLongOrNull() ?: 0L
                 val pageViewCount = row.getMetricValues(2).value.toLongOrNull() ?: 0L
 
-                totalUsers += users
                 sessions += sessionCount
                 pageViews += pageViewCount
 
@@ -254,6 +253,9 @@ class GoogleAnalyticsService(
                     "returning" -> returningUsers = users
                 }
             }
+
+            // 총 사용자는 신규 + 재방문 사용자의 합
+            val totalUsers = newUsers + returningUsers
 
             val returningUserRate =
                 if (totalUsers > 0) {

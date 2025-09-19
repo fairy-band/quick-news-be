@@ -39,10 +39,10 @@ class AnalyticsScheduler(
     }
 
     /**
-     * 매주 월요일 아침 9시에 지난 주 GA 통계를 디스코드로 전송
-     * 크론 표현식: "0 0 9 * * MON" = 매주 월요일 09:00:00
+     * 매주 목요일 아침 9시에 지난 주 GA 통계를 디스코드로 전송
+     * 크론 표현식: "0 0 9 * * THU" = 매주 월요일 09:00:00
      */
-    @Scheduled(cron = "0 0 9 * * MON", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 9 * * THU", zone = "Asia/Seoul")
     fun sendWeeklyAnalyticsReport() {
         logger.info("주간 GA 통계 리포트 스케줄 실행 시작")
 
