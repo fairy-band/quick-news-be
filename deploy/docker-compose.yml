@@ -16,6 +16,8 @@ services:
       ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
       FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      DISCORD_USER_REGISTRATION_ENABLED: ${DISCORD_USER_REGISTRATION_ENABLED}
+      DISCORD_USER_REGISTRATION_WEBHOOK_URL: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - ./logs/api:/app/logs
@@ -55,6 +57,8 @@ services:
       ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
       FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      DISCORD_USER_REGISTRATION_ENABLED: ${DISCORD_USER_REGISTRATION_ENABLED}
+      DISCORD_USER_REGISTRATION_WEBHOOK_URL: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - ./logs/batch:/app/logs
