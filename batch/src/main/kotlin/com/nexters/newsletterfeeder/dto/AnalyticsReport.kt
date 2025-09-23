@@ -13,6 +13,7 @@ data class AnalyticsReport(
     val topNewsletterClicks: List<NewsletterClick>,
     val startDate: LocalDate? = null, // 주간 리포트용
     val endDate: LocalDate? = null, // 주간 리포트용
+    val yesterdayTotalUsers: Long? = null, // 어제 총 방문자 수 (재방문율 계산용)
 ) {
     fun toDiscordMessage(): String =
         """
@@ -22,7 +23,8 @@ data class AnalyticsReport(
             • 총 방문자: **${totalUsers.formatNumber()}명**
             • 신규 방문자: **${newUsers.formatNumber()}명**
             • 재방문자: **${returningUsers.formatNumber()}명**
-            • 재방문율: **${String.format("%.1f", returningUserRate)}%**
+            ${yesterdayTotalUsers?.let { "• 어제 방문자: **${it.formatNumber()}명**" } ?: ""}
+            • 재방문율: **${String.format("%.1f", returningUserRate)}%** (어제 방문자 대비)
 
             📈 **활동 현황**
             • 총 세션: **${sessions.formatNumber()}회**
@@ -44,7 +46,8 @@ data class AnalyticsReport(
             • 총 방문자: **${totalUsers.formatNumber()}명**
             • 신규 방문자: **${newUsers.formatNumber()}명**
             • 재방문자: **${returningUsers.formatNumber()}명**
-            • 재방문율: **${String.format("%.1f", returningUserRate)}%**
+            ${yesterdayTotalUsers?.let { "• 지난 주 방문자: **${it.formatNumber()}명**" } ?: ""}
+            • 재방문율: **${String.format("%.1f", returningUserRate)}%** (지난 주 방문자 대비)
 
             📈 **활동 현황**
             • 총 세션: **${sessions.formatNumber()}회**

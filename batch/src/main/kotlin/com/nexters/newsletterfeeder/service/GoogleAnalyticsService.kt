@@ -30,9 +30,10 @@ class GoogleAnalyticsService(
 
         try {
             val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val yesterdayString = date.minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 기본 사용자 통계 요청
-            val userStatsRequest =
+            // 오늘 사용자 통계 요청
+            val todayUserStatsRequest =
                 RunReportRequest
                     .newBuilder()
                     .setProperty("properties/$propertyId")
@@ -64,15 +65,15 @@ class GoogleAnalyticsService(
                             .build()
                     ).build()
 
-            val response = analyticsClient.runReport(userStatsRequest)
+            val todayResponse = analyticsClient.runReport(todayUserStatsRequest)
 
             var newUsers = 0L
             var returningUsers = 0L
             var sessions = 0L
             var pageViews = 0L
 
-            // 응답 데이터 파싱
-            response.rowsList.forEach { row ->
+            // 오늘 데이터 파싱
+            todayResponse.rowsList.forEach { row ->
                 val userType = row.getDimensionValues(0).value
                 val users = row.getMetricValues(0).value.toLongOrNull() ?: 0L
                 val sessionCount = row.getMetricValues(1).value.toLongOrNull() ?: 0L
@@ -87,12 +88,16 @@ class GoogleAnalyticsService(
                 }
             }
 
+            // 어제 총 방문자 수 조회
+            val yesterdayTotalUsers = getYesterdayTotalUsers(yesterdayString)
+
             // 총 사용자는 신규 + 재방문 사용자의 합
             val totalUsers = newUsers + returningUsers
 
+            // 재방문율 = (어제 방문한 유저 대비 오늘 재방문한 유저 수)
             val returningUserRate =
-                if (totalUsers > 0) {
-                    (returningUsers.toDouble() / totalUsers.toDouble()) * 100
+                if (yesterdayTotalUsers > 0) {
+                    (returningUsers.toDouble() / yesterdayTotalUsers.toDouble()) * 100
                 } else {
                     0.0
                 }
@@ -109,16 +114,85 @@ class GoogleAnalyticsService(
                     returningUserRate = returningUserRate,
                     sessions = sessions,
                     pageViews = pageViews,
-                    topNewsletterClicks = topNewsletterClicks
+                    topNewsletterClicks = topNewsletterClicks,
+                    yesterdayTotalUsers = yesterdayTotalUsers
                 )
 
-            logger.info("GA 일일 리포트 생성 완료: 총 사용자 ${totalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%")
+            logger.info("GA 일일 리포트 생성 완료: 총 사용자 ${totalUsers}명, 어제 방문자 ${yesterdayTotalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%")
             return report
         } catch (e: Exception) {
             logger.error("GA 일일 리포트 생성 중 오류 발생", e)
             throw RuntimeException("Google Analytics 데이터 조회 실패", e)
         }
     }
+
+    private fun getYesterdayTotalUsers(yesterdayString: String): Long =
+        try {
+            logger.info("어제 총 방문자 수 조회 시작: $yesterdayString")
+
+            val yesterdayUserRequest =
+                RunReportRequest
+                    .newBuilder()
+                    .setProperty("properties/$propertyId")
+                    .addDateRanges(
+                        DateRange
+                            .newBuilder()
+                            .setStartDate(yesterdayString)
+                            .setEndDate(yesterdayString)
+                            .build()
+                    ).addMetrics(
+                        Metric
+                            .newBuilder()
+                            .setName("totalUsers")
+                            .build()
+                    ).build()
+
+            val response = analyticsClient.runReport(yesterdayUserRequest)
+            val yesterdayTotalUsers = response.rowsList.firstOrNull()?.getMetricValues(0)?.value?.toLongOrNull() ?: 0L
+
+            logger.info("어제 총 방문자 수 조회 완료: ${yesterdayTotalUsers}명")
+            yesterdayTotalUsers
+        } catch (e: Exception) {
+            logger.error("어제 총 방문자 수 조회 중 오류 발생", e)
+            0L
+        }
+
+    private fun getLastWeekTotalUsers(
+        lastWeekStartDate: LocalDate,
+        lastWeekEndDate: LocalDate
+    ): Long =
+        try {
+            val startDateString = lastWeekStartDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val endDateString = lastWeekEndDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            
+            logger.info("지난 주 총 방문자 수 조회 시작: $startDateString ~ $endDateString")
+
+            val lastWeekUserRequest =
+                RunReportRequest
+                    .newBuilder()
+                    .setProperty("properties/$propertyId")
+                    .addDateRanges(
+                        DateRange
+                            .newBuilder()
+                            .setStartDate(startDateString)
+                            .setEndDate(endDateString)
+                            .build()
+                    ).addMetrics(
+                        Metric
+                            .newBuilder()
+                            .setName("totalUsers")
+                            .build()
+                    ).build()
+
+            val response = analyticsClient.runReport(lastWeekUserRequest)
+            val lastWeekTotalUsers = response.rowsList.firstOrNull()?.getMetricValues(0)?.value?.toLongOrNull() ?: 0L
+
+            logger.info("지난 주 총 방문자 수 조회 완료: ${lastWeekTotalUsers}명")
+            lastWeekTotalUsers
+        } catch (e: Exception) {
+            logger.error("지난 주 총 방문자 수 조회 중 오류 발생", e)
+            0L
+        }
 
     private fun getTopNewsletterClicks(dateString: String): List<NewsletterClick> =
         try {
@@ -198,8 +272,8 @@ class GoogleAnalyticsService(
             val startDateString = startDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val endDateString = endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 기본 사용자 통계 요청
-            val userStatsRequest =
+            // 이번 주 사용자 통계 요청
+            val thisWeekUserStatsRequest =
                 RunReportRequest
                     .newBuilder()
                     .setProperty("properties/$propertyId")
@@ -231,15 +305,15 @@ class GoogleAnalyticsService(
                             .build()
                     ).build()
 
-            val response = analyticsClient.runReport(userStatsRequest)
+            val thisWeekResponse = analyticsClient.runReport(thisWeekUserStatsRequest)
 
             var newUsers = 0L
             var returningUsers = 0L
             var sessions = 0L
             var pageViews = 0L
 
-            // 응답 데이터 파싱
-            response.rowsList.forEach { row ->
+            // 이번 주 데이터 파싱
+            thisWeekResponse.rowsList.forEach { row ->
                 val userType = row.getDimensionValues(0).value
                 val users = row.getMetricValues(0).value.toLongOrNull() ?: 0L
                 val sessionCount = row.getMetricValues(1).value.toLongOrNull() ?: 0L
@@ -254,12 +328,18 @@ class GoogleAnalyticsService(
                 }
             }
 
+            // 지난 주 총 방문자 수 조회 (7일 전 ~ 1일 전)
+            val lastWeekStartDate = startDate.minusDays(7)
+            val lastWeekEndDate = startDate.minusDays(1)
+            val lastWeekTotalUsers = getLastWeekTotalUsers(lastWeekStartDate, lastWeekEndDate)
+
             // 총 사용자는 신규 + 재방문 사용자의 합
             val totalUsers = newUsers + returningUsers
 
+            // 재방문율 = (지난 주 방문한 유저 대비 이번 주 재방문한 유저 수)
             val returningUserRate =
-                if (totalUsers > 0) {
-                    (returningUsers.toDouble() / totalUsers.toDouble()) * 100
+                if (lastWeekTotalUsers > 0) {
+                    (returningUsers.toDouble() / lastWeekTotalUsers.toDouble()) * 100
                 } else {
                     0.0
                 }
@@ -278,10 +358,11 @@ class GoogleAnalyticsService(
                     pageViews = pageViews,
                     topNewsletterClicks = topNewsletterClicks,
                     startDate = startDate,
-                    endDate = endDate
+                    endDate = endDate,
+                    yesterdayTotalUsers = lastWeekTotalUsers
                 )
 
-            logger.info("GA 주간 리포트 생성 완료: 총 사용자 ${totalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%")
+            logger.info("GA 주간 리포트 생성 완료: 총 사용자 ${totalUsers}명, 지난 주 방문자 ${lastWeekTotalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%")
             return report
         } catch (e: Exception) {
             logger.error("GA 주간 리포트 생성 중 오류 발생", e)
