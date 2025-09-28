@@ -1,14 +1,17 @@
 package com.nexters.api.service
 
 import org.springframework.stereotype.Service
-import java.awt.*
+import java.awt.Color
+import java.awt.Font
+import java.awt.GradientPaint
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
 @Service
 class OgImageService {
-
     companion object {
         private const val IMAGE_WIDTH = 1200
         private const val IMAGE_HEIGHT = 630
@@ -37,9 +40,12 @@ class OgImageService {
         // Draw dark inner background
         g2d.color = Color(30, 30, 30) // 어두운 배경
         g2d.fillRoundRect(
-            BORDER_WIDTH, BORDER_WIDTH,
-            IMAGE_WIDTH - (BORDER_WIDTH * 2), IMAGE_HEIGHT - (BORDER_WIDTH * 2),
-            CORNER_RADIUS - 4, CORNER_RADIUS - 4
+            BORDER_WIDTH,
+            BORDER_WIDTH,
+            IMAGE_WIDTH - (BORDER_WIDTH * 2),
+            IMAGE_HEIGHT - (BORDER_WIDTH * 2),
+            CORNER_RADIUS - 4,
+            CORNER_RADIUS - 4
         )
 
         // Content positioning - 더 촘촘한 레이아웃
@@ -63,23 +69,34 @@ class OgImageService {
 
     private fun drawGradientBorder(g2d: Graphics2D) {
         // 고정된 보라색 그라데이션 테두리
-        val gradient = GradientPaint(
-            0f, 0f, Color.decode("#8B5CF6"),
-            IMAGE_WIDTH.toFloat(), IMAGE_HEIGHT.toFloat(), Color.decode("#A78BFA")
-        )
-        
+        val gradient =
+            GradientPaint(
+                0f,
+                0f,
+                Color.decode("#8B5CF6"),
+                IMAGE_WIDTH.toFloat(),
+                IMAGE_HEIGHT.toFloat(),
+                Color.decode("#A78BFA")
+            )
+
         g2d.paint = gradient
         g2d.fillRoundRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, CORNER_RADIUS, CORNER_RADIUS)
     }
 
-    private fun drawMainTitle(g2d: Graphics2D, title: String, x: Int, y: Int, textColor: String): Int {
+    private fun drawMainTitle(
+        g2d: Graphics2D,
+        title: String,
+        x: Int,
+        y: Int,
+        textColor: String
+    ): Int {
         // Use a bold, large font for the title
         val font = Font("SansSerif", Font.BOLD, 64)
         g2d.font = font
-        
+
         // 동적 텍스트 색상 적용
         g2d.color = Color.decode(textColor)
-        
+
         val maxWidth = IMAGE_WIDTH - (CONTENT_PADDING * 2)
         val words = title.split(" ")
         var currentLine = ""
@@ -89,7 +106,7 @@ class OgImageService {
         for (word in words) {
             val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
             val metrics = g2d.fontMetrics
-            
+
             if (metrics.stringWidth(testLine) <= maxWidth) {
                 currentLine = testLine
             } else {
@@ -109,24 +126,32 @@ class OgImageService {
             g2d.drawString(currentLine, x, currentY)
             currentY += lineHeight
         }
-        
+
         // 마지막 줄의 Y 좌표 반환
         return currentY - lineHeight
     }
 
-    private fun drawBottomInfo(g2d: Graphics2D, tag: String, newsletterName: String, x: Int, y: Int, textColor: String) {
+    private fun drawBottomInfo(
+        g2d: Graphics2D,
+        tag: String,
+        newsletterName: String,
+        x: Int,
+        y: Int,
+        textColor: String
+    ) {
         // Set font for bottom info - 크기를 약간 줄임
         val font = Font("SansSerif", Font.PLAIN, 32)
         g2d.font = font
-        
+
         // 동적 텍스트 색상 적용 (약간 어둡게)
         val baseColor = Color.decode(textColor)
-        g2d.color = Color(
-            (baseColor.red * 0.75).toInt(),
-            (baseColor.green * 0.75).toInt(),
-            (baseColor.blue * 0.75).toInt()
-        )
-        
+        g2d.color =
+            Color(
+                (baseColor.red * 0.75).toInt(),
+                (baseColor.green * 0.75).toInt(),
+                (baseColor.blue * 0.75).toInt()
+            )
+
         // Draw tag and newsletter name separated by |
         val bottomText = "$tag | $newsletterName"
         g2d.drawString(bottomText, x, y)

@@ -7,7 +7,10 @@ data class OgImageRequest(
     val textColor: String = "#DCFF64"
 )
 
-enum class TextColorTheme(val color: String, val displayName: String) {
+enum class TextColorTheme(
+    val color: String,
+    val displayName: String
+) {
     LIME_GREEN("#DCFF64", "라임 그린"),
     CYAN("#00FFFF", "시안"),
     YELLOW("#FFFF00", "옐로우"),

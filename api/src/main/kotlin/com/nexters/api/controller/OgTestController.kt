@@ -7,9 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 @Controller
 @RequestMapping("/og")
 class OgTestController {
-
     @GetMapping("/test")
-    fun ogTestPage(): String {
-        return "og-test"
-    }
+    fun ogTestPage(): String = "og-test"
 }
