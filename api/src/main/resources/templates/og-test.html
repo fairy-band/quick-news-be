@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OG 이미지 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #8b5cf6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #7c3aed;
+        }
+
+        .preview {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .color-option:hover {
+            border-color: #8b5cf6;
+        }
+
+        .color-option.selected {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>OG 이미지 생성기</h1>
+
+        <form id="ogForm">
+            <div class="form-group">
+                <label for="title">뉴스레터 타이틀</label>
+                <input type="text" id="title" value="네온, PostgreSQL전문가도 놓친 치명적 실수">
+            </div>
+
+            <div class="form-group">
+                <label for="tag">태그</label>
+                <input type="text" id="tag" value="Kotlin">
+            </div>
+
+            <div class="form-group">
+                <label for="newsletterName">뉴스레터 이름</label>
+                <input type="text" id="newsletterName" value="안드로이드 위클리">
+            </div>
+
+            <div class="form-group">
+                <label>텍스트 색상</label>
+                <div class="color-grid">
+                    <div class="color-option selected" data-color="#DCFF64" style="background: #DCFF64; color: #000;">라임
+                        그린</div>
+                    <div class="color-option" data-color="#00FFFF" style="background: #00FFFF; color: #000;">시안</div>
+                    <div class="color-option" data-color="#FFFF00" style="background: #FFFF00; color: #000;">옐로우</div>
+                    <div class="color-option" data-color="#FFA500" style="background: #FFA500; color: #000;">오렌지</div>
+                    <div class="color-option" data-color="#FF69B4" style="background: #FF69B4; color: #000;">핑크</div>
+                    <div class="color-option" data-color="#87CEEB" style="background: #87CEEB; color: #000;">라이트 블루
+                    </div>
+                    <div class="color-option" data-color="#90EE90" style="background: #90EE90; color: #000;">라이트 그린
+                    </div>
+                    <div class="color-option" data-color="#FFD700" style="background: #FFD700; color: #000;">골드</div>
+                </div>
+            </div>
+
+            <button type="button" onclick="generateImage()">이미지 생성</button>
+            <button type="button" onclick="downloadImage()">다운로드</button>
+        </form>
+
+        <div class="preview" id="preview" style="display: none;">
+            <h3>미리보기</h3>
+            <img id="previewImage" alt="Generated OG Image">
+        </div>
+    </div>
+
+    <script>
+        let selectedColor = '#DCFF64';
+        let currentImageUrl = '';
+
+        // Color selection
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function () {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedColor = this.dataset.color;
+                generateImage(); // 색상 변경 시 자동으로 이미지 업데이트
+            });
+        });
+
+        // 입력 필드 변경 시에도 자동 업데이트
+        document.getElementById('title').addEventListener('input', generateImage);
+        document.getElementById('tag').addEventListener('input', generateImage);
+        document.getElementById('newsletterName').addEventListener('input', generateImage);
+
+        function generateImage() {
+            const title = document.getElementById('title').value;
+            const tag = document.getElementById('tag').value;
+            const newsletterName = document.getElementById('newsletterName').value;
+
+            const params = new URLSearchParams({
+                title: title,
+                tag: tag,
+                newsletterName: newsletterName,
+                textColor: selectedColor,
+                _t: Date.now() // 캐시 방지용 타임스탬프
+            });
+
+            currentImageUrl = `/api/og/image?${params.toString()}`;
+
+            document.getElementById('previewImage').src = currentImageUrl;
+            document.getElementById('preview').style.display = 'block';
+        }
+
+        function downloadImage() {
+            if (currentImageUrl) {
+                const link = document.createElement('a');
+                link.href = currentImageUrl;
+                link.download = 'og-image.png';
+                link.click();
+            }
+        }
+
+        // Generate initial image
+        generateImage();
+    </script>
+</body>
+
+</html>
