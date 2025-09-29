@@ -118,7 +118,9 @@ class GoogleAnalyticsService(
                     yesterdayTotalUsers = yesterdayTotalUsers
                 )
 
-            logger.info("GA 일일 리포트 생성 완료: 총 사용자 ${totalUsers}명, 어제 방문자 ${yesterdayTotalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%")
+            logger.info(
+                "GA 일일 리포트 생성 완료: 총 사용자 ${totalUsers}명, 어제 방문자 ${yesterdayTotalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%"
+            )
             return report
         } catch (e: Exception) {
             logger.error("GA 일일 리포트 생성 중 오류 발생", e)
@@ -148,7 +150,12 @@ class GoogleAnalyticsService(
                     ).build()
 
             val response = analyticsClient.runReport(yesterdayUserRequest)
-            val yesterdayTotalUsers = response.rowsList.firstOrNull()?.getMetricValues(0)?.value?.toLongOrNull() ?: 0L
+            val yesterdayTotalUsers =
+                response.rowsList
+                    .firstOrNull()
+                    ?.getMetricValues(0)
+                    ?.value
+                    ?.toLongOrNull() ?: 0L
 
             logger.info("어제 총 방문자 수 조회 완료: ${yesterdayTotalUsers}명")
             yesterdayTotalUsers
@@ -164,7 +171,7 @@ class GoogleAnalyticsService(
         try {
             val startDateString = lastWeekStartDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val endDateString = lastWeekEndDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            
+
             logger.info("지난 주 총 방문자 수 조회 시작: $startDateString ~ $endDateString")
 
             val lastWeekUserRequest =
@@ -185,7 +192,12 @@ class GoogleAnalyticsService(
                     ).build()
 
             val response = analyticsClient.runReport(lastWeekUserRequest)
-            val lastWeekTotalUsers = response.rowsList.firstOrNull()?.getMetricValues(0)?.value?.toLongOrNull() ?: 0L
+            val lastWeekTotalUsers =
+                response.rowsList
+                    .firstOrNull()
+                    ?.getMetricValues(0)
+                    ?.value
+                    ?.toLongOrNull() ?: 0L
 
             logger.info("지난 주 총 방문자 수 조회 완료: ${lastWeekTotalUsers}명")
             lastWeekTotalUsers
@@ -362,7 +374,9 @@ class GoogleAnalyticsService(
                     yesterdayTotalUsers = lastWeekTotalUsers
                 )
 
-            logger.info("GA 주간 리포트 생성 완료: 총 사용자 ${totalUsers}명, 지난 주 방문자 ${lastWeekTotalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%")
+            logger.info(
+                "GA 주간 리포트 생성 완료: 총 사용자 ${totalUsers}명, 지난 주 방문자 ${lastWeekTotalUsers}명, 재방문율 ${String.format("%.1f", returningUserRate)}%"
+            )
             return report
         } catch (e: Exception) {
             logger.error("GA 주간 리포트 생성 중 오류 발생", e)

@@ -22,7 +22,7 @@ RUN ./gradlew :api:bootJar :batch:bootJar :admin:bootJar --no-daemon
 WORKDIR /app/api/build/libs
 RUN java -Djarmode=layertools -jar *.jar extract
 
-# Extract Batch layered JAR  
+# Extract Batch layered JAR
 WORKDIR /app/batch/build/libs
 RUN java -Djarmode=layertools -jar *.jar extract
 
@@ -39,6 +39,10 @@ COPY --from=build /app/api/build/libs/dependencies/ ./
 COPY --from=build /app/api/build/libs/spring-boot-loader/ ./
 COPY --from=build /app/api/build/libs/snapshot-dependencies/ ./
 COPY --from=build /app/api/build/libs/application/ ./
+
+# JRE fails to load fonts if there are no standard fonts in the image; DejaVu is a good choice,
+# see https://github.com/docker-library/openjdk/issues/73#issuecomment-207816707
+RUN apk add --no-cache fontconfig font-noto-cjk font-noto ttf-dejavu
 
 # Expose port
 EXPOSE 8080
