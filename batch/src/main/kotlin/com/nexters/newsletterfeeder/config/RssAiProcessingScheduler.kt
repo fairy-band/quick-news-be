@@ -3,12 +3,10 @@ package com.nexters.newsletterfeeder.config
 import com.nexters.external.service.RssAiProcessingService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
-import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
-@EnableScheduling
 @Profile("prod", "dev")
 class RssAiProcessingScheduler(
     private val rssAiProcessingService: RssAiProcessingService
