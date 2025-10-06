@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,8 +40,13 @@
         }
 
         @keyframes twinkle {
-            0% { opacity: 0.3; }
-            100% { opacity: 1; }
+            0% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
         }
 
         .container {
@@ -298,7 +304,8 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             width: 100%;
             padding: 0.75rem;
             background: rgba(0, 0, 0, 0.3);
@@ -309,7 +316,8 @@
             transition: all 0.3s ease;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             outline: none;
             border-color: #00d4ff;
             box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
@@ -469,7 +477,9 @@
             border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        .preview-html h1, .preview-html h2, .preview-html h3 {
+        .preview-html h1,
+        .preview-html h2,
+        .preview-html h3 {
             color: #1a202c;
             margin-bottom: 1rem;
             font-weight: 700;
@@ -546,11 +556,18 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
-        .edit-form, .content-form, .parser-test-form {
+        .edit-form,
+        .content-form,
+        .parser-test-form {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 12px;
             padding: 1.5rem;
@@ -706,7 +723,8 @@
             white-space: pre-wrap;
         }
 
-        .no-content, .not-target {
+        .no-content,
+        .not-target {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             padding: 1rem;
@@ -749,6 +767,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="stars" id="stars"></div>
     <div class="container">
@@ -854,7 +873,8 @@
                     <span class="btn-icon">📄</span>
                     컨텐츠 생성
                 </button>
-                <button id="auto-process-btn" class="btn btn-primary" style="background: linear-gradient(45deg, #667eea, #764ba2); border: 1px solid #667eea;">
+                <button id="auto-process-btn" class="btn btn-primary"
+                    style="background: linear-gradient(45deg, #667eea, #764ba2); border: 1px solid #667eea;">
                     <span class="btn-icon">🤖</span>
                     자동 처리 (파싱+생성+요약+AI키워드+노출)
                 </button>
@@ -972,7 +992,7 @@
         let selectedSourceId = null;
         let currentFilters = {};
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             createStars();
 
             // 초기 데이터 로드
@@ -985,7 +1005,7 @@
 
         function setupEventListeners() {
             // 필터 적용 버튼
-            document.getElementById('apply-filter-btn').addEventListener('click', function() {
+            document.getElementById('apply-filter-btn').addEventListener('click', function () {
                 currentFilters = {
                     senderEmail: document.getElementById('sender-email-filter').value || null,
                     subject: document.getElementById('subject-filter').value || null
@@ -995,7 +1015,7 @@
             });
 
             // 필터 초기화 버튼
-            document.getElementById('clear-filter-btn').addEventListener('click', function() {
+            document.getElementById('clear-filter-btn').addEventListener('click', function () {
                 document.getElementById('sender-email-filter').value = '';
                 document.getElementById('subject-filter').value = '';
                 currentFilters = {};
@@ -1004,7 +1024,7 @@
             });
 
             // 미리보기 토글 버튼
-            document.getElementById('toggle-preview-btn').addEventListener('click', function() {
+            document.getElementById('toggle-preview-btn').addEventListener('click', function () {
                 const previewContent = document.getElementById('preview-content');
                 const isVisible = previewContent.style.display !== 'none';
 
@@ -1021,7 +1041,7 @@
             });
 
             // 컨텐츠 생성 버튼
-            document.getElementById('create-content-btn').addEventListener('click', function() {
+            document.getElementById('create-content-btn').addEventListener('click', function () {
                 const contentForm = document.getElementById('content-form');
                 const isVisible = contentForm.style.display !== 'none';
 
@@ -1038,7 +1058,7 @@
             });
 
             // 자동 처리 버튼
-            document.getElementById('auto-process-btn').addEventListener('click', function() {
+            document.getElementById('auto-process-btn').addEventListener('click', function () {
                 if (selectedSourceId) {
                     autoProcessContent(selectedSourceId);
                 } else {
@@ -1047,7 +1067,7 @@
             });
 
             // 파서 테스트 버튼
-            document.getElementById('test-parser-btn').addEventListener('click', function() {
+            document.getElementById('test-parser-btn').addEventListener('click', function () {
                 const parserTestForm = document.getElementById('parser-test-form');
                 const isVisible = parserTestForm.style.display !== 'none';
 
@@ -1064,19 +1084,19 @@
             });
 
             // 컨텐츠 생성 폼 제출
-            document.getElementById('create-content-form').addEventListener('submit', function(e) {
+            document.getElementById('create-content-form').addEventListener('submit', function (e) {
                 e.preventDefault();
                 createContentFromSource();
             });
 
             // 취소 버튼
-            document.getElementById('cancel-content-btn').addEventListener('click', function() {
+            document.getElementById('cancel-content-btn').addEventListener('click', function () {
                 document.getElementById('content-form').style.display = 'none';
                 document.getElementById('create-content-btn').textContent = '컨텐츠 생성';
             });
 
             // 수정 버튼
-            document.getElementById('edit-source-btn').addEventListener('click', function() {
+            document.getElementById('edit-source-btn').addEventListener('click', function () {
                 const editForm = document.getElementById('edit-form');
                 const isVisible = editForm.style.display !== 'none';
 
@@ -1093,19 +1113,19 @@
             });
 
             // 수정 폼 제출
-            document.getElementById('edit-source-form').addEventListener('submit', function(e) {
+            document.getElementById('edit-source-form').addEventListener('submit', function (e) {
                 e.preventDefault();
                 updateNewsletterSource();
             });
 
             // 수정 취소 버튼
-            document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+            document.getElementById('cancel-edit-btn').addEventListener('click', function () {
                 document.getElementById('edit-form').style.display = 'none';
                 document.getElementById('edit-source-btn').textContent = '수정';
             });
 
             // 페이지 크기 선택
-            document.getElementById('page-size-select').addEventListener('change', function() {
+            document.getElementById('page-size-select').addEventListener('change', function () {
                 currentSize = parseInt(this.value);
                 currentPage = 0; // 페이지 크기가 변경되면 첫 페이지로 이동
                 loadNewsletterSources();
@@ -1174,7 +1194,7 @@
                 const contentPreview = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
 
                 // 컨텐츠 생성 상태 배지 생성
-                const contentStatusBadge = source.hasContent 
+                const contentStatusBadge = source.hasContent
                     ? '<span class="content-status-badge created">✅ 컨텐츠 생성됨</span>'
                     : '<span class="content-status-badge not-created">⏳ 미생성</span>';
 
@@ -1201,7 +1221,7 @@
                 // 더 보기 버튼 이벤트
                 const expandBtn = item.querySelector('.expand-btn');
                 if (expandBtn) {
-                    expandBtn.addEventListener('click', function(e) {
+                    expandBtn.addEventListener('click', function (e) {
                         e.stopPropagation();
                         const contentDiv = item.querySelector('.source-content');
                         const previewDiv = item.querySelector('.content-preview');
@@ -1372,7 +1392,7 @@
 
             // 토글 버튼 이벤트 리스너 추가
             const togglePlainBtn = detailContainer.querySelector('.toggle-plain-content-btn');
-            togglePlainBtn.addEventListener('click', function() {
+            togglePlainBtn.addEventListener('click', function () {
                 const contentFull = detailContainer.querySelector('.plain-content-full');
                 const isExpanded = contentFull.style.display !== 'none';
 
@@ -1386,7 +1406,7 @@
             });
 
             const toggleHtmlBtn = detailContainer.querySelector('.toggle-html-content-btn');
-            toggleHtmlBtn.addEventListener('click', function() {
+            toggleHtmlBtn.addEventListener('click', function () {
                 const contentFull = detailContainer.querySelector('.html-content-full');
                 const isExpanded = contentFull.style.display !== 'none';
 
@@ -1411,7 +1431,7 @@
 
                     // HTML 렌더링 - htmlText → plainText → content 순서로 폴백
                     let htmlContent = source.htmlText;
-                    
+
                     if (!htmlContent) {
                         const textContent = source.plainText || source.content;
                         if (textContent) {
@@ -1521,30 +1541,30 @@
                 },
                 body: JSON.stringify(requestData)
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('뉴스레터 소스 수정에 실패했습니다.');
-                }
-                return response.json();
-            })
-            .then(updatedSource => {
-                showSuccess('뉴스레터 소스가 성공적으로 수정되었습니다!');
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('뉴스레터 소스 수정에 실패했습니다.');
+                    }
+                    return response.json();
+                })
+                .then(updatedSource => {
+                    showSuccess('뉴스레터 소스가 성공적으로 수정되었습니다!');
 
-                // 폼 초기화
-                document.getElementById('edit-source-form').reset();
-                document.getElementById('edit-form').style.display = 'none';
-                document.getElementById('edit-source-btn').textContent = '수정';
+                    // 폼 초기화
+                    document.getElementById('edit-source-form').reset();
+                    document.getElementById('edit-form').style.display = 'none';
+                    document.getElementById('edit-source-btn').textContent = '수정';
 
-                // 목록 새로고침
-                loadNewsletterSources();
+                    // 목록 새로고침
+                    loadNewsletterSources();
 
-                // 상세 정보 업데이트
-                showSourceDetail(updatedSource);
-            })
-            .catch(error => {
-                console.error('Error updating newsletter source:', error);
-                showError('뉴스레터 소스 수정에 실패했습니다: ' + error.message);
-            });
+                    // 상세 정보 업데이트
+                    showSourceDetail(updatedSource);
+                })
+                .catch(error => {
+                    console.error('Error updating newsletter source:', error);
+                    showError('뉴스레터 소스 수정에 실패했습니다: ' + error.message);
+                });
         }
 
         function testParser(sourceId) {
@@ -1562,19 +1582,19 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('파서 테스트에 실패했습니다.');
-                }
-                return response.json();
-            })
-            .then(result => {
-                renderParserTestResult(result);
-            })
-            .catch(error => {
-                console.error('Error testing parser:', error);
-                resultContainer.innerHTML = '<p style="color: #e53e3e;">파서 테스트에 실패했습니다: ' + error.message + '</p>';
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('파서 테스트에 실패했습니다.');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    renderParserTestResult(result);
+                })
+                .catch(error => {
+                    console.error('Error testing parser:', error);
+                    resultContainer.innerHTML = '<p style="color: #e53e3e;">파서 테스트에 실패했습니다: ' + error.message + '</p>';
+                });
         }
 
         function renderParserTestResult(result) {
@@ -1599,7 +1619,13 @@
             if (result.parsedContents.length > 0) {
                 html += `
                     <div class="parsed-contents">
-                        <h4>파싱된 컨텐츠 (${result.parsedContents.length}개)</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">파싱된 컨텐츠 (${result.parsedContents.length}개)</h4>
+                            <button class="btn btn-success add-all-content-btn">
+                                <span class="btn-icon">📄</span>
+                                모든 컨텐츠 일괄 추가 (${result.parsedContents.length}개)
+                            </button>
+                        </div>
                         <div class="content-list">
                 `;
 
@@ -1620,12 +1646,6 @@
                 });
 
                 html += `
-                        </div>
-                        <div class="content-actions" style="margin-top: 1.5rem;">
-                            <button class="btn btn-success add-all-content-btn">
-                                <span class="btn-icon">📄</span>
-                                모든 컨텐츠 일괄 추가 (${result.parsedContents.length}개)
-                            </button>
                         </div>
                     </div>
                 `;
@@ -1653,7 +1673,7 @@
             // 일괄 추가 버튼 이벤트 리스너 추가
             const addAllContentBtn = resultContainer.querySelector('.add-all-content-btn');
             if (addAllContentBtn) {
-                addAllContentBtn.addEventListener('click', function() {
+                addAllContentBtn.addEventListener('click', function () {
                     addAllParsedContents(result.parsedContents);
                 });
             }
@@ -1691,37 +1711,37 @@
                 },
                 body: JSON.stringify(requestData)
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('컨텐츠 생성에 실패했습니다.');
-                }
-                return response.json();
-            })
-            .then(content => {
-                showSuccess('컨텐츠가 성공적으로 생성되었습니다!');
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('컨텐츠 생성에 실패했습니다.');
+                    }
+                    return response.json();
+                })
+                .then(content => {
+                    showSuccess('컨텐츠가 성공적으로 생성되었습니다!');
 
-                // 폼 초기화
-                document.getElementById('create-content-form').reset();
-                document.getElementById('content-form').style.display = 'none';
-                document.getElementById('create-content-btn').textContent = '컨텐츠 생성';
+                    // 폼 초기화
+                    document.getElementById('create-content-form').reset();
+                    document.getElementById('content-form').style.display = 'none';
+                    document.getElementById('create-content-btn').textContent = '컨텐츠 생성';
 
-                // 선택 해제
-                document.querySelectorAll('.newsletter-source-item').forEach(item => item.classList.remove('selected'));
-                selectedSourceId = null;
-                updateSelectedCount();
-            })
-            .catch(error => {
-                console.error('Error creating content:', error);
-                showError('컨텐츠 생성에 실패했습니다: ' + error.message);
-            });
+                    // 선택 해제
+                    document.querySelectorAll('.newsletter-source-item').forEach(item => item.classList.remove('selected'));
+                    selectedSourceId = null;
+                    updateSelectedCount();
+                })
+                .catch(error => {
+                    console.error('Error creating content:', error);
+                    showError('컨텐츠 생성에 실패했습니다: ' + error.message);
+                });
         }
 
         function updateStats(totalElements, sources = []) {
             document.getElementById('total-sources').textContent = totalElements;
-            
+
             // 현재 페이지의 소스들 중 컨텐츠가 생성된 소스의 수 계산
             const contentCreatedCount = sources.filter(source => source.hasContent).length;
-            document.getElementById('content-created-sources').textContent = 
+            document.getElementById('content-created-sources').textContent =
                 `${contentCreatedCount}/${sources.length}`;
         }
 
@@ -1766,6 +1786,9 @@
             let successCount = 0;
             let errorCount = 0;
 
+            // 버튼 참조를 함수 시작 부분에서 가져오기
+            const addAllBtn = document.querySelector('.add-all-content-btn');
+
             // 뉴스레터 소스 정보를 먼저 가져와서 올바른 발행일 설정
             fetch(`./api/newsletter-sources/${selectedSourceId}`)
                 .then(response => response.json())
@@ -1774,7 +1797,6 @@
                     const sourceReceivedDate = new Date(sourceData.receivedDate).toISOString().split('T')[0];
 
                     // 버튼 비활성화 및 로딩 상태 표시
-                    const addAllBtn = document.querySelector('.add-all-content-btn');
                     if (addAllBtn) {
                         addAllBtn.disabled = true;
                         addAllBtn.innerHTML = '<span class="btn-icon">⏳</span>추가 중...';
@@ -1785,7 +1807,7 @@
                         const requestData = {
                             title: content.title,
                             content: content.content,
-                            newsletterName: content.section || 'Kotlin Weekly',
+                            newsletterName: sourceData.sender,  // 뉴스레터 이름은 발신자 이름 사용
                             originalUrl: content.link,
                             publishedAt: sourceReceivedDate  // 소스의 실제 받은 날짜 사용
                         };
@@ -1797,46 +1819,46 @@
                             },
                             body: JSON.stringify(requestData)
                         })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`컨텐츠 "${content.title}" 추가 실패`);
-                            }
-                            return response.json();
-                        })
-                        .then(() => {
-                            successCount++;
-                        })
-                        .catch(error => {
-                            console.error(`Error adding content "${content.title}":`, error);
-                            errorCount++;
-                        });
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`컨텐츠 "${content.title}" 추가 실패`);
+                                }
+                                return response.json();
+                            })
+                            .then(() => {
+                                successCount++;
+                            })
+                            .catch(error => {
+                                console.error(`Error adding content "${content.title}":`, error);
+                                errorCount++;
+                            });
                     });
 
                     // 모든 요청이 완료된 후 결과 표시
                     return Promise.allSettled(addContentPromises);
                 })
                 .then(() => {
-                if (addAllBtn) {
-                    if (errorCount === 0) {
-                        addAllBtn.innerHTML = '<span class="btn-icon">✅</span>모든 컨텐츠 추가 완료';
-                        addAllBtn.style.background = 'linear-gradient(45deg, #48bb78, #38a169)';
-                    } else {
-                        addAllBtn.innerHTML = `<span class="btn-icon">⚠️</span>추가 완료 (성공: ${successCount}, 실패: ${errorCount})`;
-                        addAllBtn.style.background = 'linear-gradient(45deg, #ed8936, #dd6b20)';
+                    if (addAllBtn) {
+                        if (errorCount === 0) {
+                            addAllBtn.innerHTML = '<span class="btn-icon">✅</span>모든 컨텐츠 추가 완료';
+                            addAllBtn.style.background = 'linear-gradient(45deg, #48bb78, #38a169)';
+                        } else {
+                            addAllBtn.innerHTML = `<span class="btn-icon">⚠️</span>추가 완료 (성공: ${successCount}, 실패: ${errorCount})`;
+                            addAllBtn.style.background = 'linear-gradient(45deg, #ed8936, #dd6b20)';
+                        }
                     }
-                }
 
-                if (errorCount === 0) {
-                    showSuccess(`모든 컨텐츠(${successCount}개)가 성공적으로 추가되었습니다!`);
-                    // 목록 새로고침하여 컨텐츠 생성 상태 업데이트
-                    loadNewsletterSources();
-                } else {
-                    showError(`컨텐츠 추가 완료: 성공 ${successCount}개, 실패 ${errorCount}개`);
-                    // 일부라도 성공했다면 목록 새로고침
-                    if (successCount > 0) {
+                    if (errorCount === 0) {
+                        showSuccess(`모든 컨텐츠(${successCount}개)가 성공적으로 추가되었습니다!`);
+                        // 목록 새로고침하여 컨텐츠 생성 상태 업데이트
                         loadNewsletterSources();
+                    } else {
+                        showError(`컨텐츠 추가 완료: 성공 ${successCount}개, 실패 ${errorCount}개`);
+                        // 일부라도 성공했다면 목록 새로고침
+                        if (successCount > 0) {
+                            loadNewsletterSources();
+                        }
                     }
-                }
                 })
                 .catch(error => {
                     console.error('Error fetching newsletter source:', error);
@@ -1864,49 +1886,50 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('자동 처리에 실패했습니다.');
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (!result.success) {
-                    throw new Error(result.message || '자동 처리에 실패했습니다.');
-                }
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('자동 처리에 실패했습니다.');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    if (!result.success) {
+                        throw new Error(result.message || '자동 처리에 실패했습니다.');
+                    }
 
-                // 완료
-                autoProcessBtn.innerHTML = '<span class="btn-icon">✅</span>처리 완료!';
-                autoProcessBtn.style.background = 'linear-gradient(45deg, #48bb78, #38a169)';
-                
-                showSuccess(`자동 처리가 완료되었습니다! (${result.processedContentCount}개 컨텐츠 처리됨)`);
-                
-                // 목록 새로고침
-                loadNewsletterSources();
-                
-                // 3초 후 버튼 원상복구
-                setTimeout(() => {
-                    autoProcessBtn.disabled = false;
-                    autoProcessBtn.innerHTML = originalContent;
-                    autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
-                }, 3000);
-            })
-            .catch(error => {
-                console.error('Error in auto processing:', error);
-                
-                autoProcessBtn.innerHTML = '<span class="btn-icon">❌</span>처리 실패';
-                autoProcessBtn.style.background = 'linear-gradient(45deg, #e53e3e, #c53030)';
-                
-                showError('자동 처리에 실패했습니다: ' + error.message);
-                
-                // 3초 후 버튼 원상복구
-                setTimeout(() => {
-                    autoProcessBtn.disabled = false;
-                    autoProcessBtn.innerHTML = originalContent;
-                    autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
-                }, 3000);
-            });
+                    // 완료
+                    autoProcessBtn.innerHTML = '<span class="btn-icon">✅</span>처리 완료!';
+                    autoProcessBtn.style.background = 'linear-gradient(45deg, #48bb78, #38a169)';
+
+                    showSuccess(`자동 처리가 완료되었습니다! (${result.processedContentCount}개 컨텐츠 처리됨)`);
+
+                    // 목록 새로고침
+                    loadNewsletterSources();
+
+                    // 3초 후 버튼 원상복구
+                    setTimeout(() => {
+                        autoProcessBtn.disabled = false;
+                        autoProcessBtn.innerHTML = originalContent;
+                        autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+                    }, 3000);
+                })
+                .catch(error => {
+                    console.error('Error in auto processing:', error);
+
+                    autoProcessBtn.innerHTML = '<span class="btn-icon">❌</span>처리 실패';
+                    autoProcessBtn.style.background = 'linear-gradient(45deg, #e53e3e, #c53030)';
+
+                    showError('자동 처리에 실패했습니다: ' + error.message);
+
+                    // 3초 후 버튼 원상복구
+                    setTimeout(() => {
+                        autoProcessBtn.disabled = false;
+                        autoProcessBtn.innerHTML = originalContent;
+                        autoProcessBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+                    }, 3000);
+                });
         }
     </script>
 </body>
+
 </html>
