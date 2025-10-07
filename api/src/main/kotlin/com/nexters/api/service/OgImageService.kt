@@ -71,7 +71,7 @@ class OgImageService {
         textColor: String
     ): Int {
         // Use a bold, large font for the title
-        val font = Font("SansSerif", Font.BOLD, 64)
+        val font = Font("SansSerif", Font.BOLD, 88)
         g2d.font = font
 
         // 동적 텍스트 색상 적용
@@ -120,7 +120,7 @@ class OgImageService {
         textColor: String
     ) {
         // Set font for bottom info - 크기를 약간 줄임
-        val font = Font("SansSerif", Font.PLAIN, 32)
+        val font = Font("SansSerif", Font.PLAIN, 56)
         g2d.font = font
 
         // 동적 텍스트 색상 적용 (약간 어둡게)
