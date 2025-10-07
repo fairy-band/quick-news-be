@@ -3,7 +3,6 @@ package com.nexters.api.service
 import org.springframework.stereotype.Service
 import java.awt.Color
 import java.awt.Font
-import java.awt.GradientPaint
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -34,9 +33,6 @@ class OgImageService {
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
 
-        // Draw gradient border background (고정된 보라색 그라데이션)
-        drawGradientBorder(g2d)
-
         // Draw dark inner background
         g2d.color = Color(30, 30, 30) // 어두운 배경
         g2d.fillRoundRect(
@@ -65,22 +61,6 @@ class OgImageService {
         val outputStream = ByteArrayOutputStream()
         ImageIO.write(image, "PNG", outputStream)
         return outputStream.toByteArray()
-    }
-
-    private fun drawGradientBorder(g2d: Graphics2D) {
-        // 고정된 보라색 그라데이션 테두리
-        val gradient =
-            GradientPaint(
-                0f,
-                0f,
-                Color.decode("#8B5CF6"),
-                IMAGE_WIDTH.toFloat(),
-                IMAGE_HEIGHT.toFloat(),
-                Color.decode("#A78BFA")
-            )
-
-        g2d.paint = gradient
-        g2d.fillRoundRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, CORNER_RADIUS, CORNER_RADIUS)
     }
 
     private fun drawMainTitle(

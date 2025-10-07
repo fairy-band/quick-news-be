@@ -26,6 +26,7 @@ class NewsletterApiController(
             cards =
                 dayArchiveResolver.resolveTodayContentArchive(userId, publishedDate).exposureContents.map {
                     ContentCardApiResponse(
+                        id = it.id!!,
                         title = it.provocativeHeadline,
                         topKeyword = it.provocativeKeyword,
                         summary = it.summaryContent,

@@ -7,6 +7,7 @@ data class ContentViewApiResponse(
     val cards: List<ContentCardApiResponse>,
 ) {
     data class ContentCardApiResponse(
+        val id: Long,
         val title: String,
         val topKeyword: String,
         val summary: String,
