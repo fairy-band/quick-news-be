@@ -81,7 +81,7 @@ class OgImageService {
         val words = title.split(" ")
         var currentLine = ""
         var currentY = y
-        val lineHeight = 75 // 줄 간격을 약간 줄임
+        val lineHeight = 100 // 줄 간격
 
         for (word in words) {
             val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
