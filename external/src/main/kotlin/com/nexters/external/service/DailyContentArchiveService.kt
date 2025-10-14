@@ -31,4 +31,14 @@ class DailyContentArchiveService(
 
         return dailyContentArchiveRepository.save(dailyContentArchive)
     }
+
+    @Transactional
+    fun deleteByDateAndUserId(
+        userId: Long,
+        date: LocalDate,
+    ) {
+        userExposedContentMappingRepository.markAsDeletedByUserIdAndDate(userId, date.atStartOfDay())
+
+        dailyContentArchiveRepository.deleteByDateAndUserId(date, userId)
+    }
 }

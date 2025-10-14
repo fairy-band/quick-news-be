@@ -3,9 +3,12 @@ package com.nexters.api.controller
 import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
@@ -35,4 +38,17 @@ class NewsletterApiController(
                     )
                 },
         )
+
+    @PostMapping("/contents/{userId}/refresh")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "콘텐츠 새로고침 성공"),
+            ApiResponse(responseCode = "400", description = "콘텐츠 새로고침 실패, 회수 초과")
+        ]
+    )
+    fun refreshContents(
+        @PathVariable userId: Long
+    ) {
+        dayArchiveResolver.refreshTodayArchives(userId)
+    }
 }

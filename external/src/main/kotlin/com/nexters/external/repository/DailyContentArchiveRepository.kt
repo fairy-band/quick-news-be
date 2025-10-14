@@ -18,4 +18,10 @@ interface DailyContentArchiveRepository : MongoRepository<DailyContentArchive, S
         userId: Long,
         date: LocalDate
     ): Boolean
+
+    // 날짜와 사용자 ID로 삭제
+    fun deleteByDateAndUserId(
+        date: LocalDate,
+        userId: Long
+    )
 }

@@ -157,6 +157,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         WHERE c.id NOT IN (
             SELECT uecm.contentId FROM UserExposedContentMapping uecm
             WHERE uecm.userId = :userId
+            AND uecm.deleted = false
         )
          AND ckm.keyword.id IN :reservedKeywordIds
         """

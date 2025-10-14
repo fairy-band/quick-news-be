@@ -75,6 +75,25 @@ class DailyContentArchiveResolver(
         }
     }
 
+    @Transactional
+    fun refreshTodayArchives(
+        userId: Long,
+        date: LocalDate = LocalDate.now()
+    ) {
+        lock.lock()
+        try {
+            val archive = dailyContentArchiveService.findByDateAndUserId(userId, date)
+            if (archive == null) {
+                return
+            }
+
+            // TODO: 최대 한 번으로 제한 로직 추가
+            dailyContentArchiveService.deleteByDateAndUserId(userId, date)
+        } finally {
+            lock.unlock()
+        }
+    }
+
     private fun resolveTodayContents(
         userId: Long,
         categoryIds: List<Long>,
