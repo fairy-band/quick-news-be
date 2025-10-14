@@ -31,4 +31,21 @@ class DailyContentArchiveService(
 
         return dailyContentArchiveRepository.save(dailyContentArchive)
     }
+
+    @Transactional
+    fun deleteByDateAndUserId(
+        userId: Long,
+        date: LocalDate,
+    ) {
+        val mappings = userExposedContentMappingRepository.findByUserIdAndDate(userId, date.atStartOfDay())
+        mappings.forEach { it.deleted = true }
+        userExposedContentMappingRepository.saveAll(mappings)
+
+        dailyContentArchiveRepository.deleteByDateAndUserId(date, userId)
+    }
+
+    fun isRefreshAvailable(
+        userId: Long,
+        date: LocalDate
+    ): Boolean = userExposedContentMappingRepository.findDeletedByUserIdAndDate(userId, date).isEmpty()
 }

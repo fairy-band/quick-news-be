@@ -75,6 +75,28 @@ class DailyContentArchiveResolver(
         }
     }
 
+    @Transactional
+    fun refreshTodayArchives(
+        userId: Long,
+        date: LocalDate = LocalDate.now()
+    ) {
+        lock.lock()
+        try {
+            val archive = dailyContentArchiveService.findByDateAndUserId(userId, date)
+            if (archive == null) {
+                return
+            }
+
+            if (!dailyContentArchiveService.isRefreshAvailable(userId, date)) {
+                throw RefreshNotAvailableException("이미 새로고침을 사용했습니다. 하루에 한 번만 가능합니다.")
+            }
+
+            dailyContentArchiveService.deleteByDateAndUserId(userId, date)
+        } finally {
+            lock.unlock()
+        }
+    }
+
     private fun resolveTodayContents(
         userId: Long,
         categoryIds: List<Long>,
@@ -236,3 +258,7 @@ class DailyContentArchiveResolver(
         private const val ARBITRARY_USER_ID = 1L // 임시로 사용되는 유저 ID
     }
 }
+
+class RefreshNotAvailableException(
+    message: String
+) : RuntimeException(message)

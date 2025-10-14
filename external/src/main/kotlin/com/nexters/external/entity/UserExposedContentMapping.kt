@@ -23,7 +23,9 @@ class UserExposedContentMapping(
     @Column(name = "content_id")
     val contentId: Long,
     @Column(name = "created_at")
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    @Column(name = "deleted")
+    var deleted: Boolean = false
 ) {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
