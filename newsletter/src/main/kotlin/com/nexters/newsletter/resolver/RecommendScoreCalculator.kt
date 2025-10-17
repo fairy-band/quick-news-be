@@ -1,6 +1,7 @@
 package com.nexters.newsletter.resolver
 
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class RecommendScoreCalculator {
     fun calculate(source: RecommendCalculateSource): RecommendCalculateResult {
@@ -21,7 +22,8 @@ class RecommendScoreCalculator {
         val keywordScore = maxOf(positiveWeight - negativeWeight, 0.0)
 
         val today = LocalDate.now()
-        val freshScore = (today.until(source.publishedDate).days) * 10 // 오늘이 아닐경우 항상 음수
+        val daysDifference = ChronoUnit.DAYS.between(source.publishedDate, today)
+        val freshScore = -daysDifference * 10 // 달수, 연수를 포함한 총 날짜차이를 음수로 계산
         val lastScore = maxOf(keywordScore + freshScore, 0.0)
 
         return RecommendCalculateResult(lastScore)
