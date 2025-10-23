@@ -14,7 +14,7 @@ class CssWeeklyParser : MailParser {
         val sectionPositions = findSectionPositions(lines)
         val articlePositions = findArticlePositions(lines)
 
-        return articlePositions.mapNotNull { (index, articleData) ->
+        return articlePositions.map { (index, articleData) ->
             val section = findCurrentSection(index, sectionPositions)
             val content = extractArticleContent(lines, index)
 

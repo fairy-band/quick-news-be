@@ -12,7 +12,7 @@ class KotlinWeeklyParser : MailParser {
         return parseSections(normalized, issueInfo)
     }
 
-    private fun extractPlainTextContent(content: String): String? {
+    private fun extractPlainTextContent(content: String): String {
         val plainTextStartMarker = "Plain Text:"
 
         val startIndex = content.indexOf(plainTextStartMarker)

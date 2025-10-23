@@ -54,9 +54,7 @@ class DailyContentArchiveResolver(
             val user = userService.getUserById(userId)
             val userCategories = user.categories.map { it.id!! }
             val categoryIds =
-                if (userCategories.isNotEmpty()) {
-                    userCategories
-                } else {
+                userCategories.ifEmpty {
                     categoryService.getAllCategories().map { it.id!! }
                 }
 
@@ -82,10 +80,7 @@ class DailyContentArchiveResolver(
     ) {
         lock.lock()
         try {
-            val archive = dailyContentArchiveService.findByDateAndUserId(userId, date)
-            if (archive == null) {
-                return
-            }
+            val archive = dailyContentArchiveService.findByDateAndUserId(userId, date) ?: return
 
             if (!dailyContentArchiveService.isRefreshAvailable(userId, date)) {
                 throw RefreshNotAvailableException("이미 새로고침을 사용했습니다. 하루에 한 번만 가능합니다.")
