@@ -1,5 +1,6 @@
 package com.nexters.admin.controller
 
+import com.nexters.admin.dto.CategoryDto
 import com.nexters.admin.repository.CategoryKeywordMappingRepository
 import com.nexters.external.entity.CandidateKeyword
 import com.nexters.external.entity.Category
@@ -130,7 +131,7 @@ class KeywordAdminController(
     }
 
     @GetMapping("/categories")
-    fun getAllCategories(pageable: Pageable): ResponseEntity<Page<Category>> = ResponseEntity.ok(categoryRepository.findAll(pageable))
+    fun getAllCategories(): ResponseEntity<List<CategoryDto>> = ResponseEntity.ok(categoryRepository.findAll().map { CategoryDto.from(it) })
 
     @PostMapping("/categories")
     fun createCategory(

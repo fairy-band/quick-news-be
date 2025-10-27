@@ -472,7 +472,6 @@
         <div class="section">
             <h2>카테고리</h2>
             <div id="categories-list" class="category-list"></div>
-            <div class="pagination" id="category-pagination"></div>
             <div class="form-group">
                 <input type="text" id="new-category-name" class="form-control" placeholder="새 카테고리">
                 <button id="add-category-btn" class="btn btn-primary">추가</button>
@@ -757,8 +756,8 @@
             }
         }
 
-        function fetchCategories(page = 0, size = 10) {
-            fetch(`./api/keywords/categories?page=${page}&size=${size}`)
+        function fetchCategories() {
+            fetch(`./api/keywords/categories`)
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('categories-list');
@@ -767,12 +766,12 @@
                     container.innerHTML = '';
                     select.innerHTML = '<option value="">카테고리 선택</option>';
 
-                    if (data.content.length === 0) {
+                    if (data.length === 0) {
                         container.innerHTML = '<p>카테고리가 없습니다</p>';
                         return;
                     }
 
-                    data.content.forEach(category => {
+                    data.forEach(category => {
                         // Add to list
                         const categoryItem = document.createElement('div');
                         categoryItem.className = 'category-item';
@@ -786,56 +785,11 @@
                         option.textContent = category.name;
                         select.appendChild(option);
                     });
-
-                    // Add pagination
-                    renderCategoryPagination(data, 'category-pagination');
                 })
                 .catch(error => console.error('Error fetching categories:', error));
         }
 
-        function renderCategoryPagination(pageData, containerId) {
-            const paginationContainer = document.getElementById(containerId);
-            if (!paginationContainer) return;
 
-            paginationContainer.innerHTML = '';
-
-            if (!pageData.totalPages || pageData.totalPages <= 1) {
-                return;
-            }
-
-            // Previous button
-            if (pageData.number > 0) {
-                const prevButton = document.createElement('div');
-                prevButton.className = 'pagination-item';
-                prevButton.textContent = '이전';
-                prevButton.addEventListener('click', () => fetchCategories(pageData.number - 1, pageData.size));
-                paginationContainer.appendChild(prevButton);
-            }
-
-            // Page numbers
-            const startPage = Math.max(0, pageData.number - 2);
-            const endPage = Math.min(pageData.totalPages - 1, pageData.number + 2);
-
-            for (let i = startPage; i <= endPage; i++) {
-                const pageButton = document.createElement('div');
-                pageButton.className = 'pagination-item';
-                if (i === pageData.number) {
-                    pageButton.classList.add('active');
-                }
-                pageButton.textContent = i + 1;
-                pageButton.addEventListener('click', () => fetchCategories(i, pageData.size));
-                paginationContainer.appendChild(pageButton);
-            }
-
-            // Next button
-            if (pageData.number < pageData.totalPages - 1) {
-                const nextButton = document.createElement('div');
-                nextButton.className = 'pagination-item';
-                nextButton.textContent = '다음';
-                nextButton.addEventListener('click', () => fetchCategories(pageData.number + 1, pageData.size));
-                paginationContainer.appendChild(nextButton);
-            }
-        }
 
         function fetchCategoryKeywords(categoryId, page = 0, size = 1000) {
             if (!categoryId) {
