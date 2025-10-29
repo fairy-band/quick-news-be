@@ -54,10 +54,9 @@ class NewsletterProcessingService(
         try {
             val newsletterSource = newsletterSourceService.findById(newsletterSourceId)!!
 
-            val parser = mailParserFactory.findParser(newsletterSource.senderEmail)
-            if (parser == null) {
-                return listOf() // 파서가 없는 경우 처리하지 않는다.
-            }
+            val parser =
+                mailParserFactory.findParser(newsletterSource.senderEmail)
+                    ?: return listOf() // 파서가 없는 경우 처리하지 않는다.
 
             logger.info("Starting complete newsletter processing for source ID: $newsletterSourceId")
 
@@ -149,7 +148,12 @@ class NewsletterProcessingService(
                 // 컨텐츠에 키워드 할당
                 val assignedCount = keywordService.assignKeywordsToContent(content, matchedKeywords)
 
-                logger.debug("Matched ${matchedKeywords.size} keywords for content: ${content.title}, assigned $assignedCount new keywords")
+                logger.debug(
+                    "Matched {} keywords for content: {}, assigned {} new keywords",
+                    matchedKeywords.size,
+                    content.title,
+                    assignedCount
+                )
             } catch (e: Exception) {
                 logger.error("Failed to match keywords for content: ${content.title}", e)
                 // Continue with other contents even if one fails

@@ -23,7 +23,7 @@ class DailyContentArchiveService(
         dailyContentArchive.exposureContents.forEach {
             userExposedContentMappingRepository.save(
                 UserExposedContentMapping(
-                    userId = dailyContentArchive.user.id!!,
+                    userId = dailyContentArchive.user.id,
                     contentId = it.content.id!!,
                 ),
             )

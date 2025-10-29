@@ -131,7 +131,7 @@ object TextSanitizer {
     // 모든 공백 문자 제거 (HTML 엔티티 복구를 위한 전처리)
     fun normalizeHtmlEntities(input: String): String {
         // HTML 엔티티 내부의 공백 제거 (예: &n bsp; -> &nbsp;)
-        var result = input
+        val result = input
 
         // &로 시작하고 ;로 끝나는 패턴 찾기
         val pattern = Pattern.compile("&([^;]*);")

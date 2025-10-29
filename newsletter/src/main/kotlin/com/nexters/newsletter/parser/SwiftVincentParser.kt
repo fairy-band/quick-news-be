@@ -106,7 +106,7 @@ class SwiftVincentParser : MailParser {
             // 단락 추출
             val paragraphs = section.select("p")
             for (p in paragraphs) {
-                val text = p.text()?.trim() ?: ""
+                val text = p.text().trim() ?: ""
                 if (text.isNotBlank() &&
                     !EXCLUDED_CONTENT.any { text.contains(it, ignoreCase = true) } &&
                     text.length > 10
@@ -121,7 +121,7 @@ class SwiftVincentParser : MailParser {
         if (!hasContent) {
             val allParagraphs = document.select("p")
             for (p in allParagraphs) {
-                val text = p.text()?.trim() ?: ""
+                val text = p.text().trim() ?: ""
                 if (text.isNotBlank() &&
                     !EXCLUDED_CONTENT.any { text.contains(it, ignoreCase = true) } &&
                     text.length > 10
@@ -134,7 +134,7 @@ class SwiftVincentParser : MailParser {
 
         // 3.3 마지막 수단 - 모든 텍스트 추출
         if (!hasContent) {
-            val bodyText = document.body()?.text() ?: ""
+            val bodyText = document.body().text() ?: ""
             if (bodyText.isNotBlank()) {
                 contentBuilder.append(bodyText)
                 hasContent = true

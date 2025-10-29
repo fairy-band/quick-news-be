@@ -3,9 +3,10 @@ package com.nexters.newsletter.parser
 class MailParserFactory {
     private val parsers =
         listOf(
+            JSWeeklyParser(),
             KotlinWeeklyParser(),
             AndroidWeeklyParser(),
-            GeeknewsWeeklyParser()
+            GeeknewsWeeklyParser(),
         )
 
     fun findParser(sender: String): MailParser? = parsers.find { it.isTarget(sender) }

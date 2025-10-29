@@ -151,7 +151,7 @@ class AlarmIntegrationConfig(
         fcmOutputChannel: MessageChannel,
     ): IntegrationFlow =
         integrationFlow(fcmProcessChannel) {
-            handle<FcmNotificationResult> { result, headers ->
+            handle<FcmNotificationResult> { result, _ ->
                 logger.debug("FCM 전송 결과 처리: ${result.fcmToken} - 성공: ${result.success}")
                 result
             }
@@ -163,7 +163,7 @@ class AlarmIntegrationConfig(
     @Bean
     fun fcmCompletionFlow(fcmOutputChannel: MessageChannel): IntegrationFlow =
         integrationFlow(fcmOutputChannel) {
-            handle<FcmNotificationResult> { result, headers ->
+            handle<FcmNotificationResult> { result, _ ->
                 // 전송 완료 로그 기록
                 if (result.success) {
                     logger.info("FCM 알림 전송 성공 처리 완료: ${result.fcmToken}")

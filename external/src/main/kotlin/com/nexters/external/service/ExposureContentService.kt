@@ -100,7 +100,7 @@ class ExposureContentService(
         return summary.title
     }
 
-    fun getAllExposureContents() = exposureContentRepository.findAll()
+    fun getAllExposureContents(): List<ExposureContent> = exposureContentRepository.findAll()
 
     fun getExposureContentById(id: Long): ExposureContent =
         exposureContentRepository

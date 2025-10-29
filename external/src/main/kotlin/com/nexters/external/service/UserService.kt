@@ -54,13 +54,13 @@ class UserService(
             }
 
         val categories = categoryRepository.findByNameIn(categoryNames)
-        val keywords =
+        val reservedKeywords =
             reservedKeywordRepository.findByNameIn(keywords).ifEmpty {
                 throw IllegalArgumentException("No valid keywords found for the provided names: $keywords")
             }
 
         user.categories = categories.toMutableSet()
-        user.keywords = keywords.toMutableSet()
+        user.keywords = reservedKeywords.toMutableSet()
         userRepository.save(user)
     }
 

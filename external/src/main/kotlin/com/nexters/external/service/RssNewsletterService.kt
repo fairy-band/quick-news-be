@@ -190,8 +190,7 @@ class RssNewsletterService(
             .distinct()
 
     fun getSourcesByFeedUrl(feedUrl: String): List<NewsletterSource> {
-        val feedMetadata = rssReaderService.readRssFeed(feedUrl)
-        if (feedMetadata == null) return emptyList()
+        val feedMetadata = rssReaderService.readRssFeed(feedUrl) ?: return emptyList()
 
         val feedTitle = feedMetadata.title
         return newsletterSourceRepository.findBySender(feedTitle)
