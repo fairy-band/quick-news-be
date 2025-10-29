@@ -12,6 +12,7 @@ enum class Preference(
     BACKEND("BE"),
     ANDROID("Android"),
     IOS("iOS"),
+    DEVOPS("DevOps")
 }
 
 enum class WorkingExperience(
