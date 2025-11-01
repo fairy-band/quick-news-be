@@ -1,0 +1,64 @@
+# RSS Feed Sources Configuration
+# 이 파일은 모든 환경(dev, prod)에서 공유되는 RSS 피드 목록을 관리합니다.
+# 새로운 피드를 추가하거나 제거할 때 이 파일만 수정하면 됩니다.
+
+rss:
+  feeds:
+    # 개인 블로그
+    - https://feeds2.feedburner.com/rss_outsider_dev
+    - https://blog.isquaredsoftware.com/index.xml
+    - https://www.joshuakgoldberg.com/rss.xml
+    - http://kentcdodds.com/blog/rss.xml
+    
+    # 한국 기술 미디어
+    - https://ppss.kr/archives/category/tech/feed
+    - https://www.44bits.io/ko/feed/all
+    - http://hacks.mozilla.or.kr/feed/
+    - https://kofearticle.substack.com/feed
+    
+    # 대기업 기술 블로그
+    - https://www.samsungsds.com/kr/insights/insight_ko_rss.xml
+    - https://tech.cloud.nongshim.co.kr/feed/
+    - https://d2.naver.com/d2.atom
+    - https://engineering.linecorp.com/ko/feed/index.html
+    - https://tech.kakao.com/feed/
+    - https://github.com/naver/fe-news/commits/master.atom
+    
+    # 스타트업/중견기업 기술 블로그
+    - https://spoqa.github.io/atom.xml
+    - https://makinarocks.github.io/feed
+    - https://zuminternet.github.io/feed.xml
+    - https://techblog.gccompany.co.kr/feed
+    - https://techblog.yogiyo.co.kr/feed
+    - https://www.blog.kcd.co.kr/feed
+    - http://meetup.toast.com/rss
+    - http://thefarmersfront.github.io/feed.xml
+    - https://woowabros.github.io/feed.xml
+    - https://fe-developers.kakaoent.com/rss.xml
+    - https://smartstudio.tech/feed/
+    - https://techblog.woowahan.com/feed/
+    
+    # Medium 기업 블로그
+    - https://medium.com/feed/ssgtech
+    - https://medium.com/feed/naver-place-dev
+    - https://medium.com/feed/lemonbase
+    - https://medium.com/feed/pinkfong
+    - https://medium.com/feed/yanolja
+    - https://medium.com/feed/musinsa-tech
+    - https://medium.com/feed/29cm
+    - https://medium.com/feed/wantedjobs
+    - https://riiidtechblog.medium.com/feed
+    - https://medium.com/feed/coupang-tech
+    - https://medium.com/feed/daangn
+    
+    # 기술 뉴스레터/주간지
+    - http://feeds.feedburner.com/CSS-Weekly?format=xml
+    - https://vuejsdevelopers.com/feed.xml
+    - http://react.statuscode.com/rss
+    - http://frontendfoc.us/rss
+    - http://javascriptweekly.com/rss
+    
+    # 개발 도구/언어 공식 블로그
+    - https://devblogs.microsoft.com/typescript/feed/
+    - https://blog.jetbrains.com/ko/feed/
+    - http://kotlin.kr/feed.xml

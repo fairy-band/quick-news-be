@@ -11,9 +11,9 @@ import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
-import com.nexters.external.service.RssAiProcessingService
 import com.nexters.external.service.SummaryService
 import com.nexters.newsletter.service.NewsletterProcessingService
+import com.nexters.newsletter.service.RssContentService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -36,7 +36,7 @@ class ProcessController(
     private val summaryRepository: SummaryRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
     private val exposureContentService: ExposureContentService,
-    private val rssAiProcessingService: RssAiProcessingService,
+    private val rssContentService: RssContentService,
     private val newsletterProcessingService: NewsletterProcessingService,
 ) {
     @GetMapping("/content/{contentId}/keywords")
@@ -398,7 +398,7 @@ class ProcessController(
     @PostMapping("/rss/process-ai")
     fun processRssWithAi(): ResponseEntity<RssProcessingResponse> =
         try {
-            val result = rssAiProcessingService.processDailyRssWithAi()
+            val result = rssContentService.processDailyRssWithAi()
             ResponseEntity.ok(
                 RssProcessingResponse(
                     success = true,
@@ -422,7 +422,7 @@ class ProcessController(
 
     @GetMapping("/rss/stats")
     fun getRssProcessingStats(): ResponseEntity<RssStatsResponse> {
-        val stats = rssAiProcessingService.getProcessingStats()
+        val stats = rssContentService.getProcessingStats()
         return ResponseEntity.ok(
             RssStatsResponse(
                 processedToday = stats.processedToday,
