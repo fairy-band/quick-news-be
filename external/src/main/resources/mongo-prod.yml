@@ -3,9 +3,11 @@ spring:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI}
       auto-index-creation: false
+  config:
+    import:
+      - rss-feeds.yml
 
 rss:
-  feeds: ${RSS_FEEDS:https://blog.jetbrains.com/ko/feed/,https://tech.kakao.com/feed/,https://woowabros.github.io/feed.xml,https://techblog.woowahan.com/feed/,https://medium.com/feed/daangn,https://engineering.linecorp.com/ko/feed/,https://kofearticle.substack.com/feed,https://devblogs.microsoft.com/typescript/feed/,https://zuminternet.github.io/feed.xml,https://spoqa.github.io/atom.xml,https://medium.com/feed/musinsa-tech,https://medium.com/feed/29cm,https://medium.com/feed/wantedjobs}
   scheduler:
     fetch:
       delay: ${RSS_FETCH_DELAY:1800000}

@@ -60,4 +60,6 @@ class NewsletterSourceService(
     }
 
     fun count(): Long = newsletterSourceRepository.count()
+
+    fun findAll(): List<NewsletterSource> = newsletterSourceRepository.findAll()
 }

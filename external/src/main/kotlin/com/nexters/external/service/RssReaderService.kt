@@ -1,90 +1,98 @@
 package com.nexters.external.service
 
+import com.nexters.external.dto.RssFeed
+import com.nexters.external.dto.RssFeedConfig
+import com.nexters.external.dto.RssItem
 import com.rometools.rome.feed.synd.SyndEntry
-import com.rometools.rome.feed.synd.SyndFeed
 import com.rometools.rome.io.SyndFeedInput
 import com.rometools.rome.io.XmlReader
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
-import java.net.URL
+import java.net.URI
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Date
 
 @Service
 @Profile("prod", "dev")
-class RssReaderService {
+class RssReaderService(
+    private val config: RssFeedConfig = RssFeedConfig()
+) {
     private val logger = LoggerFactory.getLogger(RssReaderService::class.java)
 
-    data class RssFeedItem(
-        val title: String,
-        val description: String?,
-        val link: String,
-        val publishedDate: LocalDateTime?,
-        val author: String?,
-        val categories: List<String>,
-        val content: String?
-    )
-
-    data class RssFeedMetadata(
-        val title: String,
-        val description: String?,
-        val link: String,
-        val language: String?,
-        val publishedDate: LocalDateTime?,
-        val items: List<RssFeedItem>
-    )
-
-    fun readRssFeed(feedUrl: String): RssFeedMetadata? =
-        try {
-            val url = URL(feedUrl)
-            val connection = url.openConnection()
-
-            // 간단한 헤더 설정으로 RSS 피드 접근
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; RSS Reader)")
-            connection.setRequestProperty("Accept", "*/*")
-            connection.connectTimeout = 15000
-            connection.readTimeout = 15000
-
-            val input = SyndFeedInput()
-            val feed: SyndFeed = input.build(XmlReader(connection.getInputStream()))
-
-            val feedMetadata =
-                RssFeedMetadata(
-                    title = feed.title ?: "",
-                    description = feed.description,
-                    link = feed.link ?: feedUrl,
-                    language = feed.language,
-                    publishedDate =
-                        feed.publishedDate?.let {
-                            LocalDateTime.ofInstant(it.toInstant(), ZoneId.systemDefault())
-                        },
-                    items = feed.entries.map { entry -> parseRssEntry(entry) }
-                )
-
-            logger.info("Successfully parsed RSS feed: ${feed.title}")
-            feedMetadata
-        } catch (e: Exception) {
-            logger.error("Error reading RSS feed from $feedUrl", e)
-            null
+    fun fetchFeed(feedUrl: String): RssFeed? {
+        if (!feedUrl.isValidRssFeedUrl()) {
+            logger.warn("Invalid feed URL: $feedUrl")
+            return null
         }
 
-    private fun parseRssEntry(entry: SyndEntry): RssFeedItem =
-        RssFeedItem(
-            title = entry.title ?: "",
+        return retryWithBackoff(config.maxRetries) {
+            parseFeed(feedUrl)
+        }
+    }
+
+    private fun parseFeed(feedUrl: String): RssFeed {
+        logger.debug("Fetching RSS feed from: $feedUrl")
+
+        val connection =
+            URI(feedUrl).toURL().openConnection().apply {
+                setRequestProperty("User-Agent", config.userAgent)
+                setRequestProperty("Accept", "*/*")
+                connectTimeout = config.connectTimeout
+                readTimeout = config.readTimeout
+            }
+
+        val feed = SyndFeedInput().build(XmlReader(connection.getInputStream()))
+        val rssFeed =
+            RssFeed(
+                title = feed.title ?: "Untitled Feed",
+                description = feed.description,
+                link = feed.link ?: feedUrl,
+                language = feed.language,
+                publishedDate = feed.publishedDate?.toLocalDateTime(),
+                items = feed.entries.map { entry -> parseRssEntry(entry) }
+            )
+
+        logger.info("Successfully parsed RSS feed: ${feed.title} (${feed.entries.size} items)")
+        return rssFeed
+    }
+
+    private fun parseRssEntry(entry: SyndEntry): RssItem =
+        RssItem(
+            title = entry.title ?: "Untitled",
             description = entry.description?.value,
             link = entry.link ?: "",
-            publishedDate =
-                entry.publishedDate?.let {
-                    LocalDateTime.ofInstant(it.toInstant(), ZoneId.systemDefault())
-                },
+            publishedDate = entry.publishedDate?.toLocalDateTime(),
             author = entry.author,
             categories = entry.categories?.map { it.name } ?: emptyList(),
             content = entry.contents?.firstOrNull()?.value
         )
 
-    fun readMultipleFeeds(feedUrls: List<String>): List<RssFeedMetadata> =
-        feedUrls.mapNotNull { url ->
-            readRssFeed(url)
+    private fun <T> retryWithBackoff(
+        maxRetries: Int,
+        block: () -> T
+    ): T? {
+        var lastException: Exception? = null
+
+        repeat(maxRetries) { attempt ->
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastException = e
+                logger.warn("Attempt ${attempt + 1}/$maxRetries failed: ${e.message}")
+
+                if (attempt < maxRetries - 1) {
+                    Thread.sleep(config.retryDelayMs * (attempt + 1))
+                }
+            }
         }
+
+        logger.error("All $maxRetries attempts failed", lastException)
+        return null
+    }
 }
+
+private fun String.isValidRssFeedUrl(): Boolean = isNotBlank() && (startsWith("http://") || startsWith("https://"))
+
+private fun Date.toLocalDateTime(): LocalDateTime = LocalDateTime.ofInstant(this.toInstant(), ZoneId.systemDefault())

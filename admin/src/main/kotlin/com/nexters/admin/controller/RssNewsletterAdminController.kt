@@ -1,8 +1,7 @@
 package com.nexters.admin.controller
 
 import com.nexters.external.entity.NewsletterSource
-import com.nexters.external.service.RssAiProcessingService
-import com.nexters.external.service.RssNewsletterService
+import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
@@ -17,9 +16,8 @@ import org.springframework.web.bind.annotation.RestController
 @Profile("prod", "dev")
 @RequestMapping("/admin/rss-newsletter")
 class RssNewsletterAdminController(
-    private val rssNewsletterService: RssNewsletterService,
-    private val rssAiProcessingService: RssAiProcessingService,
-    @Value("\${rss.feeds:}") private val rssFeeds: String
+    private val rssContentService: RssContentService,
+    @Value("\${rss.feeds:}") private val rssFeeds: List<String>
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterAdminController::class.java)
 
@@ -30,7 +28,7 @@ class RssNewsletterAdminController(
         logger.info("Fetching RSS feed: $feedUrl")
 
         return try {
-            val savedCount = rssNewsletterService.fetchAndSaveRssFeed(feedUrl)
+            val savedCount = rssContentService.fetchAndSaveRssFeed(feedUrl)
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
@@ -58,13 +56,13 @@ class RssNewsletterAdminController(
         logger.info("Fetching and processing RSS feed: $feedUrl")
 
         return try {
-            val processedContents = rssNewsletterService.fetchAndProcessRssFeed(feedUrl)
+            val processedCount = rssContentService.fetchAndProcessRssFeed(feedUrl)
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
                     "feedUrl" to feedUrl,
-                    "processedCount" to processedContents.size,
-                    "message" to "Successfully fetched and processed ${processedContents.size} items"
+                    "processedCount" to processedCount,
+                    "message" to "Successfully fetched and processed $processedCount items"
                 )
             )
         } catch (e: Exception) {
@@ -87,7 +85,7 @@ class RssNewsletterAdminController(
     ): ResponseEntity<List<NewsletterSource>> {
         logger.info("Getting recent RSS sources for last $days days")
 
-        val sources = rssNewsletterService.getRecentSources(days)
+        val sources = rssContentService.getRecentSources(days)
         return ResponseEntity.ok(sources)
     }
 
@@ -95,7 +93,7 @@ class RssNewsletterAdminController(
     fun getAllFeeds(): ResponseEntity<List<String>> {
         logger.info("Getting all RSS feeds")
 
-        val feeds = rssNewsletterService.getAllFeeds()
+        val feeds = rssContentService.getAllFeeds()
         return ResponseEntity.ok(feeds)
     }
 
@@ -104,7 +102,7 @@ class RssNewsletterAdminController(
         logger.info("Getting RSS source statistics")
 
         return try {
-            val stats = rssNewsletterService.getSourceStats()
+            val stats = rssContentService.getSourceStats()
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
@@ -126,7 +124,7 @@ class RssNewsletterAdminController(
     fun fetchAllFeeds(): ResponseEntity<Map<String, Any>> {
         logger.info("Fetching all RSS feeds")
 
-        if (rssFeeds.isBlank()) {
+        if (rssFeeds.isEmpty()) {
             return ResponseEntity.badRequest().body(
                 mapOf<String, Any>(
                     "success" to false,
@@ -136,8 +134,8 @@ class RssNewsletterAdminController(
         }
 
         return try {
-            val feedUrls = rssFeeds.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-            val results = rssNewsletterService.fetchMultipleFeeds(feedUrls)
+            val feedUrls = rssFeeds
+            val results = rssContentService.fetchAndSaveFeeds(feedUrls)
 
             ResponseEntity.ok(
                 mapOf<String, Any>(
@@ -163,7 +161,7 @@ class RssNewsletterAdminController(
         logger.info("Starting manual RSS AI processing")
 
         return try {
-            val result = rssAiProcessingService.processDailyRssWithAi()
+            val result = rssContentService.processDailyRssWithAi()
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
@@ -189,7 +187,7 @@ class RssNewsletterAdminController(
         logger.info("Getting RSS AI processing statistics")
 
         return try {
-            val stats = rssAiProcessingService.getProcessingStats()
+            val stats = rssContentService.getProcessingStats()
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
