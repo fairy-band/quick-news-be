@@ -1,8 +1,8 @@
 package com.nexters.newsletterfeeder.config
 
+import com.nexters.external.config.RssFeedProperties
 import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -11,8 +11,11 @@ import org.springframework.stereotype.Component
 @Profile("prod", "dev")
 class RssFeedScheduler(
     private val rssContentService: RssContentService,
-    @Value("\${rss.feeds:}") private val rssFeeds: List<String>
+    private val rssFeedProperties: RssFeedProperties,
 ) {
+    private val rssFeeds: List<String>
+        get() = rssFeedProperties.feeds
+
     private val logger = LoggerFactory.getLogger(RssFeedScheduler::class.java)
 
     @Scheduled(fixedDelayString = "\${rss.scheduler.fetch.delay:3600000}")

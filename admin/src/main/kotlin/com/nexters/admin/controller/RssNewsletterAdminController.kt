@@ -1,9 +1,9 @@
 package com.nexters.admin.controller
 
+import com.nexters.external.config.RssFeedProperties
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,9 +17,12 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/admin/rss-newsletter")
 class RssNewsletterAdminController(
     private val rssContentService: RssContentService,
-    @Value("\${rss.feeds:}") private val rssFeeds: List<String>
+    private val rssFeedProperties: RssFeedProperties,
 ) {
     private val logger = LoggerFactory.getLogger(RssNewsletterAdminController::class.java)
+
+    private val rssFeeds: List<String>
+        get() = rssFeedProperties.feeds
 
     @PostMapping("/fetch")
     fun fetchRssFeed(
