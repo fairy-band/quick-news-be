@@ -2,7 +2,9 @@ server:
   port: 8083
 spring:
   config:
-    import: gemini.yml
+    import:
+      - gemini.yml
+      - rss-feeds.yml
   application:
     name: newsletter-feeder-admin
   thymeleaf:
