@@ -9,13 +9,13 @@ rss:
     - https://blog.isquaredsoftware.com/index.xml
     - https://www.joshuakgoldberg.com/rss.xml
     - http://kentcdodds.com/blog/rss.xml
-    
+
     # 한국 기술 미디어
     - https://ppss.kr/archives/category/tech/feed
     - https://www.44bits.io/ko/feed/all
     - http://hacks.mozilla.or.kr/feed/
     - https://kofearticle.substack.com/feed
-    
+
     # 대기업 기술 블로그
     - https://www.samsungsds.com/kr/insights/insight_ko_rss.xml
     - https://tech.cloud.nongshim.co.kr/feed/
@@ -23,21 +23,20 @@ rss:
     - https://engineering.linecorp.com/ko/feed/index.html
     - https://tech.kakao.com/feed/
     - https://github.com/naver/fe-news/commits/master.atom
-    
+    - https://www.confluent.io/blog/area/technology/rss.xml
+
     # 스타트업/중견기업 기술 블로그
     - https://spoqa.github.io/atom.xml
     - https://makinarocks.github.io/feed
     - https://zuminternet.github.io/feed.xml
     - https://techblog.gccompany.co.kr/feed
     - https://techblog.yogiyo.co.kr/feed
-    - https://www.blog.kcd.co.kr/feed
-    - http://meetup.toast.com/rss
-    - http://thefarmersfront.github.io/feed.xml
+    - https://meetup.toast.com/rss
+    - https://helloworld.kurly.com/feed.xml
     - https://woowabros.github.io/feed.xml
-    - https://fe-developers.kakaoent.com/rss.xml
     - https://smartstudio.tech/feed/
     - https://techblog.woowahan.com/feed/
-    
+
     # Medium 기업 블로그
     - https://medium.com/feed/ssgtech
     - https://medium.com/feed/naver-place-dev
@@ -50,14 +49,14 @@ rss:
     - https://riiidtechblog.medium.com/feed
     - https://medium.com/feed/coupang-tech
     - https://medium.com/feed/daangn
-    
+
     # 기술 뉴스레터/주간지
     - http://feeds.feedburner.com/CSS-Weekly?format=xml
     - https://vuejsdevelopers.com/feed.xml
     - http://react.statuscode.com/rss
     - http://frontendfoc.us/rss
     - http://javascriptweekly.com/rss
-    
+
     # 개발 도구/언어 공식 블로그
     - https://devblogs.microsoft.com/typescript/feed/
     - https://blog.jetbrains.com/ko/feed/
