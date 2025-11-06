@@ -1,6 +1,5 @@
 package com.nexters.external.entity
 
-import com.nexters.external.entity.ReservedKeyword
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
