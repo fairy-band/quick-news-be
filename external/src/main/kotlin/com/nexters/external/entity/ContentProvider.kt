@@ -10,15 +10,6 @@ import jakarta.persistence.JoinTable
 import jakarta.persistence.ManyToMany
 import jakarta.persistence.Table
 
-/**
- * 뉴스레터 메타 데이터 저장
- * 원본 데이터 -> 몽고 조회
- * 어떤 뉴스레터가 있는지, 그리고 distinct하여 유니크하게
- * 어떤 뉴스레터가 어떤 카테로리에 적합한지가 중요
- * 카드 원문 언어
- * Calculator가 우선 순위
- */
-
 @Entity
 @Table(name = "content_provider")
 class ContentProvider(
