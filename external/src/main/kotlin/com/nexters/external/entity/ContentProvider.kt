@@ -2,7 +2,6 @@ package com.nexters.external.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -26,21 +25,19 @@ class ContentProvider(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @Column(nullable = true, name = "newsletter_source_id")
-    val newsletterSourceId: String? = null,
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "user_category_mappings",
-        joinColumns = [JoinColumn(name = "user_id")],
-        inverseJoinColumns = [JoinColumn(name = "category_id")]
-    )
-    var categories: MutableSet<Category> = mutableSetOf<Category>(),
     @Column(nullable = false)
     val name: String,
+    // 구독 url
     @Column(nullable = false)
     val channel: String,
+    // 언어
     @Column(nullable = false, length = 10)
     val language: String,
-){
-
-}
+    @ManyToMany
+    @JoinTable(
+        name = "content_provider_category",
+        joinColumns = [JoinColumn(name = "content_provider_id")],
+        inverseJoinColumns = [JoinColumn(name = "category_id")]
+    )
+    var categories: MutableSet<Category> = mutableSetOf(),
+)
