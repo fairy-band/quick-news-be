@@ -165,7 +165,7 @@ CREATE INDEX IF NOT EXISTS idx_fcm_token ON fcm_tokens (fcm_token);
 -- Content providers table
 CREATE TABLE IF NOT EXISTS content_provider
 (
-    id       BIGSERIAL PRIMARY KEY,
+    id       SERIAL PRIMARY KEY,
     name     VARCHAR(255) NOT NULL,
     channel  VARCHAR(255) NOT NULL,
     language VARCHAR(10)  NOT NULL,
@@ -176,13 +176,11 @@ CREATE TABLE IF NOT EXISTS content_provider
 -- Content provider category mappings table
 CREATE TABLE IF NOT EXISTS content_provider_category_mappings
 (
-    id                  BIGSERIAL PRIMARY KEY,
+    id                  SERIAL PRIMARY KEY,
     content_provider_id BIGINT    NOT NULL,
     category_id         BIGINT    NOT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (content_provider_id, category_id),
-    FOREIGN KEY (content_provider_id) REFERENCES content_provider (id),
-    FOREIGN KEY (category_id) REFERENCES categories (id)
+    UNIQUE (content_provider_id, category_id)
 );
 
