@@ -13,5 +13,11 @@ data class ContentViewApiResponse(
         val summary: String,
         val contentUrl: String,
         val newsletterName: String,
+        val language: Language = Language.ENGLISH,
     )
+
+    enum class Language {
+        ENGLISH,
+        KOREAN,
+    }
 }
