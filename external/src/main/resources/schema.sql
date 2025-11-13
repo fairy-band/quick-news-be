@@ -162,3 +162,25 @@ CREATE TABLE IF NOT EXISTS fcm_tokens
 CREATE INDEX IF NOT EXISTS idx_device_token ON fcm_tokens (device_token);
 CREATE INDEX IF NOT EXISTS idx_fcm_token ON fcm_tokens (fcm_token);
 
+-- Content providers table
+CREATE TABLE IF NOT EXISTS content_provider
+(
+    id       SERIAL PRIMARY KEY,
+    name     VARCHAR(255) NOT NULL,
+    channel  VARCHAR(255) NOT NULL,
+    language VARCHAR(10)  NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Content provider category mappings table
+CREATE TABLE IF NOT EXISTS content_provider_category_mappings
+(
+    id                  SERIAL PRIMARY KEY,
+    content_provider_id BIGINT    NOT NULL,
+    category_id         BIGINT    NOT NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (content_provider_id, category_id)
+);
+
