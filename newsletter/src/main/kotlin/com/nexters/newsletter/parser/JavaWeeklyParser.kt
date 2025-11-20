@@ -69,10 +69,11 @@ class JavaWeeklyParser : MailParser {
         if (startIndex == -1) return null
 
         val lines = content.substring(startIndex).lines()
-        val sectionLines = lines.takeWhile { line ->
-            val trimmed = line.trim()
-            !(trimmed.length == 3 && trimmed == "---")
-        }
+        val sectionLines =
+            lines.takeWhile { line ->
+                val trimmed = line.trim()
+                !(trimmed.length == 3 && trimmed == "---")
+            }
 
         return sectionLines.joinToString("\n")
     }
@@ -117,7 +118,8 @@ class JavaWeeklyParser : MailParser {
     ): List<MailContent> {
         val seenTitles = mutableSetOf<String>()
 
-        return sectionContent.lines()
+        return sectionContent
+            .lines()
             .mapNotNull { line ->
                 val trimmedLine = line.trim()
                 if (!trimmedLine.startsWith("* ")) return@mapNotNull null

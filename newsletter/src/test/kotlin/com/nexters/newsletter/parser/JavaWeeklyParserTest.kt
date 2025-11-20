@@ -24,7 +24,8 @@ class JavaWeeklyParserTest {
     @Test
     fun `parse should extract articles from Java Weekly newsletter`() {
         // given - 실제 운영 데이터 형식
-        val sampleEmail = """
+        val sampleEmail =
+            """
             This week's Awesome Java Weekly
             Read it on the Web: https://java.libhunt.com/newsletter/494
 
@@ -56,7 +57,7 @@ class JavaWeeklyParserTest {
 
             ---
             Your weekly awesomeness of Awesome Java Weekly news, articles and projects
-        """.trimIndent()
+            """.trimIndent()
 
         // when
         val result = parser.parse(sampleEmail)
