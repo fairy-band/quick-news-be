@@ -7,6 +7,7 @@ class MailParserFactory {
             KotlinWeeklyParser(),
             AndroidWeeklyParser(),
             GeeknewsWeeklyParser(),
+            JavaWeeklyParser(),
         )
 
     fun findParser(sender: String): MailParser? = parsers.find { it.isTarget(sender) }
