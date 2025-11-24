@@ -7,6 +7,8 @@ import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -101,6 +103,11 @@ class ExposureContentService(
     }
 
     fun getAllExposureContents(): List<ExposureContent> = exposureContentRepository.findAll()
+
+    fun getAllExposureContentsWithPaging(
+        lastSeenOffset: Long,
+        pageable: Pageable
+    ): Page<ExposureContent> = exposureContentRepository.findAllWithOffset(lastSeenOffset, pageable)
 
     fun getExposureContentById(id: Long): ExposureContent =
         exposureContentRepository
