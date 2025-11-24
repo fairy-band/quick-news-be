@@ -15,6 +15,18 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
+        SELECT e FROM ExposureContent e
+        WHERE e.id > :lastSeenOffset
+        ORDER BY e.id ASC
+    """
+    )
+    fun findAllWithOffset(
+        @Param("lastSeenOffset") lastSeenOffset: Long,
+        pageable: Pageable
+    ): Page<ExposureContent>
+
+    @Query(
+        """
         SELECT c FROM Content c
         WHERE c.id IN (
             SELECT DISTINCT e.content.id FROM ExposureContent e
