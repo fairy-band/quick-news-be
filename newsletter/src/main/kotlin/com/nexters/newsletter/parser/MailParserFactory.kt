@@ -5,7 +5,6 @@ class MailParserFactory {
         listOf(
             JSWeeklyParser(),
             KotlinWeeklyParser(),
-            AndroidWeeklyParser(),
             GeeknewsWeeklyParser(),
             JavaWeeklyParser(),
         )
