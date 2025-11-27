@@ -5,6 +5,7 @@ import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
+import com.nexters.external.repository.ContentProviderRepository
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
@@ -50,7 +51,8 @@ class ContentApiController(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
     private val exposureContentRepository: ExposureContentRepository,
-    private val keywordService: KeywordService
+    private val keywordService: KeywordService,
+    private val contentProviderRepository: ContentProviderRepository
 ) {
     @GetMapping
     fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
@@ -65,6 +67,8 @@ class ContentApiController(
     fun createContent(
         @RequestBody request: CreateContentRequest
     ): ResponseEntity<Content> {
+        val contentProvider = contentProviderRepository.findByName(request.newsletterName)
+
         val newContent =
             Content(
                 newsletterSourceId = request.newsletterSourceId,
@@ -73,6 +77,7 @@ class ContentApiController(
                 newsletterName = request.newsletterName,
                 originalUrl = request.originalUrl,
                 publishedAt = request.publishedAt,
+                contentProvider = contentProvider,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
             )
@@ -102,15 +107,24 @@ class ContentApiController(
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
+        val updatedNewsletterName = request.newsletterName ?: existingContent.newsletterName
+        val contentProvider =
+            if (request.newsletterName != null) {
+                contentProviderRepository.findByName(updatedNewsletterName)
+            } else {
+                existingContent.contentProvider
+            }
+
         val updatedContent =
             Content(
                 id = existingContent.id,
                 newsletterSourceId = request.newsletterSourceId ?: existingContent.newsletterSourceId,
                 title = request.title ?: existingContent.title,
                 content = request.content ?: existingContent.content,
-                newsletterName = request.newsletterName ?: existingContent.newsletterName,
+                newsletterName = updatedNewsletterName,
                 originalUrl = request.originalUrl ?: existingContent.originalUrl,
                 publishedAt = request.publishedAt ?: existingContent.publishedAt,
+                contentProvider = contentProvider,
                 createdAt = existingContent.createdAt,
                 updatedAt = LocalDateTime.now()
             )

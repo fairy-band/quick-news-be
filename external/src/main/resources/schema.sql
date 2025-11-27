@@ -56,9 +56,10 @@ CREATE TABLE IF NOT EXISTS contents
     content              TEXT         NOT NULL,
     newsletter_name      VARCHAR(255) NOT NULL,
     original_url         VARCHAR(255) NOT NULL,
-    published_at         DATE NOT NULL,
+    published_at         DATE         NOT NULL,
     created_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    content_provider_id  BIGINT
 );
 
 -- Summaries table
@@ -165,12 +166,12 @@ CREATE INDEX IF NOT EXISTS idx_fcm_token ON fcm_tokens (fcm_token);
 -- Content providers table
 CREATE TABLE IF NOT EXISTS content_provider
 (
-    id       SERIAL PRIMARY KEY,
-    name     VARCHAR(255) NOT NULL,
-    channel  VARCHAR(255) NOT NULL,
-    language VARCHAR(10)  NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    channel    VARCHAR(255) NOT NULL,
+    language   VARCHAR(10)  NOT NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Content provider category mappings table

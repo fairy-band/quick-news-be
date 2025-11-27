@@ -13,11 +13,20 @@ data class ContentViewApiResponse(
         val summary: String,
         val contentUrl: String,
         val newsletterName: String,
-        val language: Language = Language.ENGLISH,
+        val language: Language,
     )
 
     enum class Language {
         ENGLISH,
         KOREAN,
+        ;
+
+        companion object {
+            fun fromString(language: String?): Language =
+                when (language?.lowercase()) {
+                    "ko", "korean", "한국어" -> KOREAN
+                    else -> ENGLISH
+                }
+        }
     }
 }
