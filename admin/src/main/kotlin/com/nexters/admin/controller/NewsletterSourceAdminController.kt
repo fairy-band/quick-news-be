@@ -5,6 +5,7 @@ import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
 import com.nexters.newsletter.parser.MailContent
@@ -42,7 +43,8 @@ class NewsletterSourceApiController(
     private val summaryRepository: SummaryRepository,
     private val keywordService: KeywordService,
     private val exposureContentService: ExposureContentService,
-    private val newsletterProcessingService: NewsletterProcessingService
+    private val newsletterProcessingService: NewsletterProcessingService,
+    private val contentProviderService: ContentProviderService
 ) {
     private val mailParserFactory = MailParserFactory()
 
@@ -130,6 +132,8 @@ class NewsletterSourceApiController(
         // RSS 소스의 경우 헤더에서 원본 URL 추출, 없으면 요청된 URL 사용
         val finalOriginalUrl = newsletterSource.headers["RSS-Item-URL"] ?: request.originalUrl
 
+        val contentProvider = contentProviderService.findByName(request.newsletterName)
+
         val newContent =
             Content(
                 newsletterSourceId = newsletterSource.id,
@@ -138,6 +142,7 @@ class NewsletterSourceApiController(
                 newsletterName = request.newsletterName,
                 originalUrl = finalOriginalUrl,
                 publishedAt = request.publishedAt,
+                contentProvider = contentProvider,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
             )
@@ -242,6 +247,8 @@ class NewsletterSourceApiController(
         // RSS 소스의 경우 헤더에서 원본 URL 추출, 없으면 요청된 URL 사용
         val finalOriginalUrl = newsletterSource.headers["RSS-Item-URL"] ?: request.originalUrl
 
+        val contentProvider = contentProviderService.findByName(request.newsletterName)
+
         val newContent =
             Content(
                 newsletterSourceId = newsletterSource.id,
@@ -250,6 +257,7 @@ class NewsletterSourceApiController(
                 newsletterName = request.newsletterName,
                 originalUrl = finalOriginalUrl,
                 publishedAt = request.publishedAt,
+                contentProvider = contentProvider,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
             )

@@ -3,9 +3,11 @@ package com.nexters.newsletter.service
 import com.nexters.external.dto.RssItem
 import com.nexters.external.dto.toContentText
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.entity.RssProcessingStatus
 import com.nexters.external.repository.RssProcessingStatusRepository
+import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.external.service.RssReaderService
@@ -24,6 +26,7 @@ class RssContentService(
     private val rssReaderService: RssReaderService,
     private val newsletterSourceService: NewsletterSourceService,
     private val contentService: ContentService,
+    private val contentProviderService: ContentProviderService,
     private val rssProcessingStatusRepository: RssProcessingStatusRepository,
     private val newsletterProcessingService: NewsletterProcessingService,
     @Value("\${rss.ai.daily-limit:100}")
@@ -273,17 +276,29 @@ class RssContentService(
         return source
     }
 
-    private fun createContentFromSource(newsletterSource: NewsletterSource): Content =
-        Content(
+    private fun createContentFromSource(newsletterSource: NewsletterSource): Content {
+        val contentProvider = resolveContentProvider(newsletterSource.sender)
+
+        return Content(
             newsletterSourceId = newsletterSource.id,
             title = newsletterSource.subject ?: "Untitled",
             content = newsletterSource.content,
             newsletterName = newsletterSource.sender,
             originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: "",
             publishedAt = newsletterSource.receivedDate.toLocalDate(),
+            contentProvider = contentProvider,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
         )
+    }
+
+    private fun resolveContentProvider(newsletterName: String): ContentProvider? =
+        try {
+            contentProviderService.findByName(newsletterName)
+        } catch (e: Exception) {
+            logger.warn("Failed to resolve content provider for: $newsletterName", e)
+            null
+        }
 
     private fun processContentWithAi(content: Content) {
         try {

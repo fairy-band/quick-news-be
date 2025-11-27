@@ -43,6 +43,7 @@ class NewsletterApiController(
                         summary = it.summaryContent,
                         contentUrl = it.content.originalUrl,
                         newsletterName = it.content.newsletterName,
+                        language = ContentViewApiResponse.Language.fromString(it.content.contentProvider?.language),
                     )
                 },
         )

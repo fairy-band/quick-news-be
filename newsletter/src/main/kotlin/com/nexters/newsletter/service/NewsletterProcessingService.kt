@@ -1,9 +1,11 @@
 package com.nexters.newsletter.service
 
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.entity.Summary
+import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.KeywordService
@@ -20,6 +22,7 @@ import java.time.LocalDateTime
 class NewsletterProcessingService(
     private val newsletterSourceService: NewsletterSourceService,
     private val contentService: ContentService,
+    private val contentProviderService: ContentProviderService,
     private val summaryService: SummaryService,
     private val keywordService: KeywordService,
     private val exposureContentService: ExposureContentService,
@@ -89,6 +92,8 @@ class NewsletterProcessingService(
     ): List<Content> {
         logger.info("Creating ${parsedContents.size} contents from parsed data")
 
+        val contentProvider = resolveContentProvider(newsletterSource.sender)
+
         return parsedContents.map { mailContent ->
             // Extract original URL from RSS header if available, otherwise use parsed link
             val originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: mailContent.link
@@ -101,6 +106,7 @@ class NewsletterProcessingService(
                     newsletterName = newsletterSource.sender,
                     originalUrl = originalUrl,
                     publishedAt = newsletterSource.receivedDate.toLocalDate(),
+                    contentProvider = contentProvider,
                     createdAt = LocalDateTime.now(),
                     updatedAt = LocalDateTime.now(),
                 )
@@ -110,6 +116,14 @@ class NewsletterProcessingService(
             savedContent
         }
     }
+
+    private fun resolveContentProvider(newsletterName: String): ContentProvider? =
+        try {
+            contentProviderService.findByName(newsletterName)
+        } catch (e: Exception) {
+            logger.warn("Failed to resolve content provider for: $newsletterName", e)
+            null
+        }
 
     private fun generateSummary(content: Content): Summary? {
         logger.info("Generating summary for content: ${content.title}")
