@@ -47,4 +47,14 @@ interface CategoryRepository : JpaRepository<Category, Long> {
 
     @Suppress("ktlint")
     fun findByUsers_Id(userId: Long): List<Category>
+
+    @Query(
+        """
+        SELECT DISTINCT cp
+        FROM ContentProvider cp
+        LEFT JOIN FETCH cp.categories c
+        WHERE c.id IN (:categoryIds)
+    """,
+    )
+    fun findContentProvidersByCategoryIds(categoryIds: List<Long>): List<com.nexters.external.entity.ContentProvider>
 }
