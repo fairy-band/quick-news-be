@@ -152,18 +152,37 @@ interface ContentRepository : JpaRepository<Content, Long> {
 
     @Query(
         """
-        SELECT c FROM Content c
-         JOIN ContentKeywordMapping ckm ON c = ckm.content
+        SELECT DISTINCT c FROM Content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
+        JOIN ContentKeywordMapping ckm ON c = ckm.content
         WHERE c.id NOT IN (
             SELECT uecm.contentId FROM UserExposedContentMapping uecm
             WHERE uecm.userId = :userId
         )
-         AND ckm.keyword.id IN :reservedKeywordIds
+        AND ckm.keyword.id IN :reservedKeywordIds
         """
     )
     fun findNotExposedContents(
         @Param("userId") userId: Long,
         reservedKeywordIds: List<Long>
+    ): List<Content>
+
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
+        WHERE c.id NOT IN (
+            SELECT uecm.contentId FROM UserExposedContentMapping uecm
+            WHERE uecm.userId = :userId
+        )
+        AND c.contentProvider.id IN :contentProviderIds
+        """
+    )
+    fun findNotExposedContentsByContentProviderIds(
+        @Param("userId") userId: Long,
+        @Param("contentProviderIds") contentProviderIds: List<Long>
     ): List<Content>
 
     // RSS 피드용 메서드들

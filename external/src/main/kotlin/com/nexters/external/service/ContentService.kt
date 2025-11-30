@@ -23,5 +23,10 @@ class ContentService(
             }
         }
 
+    fun getNotExposedContentsByContentProviderIds(
+        userId: Long,
+        contentProviderIds: List<Long>
+    ) = contentRepository.findNotExposedContentsByContentProviderIds(userId, contentProviderIds)
+
     fun save(content: Content): Content = contentRepository.save(content)
 }

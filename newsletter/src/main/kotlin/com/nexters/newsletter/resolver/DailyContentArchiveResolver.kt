@@ -5,7 +5,6 @@ import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.service.CategoryService
-import com.nexters.external.service.ContentService
 import com.nexters.external.service.DailyContentArchiveService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
@@ -20,9 +19,9 @@ import java.util.concurrent.locks.ReentrantLock
 class DailyContentArchiveResolver(
     private val userService: UserService,
     private val categoryService: CategoryService,
-    private val contentService: ContentService,
     private val exposureContentService: ExposureContentService,
     private val dailyContentArchiveService: DailyContentArchiveService,
+    private val possibleContentsResolver: PossibleContentsResolver,
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
@@ -97,15 +96,15 @@ class DailyContentArchiveResolver(
         categoryIds: List<Long>,
     ): List<ExposureContent> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
-        val keywords: List<ReservedKeyword> = categoryService.getKeywordsByCategoryIds(categoryIds)
-        val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
+        val possibleContents = possibleContentsResolver.resolvePossibleContentsByCategoryIds(userId, categoryIds)
+        val keywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
 
         // TODO: entity 의존성 없는 구조로 변경 필요
         val contents =
             resolveTodayContents(
                 userId = userId,
-                reservedKeywords = keywords,
-                keywordWeightsByKeyword = categoryKeywordWeights,
+                possibleContents = possibleContents,
+                keywordWeightsByKeyword = keywordWeights,
             )
 
         // Convert Content objects to ExposureContent objects
@@ -114,19 +113,14 @@ class DailyContentArchiveResolver(
 
     private fun resolveTodayContents(
         userId: Long,
-        reservedKeywords: List<ReservedKeyword>,
+        possibleContents: List<Content>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
     ): List<Content> {
-        val reservedKeywordIds = reservedKeywords.map { it.id!! }
-
-        val possibleContents = contentService.getNotExposedContentsByReservedKeywordIds(userId, reservedKeywordIds)
-
         // 개수가 충분치 않으면 바로 반환
         if (possibleContents.size <= MAX_CONTENT_SIZE) {
             logger.error(
-                "추천할 콘텐츠가 부족합니다. userId: {}, 키워드 수: {}, 가능한 콘텐츠 수: {}, 최대 콘텐츠 크기: {}",
+                "추천할 콘텐츠가 부족합니다. userId: {}, 가능한 콘텐츠 수: {}, 최대 콘텐츠 크기: {}",
                 userId,
-                reservedKeywords.size,
                 possibleContents.size,
                 MAX_CONTENT_SIZE,
             )
