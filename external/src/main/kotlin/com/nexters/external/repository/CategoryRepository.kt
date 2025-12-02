@@ -2,6 +2,7 @@ package com.nexters.external.repository
 
 import com.nexters.external.entity.Category
 import com.nexters.external.entity.CategoryKeywordMapping
+import com.nexters.external.entity.ContentProviderCategoryMapping
 import com.nexters.external.entity.ReservedKeyword
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -47,4 +48,13 @@ interface CategoryRepository : JpaRepository<Category, Long> {
 
     @Suppress("ktlint")
     fun findByUsers_Id(userId: Long): List<Category>
+
+    @Query(
+        """
+        SELECT DISTINCT cpcm.contentProvider
+        FROM ContentProviderCategoryMapping cpcm
+        WHERE cpcm.category.id IN (:categoryIds)
+    """,
+    )
+    fun findContentProvidersByCategoryIds(categoryIds: List<Long>): List<com.nexters.external.entity.ContentProvider>
 }
