@@ -204,8 +204,14 @@ class DailyContentArchiveResolver(
         possibleContents: List<Content>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         multiplier: Double,
-    ): Map<Content, RecommendCalculateSource> =
-        possibleContents.associateWith { content ->
+    ): Map<Content, RecommendCalculateSource> {
+        // 발행처별 후보 개수를 미리 계산
+        val publisherCandidateCounts =
+            possibleContents
+                .groupBy { it.contentProvider?.id?.toString() ?: it.newsletterName }
+                .mapValues { it.value.size }
+
+        return possibleContents.associateWith { content ->
             // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
             val relevantKeywords =
                 content.reservedKeywords.filter { keyword ->
@@ -222,12 +228,18 @@ class DailyContentArchiveResolver(
                     keywordWeightsByKeyword[keyword]!! < 0
                 }
 
+            // 해당 콘텐츠의 발행처 후보 개수 조회
+            val publisherId = content.contentProvider?.id?.toString() ?: content.newsletterName
+            val candidateCount = publisherCandidateCounts[publisherId] ?: 1
+
             RecommendCalculateSource(
                 positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
                 negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                 content.publishedAt,
+                candidateCount,
             )
         }
+    }
 
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
