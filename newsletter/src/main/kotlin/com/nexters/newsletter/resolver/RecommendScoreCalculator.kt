@@ -25,7 +25,7 @@ class RecommendScoreCalculator {
         val daysDifference = ChronoUnit.DAYS.between(source.publishedDate, today)
         val freshScore = -daysDifference * 10 // 달수, 연수를 포함한 총 날짜차이를 음수로 계산
 
-        val duplicatePenalty = source.publisherCandidateCount * DUPLICATE_PUBLISHER_PENALTY
+        val duplicatePenalty = source.publisherDuplicateCandidateCount * DUPLICATE_PUBLISHER_PENALTY
         val lastScore = maxOf(keywordScore + freshScore - duplicatePenalty, 0.0)
 
         return RecommendCalculateResult(lastScore)
@@ -44,7 +44,7 @@ data class RecommendCalculateSource(
     val positiveKeywordSources: List<PositiveKeywordSource>,
     val negativeKeywordSources: List<NegativeKeywordSource>,
     val publishedDate: LocalDate,
-    val publisherCandidateCount: Int,
+    val publisherDuplicateCandidateCount: Int,
 )
 
 data class PositiveKeywordSource(

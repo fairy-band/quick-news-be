@@ -154,31 +154,46 @@ class DailyContentArchiveResolver(
 
         // 2단계: 선택된 컨텐츠 내에서 발행처 다양성 조정
         if (positiveScoreContents.size >= MAX_CONTENT_SIZE) {
-            val selectedPublisherCounts = mutableMapOf<String, Int>()
+            val candidatePublisherCounts = mutableMapOf<String, Int>()
+            val maxPerPublisher = MAX_CONTENT_SIZE - 1
 
-            val diversifiedContents =
+            val scoredContents =
                 positiveScoreContents
-                    // 상위 컨텐츠 후보(2배)를 대상으로 발행처별 선택 횟수 계산
-                    .take(MAX_CONTENT_SIZE * 2)
+                    // 상위 컨텐츠 후보(N*N배)를 대상으로 발행처별 선택 횟수 계산
+                    .take(MAX_CONTENT_SIZE * MAX_CONTENT_SIZE)
                     .map { content ->
                         val source = contentSources[content]!!
                         val publisherId = content.contentProvider?.name ?: content.newsletterName
-                        val duplicateCount = selectedPublisherCounts.getOrDefault(publisherId, 0)
+                        val publisherDuplicateCandidateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
 
                         val adjustedSource =
                             RecommendCalculateSource(
                                 source.positiveKeywordSources,
                                 source.negativeKeywordSources,
                                 source.publishedDate,
-                                duplicateCount
+                                publisherDuplicateCandidateCount
                             )
 
-                        selectedPublisherCounts[publisherId] = duplicateCount + 1
+                        candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
 
                         content to calculator.calculate(adjustedSource).recommendScore
                     }.sortedByDescending { it.second }
                     .map { it.first }
-                    .take(MAX_CONTENT_SIZE)
+
+            // 발행처당 최대 N-1개로 제한
+            val selectedPublisherCounts = mutableMapOf<String, Int>()
+            val diversifiedContents =
+                scoredContents
+                    .filter { content ->
+                        val publisherId = content.contentProvider?.name ?: content.newsletterName
+                        val count = selectedPublisherCounts.getOrDefault(publisherId, 0)
+                        if (count < maxPerPublisher) {
+                            selectedPublisherCounts[publisherId] = count + 1
+                            true
+                        } else {
+                            false
+                        }
+                    }.take(MAX_CONTENT_SIZE)
 
             return diversifiedContents
         }
