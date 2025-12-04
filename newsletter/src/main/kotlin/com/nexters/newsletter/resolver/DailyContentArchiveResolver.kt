@@ -152,9 +152,35 @@ class DailyContentArchiveResolver(
                     calculator.calculate(source).recommendScore > 0
                 }.map { it.key }
 
-        // 2단계: 충분한 컨텐츠가 있으면 바로 리턴
+        // 2단계: 선택된 컨텐츠 내에서 발행처 다양성 조정
         if (positiveScoreContents.size >= MAX_CONTENT_SIZE) {
-            return positiveScoreContents.take(MAX_CONTENT_SIZE)
+            val selectedPublisherCounts = mutableMapOf<String, Int>()
+
+            val diversifiedContents =
+                positiveScoreContents
+                    // 상위 컨텐츠 후보(2배)를 대상으로 발행처별 선택 횟수 계산
+                    .take(MAX_CONTENT_SIZE * 2)
+                    .map { content ->
+                        val source = contentSources[content]!!
+                        val publisherId = content.contentProvider?.name ?: content.newsletterName
+                        val duplicateCount = selectedPublisherCounts.getOrDefault(publisherId, 0)
+
+                        val adjustedSource =
+                            RecommendCalculateSource(
+                                source.positiveKeywordSources,
+                                source.negativeKeywordSources,
+                                source.publishedDate,
+                                duplicateCount
+                            )
+
+                        selectedPublisherCounts[publisherId] = duplicateCount + 1
+
+                        content to calculator.calculate(adjustedSource).recommendScore
+                    }.sortedByDescending { it.second }
+                    .map { it.first }
+                    .take(MAX_CONTENT_SIZE)
+
+            return diversifiedContents
         }
 
         // 3단계: 부족하면 가중치를 2배, 3배, 4배로 늘려가며 추가 컨텐츠 찾기
@@ -204,14 +230,8 @@ class DailyContentArchiveResolver(
         possibleContents: List<Content>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         multiplier: Double,
-    ): Map<Content, RecommendCalculateSource> {
-        // 발행처별 후보 개수를 미리 계산
-        val publisherCandidateCounts =
-            possibleContents
-                .groupBy { it.contentProvider?.id?.toString() ?: it.newsletterName }
-                .mapValues { it.value.size }
-
-        return possibleContents.associateWith { content ->
+    ): Map<Content, RecommendCalculateSource> =
+        possibleContents.associateWith { content ->
             // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
             val relevantKeywords =
                 content.reservedKeywords.filter { keyword ->
@@ -228,18 +248,13 @@ class DailyContentArchiveResolver(
                     keywordWeightsByKeyword[keyword]!! < 0
                 }
 
-            // 해당 콘텐츠의 발행처 후보 개수 조회
-            val publisherId = content.contentProvider?.id?.toString() ?: content.newsletterName
-            val candidateCount = publisherCandidateCounts[publisherId] ?: 1
-
             RecommendCalculateSource(
                 positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
                 negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                 content.publishedAt,
-                candidateCount,
+                0
             )
         }
-    }
 
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
