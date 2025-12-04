@@ -152,9 +152,50 @@ class DailyContentArchiveResolver(
                     calculator.calculate(source).recommendScore > 0
                 }.map { it.key }
 
-        // 2단계: 충분한 컨텐츠가 있으면 바로 리턴
+        // 2단계: 선택된 컨텐츠 내에서 발행처 다양성 조정
         if (positiveScoreContents.size >= MAX_CONTENT_SIZE) {
-            return positiveScoreContents.take(MAX_CONTENT_SIZE)
+            val candidatePublisherCounts = mutableMapOf<String, Int>()
+            val maxPerPublisher = MAX_CONTENT_SIZE - 1
+
+            val scoredContents =
+                positiveScoreContents
+                    // 상위 컨텐츠 후보(N*N배)를 대상으로 발행처별 선택 횟수 계산
+                    .take(MAX_CONTENT_SIZE * MAX_CONTENT_SIZE)
+                    .map { content ->
+                        val source = contentSources[content]!!
+                        val publisherId = content.contentProvider?.name ?: content.newsletterName
+                        val publisherDuplicateCandidateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
+
+                        val adjustedSource =
+                            RecommendCalculateSource(
+                                source.positiveKeywordSources,
+                                source.negativeKeywordSources,
+                                source.publishedDate,
+                                publisherDuplicateCandidateCount
+                            )
+
+                        candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
+
+                        content to calculator.calculate(adjustedSource).recommendScore
+                    }.sortedByDescending { it.second }
+                    .map { it.first }
+
+            // 발행처당 최대 N-1개로 제한
+            val selectedPublisherCounts = mutableMapOf<String, Int>()
+            val diversifiedContents =
+                scoredContents
+                    .filter { content ->
+                        val publisherId = content.contentProvider?.name ?: content.newsletterName
+                        val count = selectedPublisherCounts.getOrDefault(publisherId, 0)
+                        if (count < maxPerPublisher) {
+                            selectedPublisherCounts[publisherId] = count + 1
+                            true
+                        } else {
+                            false
+                        }
+                    }.take(MAX_CONTENT_SIZE)
+
+            return diversifiedContents
         }
 
         // 3단계: 부족하면 가중치를 2배, 3배, 4배로 늘려가며 추가 컨텐츠 찾기
@@ -226,6 +267,7 @@ class DailyContentArchiveResolver(
                 positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
                 negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                 content.publishedAt,
+                0
             )
         }
 
