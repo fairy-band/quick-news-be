@@ -5,7 +5,6 @@ import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.service.CategoryService
-import com.nexters.external.service.ContentService
 import com.nexters.external.service.DailyContentArchiveService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
@@ -20,9 +19,9 @@ import java.util.concurrent.locks.ReentrantLock
 class DailyContentArchiveResolver(
     private val userService: UserService,
     private val categoryService: CategoryService,
-    private val contentService: ContentService,
     private val exposureContentService: ExposureContentService,
     private val dailyContentArchiveService: DailyContentArchiveService,
+    private val possibleContentsResolver: PossibleContentsResolver,
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
@@ -97,15 +96,15 @@ class DailyContentArchiveResolver(
         categoryIds: List<Long>,
     ): List<ExposureContent> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
-        val keywords: List<ReservedKeyword> = categoryService.getKeywordsByCategoryIds(categoryIds)
-        val categoryKeywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
+        val possibleContents = possibleContentsResolver.resolvePossibleContentsByCategoryIds(userId, categoryIds)
+        val keywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
 
         // TODO: entity 의존성 없는 구조로 변경 필요
         val contents =
             resolveTodayContents(
                 userId = userId,
-                reservedKeywords = keywords,
-                keywordWeightsByKeyword = categoryKeywordWeights,
+                possibleContents = possibleContents,
+                keywordWeightsByKeyword = keywordWeights,
             )
 
         // Convert Content objects to ExposureContent objects
@@ -114,19 +113,14 @@ class DailyContentArchiveResolver(
 
     private fun resolveTodayContents(
         userId: Long,
-        reservedKeywords: List<ReservedKeyword>,
+        possibleContents: List<Content>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
     ): List<Content> {
-        val reservedKeywordIds = reservedKeywords.map { it.id!! }
-
-        val possibleContents = contentService.getNotExposedContentsByReservedKeywordIds(userId, reservedKeywordIds)
-
         // 개수가 충분치 않으면 바로 반환
         if (possibleContents.size <= MAX_CONTENT_SIZE) {
             logger.error(
-                "추천할 콘텐츠가 부족합니다. userId: {}, 키워드 수: {}, 가능한 콘텐츠 수: {}, 최대 콘텐츠 크기: {}",
+                "추천할 콘텐츠가 부족합니다. userId: {}, 가능한 콘텐츠 수: {}, 최대 콘텐츠 크기: {}",
                 userId,
-                reservedKeywords.size,
                 possibleContents.size,
                 MAX_CONTENT_SIZE,
             )
@@ -158,9 +152,50 @@ class DailyContentArchiveResolver(
                     calculator.calculate(source).recommendScore > 0
                 }.map { it.key }
 
-        // 2단계: 충분한 컨텐츠가 있으면 바로 리턴
+        // 2단계: 선택된 컨텐츠 내에서 발행처 다양성 조정
         if (positiveScoreContents.size >= MAX_CONTENT_SIZE) {
-            return positiveScoreContents.take(MAX_CONTENT_SIZE)
+            val candidatePublisherCounts = mutableMapOf<String, Int>()
+            val maxPerPublisher = MAX_CONTENT_SIZE - 1
+
+            val scoredContents =
+                positiveScoreContents
+                    // 상위 컨텐츠 후보(N*N배)를 대상으로 발행처별 선택 횟수 계산
+                    .take(MAX_CONTENT_SIZE * MAX_CONTENT_SIZE)
+                    .map { content ->
+                        val source = contentSources[content]!!
+                        val publisherId = content.contentProvider?.name ?: content.newsletterName
+                        val publisherDuplicateCandidateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
+
+                        val adjustedSource =
+                            RecommendCalculateSource(
+                                source.positiveKeywordSources,
+                                source.negativeKeywordSources,
+                                source.publishedDate,
+                                publisherDuplicateCandidateCount
+                            )
+
+                        candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
+
+                        content to calculator.calculate(adjustedSource).recommendScore
+                    }.sortedByDescending { it.second }
+                    .map { it.first }
+
+            // 발행처당 최대 N-1개로 제한
+            val selectedPublisherCounts = mutableMapOf<String, Int>()
+            val diversifiedContents =
+                scoredContents
+                    .filter { content ->
+                        val publisherId = content.contentProvider?.name ?: content.newsletterName
+                        val count = selectedPublisherCounts.getOrDefault(publisherId, 0)
+                        if (count < maxPerPublisher) {
+                            selectedPublisherCounts[publisherId] = count + 1
+                            true
+                        } else {
+                            false
+                        }
+                    }.take(MAX_CONTENT_SIZE)
+
+            return diversifiedContents
         }
 
         // 3단계: 부족하면 가중치를 2배, 3배, 4배로 늘려가며 추가 컨텐츠 찾기
@@ -232,6 +267,7 @@ class DailyContentArchiveResolver(
                 positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
                 negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                 content.publishedAt,
+                0
             )
         }
 

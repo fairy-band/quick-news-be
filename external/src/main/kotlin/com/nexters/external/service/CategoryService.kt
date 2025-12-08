@@ -28,6 +28,8 @@ class CategoryService(
             }
         }
 
+    fun getContentProvidersByCategoryIds(categoryIds: List<Long>) = categoryRepository.findContentProvidersByCategoryIds(categoryIds)
+
     fun getCategoryById(categoryId: Long): Category =
         categoryRepository.findById(categoryId).orElseThrow {
             IllegalArgumentException("Category with id $categoryId not found")
