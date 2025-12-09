@@ -4,6 +4,7 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.repository.ContentProviderCategoryMappingRepository
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.DailyContentArchiveService
 import com.nexters.external.service.ExposureContentService
@@ -22,6 +23,7 @@ class DailyContentArchiveResolver(
     private val exposureContentService: ExposureContentService,
     private val dailyContentArchiveService: DailyContentArchiveService,
     private val possibleContentsResolver: PossibleContentsResolver,
+    private val contentProviderCategoryMappingRepository: ContentProviderCategoryMappingRepository,
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
@@ -105,6 +107,7 @@ class DailyContentArchiveResolver(
                 userId = userId,
                 possibleContents = possibleContents,
                 keywordWeightsByKeyword = keywordWeights,
+                categoryIds = categoryIds,
             )
 
         // Convert Content objects to ExposureContent objects
@@ -115,6 +118,7 @@ class DailyContentArchiveResolver(
         userId: Long,
         possibleContents: List<Content>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+        categoryIds: List<Long>,
     ): List<Content> {
         // 개수가 충분치 않으면 바로 반환
         if (possibleContents.size <= MAX_CONTENT_SIZE) {
@@ -133,6 +137,7 @@ class DailyContentArchiveResolver(
                 possibleContents = possibleContents,
                 keywordWeightsByKeyword = keywordWeightsByKeyword,
                 multiplier = 1.0,
+                categoryIds = categoryIds,
             )
 
         val sortedSources: SortedMap<Content, RecommendCalculateSource> =
@@ -212,6 +217,7 @@ class DailyContentArchiveResolver(
                     possibleContents = possibleContents,
                     keywordWeightsByKeyword = keywordWeightsByKeyword,
                     multiplier = multiplier,
+                    categoryIds = categoryIds,
                 )
 
             // 재계산된 결과로 정렬하고 기존에 선택되지 않은 positive score 컨텐츠들 필터링
@@ -245,8 +251,26 @@ class DailyContentArchiveResolver(
         possibleContents: List<Content>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         multiplier: Double,
-    ): Map<Content, RecommendCalculateSource> =
-        possibleContents.associateWith { content ->
+        categoryIds: List<Long>,
+    ): Map<Content, RecommendCalculateSource> {
+        // 1단계: ContentProvider-Category 매핑 정보 조회
+        val contentProviderIds =
+            possibleContents
+                .mapNotNull { it.contentProvider?.id }
+                .distinct()
+
+        val mappings =
+            if (contentProviderIds.isNotEmpty()) {
+                contentProviderCategoryMappingRepository
+                    .findByContentProviderIdInAndCategoryIdIn(contentProviderIds, categoryIds)
+                    .groupBy { it.contentProvider.id to it.category.id }
+                    .mapValues { it.value.first().weight }
+            } else {
+                emptyMap()
+            }
+
+        // 2단계: Content별로 categoryMatchBonus 계산
+        return possibleContents.associateWith { content ->
             // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
             val relevantKeywords =
                 content.reservedKeywords.filter { keyword ->
@@ -263,13 +287,25 @@ class DailyContentArchiveResolver(
                     keywordWeightsByKeyword[keyword]!! < 0
                 }
 
+            // 카테고리 매칭 보너스 계산 (여러 카테고리에 매핑된 경우 가중치 합산)
+            val categoryMatchBonus =
+                if (content.contentProvider != null) {
+                    categoryIds.sumOf { categoryId ->
+                        mappings[content.contentProvider!!.id to categoryId] ?: 0.0
+                    }
+                } else {
+                    0.0
+                }
+
             RecommendCalculateSource(
                 positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
                 negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
                 content.publishedAt,
-                0
+                0,
+                categoryMatchBonus,
             )
         }
+    }
 
     /**
      * 카테고리에 설정된 음수 키워드 목록을 가져옵니다.
