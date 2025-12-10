@@ -119,7 +119,7 @@ class NewsletterProcessingService(
 
     private fun resolveContentProvider(newsletterName: String): ContentProvider? =
         try {
-            contentProviderService.findByName(newsletterName)
+            contentProviderService.getByName(newsletterName)
         } catch (e: Exception) {
             logger.warn("Failed to resolve content provider for: $newsletterName", e)
             null

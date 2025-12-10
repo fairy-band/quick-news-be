@@ -132,7 +132,7 @@ class NewsletterSourceApiController(
         // RSS 소스의 경우 헤더에서 원본 URL 추출, 없으면 요청된 URL 사용
         val finalOriginalUrl = newsletterSource.headers["RSS-Item-URL"] ?: request.originalUrl
 
-        val contentProvider = contentProviderService.findByName(request.newsletterName)
+        val contentProvider = contentProviderService.getByName(request.newsletterName)
 
         val newContent =
             Content(
@@ -247,7 +247,7 @@ class NewsletterSourceApiController(
         // RSS 소스의 경우 헤더에서 원본 URL 추출, 없으면 요청된 URL 사용
         val finalOriginalUrl = newsletterSource.headers["RSS-Item-URL"] ?: request.originalUrl
 
-        val contentProvider = contentProviderService.findByName(request.newsletterName)
+        val contentProvider = contentProviderService.getByName(request.newsletterName)
 
         val newContent =
             Content(

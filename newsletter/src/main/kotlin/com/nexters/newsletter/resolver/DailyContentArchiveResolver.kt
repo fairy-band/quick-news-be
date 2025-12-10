@@ -4,8 +4,8 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
-import com.nexters.external.repository.ContentProviderCategoryMappingRepository
 import com.nexters.external.service.CategoryService
+import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.DailyContentArchiveService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
@@ -23,7 +23,7 @@ class DailyContentArchiveResolver(
     private val exposureContentService: ExposureContentService,
     private val dailyContentArchiveService: DailyContentArchiveService,
     private val possibleContentsResolver: PossibleContentsResolver,
-    private val contentProviderCategoryMappingRepository: ContentProviderCategoryMappingRepository,
+    private val contentProviderService: ContentProviderService,
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
@@ -253,57 +253,68 @@ class DailyContentArchiveResolver(
         multiplier: Double,
         categoryIds: List<Long>,
     ): Map<Content, RecommendCalculateSource> {
-        // 1단계: ContentProvider-Category 매핑 정보 조회
-        val contentProviderIds =
-            possibleContents
-                .mapNotNull { it.contentProvider?.id }
-                .distinct()
+        // 1단계: ContentProvider-Category 매핑 가중치 조회
+        val categoryMatchWeights = getCategoryMatchWeights(possibleContents, categoryIds)
 
-        val mappings =
-            if (contentProviderIds.isNotEmpty()) {
-                contentProviderCategoryMappingRepository
-                    .findByContentProviderIdInAndCategoryIdIn(contentProviderIds, categoryIds)
-                    .groupBy { it.contentProvider.id to it.category.id }
-                    .mapValues { it.value.first().weight }
-            } else {
-                emptyMap()
-            }
-
-        // 2단계: Content별로 categoryMatchBonus 계산
+        // 2단계: Content별로 추천 소스 생성
         return possibleContents.associateWith { content ->
-            // 컨텐츠의 키워드 중 카테고리-키워드 가중치가 있는 것만 필터링
-            val relevantKeywords =
-                content.reservedKeywords.filter { keyword ->
-                    keywordWeightsByKeyword[keyword] != null
-                }
-
-            val positiveKeywords =
-                relevantKeywords.filter { keyword ->
-                    keywordWeightsByKeyword[keyword]!! > 0
-                }
-
-            val negativeKeywords =
-                relevantKeywords.filter { keyword ->
-                    keywordWeightsByKeyword[keyword]!! < 0
-                }
-
-            // 카테고리 매칭 보너스 계산 (여러 카테고리에 매핑된 경우 가중치 합산)
-            val categoryMatchBonus =
-                if (content.contentProvider != null) {
-                    categoryIds.sumOf { categoryId ->
-                        mappings[content.contentProvider!!.id to categoryId] ?: 0.0
-                    }
-                } else {
-                    0.0
-                }
-
             RecommendCalculateSource(
-                positiveKeywords.map { PositiveKeywordSource((keywordWeightsByKeyword[it] ?: 0.0) * multiplier) },
-                negativeKeywords.map { NegativeKeywordSource(keywordWeightsByKeyword[it] ?: 0.0) },
-                content.publishedAt,
-                0,
-                categoryMatchBonus,
+                positiveKeywordSources = extractPositiveKeywordSources(content, keywordWeightsByKeyword, multiplier),
+                negativeKeywordSources = extractNegativeKeywordSources(content, keywordWeightsByKeyword),
+                publishedDate = content.publishedAt,
+                publisherDuplicateCandidateCount = 0,
+                categoryMatchBonus = calculateCategoryMatchBonus(content, categoryIds, categoryMatchWeights),
             )
+        }
+    }
+
+    /**
+     * ContentProvider-Category 매핑 가중치를 조회합니다.
+     */
+    private fun getCategoryMatchWeights(
+        possibleContents: List<Content>,
+        categoryIds: List<Long>,
+    ): Map<Pair<Long, Long>, Double> {
+        val contentProviderIds = possibleContents.mapNotNull { it.contentProvider?.id }.distinct()
+        return contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds)
+    }
+
+    /**
+     * 양수 키워드 소스를 추출합니다.
+     */
+    private fun extractPositiveKeywordSources(
+        content: Content,
+        keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+        multiplier: Double,
+    ): List<PositiveKeywordSource> =
+        content.reservedKeywords
+            .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) > 0 }
+            .map { keyword -> PositiveKeywordSource((keywordWeightsByKeyword[keyword] ?: 0.0) * multiplier) }
+
+    /**
+     * 음수 키워드 소스를 추출합니다.
+     */
+    private fun extractNegativeKeywordSources(
+        content: Content,
+        keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+    ): List<NegativeKeywordSource> =
+        content.reservedKeywords
+            .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) < 0 }
+            .map { keyword -> NegativeKeywordSource(keywordWeightsByKeyword[keyword] ?: 0.0) }
+
+    /**
+     * 카테고리 매칭 보너스를 계산합니다.
+     * 여러 카테고리에 매핑된 경우 가중치를 합산합니다.
+     */
+    private fun calculateCategoryMatchBonus(
+        content: Content,
+        categoryIds: List<Long>,
+        categoryMatchWeights: Map<Pair<Long, Long>, Double>,
+    ): Double {
+        val contentProviderId = content.contentProvider?.id ?: return 0.0
+
+        return categoryIds.sumOf { categoryId ->
+            categoryMatchWeights[contentProviderId to categoryId] ?: 0.0
         }
     }
 
