@@ -294,7 +294,7 @@ class RssContentService(
 
     private fun resolveContentProvider(newsletterName: String): ContentProvider? =
         try {
-            contentProviderService.getByName(newsletterName)
+            contentProviderService.findByName(newsletterName)
         } catch (e: Exception) {
             logger.warn("Failed to resolve content provider for: $newsletterName", e)
             null
