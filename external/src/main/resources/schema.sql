@@ -178,10 +178,11 @@ CREATE TABLE IF NOT EXISTS content_provider
 CREATE TABLE IF NOT EXISTS content_provider_category_mappings
 (
     id                  SERIAL PRIMARY KEY,
-    content_provider_id BIGINT    NOT NULL,
-    category_id         BIGINT    NOT NULL,
-    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    content_provider_id BIGINT           NOT NULL,
+    category_id         BIGINT           NOT NULL,
+    weight              DOUBLE PRECISION NOT NULL DEFAULT 100.0,
+    created_at          TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (content_provider_id, category_id)
 );
 

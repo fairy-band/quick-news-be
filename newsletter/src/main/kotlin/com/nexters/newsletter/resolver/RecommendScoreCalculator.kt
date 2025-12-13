@@ -17,9 +17,9 @@ class RecommendScoreCalculator {
                 acc * keyword.weight * -1 // 음수이므로 -1을 곱함
             }
 
-        // 최종 가중치 = 양수 가중치의 곱 + 음수 가중치의 합 - 중복 발행처 패널티 점수
+        // 최종 가중치 = 양수 가중치의 곱 + 음수 가중치의 합 + 카테고리 매칭 보너스 - 중복 발행처 패널티 점수
         // 음수 가중치가 너무 크면 0으로 만들기 위해 max 사용
-        val keywordScore = maxOf(positiveWeight - negativeWeight, 0.0)
+        val keywordScore = maxOf(positiveWeight - negativeWeight + source.categoryMatchBonus, 0.0)
 
         val today = LocalDate.now()
         val daysDifference = ChronoUnit.DAYS.between(source.publishedDate, today)
@@ -45,6 +45,7 @@ data class RecommendCalculateSource(
     val negativeKeywordSources: List<NegativeKeywordSource>,
     val publishedDate: LocalDate,
     val publisherDuplicateCandidateCount: Int,
+    val categoryMatchBonus: Double = 0.0,
 )
 
 data class PositiveKeywordSource(
