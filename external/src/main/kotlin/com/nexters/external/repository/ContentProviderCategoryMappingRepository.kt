@@ -5,4 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface ContentProviderCategoryMappingRepository : JpaRepository<ContentProviderCategoryMapping, Long>
+interface ContentProviderCategoryMappingRepository : JpaRepository<ContentProviderCategoryMapping, Long> {
+    fun findByContentProviderIdInAndCategoryIdIn(
+        contentProviderIds: List<Long>,
+        categoryIds: List<Long>,
+    ): List<ContentProviderCategoryMapping>
+}

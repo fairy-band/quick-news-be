@@ -23,6 +23,8 @@ class ContentProviderCategoryMapping(
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", nullable = false)
     val category: Category,
+    @Column(name = "weight", nullable = false)
+    val weight: Double = 100.0,
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(name = "updated_at", nullable = false)
