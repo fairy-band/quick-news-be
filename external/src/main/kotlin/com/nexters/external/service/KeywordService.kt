@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
+@Deprecated(
+    message = "Use ContentAnalysisService instead. This service has been merged into ContentAnalysisService for unified content analysis.",
+    replaceWith = ReplaceWith("ContentAnalysisService", "com.nexters.external.service.ContentAnalysisService")
+)
 class KeywordService(
     private val geminiClient: GeminiClient,
     private val reservedKeywordRepository: ReservedKeywordRepository,
@@ -48,7 +52,7 @@ class KeywordService(
             try {
                 logger.info("Trying to extract keywords with model: ${model.modelName}")
 
-                val response = geminiClient.requestKeywords(inputKeywords, model, content)
+                val response = geminiClient.requestContentAnalysis(inputKeywords, model, content)
 
                 if (response != null) {
                     val responseText = response.text()

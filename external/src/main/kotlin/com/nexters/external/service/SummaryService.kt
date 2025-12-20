@@ -13,6 +13,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
+@Deprecated(
+    message = "Use ContentAnalysisService instead. This service has been merged into ContentAnalysisService for unified content analysis.",
+    replaceWith = ReplaceWith("ContentAnalysisService", "com.nexters.external.service.ContentAnalysisService")
+)
 class SummaryService(
     private val geminiClient: GeminiClient,
     private val summaryRepository: SummaryRepository,
@@ -27,7 +31,7 @@ class SummaryService(
             try {
                 logger.info("Trying to get summary with model: ${model.modelName}")
 
-                val response = geminiClient.requestSummary(model, content)
+                val response = geminiClient.requestContentAnalysis(emptyList(), model, content)
 
                 if (response != null) {
                     val responseText = response.text()

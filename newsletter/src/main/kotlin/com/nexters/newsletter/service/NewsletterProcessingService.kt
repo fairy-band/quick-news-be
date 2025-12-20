@@ -5,12 +5,11 @@ import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.entity.Summary
+import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
-import com.nexters.external.service.KeywordService
 import com.nexters.external.service.NewsletterSourceService
-import com.nexters.external.service.SummaryService
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParserFactory
 import org.slf4j.LoggerFactory
@@ -23,8 +22,7 @@ class NewsletterProcessingService(
     private val newsletterSourceService: NewsletterSourceService,
     private val contentService: ContentService,
     private val contentProviderService: ContentProviderService,
-    private val summaryService: SummaryService,
-    private val keywordService: KeywordService,
+    private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
 ) {
     private val logger = LoggerFactory.getLogger(NewsletterProcessingService::class.java)
@@ -35,11 +33,8 @@ class NewsletterProcessingService(
         try {
             logger.info("Starting complete processing for existing content ID: $content.id")
 
-            // Generate summary
-            generateSummary(content)
-
-            // Match keywords
-            matchKeywords(listOf(content))
+            // Analyze content (summary + keywords in one call)
+            analyzeContent(content)
 
             // Create exposure content
             val exposureContent = createExposureContent(content)
@@ -125,50 +120,17 @@ class NewsletterProcessingService(
             null
         }
 
-    private fun generateSummary(content: Content): Summary {
-        logger.info("Generating summary for content: ${content.title}")
-
-        val summaryResult = summaryService.summarize(content.content)
-
-        // Use first provocative headline if available, otherwise use original title
-        val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: content.title
-
-        val summary =
-            Summary(
-                content = content,
-                title = recommendedTitle,
-                summarizedContent = summaryResult.summary,
-                model = summaryResult.usedModel?.modelName ?: "unknown",
-                summarizedAt = LocalDateTime.now(),
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now(),
-            )
-
-        return summaryService.save(summary)
-    }
-
-    private fun matchKeywords(contents: List<Content>) {
-        logger.info("Matching keywords for ${contents.size} contents")
-
-        contents.forEach { content ->
-            val matchedKeywords = keywordService.matchReservedKeywords(content.content)
-
-            // 컨텐츠에 키워드 할당
-            val assignedCount = keywordService.assignKeywordsToContent(content, matchedKeywords)
-
-            logger.debug(
-                "Matched {} keywords for content: {}, assigned {} new keywords",
-                matchedKeywords.size,
-                content.title,
-                assignedCount
-            )
-        }
+    private fun analyzeContent(content: Content) {
+        logger.info("Analyzing content (summary + keywords): ${content.title}")
+        
+        // Analyze content and save both summary and keywords in one call
+        contentAnalysisService.analyzeAndSave(content)
     }
 
     private fun createExposureContent(content: Content): ExposureContent {
         logger.info("Creating exposure content for content: ${content.title}")
 
-        val summaries = summaryService.getPrioritizedSummaryByContent(content)
+        val summaries = contentAnalysisService.getPrioritizedSummaryByContent(content)
 
         return if (summaries.isNotEmpty()) {
             val latestSummary = summaries.first()

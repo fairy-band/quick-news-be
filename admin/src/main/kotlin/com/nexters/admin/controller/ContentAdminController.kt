@@ -10,7 +10,7 @@ import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
-import com.nexters.external.service.KeywordService
+import com.nexters.external.service.ContentAnalysisService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -51,7 +51,7 @@ class ContentApiController(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val summaryRepository: SummaryRepository,
     private val exposureContentRepository: ExposureContentRepository,
-    private val keywordService: KeywordService,
+    private val contentAnalysisService: ContentAnalysisService,
     private val contentProviderRepository: ContentProviderRepository
 ) {
     @GetMapping
@@ -493,15 +493,15 @@ class ContentApiController(
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
-        // Use KeywordService to match reserved keywords
-        val matchedKeywords = keywordService.matchReservedKeywords(content.content)
+        // Use ContentAnalysisService to match reserved keywords
+        val matchedKeywords = contentAnalysisService.matchReservedKeywords(content.content)
 
-        // Get all reserved keywords for total count and suggestions
+        // Get all reserved keywords for total count
         val allReservedKeywords = reservedKeywordRepository.findAll()
         val reservedKeywordNames = allReservedKeywords.map { it.name }
 
-        // Get full keyword result for suggestions and provocative keywords
-        val keywordResult = keywordService.extractKeywords(reservedKeywordNames, content.content)
+        // Get full analysis result for suggestions and provocative keywords
+        val analysisResult = contentAnalysisService.analyzeContent(content.content, reservedKeywordNames)
 
         // Process matched keywords and add them to content
         val addedKeywords = mutableListOf<String>()
@@ -533,8 +533,8 @@ class ContentApiController(
                 matchedKeywords = matchedKeywords.map { it.name },
                 addedKeywords = addedKeywords,
                 alreadyExistingKeywords = alreadyExistingKeywords,
-                suggestedKeywords = keywordResult.suggestedKeywords,
-                provocativeKeywords = keywordResult.provocativeKeywords,
+                suggestedKeywords = analysisResult.suggestedKeywords,
+                provocativeKeywords = analysisResult.provocativeKeywords,
                 message =
                     "총 ${allReservedKeywords.size}개의 예약 키워드 중 ${matchedKeywords.size}개가 매칭되었습니다. " +
                         "${addedKeywords.size}개가 새로 추가되었고, ${alreadyExistingKeywords.size}개는 이미 존재합니다."

@@ -5,9 +5,9 @@ import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ExposureContentService
-import com.nexters.external.service.KeywordService
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParserFactory
 import com.nexters.newsletter.service.NewsletterProcessingService
@@ -41,7 +41,7 @@ class NewsletterSourceApiController(
     private val newsletterSourceRepository: NewsletterSourceRepository,
     private val contentRepository: ContentRepository,
     private val summaryRepository: SummaryRepository,
-    private val keywordService: KeywordService,
+    private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
     private val newsletterProcessingService: NewsletterProcessingService,
     private val contentProviderService: ContentProviderService

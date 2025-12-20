@@ -9,7 +9,7 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ReservedKeywordRepository
-import com.nexters.external.service.KeywordService
+import com.nexters.external.service.ContentAnalysisService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -30,7 +30,7 @@ class KeywordAdminController(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val categoryRepository: CategoryRepository,
     private val categoryKeywordMappingRepository: CategoryKeywordMappingRepository,
-    private val keywordService: KeywordService,
+    private val contentAnalysisService: ContentAnalysisService,
 ) {
     @GetMapping("/candidate")
     fun getAllCandidateKeywords(pageable: Pageable): ResponseEntity<Page<CandidateKeyword>> =
@@ -164,7 +164,7 @@ class KeywordAdminController(
     fun promoteCandidateToReserved(
         @PathVariable candidateId: Long,
     ): ResponseEntity<ReservedKeyword> {
-        val reservedKeyword = keywordService.promoteCandidateKeyword(candidateId)
+        val reservedKeyword = contentAnalysisService.promoteCandidateKeyword(candidateId)
         return ResponseEntity.ok(reservedKeyword)
     }
 
@@ -172,7 +172,7 @@ class KeywordAdminController(
     fun promoteCandidateKeyword(
         @PathVariable candidateId: Long,
     ): ResponseEntity<ReservedKeyword> {
-        val reservedKeyword = keywordService.promoteCandidateKeyword(candidateId)
+        val reservedKeyword = contentAnalysisService.promoteCandidateKeyword(candidateId)
         return ResponseEntity.ok(reservedKeyword)
     }
 
