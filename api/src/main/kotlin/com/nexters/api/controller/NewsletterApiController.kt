@@ -4,6 +4,7 @@ import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
 import com.nexters.api.dto.ExposureContentApiResponse
 import com.nexters.api.dto.ExposureContentListApiResponse
+import com.nexters.api.enums.Language
 import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import io.swagger.v3.oas.annotations.Operation
@@ -43,7 +44,7 @@ class NewsletterApiController(
                         summary = it.summaryContent,
                         contentUrl = it.content.originalUrl,
                         newsletterName = it.content.newsletterName,
-                        language = ContentViewApiResponse.Language.fromString(it.content.contentProvider?.language),
+                        language = Language.fromString(it.content.contentProvider?.language),
                     )
                 },
         )
@@ -85,6 +86,7 @@ class NewsletterApiController(
                     summaryContent = exposureContent.summaryContent,
                     contentUrl = exposureContent.content.originalUrl,
                     newsletterName = exposureContent.content.newsletterName,
+                    language = Language.fromString(exposureContent.content.contentProvider?.language),
                     createdAt = exposureContent.createdAt,
                     updatedAt = exposureContent.updatedAt
                 )

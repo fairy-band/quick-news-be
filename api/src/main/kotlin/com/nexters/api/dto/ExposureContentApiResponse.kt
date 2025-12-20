@@ -1,5 +1,6 @@
 package com.nexters.api.dto
 
+import com.nexters.api.enums.Language
 import java.time.LocalDateTime
 
 data class ExposureContentListApiResponse(
@@ -16,6 +17,7 @@ data class ExposureContentApiResponse(
     val summaryContent: String,
     val contentUrl: String,
     val newsletterName: String,
+    val language: Language,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )

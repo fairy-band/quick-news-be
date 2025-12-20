@@ -1,5 +1,6 @@
 package com.nexters.api.dto
 
+import com.nexters.api.enums.Language
 import java.time.LocalDate
 
 data class ContentViewApiResponse(
@@ -15,18 +16,4 @@ data class ContentViewApiResponse(
         val newsletterName: String,
         val language: Language,
     )
-
-    enum class Language {
-        ENGLISH,
-        KOREAN,
-        ;
-
-        companion object {
-            fun fromString(language: String?): Language =
-                when (language?.lowercase()) {
-                    "ko", "korean", "한국어" -> KOREAN
-                    else -> ENGLISH
-                }
-        }
-    }
 }
