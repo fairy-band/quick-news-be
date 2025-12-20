@@ -1,46 +1,14 @@
-# Set to true to add reviewers to pull requests
+# PR 자동 리뷰어 할당 설정
 addReviewers: true
+addAssignees: true
 
-# Set to true to add assignees to pull requests
-addAssignees: author
-
-# A list of reviewers to be added to pull requests (GitHub user name)
 reviewers:
   - ah-jo
-  - her0807
+  - 1117mg
+  - char-y
 
-# A list of keywords to be skipped the process that add reviewers if pull requests include it
-# skipKeywords:
-#   - wip
+numberOfReviewers: 0  # 0 = 모든 리뷰어 추가
 
-# A number of reviewers added to the pull request
-# Set 0 to add all the reviewers (default: 0)
-numberOfReviewers: 0
-
-# A list of assignees, overrides reviewers if set
-# assignees:
-#   - ah-jo
-#   - her0807
-
-# A number of assignees to add to the pull request
-# Set to 0 to add all of the assignees.
-# Uses numberOfReviewers if unset.
-# numberOfAssignees: 0
-
-# Set to true to add assignees from different groups to pull requests
-# useAssigneeGroups: false
-
-# A list of assignees, split into different groups, to be added to pull requests
-# assigneeGroups:
-#   groupA:
-#     - assigneeA
-#     - assigneeB
-
-# Set to true to add reviewers from different groups to pull requests
-# useReviewGroups: false
-
-# A list of reviewers, split into different groups, to be added to pull requests
-# reviewGroups:
-#   groupA:
-#     - reviewerA
-#     - reviewerB 
+skipKeywords:
+  - wip
+  - WIP
