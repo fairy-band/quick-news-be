@@ -5,6 +5,7 @@ import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.Summary
+import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.repository.SummaryRepository
 import io.mockk.clearMocks
 import io.mockk.every
@@ -14,6 +15,7 @@ import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -45,16 +47,14 @@ class SummaryServiceTest {
     }
 
     @Test
-    fun `모든 모델이 null을 반환하면 빈 SummaryResult를 반환한다`() {
+    fun `모든 모델이 null을 반환하면 예외를 발생시킨다`() {
         val content = "테스트 콘텐츠"
 
         every { geminiClient.requestSummary(any(), content) } returns null
 
-        val result = sut.summarize(content)
-
-        assertEquals("", result.summary)
-        assertEquals(emptyList<String>(), result.provocativeHeadlines)
-        assertEquals(null, result.usedModel)
+        assertThrows<AiProcessingException> {
+            sut.summarize(content)
+        }
 
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH_LITE, content) }
         verify(exactly = 1) { geminiClient.requestSummary(GeminiModel.TWO_ZERO_FLASH, content) }

@@ -7,6 +7,7 @@ import com.nexters.external.dto.GeminiModel
 import com.nexters.external.dto.SummaryResult
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.Summary
+import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -48,7 +49,7 @@ class SummaryService(
         }
 
         logger.error("All models failed to generate summary")
-        return SummaryResult("", listOf(), null)
+        throw AiProcessingException("Failed to generate summary: all models failed")
     }
 
     fun summarizeAndSave(contentEntity: Content): SummaryResult {

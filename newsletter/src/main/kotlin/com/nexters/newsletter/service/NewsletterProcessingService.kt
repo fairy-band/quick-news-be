@@ -125,53 +125,43 @@ class NewsletterProcessingService(
             null
         }
 
-    private fun generateSummary(content: Content): Summary? {
+    private fun generateSummary(content: Content): Summary {
         logger.info("Generating summary for content: ${content.title}")
 
-        return try {
-            val summaryResult = summaryService.summarize(content.content)
+        val summaryResult = summaryService.summarize(content.content)
 
-            // Use first provocative headline if available, otherwise use original title
-            val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: content.title
+        // Use first provocative headline if available, otherwise use original title
+        val recommendedTitle = summaryResult.provocativeHeadlines.firstOrNull() ?: content.title
 
-            val summary =
-                Summary(
-                    content = content,
-                    title = recommendedTitle,
-                    summarizedContent = summaryResult.summary,
-                    model = summaryResult.usedModel?.modelName ?: "unknown",
-                    summarizedAt = LocalDateTime.now(),
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now(),
-                )
+        val summary =
+            Summary(
+                content = content,
+                title = recommendedTitle,
+                summarizedContent = summaryResult.summary,
+                model = summaryResult.usedModel?.modelName ?: "unknown",
+                summarizedAt = LocalDateTime.now(),
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+            )
 
-            summaryService.save(summary)
-        } catch (e: Exception) {
-            logger.error("Failed to create summary for content: ${content.title}", e)
-            null
-        }
+        return summaryService.save(summary)
     }
 
     private fun matchKeywords(contents: List<Content>) {
         logger.info("Matching keywords for ${contents.size} contents")
 
         contents.forEach { content ->
-            try {
-                val matchedKeywords = keywordService.matchReservedKeywords(content.content)
+            val matchedKeywords = keywordService.matchReservedKeywords(content.content)
 
-                // 컨텐츠에 키워드 할당
-                val assignedCount = keywordService.assignKeywordsToContent(content, matchedKeywords)
+            // 컨텐츠에 키워드 할당
+            val assignedCount = keywordService.assignKeywordsToContent(content, matchedKeywords)
 
-                logger.debug(
-                    "Matched {} keywords for content: {}, assigned {} new keywords",
-                    matchedKeywords.size,
-                    content.title,
-                    assignedCount
-                )
-            } catch (e: Exception) {
-                logger.error("Failed to match keywords for content: ${content.title}", e)
-                // Continue with other contents even if one fails
-            }
+            logger.debug(
+                "Matched {} keywords for content: {}, assigned {} new keywords",
+                matchedKeywords.size,
+                content.title,
+                assignedCount
+            )
         }
     }
 
