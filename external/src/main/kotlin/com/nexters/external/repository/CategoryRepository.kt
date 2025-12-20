@@ -40,7 +40,9 @@ interface CategoryRepository : JpaRepository<Category, Long> {
         """
         SELECT ckm
         FROM CategoryKeywordMapping ckm
-        WHERE ckm.category.id IN (:categoryIds)
+        JOIN FETCH ckm.category c
+        JOIN FETCH ckm.keyword
+        WHERE c.id IN (:categoryIds)
     """,
     )
     fun findCategoryKeywordMappingByCategoryIds(categoryIds: List<Long>): List<CategoryKeywordMapping>

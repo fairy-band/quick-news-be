@@ -141,4 +141,37 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         @Param("newsletterName") newsletterName: String,
         pageable: Pageable
     ): Page<Content>
+
+    @Query(
+        """
+        SELECT DISTINCT e FROM ExposureContent e
+        JOIN FETCH e.content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
+        JOIN ContentKeywordMapping ckm ON c = ckm.content
+        LEFT JOIN UserExposedContentMapping uecm ON c.id = uecm.contentId AND uecm.userId = :userId
+        WHERE uecm.contentId IS NULL
+        AND ckm.keyword.id IN :reservedKeywordIds
+    """
+    )
+    fun findNotExposedByReservedKeywordIds(
+        @Param("userId") userId: Long,
+        @Param("reservedKeywordIds") reservedKeywordIds: List<Long>
+    ): List<ExposureContent>
+
+    @Query(
+        """
+        SELECT DISTINCT e FROM ExposureContent e
+        JOIN FETCH e.content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
+        LEFT JOIN UserExposedContentMapping uecm ON c.id = uecm.contentId AND uecm.userId = :userId
+        WHERE uecm.contentId IS NULL
+        AND c.contentProvider.id IN :contentProviderIds
+    """
+    )
+    fun findNotExposedByContentProviderIds(
+        @Param("userId") userId: Long,
+        @Param("contentProviderIds") contentProviderIds: List<Long>
+    ): List<ExposureContent>
 }

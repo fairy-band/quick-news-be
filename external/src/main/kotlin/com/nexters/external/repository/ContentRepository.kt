@@ -10,29 +10,6 @@ import org.springframework.data.repository.query.Param
 interface ContentRepository : JpaRepository<Content, Long> {
     @Query(
         """
-        SELECT c
-        FROM Content c
-        JOIN ContentKeywordMapping ckm ON c = ckm.content
-        WHERE ckm.keyword.id IN :reservedKeywordIds
-    """
-    )
-    fun findByReservedKeywordIds(reservedKeywordIds: List<Long>): List<Content>
-
-    @Query(
-        """
-        SELECT c
-        FROM Content c
-        JOIN ContentKeywordMapping ckm ON c = ckm.content
-        WHERE ckm.keyword.id IN :reservedKeywordIds
-    """
-    )
-    fun findByReservedKeywordIds(
-        reservedKeywordIds: List<Long>,
-        pageable: Pageable
-    ): Page<Content>
-
-    @Query(
-        """
         SELECT DISTINCT c FROM Content c
         JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
         JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
@@ -149,41 +126,6 @@ interface ContentRepository : JpaRepository<Content, Long> {
         @Param("keywordId") keywordId: Long,
         pageable: Pageable
     ): Page<Content>
-
-    @Query(
-        """
-        SELECT DISTINCT c FROM Content c
-        LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
-        JOIN ContentKeywordMapping ckm ON c = ckm.content
-        WHERE c.id NOT IN (
-            SELECT uecm.contentId FROM UserExposedContentMapping uecm
-            WHERE uecm.userId = :userId
-        )
-        AND ckm.keyword.id IN :reservedKeywordIds
-        """
-    )
-    fun findNotExposedContents(
-        @Param("userId") userId: Long,
-        reservedKeywordIds: List<Long>
-    ): List<Content>
-
-    @Query(
-        """
-        SELECT DISTINCT c FROM Content c
-        LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
-        WHERE c.id NOT IN (
-            SELECT uecm.contentId FROM UserExposedContentMapping uecm
-            WHERE uecm.userId = :userId
-        )
-        AND c.contentProvider.id IN :contentProviderIds
-        """
-    )
-    fun findNotExposedContentsByContentProviderIds(
-        @Param("userId") userId: Long,
-        @Param("contentProviderIds") contentProviderIds: List<Long>
-    ): List<Content>
 
     // RSS 피드용 메서드들
     fun findByOriginalUrl(originalUrl: String): Content?

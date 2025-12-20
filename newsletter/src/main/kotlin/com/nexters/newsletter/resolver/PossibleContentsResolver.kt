@@ -1,21 +1,21 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.entity.Content
+import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.service.CategoryService
-import com.nexters.external.service.ContentService
+import com.nexters.external.service.ExposureContentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class PossibleContentsResolver(
     private val categoryService: CategoryService,
-    private val contentService: ContentService,
+    private val exposureContentService: ExposureContentService,
 ) {
     fun resolvePossibleContentsByCategoryIds(
         userId: Long,
         categoryIds: List<Long>,
-    ): List<Content> {
+    ): List<ExposureContent> {
         val keywords = categoryService.getKeywordsByCategoryIds(categoryIds)
         val contentsByKeywords = resolvePossibleContentsByKeywords(userId, keywords)
 
@@ -39,18 +39,18 @@ class PossibleContentsResolver(
     private fun resolvePossibleContentsByKeywords(
         userId: Long,
         reservedKeywords: List<ReservedKeyword>,
-    ): List<Content> {
+    ): List<ExposureContent> {
         val reservedKeywordIds = reservedKeywords.map { it.id!! }
-        return contentService.getNotExposedContentsByReservedKeywordIds(userId, reservedKeywordIds)
+        return exposureContentService.getNotExposedExposureContentsByReservedKeywordIds(userId, reservedKeywordIds)
     }
 
     private fun resolvePossibleContentsByProviders(
         userId: Long,
         contentProviders: List<*>,
-    ): List<Content> {
+    ): List<ExposureContent> {
         val contentProviderIds = contentProviders.mapNotNull { (it as? com.nexters.external.entity.ContentProvider)?.id }
         return if (contentProviderIds.isNotEmpty()) {
-            contentService.getNotExposedContentsByContentProviderIds(userId, contentProviderIds)
+            exposureContentService.getNotExposedExposureContentsByContentProviderIds(userId, contentProviderIds)
         } else {
             emptyList()
         }

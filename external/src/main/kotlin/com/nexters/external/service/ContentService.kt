@@ -8,25 +8,5 @@ import org.springframework.stereotype.Service
 class ContentService(
     private val contentRepository: ContentRepository
 ) {
-    fun getContentsByReservedKeywordIds(reservedKeywordIds: List<Long>) = contentRepository.findByReservedKeywordIds(reservedKeywordIds)
-
-    fun getNotExposedContentsByReservedKeywordIds(
-        userId: Long,
-        reservedKeywordIds: List<Long>
-    ) = contentRepository.findNotExposedContents(userId, reservedKeywordIds)
-
-    fun findContentsByKeywords(keywords: List<String>) =
-        contentRepository.findAll().filter { content ->
-            keywords.any { keyword ->
-                content.title.contains(keyword, ignoreCase = true) ||
-                    content.content.contains(keyword, ignoreCase = true)
-            }
-        }
-
-    fun getNotExposedContentsByContentProviderIds(
-        userId: Long,
-        contentProviderIds: List<Long>
-    ) = contentRepository.findNotExposedContentsByContentProviderIds(userId, contentProviderIds)
-
     fun save(content: Content): Content = contentRepository.save(content)
 }

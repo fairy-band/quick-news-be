@@ -4,7 +4,6 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.NewsletterSource
-import com.nexters.external.entity.Summary
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
@@ -122,7 +121,7 @@ class NewsletterProcessingService(
 
     private fun analyzeContent(content: Content) {
         logger.info("Analyzing content (summary + keywords): ${content.title}")
-        
+
         // Analyze content and save both summary and keywords in one call
         contentAnalysisService.analyzeAndSave(content)
     }

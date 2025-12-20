@@ -1,7 +1,6 @@
 package com.nexters.admin.controller
 
 import com.nexters.external.entity.CandidateKeyword
-import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.CandidateKeywordRepository

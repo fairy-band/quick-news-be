@@ -74,10 +74,11 @@ class ContentAnalysisService(
     @Transactional
     fun analyzeAndSave(contentEntity: Content): ContentAnalysisResult {
         // 예약된 키워드 목록 가져오기
-        val reservedKeywords = reservedKeywordRepository
-            .findAll()
-            .map { it.name }
-            .toList()
+        val reservedKeywords =
+            reservedKeywordRepository
+                .findAll()
+                .map { it.name }
+                .toList()
 
         // 콘텐츠 분석 수행
         val result = analyzeContent(contentEntity.content, reservedKeywords)
@@ -86,12 +87,13 @@ class ContentAnalysisService(
         if (result.summary.isNotEmpty()) {
             val usedModel = result.usedModel?.modelName ?: "unknown"
 
-            val summary = Summary(
-                content = contentEntity,
-                title = contentEntity.title,
-                summarizedContent = result.summary,
-                model = usedModel
-            )
+            val summary =
+                Summary(
+                    content = contentEntity,
+                    title = contentEntity.title,
+                    summarizedContent = result.summary,
+                    model = usedModel
+                )
 
             summaryRepository.save(summary)
             logger.info("Saved summary for content ID: ${contentEntity.id}")
@@ -110,10 +112,11 @@ class ContentAnalysisService(
      * 예약된 키워드와 매칭되는 키워드를 찾습니다.
      */
     fun matchReservedKeywords(content: String): List<ReservedKeyword> {
-        val reservedKeywords = reservedKeywordRepository
-            .findAll()
-            .map { it.name }
-            .toList()
+        val reservedKeywords =
+            reservedKeywordRepository
+                .findAll()
+                .map { it.name }
+                .toList()
 
         val result = analyzeContent(content, reservedKeywords)
         return reservedKeywordRepository.findByNameIn(result.matchedKeywords)
@@ -130,12 +133,13 @@ class ContentAnalysisService(
         matchedKeywords.forEach { keyword ->
             val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(content, keyword)
             if (existingMapping == null) {
-                val mapping = ContentKeywordMapping(
-                    content = content,
-                    keyword = keyword,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now(),
-                )
+                val mapping =
+                    ContentKeywordMapping(
+                        content = content,
+                        keyword = keyword,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now(),
+                    )
                 contentKeywordMappingRepository.save(mapping)
                 logger.debug("Assigned keyword '${keyword.name}' to content ID: ${content.id}")
             } else {
@@ -149,14 +153,16 @@ class ContentAnalysisService(
      */
     @Transactional
     fun promoteCandidateKeyword(candidateKeywordId: Long): ReservedKeyword {
-        val candidateKeyword = candidateKeywordRepository
-            .findById(candidateKeywordId)
-            .orElseThrow { NoSuchElementException("CandidateKeyword not found with id: $candidateKeywordId") }
+        val candidateKeyword =
+            candidateKeywordRepository
+                .findById(candidateKeywordId)
+                .orElseThrow { NoSuchElementException("CandidateKeyword not found with id: $candidateKeywordId") }
 
-        val reservedKeyword = reservedKeywordRepository.findByName(candidateKeyword.name)
-            ?: ReservedKeyword(name = candidateKeyword.name).also {
-                reservedKeywordRepository.save(it)
-            }
+        val reservedKeyword =
+            reservedKeywordRepository.findByName(candidateKeyword.name)
+                ?: ReservedKeyword(name = candidateKeyword.name).also {
+                    reservedKeywordRepository.save(it)
+                }
 
         candidateKeywordRepository.delete(candidateKeyword)
 
@@ -171,8 +177,7 @@ class ContentAnalysisService(
     /**
      * 콘텐츠에 대한 요약을 조회합니다.
      */
-    fun getPrioritizedSummaryByContent(content: Content): List<Summary> = 
-        summaryRepository.findByContent(content)
+    fun getPrioritizedSummaryByContent(content: Content): List<Summary> = summaryRepository.findByContent(content)
 
     private fun parseJsonResponse(
         responseText: String?,
@@ -180,16 +185,20 @@ class ContentAnalysisService(
     ): ContentAnalysisResult? =
         try {
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
-            
+
             val summary = jsonResponse["summary"] as? String ?: ""
-            val provocativeHeadlines = (jsonResponse["provocativeHeadlines"] as? List<*>)
-                ?.filterIsInstance<String>() ?: emptyList()
-            val matchedKeywords = (jsonResponse["matchedKeywords"] as? List<*>)
-                ?.filterIsInstance<String>() ?: emptyList()
-            val suggestedKeywords = (jsonResponse["suggestedKeywords"] as? List<*>)
-                ?.filterIsInstance<String>() ?: emptyList()
-            val provocativeKeywords = (jsonResponse["provocativeKeywords"] as? List<*>)
-                ?.filterIsInstance<String>() ?: emptyList()
+            val provocativeHeadlines =
+                (jsonResponse["provocativeHeadlines"] as? List<*>)
+                    ?.filterIsInstance<String>() ?: emptyList()
+            val matchedKeywords =
+                (jsonResponse["matchedKeywords"] as? List<*>)
+                    ?.filterIsInstance<String>() ?: emptyList()
+            val suggestedKeywords =
+                (jsonResponse["suggestedKeywords"] as? List<*>)
+                    ?.filterIsInstance<String>() ?: emptyList()
+            val provocativeKeywords =
+                (jsonResponse["provocativeKeywords"] as? List<*>)
+                    ?.filterIsInstance<String>() ?: emptyList()
 
             ContentAnalysisResult(
                 summary = summary,

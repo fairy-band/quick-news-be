@@ -189,4 +189,14 @@ class ExposureContentService(
             return exposureContentRepository.save(newExposureContent)
         }
     }
+
+    fun getNotExposedExposureContentsByReservedKeywordIds(
+        userId: Long,
+        reservedKeywordIds: List<Long>
+    ): List<ExposureContent> = exposureContentRepository.findNotExposedByReservedKeywordIds(userId, reservedKeywordIds)
+
+    fun getNotExposedExposureContentsByContentProviderIds(
+        userId: Long,
+        contentProviderIds: List<Long>
+    ): List<ExposureContent> = exposureContentRepository.findNotExposedByContentProviderIds(userId, contentProviderIds)
 }
