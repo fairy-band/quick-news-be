@@ -3,6 +3,7 @@ package com.nexters.external.service
 import com.google.genai.types.GenerateContentResponse
 import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.GeminiModel
+import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
@@ -11,6 +12,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.test.context.jdbc.Sql
@@ -61,17 +63,15 @@ class KeywordServiceTest {
     }
 
     @Test
-    fun `모든 모델이 null을 반환하면 빈 KeywordResult를 반환한다`() {
+    fun `모든 모델이 null을 반환하면 예외를 발생시킨다`() {
         val inputKeywords = listOf("AI", "기술")
         val content = "인공지능 기술의 발전"
 
         every { geminiClient.requestKeywords(inputKeywords, any(), content) } returns null
 
-        val result = sut.extractKeywords(inputKeywords, content)
-
-        assertEquals(emptyList<String>(), result.matchedKeywords)
-        assertEquals(emptyList<String>(), result.suggestedKeywords)
-        assertEquals(emptyList<String>(), result.provocativeKeywords)
+        assertThrows<AiProcessingException> {
+            sut.extractKeywords(inputKeywords, content)
+        }
     }
 
     @Test

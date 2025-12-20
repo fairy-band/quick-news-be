@@ -8,6 +8,7 @@ import com.nexters.external.dto.KeywordResult
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
@@ -69,7 +70,7 @@ class KeywordService(
         }
 
         logger.error("All models failed to extract keywords")
-        return KeywordResult(emptyList(), emptyList(), emptyList())
+        throw AiProcessingException("Failed to extract keywords: all models failed")
     }
 
     @Transactional
