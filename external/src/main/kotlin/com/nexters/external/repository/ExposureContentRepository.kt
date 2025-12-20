@@ -17,7 +17,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         """
         SELECT e FROM ExposureContent e
         WHERE e.id > :lastSeenOffset
-        ORDER BY e.id ASC
+        ORDER BY e.id DESC
     """
     )
     fun findAllWithOffset(
