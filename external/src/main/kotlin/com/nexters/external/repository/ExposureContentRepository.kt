@@ -13,6 +13,37 @@ import org.springframework.stereotype.Repository
 interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     fun findByContent(content: Content): ExposureContent?
 
+    // 모든 ExposureContent를 페이징으로 조회
+    @Query(
+        """
+        SELECT e FROM ExposureContent e
+        ORDER BY e.id DESC
+    """
+    )
+    fun findAllPaged(pageable: Pageable): Page<ExposureContent>
+
+    // provocativeKeyword로 필터링하여 페이징 조회
+    @Query(
+        """
+        SELECT e FROM ExposureContent e
+        WHERE e.provocativeKeyword = :keyword
+        ORDER BY e.id DESC
+    """
+    )
+    fun findByProvocativeKeyword(
+        @Param("keyword") keyword: String,
+        pageable: Pageable
+    ): Page<ExposureContent>
+
+    // provocativeKeyword가 "No Keywords"인 항목 개수 조회
+    @Query(
+        """
+        SELECT COUNT(e) FROM ExposureContent e
+        WHERE e.provocativeKeyword = 'No Keywords'
+    """
+    )
+    fun countByNoKeywords(): Long
+
     @Query(
         """
         SELECT e FROM ExposureContent e

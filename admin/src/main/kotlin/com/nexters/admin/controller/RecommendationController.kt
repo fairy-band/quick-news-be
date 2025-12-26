@@ -9,6 +9,8 @@ import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -34,12 +37,24 @@ class RecommendationController(
     private val userService: UserService,
     private val contentKeywordMappingRepository: com.nexters.external.repository.ContentKeywordMappingRepository,
 ) {
-    @GetMapping("/exposure-contents/no-keywords")
-    fun getExposureContentsWithNoKeywords(): ResponseEntity<List<ExposureContentWithKeywordsResponse>> {
-        val allExposureContents = exposureContentService.getAllExposureContents()
-        val noKeywordsContents = allExposureContents.filter { it.provocativeKeyword == "No Keywords" }
+    @GetMapping("/exposure-contents/all")
+    fun getAllExposureContentsWithPaging(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(required = false) filter: String?
+    ): ResponseEntity<PagedExposureContentResponse> {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"))
+        
+        // Get paged results from database based on filter
+        val pagedExposureContents = when (filter) {
+            "no-keywords" -> exposureContentService.getExposureContentsByKeywordPaged("No Keywords", pageable)
+            else -> exposureContentService.getAllExposureContentsPaged(pageable)
+        }
 
-        val response = noKeywordsContents.map { exposureContent ->
+        // Get total count of "No Keywords" items for stats
+        val noKeywordsCount = exposureContentService.getNoKeywordsCount()
+
+        val response = pagedExposureContents.content.map { exposureContent ->
             val content = exposureContent.content
             // Get content's existing keywords
             val keywordMappings = contentKeywordMappingRepository.findByContent(content)
@@ -59,7 +74,71 @@ class RecommendationController(
             )
         }
 
-        return ResponseEntity.ok(response)
+        return ResponseEntity.ok(
+            PagedExposureContentResponse(
+                contents = response,
+                currentPage = pagedExposureContents.number,
+                totalPages = pagedExposureContents.totalPages,
+                totalElements = pagedExposureContents.totalElements.toInt(),
+                pageSize = pagedExposureContents.size,
+                hasNext = pagedExposureContents.hasNext(),
+                hasPrevious = pagedExposureContents.hasPrevious(),
+                noKeywordsCount = noKeywordsCount.toInt()
+            )
+        )
+    }
+
+    @GetMapping("/exposure-contents/no-keywords")
+    fun getExposureContentsWithNoKeywords(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): ResponseEntity<PagedExposureContentResponse> {
+        val allExposureContents = exposureContentService.getAllExposureContents()
+        val noKeywordsContents = allExposureContents.filter { it.provocativeKeyword == "No Keywords" }
+
+        // Calculate pagination
+        val totalElements = noKeywordsContents.size
+        val totalPages = (totalElements + size - 1) / size
+        val startIndex = page * size
+        val endIndex = minOf(startIndex + size, totalElements)
+
+        val pagedContents = if (startIndex < totalElements) {
+            noKeywordsContents.subList(startIndex, endIndex)
+        } else {
+            emptyList()
+        }
+
+        val response = pagedContents.map { exposureContent ->
+            val content = exposureContent.content
+            // Get content's existing keywords
+            val keywordMappings = contentKeywordMappingRepository.findByContent(content)
+            val contentKeywords = keywordMappings.map { it.keyword.name }
+
+            ExposureContentWithKeywordsResponse(
+                id = exposureContent.id!!,
+                contentId = content.id!!,
+                title = content.title,
+                newsletterName = content.newsletterName,
+                originalUrl = content.originalUrl,
+                provocativeKeyword = exposureContent.provocativeKeyword,
+                provocativeHeadline = exposureContent.provocativeHeadline,
+                summaryContent = exposureContent.summaryContent,
+                contentPreview = content.content.take(200),
+                suggestedKeywords = contentKeywords
+            )
+        }
+
+        return ResponseEntity.ok(
+            PagedExposureContentResponse(
+                contents = response,
+                currentPage = page,
+                totalPages = totalPages,
+                totalElements = totalElements,
+                pageSize = size,
+                hasNext = page < totalPages - 1,
+                hasPrevious = page > 0
+            )
+        )
     }
     @GetMapping("/categories")
     fun getAllCategories(): ResponseEntity<List<CategoryResponse>> {
@@ -607,4 +686,15 @@ data class ExposureContentWithKeywordsResponse(
     val summaryContent: String,
     val contentPreview: String,
     val suggestedKeywords: List<String>
+)
+
+data class PagedExposureContentResponse(
+    val contents: List<ExposureContentWithKeywordsResponse>,
+    val currentPage: Int,
+    val totalPages: Int,
+    val totalElements: Int,
+    val pageSize: Int,
+    val hasNext: Boolean,
+    val hasPrevious: Boolean,
+    val noKeywordsCount: Int = 0
 )

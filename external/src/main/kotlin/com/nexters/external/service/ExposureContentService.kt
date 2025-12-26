@@ -109,6 +109,16 @@ class ExposureContentService(
         pageable: Pageable
     ): Page<ExposureContent> = exposureContentRepository.findAllWithOffset(lastSeenOffset, pageable)
 
+    fun getAllExposureContentsPaged(pageable: Pageable): Page<ExposureContent> =
+        exposureContentRepository.findAllPaged(pageable)
+
+    fun getExposureContentsByKeywordPaged(
+        keyword: String,
+        pageable: Pageable
+    ): Page<ExposureContent> = exposureContentRepository.findByProvocativeKeyword(keyword, pageable)
+
+    fun getNoKeywordsCount(): Long = exposureContentRepository.countByNoKeywords()
+
     fun getExposureContentById(id: Long): ExposureContent =
         exposureContentRepository
             .findById(id)

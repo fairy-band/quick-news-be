@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>노출 콘텐츠 키워드 보정 - Newsletter AI Processor</title>
+    <title>노출 콘텐츠 관리 - Newsletter AI Processor</title>
     <style>
         * {
             margin: 0;
@@ -345,37 +345,55 @@
                     <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
                     <a href="./keywords" class="nav-link">🔑 키워드</a>
                     <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
-                    <a href="./exposure-fix" class="nav-link active">🔧 키워드 보정</a>
+                    <a href="./exposure-fix" class="nav-link active">🔧 콘텐츠 관리</a>
                     <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
                 </div>
             </div>
         </div>
 
         <div class="section">
-            <h2>🔧 노출 콘텐츠 키워드 보정</h2>
+            <h2>🔧 노출 콘텐츠 관리</h2>
             <p style="color: #a0aec0; margin-bottom: 1.5rem;">
-                "No Keywords"로 설정된 노출 콘텐츠를 찾아서 적절한 키워드로 보정합니다.
-                제안된 키워드 중에서 선택하거나 직접 입력할 수 있습니다.
+                모든 노출 콘텐츠를 조회하고 키워드, 헤드라인, 요약 내용을 수정할 수 있습니다.
+                필터를 사용하여 보정이 필요한 콘텐츠만 볼 수도 있습니다.
             </p>
 
-            <div style="margin-bottom: 2rem;">
+            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; flex-wrap: wrap;">
                 <button id="load-btn" class="btn btn-primary">
-                    📋 보정 필요 콘텐츠 불러오기
+                    📋 콘텐츠 불러오기
                 </button>
+                
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <label style="color: #00d4ff; font-weight: 600;">필터:</label>
+                    <select id="filter-select" class="custom-keyword-input" style="width: auto; padding: 0.5rem 1rem;">
+                        <option value="all">전체 보기</option>
+                        <option value="no-keywords">보정 필요 (No Keywords)</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <label style="color: #00d4ff; font-weight: 600;">페이지 크기:</label>
+                    <select id="page-size-select" class="custom-keyword-input" style="width: auto; padding: 0.5rem 1rem;">
+                        <option value="5">5개</option>
+                        <option value="10" selected>10개</option>
+                        <option value="20">20개</option>
+                        <option value="50">50개</option>
+                    </select>
+                </div>
             </div>
 
             <div id="stats-container" class="stats-container" style="display: none;">
                 <div class="stat-card">
                     <div class="stat-value" id="total-count">0</div>
-                    <div class="stat-label">보정 필요</div>
+                    <div class="stat-label">현재 필터 결과</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="no-keywords-count">0</div>
+                    <div class="stat-label">전체 보정 필요</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="fixed-count">0</div>
-                    <div class="stat-label">보정 완료</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="remaining-count">0</div>
-                    <div class="stat-label">남은 항목</div>
+                    <div class="stat-label">세션 수정 완료</div>
                 </div>
             </div>
 
@@ -385,9 +403,9 @@
             </div>
 
             <div id="empty-state" class="empty-state" style="display: none;">
-                <div class="empty-icon">✅</div>
-                <h3>보정이 필요한 콘텐츠가 없습니다</h3>
-                <p>모든 노출 콘텐츠에 적절한 키워드가 설정되어 있습니다.</p>
+                <div class="empty-icon">📭</div>
+                <h3>콘텐츠가 없습니다</h3>
+                <p>선택한 필터에 해당하는 콘텐츠가 없습니다.</p>
             </div>
 
             <div id="content-list">
@@ -397,8 +415,12 @@
     </div>
 
     <script>
-        let allContents = [];
+        let currentPage = 0;
+        let totalPages = 0;
+        let totalElements = 0;
+        let pageSize = 10;
         let fixedCount = 0;
+        let currentFilter = 'all';
 
         function createStars() {
             const stars = document.getElementById('stars');
@@ -417,10 +439,28 @@
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
 
-            document.getElementById('load-btn').addEventListener('click', loadNoKeywordsContents);
+            document.getElementById('load-btn').addEventListener('click', () => {
+                currentFilter = document.getElementById('filter-select').value;
+                pageSize = parseInt(document.getElementById('page-size-select').value);
+                loadExposureContents(0);
+            });
+
+            document.getElementById('filter-select').addEventListener('change', () => {
+                currentFilter = document.getElementById('filter-select').value;
+                if (document.getElementById('stats-container').style.display !== 'none') {
+                    loadExposureContents(0);
+                }
+            });
+
+            document.getElementById('page-size-select').addEventListener('change', () => {
+                pageSize = parseInt(document.getElementById('page-size-select').value);
+                if (document.getElementById('stats-container').style.display !== 'none') {
+                    loadExposureContents(0);
+                }
+            });
         });
 
-        function loadNoKeywordsContents() {
+        function loadExposureContents(page = 0) {
             const loading = document.getElementById('loading');
             const contentList = document.getElementById('content-list');
             const emptyState = document.getElementById('empty-state');
@@ -431,19 +471,22 @@
             emptyState.style.display = 'none';
             statsContainer.style.display = 'none';
 
-            fetch('./api/recommendations/exposure-contents/no-keywords')
+            const filterParam = currentFilter === 'all' ? '' : `&filter=${currentFilter}`;
+            fetch(`./api/recommendations/exposure-contents/all?page=${page}&size=${pageSize}${filterParam}`)
                 .then(response => response.json())
                 .then(data => {
                     loading.style.display = 'none';
-                    allContents = data;
-                    fixedCount = 0;
+                    currentPage = data.currentPage;
+                    totalPages = data.totalPages;
+                    totalElements = data.totalElements;
 
-                    if (data.length === 0) {
+                    if (data.totalElements === 0) {
                         emptyState.style.display = 'block';
                     } else {
                         statsContainer.style.display = 'flex';
-                        updateStats();
-                        renderContents(data);
+                        updateStats(data);
+                        renderContents(data.contents);
+                        renderPagination(data);
                     }
                 })
                 .catch(error => {
@@ -453,10 +496,10 @@
                 });
         }
 
-        function updateStats() {
-            document.getElementById('total-count').textContent = allContents.length;
+        function updateStats(data) {
+            document.getElementById('total-count').textContent = data.totalElements;
+            document.getElementById('no-keywords-count').textContent = data.noKeywordsCount;
             document.getElementById('fixed-count').textContent = fixedCount;
-            document.getElementById('remaining-count').textContent = allContents.length - fixedCount;
         }
 
         function renderContents(contents) {
@@ -469,6 +512,60 @@
             });
         }
 
+        function renderPagination(data) {
+            const contentList = document.getElementById('content-list');
+            
+            // Remove existing pagination if any
+            const existingPagination = document.getElementById('pagination');
+            if (existingPagination) {
+                existingPagination.remove();
+            }
+
+            // Create pagination container
+            const pagination = document.createElement('div');
+            pagination.id = 'pagination';
+            pagination.style.cssText = `
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 0.5rem;
+                margin-top: 2rem;
+                padding: 1rem;
+            `;
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn btn-primary';
+            prevBtn.textContent = '← 이전';
+            prevBtn.disabled = !data.hasPrevious;
+            prevBtn.style.opacity = data.hasPrevious ? '1' : '0.5';
+            prevBtn.addEventListener('click', () => loadExposureContents(currentPage - 1));
+            pagination.appendChild(prevBtn);
+
+            // Page info
+            const pageInfo = document.createElement('div');
+            pageInfo.style.cssText = `
+                padding: 0.75rem 1.5rem;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 8px;
+                color: #00d4ff;
+                font-weight: 600;
+            `;
+            pageInfo.textContent = `${currentPage + 1} / ${totalPages} 페이지 (총 ${totalElements}개)`;
+            pagination.appendChild(pageInfo);
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn btn-primary';
+            nextBtn.textContent = '다음 →';
+            nextBtn.disabled = !data.hasNext;
+            nextBtn.style.opacity = data.hasNext ? '1' : '0.5';
+            nextBtn.addEventListener('click', () => loadExposureContents(currentPage + 1));
+            pagination.appendChild(nextBtn);
+
+            contentList.appendChild(pagination);
+        }
+
         function createContentCard(content, index) {
             const card = document.createElement('div');
             card.className = 'content-card';
@@ -476,7 +573,10 @@
 
             const titleDiv = document.createElement('div');
             titleDiv.className = 'content-title';
-            titleDiv.innerHTML = `${content.title} <span class="warning-badge">No Keywords</span>`;
+            const badge = content.provocativeKeyword === 'No Keywords' 
+                ? '<span class="warning-badge">보정 필요</span>' 
+                : '<span class="warning-badge" style="background: linear-gradient(45deg, #43e97b, #38f9d7);">✓</span>';
+            titleDiv.innerHTML = `${content.title} ${badge}`;
 
             const metaDiv = document.createElement('div');
             metaDiv.className = 'content-meta';
@@ -492,10 +592,26 @@
             const keywordSection = document.createElement('div');
             keywordSection.className = 'keyword-section';
 
+            // Provocative Keyword Section
+            const keywordLabel = document.createElement('div');
+            keywordLabel.className = 'keyword-label';
+            keywordLabel.textContent = '🔑 자극적인 키워드';
+
+            const keywordInput = document.createElement('input');
+            keywordInput.type = 'text';
+            keywordInput.className = 'custom-keyword-input';
+            keywordInput.placeholder = '키워드를 입력하세요...';
+            keywordInput.value = content.provocativeKeyword === 'No Keywords' ? '' : content.provocativeKeyword;
+            keywordInput.id = `keyword-input-${content.id}`;
+
+            keywordSection.appendChild(keywordLabel);
+            keywordSection.appendChild(keywordInput);
+
             // Suggested keywords
             if (content.suggestedKeywords && content.suggestedKeywords.length > 0) {
                 const suggestedLabel = document.createElement('div');
                 suggestedLabel.className = 'keyword-label';
+                suggestedLabel.style.marginTop = '1rem';
                 suggestedLabel.textContent = '💡 제안된 키워드 (클릭하여 선택)';
 
                 const suggestedTags = document.createElement('div');
@@ -511,7 +627,7 @@
                         const tags = suggestedTags.querySelectorAll('.keyword-tag');
                         tags.forEach(t => t.classList.remove('selected'));
                         this.classList.add('selected');
-                        customInput.value = keyword;
+                        keywordInput.value = keyword;
                     });
                     suggestedTags.appendChild(tag);
                 });
@@ -520,19 +636,39 @@
                 keywordSection.appendChild(suggestedTags);
             }
 
-            // Custom keyword input
-            const customLabel = document.createElement('div');
-            customLabel.className = 'keyword-label';
-            customLabel.textContent = '✏️ 직접 입력 또는 선택된 키워드 수정';
+            // Provocative Headline Section
+            const headlineLabel = document.createElement('div');
+            headlineLabel.className = 'keyword-label';
+            headlineLabel.style.marginTop = '1rem';
+            headlineLabel.textContent = '📢 자극적인 헤드라인';
 
-            const customInput = document.createElement('input');
-            customInput.type = 'text';
-            customInput.className = 'custom-keyword-input';
-            customInput.placeholder = '키워드를 입력하세요...';
-            customInput.id = `keyword-input-${content.id}`;
+            const headlineInput = document.createElement('input');
+            headlineInput.type = 'text';
+            headlineInput.className = 'custom-keyword-input';
+            headlineInput.placeholder = '헤드라인을 입력하세요...';
+            headlineInput.value = content.provocativeHeadline;
+            headlineInput.id = `headline-input-${content.id}`;
 
-            keywordSection.appendChild(customLabel);
-            keywordSection.appendChild(customInput);
+            keywordSection.appendChild(headlineLabel);
+            keywordSection.appendChild(headlineInput);
+
+            // Summary Content Section
+            const summaryLabel = document.createElement('div');
+            summaryLabel.className = 'keyword-label';
+            summaryLabel.style.marginTop = '1rem';
+            summaryLabel.textContent = '📝 요약 콘텐츠';
+
+            const summaryTextarea = document.createElement('textarea');
+            summaryTextarea.className = 'custom-keyword-input';
+            summaryTextarea.placeholder = '요약 내용을 입력하세요...';
+            summaryTextarea.value = content.summaryContent;
+            summaryTextarea.id = `summary-input-${content.id}`;
+            summaryTextarea.rows = 4;
+            summaryTextarea.style.resize = 'vertical';
+            summaryTextarea.style.fontFamily = 'inherit';
+
+            keywordSection.appendChild(summaryLabel);
+            keywordSection.appendChild(summaryTextarea);
 
             // Action buttons
             const actionButtons = document.createElement('div');
@@ -540,9 +676,14 @@
 
             const saveBtn = document.createElement('button');
             saveBtn.className = 'btn btn-success';
-            saveBtn.textContent = '✅ 키워드 저장';
+            saveBtn.textContent = '✅ 저장';
             saveBtn.style.flex = '1';
-            saveBtn.addEventListener('click', () => saveKeyword(content.id, customInput.value));
+            saveBtn.addEventListener('click', () => saveExposureContent(
+                content.id, 
+                keywordInput.value, 
+                headlineInput.value,
+                summaryTextarea.value
+            ));
 
             const skipBtn = document.createElement('button');
             skipBtn.className = 'btn btn-warning';
@@ -561,13 +702,25 @@
             return card;
         }
 
-        function saveKeyword(exposureContentId, keyword) {
+        function saveExposureContent(exposureContentId, keyword, headline, summaryContent) {
             if (!keyword || keyword.trim() === '') {
                 alert('키워드를 입력하거나 선택해주세요.');
                 return;
             }
 
+            if (!headline || headline.trim() === '') {
+                alert('헤드라인을 입력해주세요.');
+                return;
+            }
+
+            if (!summaryContent || summaryContent.trim() === '') {
+                alert('요약 콘텐츠를 입력해주세요.');
+                return;
+            }
+
             const trimmedKeyword = keyword.trim();
+            const trimmedHeadline = headline.trim();
+            const trimmedSummary = summaryContent.trim();
 
             // Update exposure content
             fetch(`./api/recommendations/exposure-contents/${exposureContentId}`, {
@@ -577,8 +730,8 @@
                 },
                 body: JSON.stringify({
                     provocativeKeyword: trimmedKeyword,
-                    provocativeHeadline: document.querySelector(`#content-card-${exposureContentId} .content-title`).textContent.replace(' No Keywords', ''),
-                    summaryContent: allContents.find(c => c.id === exposureContentId).summaryContent
+                    provocativeHeadline: trimmedHeadline,
+                    summaryContent: trimmedSummary
                 })
             })
             .then(response => {
@@ -598,21 +751,21 @@
                 setTimeout(() => {
                     card.remove();
                     fixedCount++;
-                    updateStats();
 
-                    // Check if all contents are fixed
-                    if (fixedCount === allContents.length) {
-                        document.getElementById('empty-state').style.display = 'block';
-                        document.getElementById('stats-container').style.display = 'none';
+                    // Check if all contents on current page are fixed
+                    const remainingCards = document.querySelectorAll('.content-card');
+                    if (remainingCards.length === 0) {
+                        // Reload current page
+                        loadExposureContents(currentPage);
                     }
                 }, 300);
 
                 // Show success message
-                showToast(`✅ "${trimmedKeyword}" 키워드가 저장되었습니다.`);
+                showToast(`✅ 콘텐츠가 성공적으로 업데이트되었습니다.`);
             })
             .catch(error => {
-                console.error('Error saving keyword:', error);
-                alert('키워드 저장 중 오류가 발생했습니다.');
+                console.error('Error saving exposure content:', error);
+                alert('콘텐츠 저장 중 오류가 발생했습니다.');
             });
         }
 
@@ -624,12 +777,11 @@
 
             setTimeout(() => {
                 card.remove();
-                fixedCount++;
-                updateStats();
-
-                if (fixedCount === allContents.length) {
-                    document.getElementById('empty-state').style.display = 'block';
-                    document.getElementById('stats-container').style.display = 'none';
+                
+                // Check if all contents on current page are skipped
+                const remainingCards = document.querySelectorAll('.content-card');
+                if (remainingCards.length === 0) {
+                    loadExposureContents(currentPage);
                 }
             }, 300);
         }
