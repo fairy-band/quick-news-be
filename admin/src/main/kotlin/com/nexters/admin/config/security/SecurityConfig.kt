@@ -36,7 +36,7 @@ class SecurityConfig(
             .requestMatchers(*STATIC_RESOURCES)
             .permitAll()
             .anyRequest()
-            .authenticated()
+            .permitAll()
     }
 
     private fun configureOAuth2Login(oauth2: OAuth2LoginConfigurer<HttpSecurity>,) {

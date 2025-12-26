@@ -44,35 +44,37 @@ class RecommendationController(
         @RequestParam(required = false) filter: String?
     ): ResponseEntity<PagedExposureContentResponse> {
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"))
-        
+
         // Get paged results from database based on filter
-        val pagedExposureContents = when (filter) {
-            "no-keywords" -> exposureContentService.getExposureContentsByKeywordPaged("No Keywords", pageable)
-            else -> exposureContentService.getAllExposureContentsPaged(pageable)
-        }
+        val pagedExposureContents =
+            when (filter) {
+                "no-keywords" -> exposureContentService.getExposureContentsByKeywordPaged("No Keywords", pageable)
+                else -> exposureContentService.getAllExposureContentsPaged(pageable)
+            }
 
         // Get total count of "No Keywords" items for stats
         val noKeywordsCount = exposureContentService.getNoKeywordsCount()
 
-        val response = pagedExposureContents.content.map { exposureContent ->
-            val content = exposureContent.content
-            // Get content's existing keywords
-            val keywordMappings = contentKeywordMappingRepository.findByContent(content)
-            val contentKeywords = keywordMappings.map { it.keyword.name }
+        val response =
+            pagedExposureContents.content.map { exposureContent ->
+                val content = exposureContent.content
+                // Get content's existing keywords
+                val keywordMappings = contentKeywordMappingRepository.findByContent(content)
+                val contentKeywords = keywordMappings.map { it.keyword.name }
 
-            ExposureContentWithKeywordsResponse(
-                id = exposureContent.id!!,
-                contentId = content.id!!,
-                title = content.title,
-                newsletterName = content.newsletterName,
-                originalUrl = content.originalUrl,
-                provocativeKeyword = exposureContent.provocativeKeyword,
-                provocativeHeadline = exposureContent.provocativeHeadline,
-                summaryContent = exposureContent.summaryContent,
-                contentPreview = content.content.take(200),
-                suggestedKeywords = contentKeywords
-            )
-        }
+                ExposureContentWithKeywordsResponse(
+                    id = exposureContent.id!!,
+                    contentId = content.id!!,
+                    title = content.title,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    provocativeKeyword = exposureContent.provocativeKeyword,
+                    provocativeHeadline = exposureContent.provocativeHeadline,
+                    summaryContent = exposureContent.summaryContent,
+                    contentPreview = content.content.take(200),
+                    suggestedKeywords = contentKeywords
+                )
+            }
 
         return ResponseEntity.ok(
             PagedExposureContentResponse(
@@ -102,31 +104,33 @@ class RecommendationController(
         val startIndex = page * size
         val endIndex = minOf(startIndex + size, totalElements)
 
-        val pagedContents = if (startIndex < totalElements) {
-            noKeywordsContents.subList(startIndex, endIndex)
-        } else {
-            emptyList()
-        }
+        val pagedContents =
+            if (startIndex < totalElements) {
+                noKeywordsContents.subList(startIndex, endIndex)
+            } else {
+                emptyList()
+            }
 
-        val response = pagedContents.map { exposureContent ->
-            val content = exposureContent.content
-            // Get content's existing keywords
-            val keywordMappings = contentKeywordMappingRepository.findByContent(content)
-            val contentKeywords = keywordMappings.map { it.keyword.name }
+        val response =
+            pagedContents.map { exposureContent ->
+                val content = exposureContent.content
+                // Get content's existing keywords
+                val keywordMappings = contentKeywordMappingRepository.findByContent(content)
+                val contentKeywords = keywordMappings.map { it.keyword.name }
 
-            ExposureContentWithKeywordsResponse(
-                id = exposureContent.id!!,
-                contentId = content.id!!,
-                title = content.title,
-                newsletterName = content.newsletterName,
-                originalUrl = content.originalUrl,
-                provocativeKeyword = exposureContent.provocativeKeyword,
-                provocativeHeadline = exposureContent.provocativeHeadline,
-                summaryContent = exposureContent.summaryContent,
-                contentPreview = content.content.take(200),
-                suggestedKeywords = contentKeywords
-            )
-        }
+                ExposureContentWithKeywordsResponse(
+                    id = exposureContent.id!!,
+                    contentId = content.id!!,
+                    title = content.title,
+                    newsletterName = content.newsletterName,
+                    originalUrl = content.originalUrl,
+                    provocativeKeyword = exposureContent.provocativeKeyword,
+                    provocativeHeadline = exposureContent.provocativeHeadline,
+                    summaryContent = exposureContent.summaryContent,
+                    contentPreview = content.content.take(200),
+                    suggestedKeywords = contentKeywords
+                )
+            }
 
         return ResponseEntity.ok(
             PagedExposureContentResponse(
@@ -140,6 +144,7 @@ class RecommendationController(
             )
         )
     }
+
     @GetMapping("/categories")
     fun getAllCategories(): ResponseEntity<List<CategoryResponse>> {
         val categories = categoryRepository.findAll()

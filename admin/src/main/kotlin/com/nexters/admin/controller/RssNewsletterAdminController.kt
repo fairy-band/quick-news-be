@@ -210,4 +210,27 @@ class RssNewsletterAdminController(
             )
         }
     }
+
+    @GetMapping("/detailed-stats")
+    fun getDetailedStats(): ResponseEntity<Map<String, Any>> {
+        logger.info("Getting detailed RSS statistics")
+
+        return try {
+            val stats = rssContentService.getDetailedStats()
+            ResponseEntity.ok(
+                mapOf<String, Any>(
+                    "success" to true,
+                    "stats" to stats
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Error getting detailed RSS stats", e)
+            ResponseEntity.badRequest().body(
+                mapOf<String, Any>(
+                    "success" to false,
+                    "error" to (e.message ?: "Unknown error")
+                )
+            )
+        }
+    }
 }

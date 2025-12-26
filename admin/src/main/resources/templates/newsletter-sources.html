@@ -52,10 +52,43 @@
         .container {
             position: relative;
             z-index: 2;
-            max-width: 1400px;
+            max-width: 1800px;
             margin: 0 auto;
             padding: 2rem;
             min-height: 100vh;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #a0aec0;
+            font-size: 1.1rem;
         }
 
         .header {
@@ -85,6 +118,7 @@
         .nav-links {
             display: flex;
             gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .nav-link {
@@ -95,6 +129,7 @@
             color: #ffffff;
             text-decoration: none;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .nav-link:hover {
@@ -111,22 +146,34 @@
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 2rem;
+            border-radius: 16px;
+            padding: 1.5rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            margin-bottom: 2rem;
             transition: all 0.3s ease;
+            height: fit-content;
         }
 
         .section:hover {
-            border-color: rgba(0, 212, 255, 0.5);
-            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .left-panel {
+            position: sticky;
+            top: 2rem;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
         }
 
         .section h2 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             color: #00d4ff;
         }
 
@@ -138,10 +185,10 @@
         }
 
         .newsletter-source-item {
-            padding: 1.5rem;
-            margin: 1rem 0;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
+            border-radius: 8px;
             transition: all 0.3s ease;
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -149,58 +196,58 @@
 
         .newsletter-source-item:hover {
             background: rgba(0, 0, 0, 0.3);
-            transform: translateY(-2px);
-            border-color: #00d4ff;
+            border-color: rgba(0, 212, 255, 0.5);
+            transform: translateX(4px);
         }
 
         .newsletter-source-item.selected {
             border: 2px solid #00d4ff;
-            background: rgba(0, 212, 255, 0.1);
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
         }
 
         .source-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         .source-title {
-            font-size: 1.2rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #ffffff;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .source-subject {
-            font-size: 1rem;
+            font-size: 0.8rem;
             color: #a0aec0;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
         }
 
         .source-meta {
             display: flex;
-            gap: 1rem;
-            font-size: 0.9rem;
+            flex-direction: column;
+            gap: 0.2rem;
+            font-size: 0.75rem;
             color: #718096;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         .source-content {
-            max-height: 200px;
-            overflow: hidden;
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .source-content.expanded {
-            max-height: none;
+            display: none;
         }
 
         .content-preview {
             color: #a0aec0;
-            line-height: 1.6;
-            font-size: 0.9rem;
+            line-height: 1.5;
+            font-size: 0.85rem;
         }
 
         .expand-btn {
@@ -208,8 +255,8 @@
             border: none;
             color: #00d4ff;
             cursor: pointer;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            margin-top: 0.4rem;
         }
 
         .expand-btn:hover {
@@ -222,6 +269,8 @@
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            max-width: 100%;
         }
 
         .content-header {
@@ -252,6 +301,8 @@
 
         .content-body {
             position: relative;
+            overflow: hidden;
+            max-width: 100%;
         }
 
         .content-preview {
@@ -274,13 +325,80 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        .html-content-full,
+        .plain-content-full {
+            color: #a0aec0 !important;
+            line-height: 1.6;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2) !important;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 100%;
+        }
+
+        /* HTML 콘텐츠 내부의 모든 요소에 다크모드 강제 적용 */
+        .html-content-full *,
+        .plain-content-full * {
+            color: inherit !important;
+            background: transparent !important;
+            max-width: 100%;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .html-content-full a,
+        .plain-content-full a {
+            color: #00d4ff !important;
+            text-decoration: underline;
+        }
+
+        .html-content-full strong,
+        .plain-content-full strong {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+
+        .html-content-full h1,
+        .html-content-full h2,
+        .html-content-full h3,
+        .html-content-full h4,
+        .html-content-full h5,
+        .html-content-full h6 {
+            color: #00d4ff !important;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .html-content-full img,
+        .plain-content-full img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
+        .html-content-full table,
+        .plain-content-full table {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            display: block !important;
+        }
+
         .btn {
-            padding: 0.5rem 1rem;
+            padding: 0.6rem 1rem;
             border: none;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .btn:hover {
@@ -307,12 +425,12 @@
         .form-control,
         .form-select {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.6rem;
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             color: #ffffff;
-            font-size: 1rem;
+            font-size: 0.9rem;
             transition: all 0.3s ease;
         }
 
@@ -339,53 +457,55 @@
         }
 
         .pagination-container {
-            margin-top: 2rem;
+            margin-top: 1.5rem;
         }
 
         .pagination-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
-            padding: 1rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
         }
 
         .page-size-selector {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
         .page-size-selector label {
             color: #a0aec0;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .page-size-selector .form-select {
             width: auto;
-            padding: 0.5rem;
-            font-size: 0.9rem;
+            padding: 0.4rem;
+            font-size: 0.85rem;
         }
 
         .pagination {
             display: flex;
             justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
         }
 
         .pagination-item {
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.75rem;
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            min-width: 40px;
+            min-width: 35px;
             text-align: center;
+            font-size: 0.85rem;
         }
 
         .pagination-item:hover {
@@ -414,17 +534,66 @@
 
         .action-buttons {
             display: flex;
+            flex-direction: column;
             gap: 1rem;
-            margin: 1.5rem 0;
-            padding: 1rem;
+            padding: 1.5rem;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .primary-action {
+            padding: 1.2rem 1.5rem !important;
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            background: linear-gradient(45deg, #667eea, #764ba2) !important;
+            border: 2px solid #667eea !important;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .primary-action::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .primary-action:hover::before {
+            left: 100%;
+        }
+
+        .primary-action:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6) !important;
+        }
+
+        .secondary-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .secondary-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tertiary-actions .btn {
+            flex: 1;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+
         .btn-icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
+            margin-right: 0.4rem;
+            font-size: 1rem;
         }
 
         .preview-container {
@@ -467,76 +636,82 @@
         }
 
         .preview-html {
-            background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
-            color: #2d3748;
+            background: rgba(0, 0, 0, 0.3);
+            color: #e2e8f0;
             padding: 2rem;
             border-radius: 12px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             line-height: 1.7;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .preview-html h1,
         .preview-html h2,
         .preview-html h3 {
-            color: #1a202c;
+            color: #00d4ff;
             margin-bottom: 1rem;
             font-weight: 700;
         }
 
         .preview-html h2 {
             font-size: 1.8rem;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
             padding-bottom: 0.5rem;
         }
 
         .preview-html p {
             margin-bottom: 1.2rem;
             font-size: 1rem;
+            color: #cbd5e0;
         }
 
         .preview-html strong {
-            color: #2d3748;
+            color: #ffffff;
             font-weight: 600;
         }
 
         .preview-html a {
-            color: #3182ce;
+            color: #00d4ff;
             text-decoration: none;
             font-weight: 500;
         }
 
         .preview-html a:hover {
             text-decoration: underline;
-            color: #2c5aa0;
+            color: #38f9d7;
         }
 
         .preview-html hr {
             border: none;
             height: 1px;
-            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             margin: 2rem 0;
         }
 
         .filter-section {
             display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .filter-group {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
         .filter-label {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #a0aec0;
             font-weight: 500;
+        }
+
+        .filter-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
         }
 
         .loading {
@@ -602,22 +777,27 @@
         }
 
         .source-stats {
-            display: flex;
-            gap: 1rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
             margin-bottom: 1rem;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #a0aec0;
         }
 
         .stat-item {
             background: rgba(0, 0, 0, 0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .stat-value {
             color: #00d4ff;
             font-weight: 600;
+            font-size: 1rem;
         }
 
         .parser-test-summary {
@@ -692,11 +872,11 @@
 
         .content-status-badge {
             display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
             font-weight: 600;
-            margin-left: 1rem;
+            margin-left: 0.5rem;
             border: 1px solid;
         }
 
@@ -711,6 +891,27 @@
             background: rgba(255, 255, 255, 0.05);
             color: #a0aec0;
             border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #a0aec0;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-subtext {
+            font-size: 0.9rem;
+            color: #718096;
         }
 
         .content-text {
@@ -775,197 +976,226 @@
             <div class="header-left">
                 <h1 class="logo">Newsletter AI</h1>
                 <div class="nav-links">
-                    <a href="./contents" class="nav-link">🏠 홈</a>
+                    <a href="./dashboard" class="nav-link">📊 대시보드</a>
                     <a href="./newsletter-sources" class="nav-link active">📧 뉴스레터 소스</a>
+                    <a href="./contents" class="nav-link">📝 콘텐츠</a>
                     <a href="./keywords" class="nav-link">🔑 키워드</a>
-                    <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
-                    <a href="./exposure-fix" class="nav-link">🔧 키워드 보정</a>
+                    <a href="./exposure-fix" class="nav-link">🔧 노출 관리</a>
+                    <a href="./users" class="nav-link">👥 사용자</a>
                     <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
                 </div>
             </div>
         </div>
 
-        <div class="section">
-            <h2>뉴스레터 소스 관리</h2>
-
-            <div class="source-stats">
-                <div class="stat-item">
-                    총 소스: <span class="stat-value" id="total-sources">-</span>
-                </div>
-                <div class="stat-item">
-                    컨텐츠 생성됨: <span class="stat-value" id="content-created-sources">-</span>
-                </div>
-                <div class="stat-item">
-                    선택됨: <span class="stat-value" id="selected-sources">0</span>
-                </div>
-            </div>
-
-            <div class="filter-section">
-                <div class="filter-group">
-                    <label class="filter-label">발신자 이메일</label>
-                    <select id="sender-email-filter" class="form-select">
-                        <option value="">모든 발신자</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">제목 검색</label>
-                    <input type="text" id="subject-filter" class="form-control" placeholder="제목 키워드...">
-                </div>
-                <div class="filter-group">
-                    <button id="apply-filter-btn" class="btn btn-primary">필터 적용</button>
-                </div>
-                <div class="filter-group">
-                    <button id="clear-filter-btn" class="btn btn-secondary">필터 초기화</button>
-                </div>
-            </div>
-
-            <div id="newsletter-sources-list">
-                <!-- 뉴스레터 소스 목록이 여기에 표시됩니다 -->
-            </div>
-
-            <div class="pagination-container">
-                <div class="pagination-info">
-                    <span id="pagination-info">전체 0개 중 0-0개 표시</span>
-                    <div class="page-size-selector">
-                        <label for="page-size-select">페이지 크기:</label>
-                        <select id="page-size-select" class="form-select">
-                            <option value="10" selected>10개</option>
-                            <option value="20">20개</option>
-                            <option value="50">50개</option>
-                            <option value="100">100개</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="pagination" id="pagination">
-                    <!-- 페이지네이션이 여기에 표시됩니다 -->
-                </div>
-            </div>
+        <div class="page-header">
+            <h2 class="page-title">📧 뉴스레터 소스 관리</h2>
+            <p class="subtitle">수집된 뉴스레터를 관리하고 콘텐츠를 생성하세요</p>
         </div>
 
-        <div class="section" id="source-detail-section" style="display: none;">
-            <h2>뉴스레터 소스 상세</h2>
-            <div id="source-detail">
-                <!-- 선택된 뉴스레터 소스 상세 정보가 여기에 표시됩니다 -->
-            </div>
+        <div class="main-layout">
+            <!-- 왼쪽 패널: 뉴스레터 목록 -->
+            <div class="left-panel">
+                <div class="section">
+                    <h2>📊 뉴스레터 목록</h2>
 
-            <div class="preview-container">
-                <div class="preview-header">
-                    <div class="preview-title">
-                        <span class="preview-icon">👁️</span>
-                        HTML 미리보기
+                    <div class="source-stats">
+                        <div class="stat-item">
+                            <span>총 소스</span>
+                            <span class="stat-value" id="total-sources">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span>컨텐츠 생성됨</span>
+                            <span class="stat-value" id="content-created-sources">-</span>
+                        </div>
                     </div>
-                    <button id="toggle-preview-btn" class="btn btn-secondary">
-                        <span class="btn-icon">👁️</span>
-                        미리보기 토글
-                    </button>
+
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label class="filter-label">발신자 이메일</label>
+                            <select id="sender-email-filter" class="form-select">
+                                <option value="">모든 발신자</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">제목 검색</label>
+                            <input type="text" id="subject-filter" class="form-control" placeholder="제목 키워드...">
+                        </div>
+                        <div class="filter-actions">
+                            <button id="apply-filter-btn" class="btn btn-primary">필터 적용</button>
+                            <button id="clear-filter-btn" class="btn btn-secondary">초기화</button>
+                        </div>
+                    </div>
+
+                    <div id="newsletter-sources-list">
+                        <!-- 뉴스레터 소스 목록이 여기에 표시됩니다 -->
+                    </div>
+
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            <span id="pagination-info">전체 0개 중 0-0개 표시</span>
+                            <div class="page-size-selector">
+                                <label for="page-size-select">크기:</label>
+                                <select id="page-size-select" class="form-select">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="pagination" id="pagination">
+                            <!-- 페이지네이션이 여기에 표시됩니다 -->
+                        </div>
+                    </div>
                 </div>
-                <div id="preview-content" class="preview-content" style="display: none;">
-                    <!-- HTML 미리보기가 여기에 표시됩니다 -->
+            </div>
+
+            <!-- 오른쪽 패널: 선택된 뉴스레터 상세 -->
+            <div class="right-panel">
+                <div class="section" id="source-detail-section" style="display: none;">
+                    <h2>📄 뉴스레터 상세</h2>
+                    <div id="source-detail">
+                        <!-- 선택된 뉴스레터 소스 상세 정보가 여기에 표시됩니다 -->
+                    </div>
+
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <div class="preview-title">
+                                <span class="preview-icon">👁️</span>
+                                HTML 미리보기
+                            </div>
+                            <button id="toggle-preview-btn" class="btn btn-secondary">
+                                <span class="btn-icon">👁️</span>
+                                미리보기 토글
+                            </button>
+                        </div>
+                        <div id="preview-content" class="preview-content" style="display: none;">
+                            <!-- HTML 미리보기가 여기에 표시됩니다 -->
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <div class="secondary-actions">
+                            <button id="test-parser-btn" class="btn btn-secondary">
+                                <span class="btn-icon">🔍</span>
+                                파서 테스트
+                            </button>
+                            <button id="create-content-btn" class="btn btn-success">
+                                <span class="btn-icon">📄</span>
+                                수동 생성
+                            </button>
+                            <button id="edit-source-btn" class="btn btn-primary">
+                                <span class="btn-icon">✏️</span>
+                                소스 수정
+                            </button>
+                        </div>
+                        <button id="auto-process-btn" class="btn primary-action">
+                            <span class="btn-icon">🤖</span>
+                            자동 처리 (파싱+생성+요약+AI키워드+노출)
+                        </button>
+                    </div>
+
+                    <div class="edit-form" id="edit-form" style="display: none;">
+                        <h3>뉴스레터 소스 수정</h3>
+                        <form id="edit-source-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">제목</label>
+                                    <input type="text" id="edit-subject" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">발신자</label>
+                                    <input type="text" id="edit-sender" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">발신자 이메일</label>
+                                    <input type="email" id="edit-sender-email" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">수신자</label>
+                                    <input type="text" id="edit-recipient" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">수신자 이메일</label>
+                                    <input type="email" id="edit-recipient-email" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Content-Type</label>
+                                    <input type="text" id="edit-content-type" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Plain Text 내용</label>
+                                <textarea id="edit-plain-text" class="form-control" rows="10"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">HTML 내용</label>
+                                <textarea id="edit-html-text" class="form-control" rows="10"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">수정 완료</button>
+                                <button type="button" id="cancel-edit-btn" class="btn btn-secondary">취소</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="content-form" id="content-form" style="display: none;">
+                        <h3>컨텐츠 생성</h3>
+                        <form id="create-content-form">
+                            <div class="form-group">
+                                <label class="form-label">제목</label>
+                                <input type="text" id="content-title" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">뉴스레터 이름</label>
+                                <input type="text" id="newsletter-name" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">원본 URL</label>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <select id="url-selector" class="form-select" style="flex: 1;">
+                                        <option value="">URL 선택 또는 직접 입력...</option>
+                                    </select>
+                                    <button type="button" id="refresh-urls-btn" class="btn btn-secondary" style="padding: 0.6rem 1rem;">
+                                        🔄
+                                    </button>
+                                </div>
+                                <input type="url" id="original-url" class="form-control" required placeholder="URL을 선택하거나 직접 입력하세요">
+                                <small style="color: #a0aec0; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                                    💡 콘텐츠에서 URL을 자동으로 추출합니다
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">발행 날짜</label>
+                                <input type="date" id="published-date" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">내용</label>
+                                <textarea id="content-text" class="form-control" rows="10" required></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">컨텐츠 생성</button>
+                                <button type="button" id="cancel-content-btn" class="btn btn-secondary">취소</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="parser-test-form" id="parser-test-form" style="display: none;">
+                        <h3>파서 테스트</h3>
+                        <div id="parser-test-result">
+                            <!-- 파서 테스트 결과가 여기에 표시됩니다 -->
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="action-buttons">
-                <button id="edit-source-btn" class="btn btn-primary">
-                    <span class="btn-icon">✏️</span>
-                    수정
-                </button>
-                <button id="create-content-btn" class="btn btn-success">
-                    <span class="btn-icon">📄</span>
-                    컨텐츠 생성
-                </button>
-                <button id="auto-process-btn" class="btn btn-primary"
-                    style="background: linear-gradient(45deg, #667eea, #764ba2); border: 1px solid #667eea;">
-                    <span class="btn-icon">🤖</span>
-                    자동 처리 (파싱+생성+요약+AI키워드+노출)
-                </button>
-                <button id="test-parser-btn" class="btn btn-secondary">
-                    <span class="btn-icon">🔍</span>
-                    파서 테스트
-                </button>
-            </div>
-
-            <div class="edit-form" id="edit-form" style="display: none;">
-                <h3>뉴스레터 소스 수정</h3>
-                <form id="edit-source-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">제목</label>
-                            <input type="text" id="edit-subject" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">발신자</label>
-                            <input type="text" id="edit-sender" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">발신자 이메일</label>
-                            <input type="email" id="edit-sender-email" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">수신자</label>
-                            <input type="text" id="edit-recipient" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">수신자 이메일</label>
-                            <input type="email" id="edit-recipient-email" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Content-Type</label>
-                            <input type="text" id="edit-content-type" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Plain Text 내용</label>
-                        <textarea id="edit-plain-text" class="form-control" rows="10"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">HTML 내용</label>
-                        <textarea id="edit-html-text" class="form-control" rows="10"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">수정 완료</button>
-                        <button type="button" id="cancel-edit-btn" class="btn btn-secondary">취소</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="content-form" id="content-form" style="display: none;">
-                <h3>컨텐츠 생성</h3>
-                <form id="create-content-form">
-                    <div class="form-group">
-                        <label class="form-label">제목</label>
-                        <input type="text" id="content-title" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">뉴스레터 이름</label>
-                        <input type="text" id="newsletter-name" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">원본 URL</label>
-                        <input type="url" id="original-url" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">발행 날짜</label>
-                        <input type="date" id="published-date" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">내용</label>
-                        <textarea id="content-text" class="form-control" rows="10" required></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-success">컨텐츠 생성</button>
-                        <button type="button" id="cancel-content-btn" class="btn btn-secondary">취소</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="parser-test-form" id="parser-test-form" style="display: none;">
-                <h3>파서 테스트</h3>
-                <div id="parser-test-result">
-                    <!-- 파서 테스트 결과가 여기에 표시됩니다 -->
+                <!-- 빈 상태 표시 -->
+                <div class="section empty-state" id="empty-state">
+                    <div class="empty-state-icon">📧</div>
+                    <div class="empty-state-text">뉴스레터를 선택해주세요</div>
+                    <div class="empty-state-subtext">왼쪽 목록에서 뉴스레터를 클릭하면 상세 정보가 표시됩니다</div>
                 </div>
             </div>
         </div>
@@ -1095,6 +1325,25 @@
                 document.getElementById('create-content-btn').textContent = '컨텐츠 생성';
             });
 
+            // URL 선택 이벤트
+            document.getElementById('url-selector').addEventListener('change', function () {
+                const selectedUrl = this.value;
+                if (selectedUrl) {
+                    document.getElementById('original-url').value = selectedUrl;
+                }
+            });
+
+            // URL 새로고침 버튼
+            document.getElementById('refresh-urls-btn').addEventListener('click', function () {
+                const contentText = document.getElementById('content-text').value;
+                if (contentText) {
+                    extractAndPopulateUrls(contentText);
+                    showSuccess('URL 목록을 새로고침했습니다.');
+                } else {
+                    showError('내용이 비어있습니다.');
+                }
+            });
+
             // 수정 버튼
             document.getElementById('edit-source-btn').addEventListener('click', function () {
                 const editForm = document.getElementById('edit-form');
@@ -1190,53 +1439,33 @@
                 item.dataset.id = source.id;
 
                 const receivedDate = new Date(source.receivedDate).toLocaleString('ko-KR');
-                const plainText = source.plainText || source.htmlText || source.content || '';
-                const contentPreview = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
 
                 // 컨텐츠 생성 상태 배지 생성
                 const contentStatusBadge = source.hasContent
-                    ? '<span class="content-status-badge created">✅ 컨텐츠 생성됨</span>'
-                    : '<span class="content-status-badge not-created">⏳ 미생성</span>';
+                    ? '<span class="content-status-badge created">✅</span>'
+                    : '<span class="content-status-badge not-created">⏳</span>';
+
+                // HTML 이스케이프 함수
+                const escapeHtml = (text) => {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                };
 
                 item.innerHTML = `
                     <div class="source-header">
                         <div>
                             <div class="source-title">
-                                ${source.subject || '제목 없음'}
                                 ${contentStatusBadge}
+                                ${escapeHtml(source.subject || '제목 없음')}
                             </div>
-                            <div class="source-subject">${source.sender} (${source.senderEmail})</div>
-                        </div>
-                        <div class="source-meta">
-                            <span>수신일: ${receivedDate}</span>
-                            <span>수신자: ${source.recipient}</span>
+                            <div class="source-subject">${escapeHtml(source.sender)}</div>
                         </div>
                     </div>
-                    <div class="source-content">
-                        <div class="content-preview">${contentPreview}</div>
-                        ${plainText.length > 200 ? '<button class="expand-btn">더 보기</button>' : ''}
+                    <div class="source-meta">
+                        <span>📅 ${receivedDate}</span>
                     </div>
                 `;
-
-                // 더 보기 버튼 이벤트
-                const expandBtn = item.querySelector('.expand-btn');
-                if (expandBtn) {
-                    expandBtn.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        const contentDiv = item.querySelector('.source-content');
-                        const previewDiv = item.querySelector('.content-preview');
-
-                        if (contentDiv.classList.contains('expanded')) {
-                            contentDiv.classList.remove('expanded');
-                            previewDiv.textContent = contentPreview;
-                            this.textContent = '더 보기';
-                        } else {
-                            contentDiv.classList.add('expanded');
-                            previewDiv.textContent = plainText;
-                            this.textContent = '접기';
-                        }
-                    });
-                }
 
                 // 클릭 이벤트
                 item.addEventListener('click', () => {
@@ -1246,7 +1475,6 @@
 
                     selectedSourceId = source.id;
                     showSourceDetail(source);
-                    updateSelectedCount();
                 });
 
                 container.appendChild(item);
@@ -1359,16 +1587,37 @@
         function showSourceDetail(source) {
             const detailContainer = document.getElementById('source-detail');
             const detailSection = document.getElementById('source-detail-section');
+            const emptyState = document.getElementById('empty-state');
+
+            // 모든 열려있는 폼 닫기
+            document.getElementById('edit-form').style.display = 'none';
+            document.getElementById('content-form').style.display = 'none';
+            document.getElementById('parser-test-form').style.display = 'none';
+            document.getElementById('preview-content').style.display = 'none';
+            
+            // 버튼 텍스트 초기화
+            document.getElementById('edit-source-btn').innerHTML = '<span class="btn-icon">✏️</span>소스 수정';
+            document.getElementById('create-content-btn').innerHTML = '<span class="btn-icon">📄</span>수동 생성';
+            document.getElementById('test-parser-btn').innerHTML = '<span class="btn-icon">🔍</span>파서 테스트';
+            document.getElementById('toggle-preview-btn').innerHTML = '<span class="btn-icon">👁️</span>미리보기 토글';
 
             const receivedDate = new Date(source.receivedDate).toLocaleString('ko-KR');
 
+            // HTML 이스케이프 함수
+            const escapeHtml = (text) => {
+                if (!text) return '없음';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
             detailContainer.innerHTML = `
-                <h3>${source.subject || '제목 없음'}</h3>
+                <h3>${escapeHtml(source.subject || '제목 없음')}</h3>
                 <div class="source-meta">
-                    <div><strong>발신자:</strong> ${source.sender} (${source.senderEmail})</div>
-                    <div><strong>수신자:</strong> ${source.recipient} (${source.recipientEmail})</div>
+                    <div><strong>발신자:</strong> ${escapeHtml(source.sender)} (${escapeHtml(source.senderEmail)})</div>
+                    <div><strong>수신자:</strong> ${escapeHtml(source.recipient)} (${escapeHtml(source.recipientEmail)})</div>
                     <div><strong>수신일:</strong> ${receivedDate}</div>
-                    <div><strong>Content-Type:</strong> ${source.contentType}</div>
+                    <div><strong>Content-Type:</strong> ${escapeHtml(source.contentType)}</div>
                 </div>
                 <div class="detail-content-section">
                     <div class="content-header">
@@ -1376,7 +1625,7 @@
                         <button class="toggle-plain-content-btn">Plain Text 토글</button>
                     </div>
                     <div class="content-body">
-                        <div class="plain-content-full" style="display: none;">${source.plainText || source.content || '없음'}</div>
+                        <div class="plain-content-full" style="display: none;">${escapeHtml(source.plainText || source.content || '없음')}</div>
                     </div>
                 </div>
                 <div class="detail-content-section">
@@ -1385,7 +1634,7 @@
                         <button class="toggle-html-content-btn">HTML 토글</button>
                     </div>
                     <div class="content-body">
-                        <div class="html-content-full" style="display: none;">${source.htmlText || source.content || '없음'}</div>
+                        <div class="html-content-full" style="display: none;">${escapeHtml(source.htmlText || source.content || '없음')}</div>
                     </div>
                 </div>
             `;
@@ -1419,8 +1668,8 @@
                 }
             });
 
+            emptyState.style.display = 'none';
             detailSection.style.display = 'block';
-            detailSection.scrollIntoView({ behavior: 'smooth' });
         }
 
         function loadSourcePreview(sourceId) {
@@ -1448,9 +1697,9 @@
                     previewContainer.innerHTML = `
                         <div class="preview-html">
                             <h2>${source.subject || '제목 없음'}</h2>
-                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #3182ce;">
-                                <p style="margin: 0 0 0.5rem 0; color: #4a5568; font-size: 0.9rem;"><strong>📧 발신자:</strong> ${source.sender} (${source.senderEmail})</p>
-                                <p style="margin: 0; color: #4a5568; font-size: 0.9rem;"><strong>📅 수신일:</strong> ${new Date(source.receivedDate).toLocaleString('ko-KR')}</p>
+                            <div style="background: rgba(0, 212, 255, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #00d4ff;">
+                                <p style="margin: 0 0 0.5rem 0; color: #cbd5e0; font-size: 0.9rem;"><strong>📧 발신자:</strong> ${source.sender} (${source.senderEmail})</p>
+                                <p style="margin: 0; color: #cbd5e0; font-size: 0.9rem;"><strong>📅 수신일:</strong> ${new Date(source.receivedDate).toLocaleString('ko-KR')}</p>
                             </div>
                             <hr>
                             <div style="margin-top: 1.5rem;">
@@ -1475,12 +1724,45 @@
                     document.getElementById('original-url').value = '';
                     // 뉴스레터 소스의 receivedDate를 사용하여 발행일 설정
                     document.getElementById('published-date').value = new Date(source.receivedDate).toISOString().split('T')[0];
-                    document.getElementById('content-text').value = source.plainText || source.content || '';
+                    const contentText = source.plainText || source.htmlText || source.content || '';
+                    document.getElementById('content-text').value = contentText;
+                    
+                    // URL 추출 및 선택 옵션 생성
+                    extractAndPopulateUrls(contentText);
                 })
                 .catch(error => {
                     console.error('Error loading source for content creation:', error);
                     showError('소스 정보를 불러오는 중 오류가 발생했습니다.');
                 });
+        }
+
+        function extractAndPopulateUrls(text) {
+            // URL 추출 정규표현식 (http, https URL만)
+            const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+            const urls = text.match(urlRegex) || [];
+            
+            // 중복 제거 및 정렬
+            const uniqueUrls = [...new Set(urls)].sort();
+            
+            // 셀렉트 박스 업데이트
+            const urlSelector = document.getElementById('url-selector');
+            urlSelector.innerHTML = '<option value="">URL 선택 또는 직접 입력...</option>';
+            
+            uniqueUrls.forEach((url, index) => {
+                const option = document.createElement('option');
+                option.value = url;
+                // URL이 너무 길면 축약해서 표시
+                const displayUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
+                option.textContent = `${index + 1}. ${displayUrl}`;
+                option.title = url; // 전체 URL은 툴팁으로 표시
+                urlSelector.appendChild(option);
+            });
+            
+            // 첫 번째 URL이 있으면 자동 선택
+            if (uniqueUrls.length > 0) {
+                document.getElementById('original-url').value = uniqueUrls[0];
+                urlSelector.value = uniqueUrls[0];
+            }
         }
 
         function loadSourceForEdit(sourceId) {
@@ -1743,11 +2025,6 @@
             const contentCreatedCount = sources.filter(source => source.hasContent).length;
             document.getElementById('content-created-sources').textContent =
                 `${contentCreatedCount}/${sources.length}`;
-        }
-
-        function updateSelectedCount() {
-            const selectedCount = document.querySelectorAll('.newsletter-source-item.selected').length;
-            document.getElementById('selected-sources').textContent = selectedCount;
         }
 
         function showLoading() {

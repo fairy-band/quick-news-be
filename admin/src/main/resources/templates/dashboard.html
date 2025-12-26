@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 - Newsletter AI Processor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+
+        /* Time Range Filter */
+        .time-range-filter {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .time-range-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .time-range-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .time-range-btn.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .metric-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-title {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Distribution Grid */
+        .distribution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .distribution-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .distribution-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateX(5px);
+        }
+
+        .distribution-name {
+            flex: 1;
+            color: #ffffff;
+        }
+
+        .distribution-count {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .distribution-percentage {
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+
+        /* Activity Log */
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .activity-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-type {
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-title {
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: #a0aec0;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .quick-action-btn {
+            padding: 1rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #a0aec0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        
+        /* Desktop: Multi-column grid layout (default, already defined above) */
+        /* Requirements 9.1 */
+        
+        /* Tablet: 2-column layout */
+        /* Requirements 9.2 */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .distribution-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .section {
+                padding: 1.5rem;
+            }
+
+            .section h2 {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Mobile: Single column layout */
+        /* Requirements 9.3, 9.4, 9.5 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header {
+                margin-bottom: 2rem;
+            }
+
+            .logo {
+                font-size: 1.5rem;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .nav-link {
+                width: 100%;
+                text-align: center;
+                padding: 0.75rem 1rem;
+            }
+
+            .time-range-filter {
+                justify-content: center;
+            }
+
+            .time-range-btn {
+                flex: 1;
+                min-width: 70px;
+                text-align: center;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .metric-card {
+                padding: 1.25rem;
+            }
+
+            .metric-value {
+                font-size: 1.75rem;
+            }
+
+            .distribution-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .quick-action-btn {
+                padding: 0.875rem;
+                font-size: 0.95rem;
+            }
+
+            .section {
+                padding: 1.25rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .section h2 {
+                font-size: 1.2rem;
+                margin-bottom: 1rem;
+            }
+
+            .chart-container {
+                padding: 1rem;
+            }
+
+            .activity-list {
+                max-height: 300px;
+            }
+
+            .activity-item {
+                padding: 0.875rem;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .activity-icon {
+                margin-bottom: 0.5rem;
+                margin-right: 0;
+            }
+
+            .distribution-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .distribution-name {
+                width: 100%;
+            }
+
+            .distribution-count {
+                margin-right: 0;
+            }
+        }
+
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.75rem;
+            }
+
+            .logo {
+                font-size: 1.25rem;
+            }
+
+            .nav-link {
+                font-size: 0.85rem;
+                padding: 0.625rem 0.75rem;
+            }
+
+            .time-range-btn {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.75rem;
+            }
+
+            .metric-card {
+                padding: 1rem;
+            }
+
+            .metric-icon {
+                font-size: 1.5rem;
+            }
+
+            .metric-title {
+                font-size: 0.85rem;
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .section {
+                padding: 1rem;
+                border-radius: 15px;
+            }
+
+            .section h2 {
+                font-size: 1.1rem;
+            }
+
+            .quick-action-btn {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+
+            .activity-item {
+                padding: 0.75rem;
+            }
+
+            .activity-type {
+                font-size: 0.9rem;
+            }
+
+            .activity-title {
+                font-size: 0.9rem;
+            }
+
+            .activity-time {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Landscape orientation adjustments for tablets */
+        @media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+            .metrics-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .distribution-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        .toast.success {
+            border-color: #10b981;
+        }
+
+        .toast.error {
+            border-color: #f87171;
+        }
+
+        .toast.info {
+            border-color: #00d4ff;
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .toast.success .toast-icon {
+            color: #10b981;
+        }
+
+        .toast.error .toast-icon {
+            color: #f87171;
+        }
+
+        .toast.info .toast-icon {
+            color: #00d4ff;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #ffffff;
+        }
+
+        .toast-message {
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #a0aec0;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Mobile toast adjustments */
+        @media (max-width: 768px) {
+            .toast-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .toast {
+                min-width: auto;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .stars,
+            .nav-links,
+            .time-range-filter,
+            .quick-actions,
+            .toast-container {
+                display: none;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .section {
+                border: 1px solid #ccc;
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="./dashboard" class="nav-link active">📊 대시보드</a>
+                    <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
+                    <a href="./contents" class="nav-link">📝 콘텐츠</a>
+                    <a href="./keywords" class="nav-link">🔑 키워드</a>
+                    <a href="./exposure-fix" class="nav-link">🔧 노출 관리</a>
+                    <a href="./users" class="nav-link">👥 사용자</a>
+                    <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Range Filter -->
+        <div class="time-range-filter">
+            <button class="time-range-btn active" data-range="TODAY">오늘</button>
+            <button class="time-range-btn" data-range="THIS_WEEK">이번 주</button>
+            <button class="time-range-btn" data-range="THIS_MONTH">이번 달</button>
+            <button class="time-range-btn" data-range="ALL_TIME">전체</button>
+        </div>
+
+        <!-- Metrics Section -->
+        <div class="section">
+            <h2>주요 지표</h2>
+            <div class="metrics-grid" id="metrics-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>데이터를 불러오는 중...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="section">
+            <h2>콘텐츠 처리 현황</h2>
+            <div class="chart-container" id="chart-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>차트를 불러오는 중...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribution Section -->
+        <div class="distribution-grid">
+            <div class="section">
+                <h2>뉴스레터 소스별 분포</h2>
+                <div id="newsletter-distribution">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>데이터를 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>카테고리별 분포</h2>
+                <div id="category-distribution">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>데이터를 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Section -->
+        <div class="section">
+            <h2>최근 활동</h2>
+            <div class="activity-list" id="activity-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>활동 로그를 불러오는 중...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Section -->
+        <!-- Note: Quick actions can also be dynamically rendered using QuickActionPanelFactory.renderDefaultPanel() -->
+        <div class="section">
+            <h2>빠른 액션</h2>
+            <div class="quick-actions" id="quick-actions-container">
+                <a href="./contents?filter=noSummary" class="quick-action-btn">
+                    📝 요약 없는 콘텐츠
+                </a>
+                <a href="./contents?filter=notExposed" class="quick-action-btn">
+                    🚫 노출 안된 콘텐츠
+                </a>
+                <a href="./contents#add-content" class="quick-action-btn">
+                    ➕ 새 콘텐츠 추가
+                </a>
+                <a href="./keywords" class="quick-action-btn">
+                    🔑 키워드 관리
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/utils/cache-manager.js"></script>
+    <script src="./js/utils/loading-manager.js"></script>
+    <script src="./js/components/toast.js"></script>
+    <script src="./js/components/metric-card.js"></script>
+    <script src="./js/components/content-processing-chart.js"></script>
+    <script src="./js/components/newsletter-distribution-chart.js"></script>
+    <script src="./js/components/category-distribution-chart.js"></script>
+    <script src="./js/components/activity-log.js"></script>
+    <script src="./js/components/quick-action-panel.js"></script>
+    <script>
+        // Create stars
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 100;
+
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+
+        // Initialize
+        let currentTimeRange = 'TODAY';
+        let contentProcessingChart = null;
+        let newsletterDistributionChart = null;
+        let categoryDistributionChart = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            loadDashboardData();
+
+            // Time range filter event listeners
+            document.querySelectorAll('.time-range-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.time-range-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTimeRange = this.dataset.range;
+                    loadDashboardData();
+                });
+            });
+        });
+
+        // Load all dashboard data
+        function loadDashboardData() {
+            loadMetrics();
+            loadChartData();
+            loadNewsletterDistribution();
+            loadCategoryDistribution();
+            loadRecentActivities();
+        }
+
+        // Load metrics using MetricCard component
+        function loadMetrics() {
+            const container = document.getElementById('metrics-grid');
+            LoadingManager.showLoading(container, '지표를 불러오는 중...');
+            
+            const cacheKey = `dashboard-metrics-${currentTimeRange}`;
+            const url = `./api/dashboard/metrics?timeRange=${currentTimeRange}`;
+            
+            window.CacheManager.fetchWithCache(url, { 
+                ttl: 120000, // 2 minutes
+                cacheKey: cacheKey 
+            })
+                .then(data => {
+                    MetricCardFactory.renderToContainer(container, data);
+                })
+                .catch(error => {
+                    console.error('Error loading metrics:', error);
+                    const errorMessage = getErrorMessage(error, '지표');
+                    LoadingManager.showError(container, errorMessage, loadMetrics);
+                    Toast.error(errorMessage, { 
+                        title: '지표 로딩 실패',
+                        duration: 7000 
+                    });
+                });
+        }
+
+        // Load chart data
+        function loadChartData() {
+            const container = document.getElementById('chart-container');
+            LoadingManager.showLoading(container, '차트를 불러오는 중...');
+            
+            const cacheKey = `dashboard-chart-${currentTimeRange}`;
+            const url = `./api/dashboard/chart?timeRange=${currentTimeRange}`;
+            
+            window.CacheManager.fetchWithCache(url, { 
+                ttl: 180000, // 3 minutes
+                cacheKey: cacheKey 
+            })
+                .then(data => {
+                    // Clear loading state
+                    LoadingManager.clear(container);
+
+                    // Create or update chart (component handles empty data)
+                    if (contentProcessingChart) {
+                        contentProcessingChart.update(data);
+                    } else {
+                        contentProcessingChart = ContentProcessingChart.create('chart-container', data, {
+                            chartType: 'line'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading chart data:', error);
+                    const errorMessage = getErrorMessage(error, '차트 데이터');
+                    LoadingManager.showError(container, errorMessage, loadChartData);
+                    Toast.error(errorMessage, { 
+                        title: '차트 로딩 실패',
+                        duration: 7000 
+                    });
+                });
+        }
+
+        // Load newsletter distribution
+        function loadNewsletterDistribution() {
+            const container = document.getElementById('newsletter-distribution');
+            LoadingManager.showLoading(container, '분포 데이터를 불러오는 중...');
+            
+            const cacheKey = `dashboard-newsletter-dist-${currentTimeRange}`;
+            const url = `./api/dashboard/distribution/newsletter?timeRange=${currentTimeRange}`;
+            
+            window.CacheManager.fetchWithCache(url, { 
+                ttl: 300000, // 5 minutes
+                cacheKey: cacheKey 
+            })
+                .then(data => {
+                    if (data.length === 0) {
+                        LoadingManager.showEmpty(container, '데이터가 없습니다.');
+                        return;
+                    }
+
+                    // Clear loading state
+                    LoadingManager.clear(container);
+
+                    // Create or update chart
+                    if (newsletterDistributionChart) {
+                        newsletterDistributionChart.update(data);
+                    } else {
+                        newsletterDistributionChart = NewsletterDistributionChart.create(
+                            'newsletter-distribution', 
+                            data,
+                            {
+                                onItemClick: (item) => {
+                                    // Navigate to contents page filtered by newsletter source
+                                    window.location.href = `./contents?newsletter=${encodeURIComponent(item.name)}`;
+                                }
+                            }
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading newsletter distribution:', error);
+                    const errorMessage = getErrorMessage(error, '뉴스레터 분포 데이터');
+                    LoadingManager.showError(container, errorMessage, loadNewsletterDistribution);
+                    Toast.error(errorMessage, { 
+                        title: '뉴스레터 분포 로딩 실패',
+                        duration: 7000 
+                    });
+                });
+        }
+
+        // Load category distribution
+        function loadCategoryDistribution() {
+            const container = document.getElementById('category-distribution');
+            LoadingManager.showLoading(container, '분포 데이터를 불러오는 중...');
+            
+            const cacheKey = `dashboard-category-dist-${currentTimeRange}`;
+            const url = `./api/dashboard/distribution/category?timeRange=${currentTimeRange}`;
+            
+            window.CacheManager.fetchWithCache(url, { 
+                ttl: 300000, // 5 minutes
+                cacheKey: cacheKey 
+            })
+                .then(data => {
+                    if (data.length === 0) {
+                        LoadingManager.showEmpty(container, '데이터가 없습니다.');
+                        return;
+                    }
+
+                    // Clear loading state
+                    LoadingManager.clear(container);
+
+                    // Create or update chart
+                    if (categoryDistributionChart) {
+                        categoryDistributionChart.update(data);
+                    } else {
+                        categoryDistributionChart = CategoryDistributionChart.create(
+                            'category-distribution', 
+                            data,
+                            {
+                                chartType: 'doughnut',
+                                onItemClick: (item) => {
+                                    // Navigate to contents page filtered by category
+                                    window.location.href = `./contents?category=${encodeURIComponent(item.name)}`;
+                                }
+                            }
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading category distribution:', error);
+                    const errorMessage = getErrorMessage(error, '카테고리 분포 데이터');
+                    LoadingManager.showError(container, errorMessage, loadCategoryDistribution);
+                    Toast.error(errorMessage, { 
+                        title: '카테고리 분포 로딩 실패',
+                        duration: 7000 
+                    });
+                });
+        }
+
+        // Load recent activities using ActivityLog component
+        let activityLog = null;
+
+        function loadRecentActivities() {
+            const container = document.getElementById('activity-list');
+            LoadingManager.showLoading(container, '활동 로그를 불러오는 중...');
+            
+            const cacheKey = 'dashboard-activities';
+            const url = './api/dashboard/activities?limit=20';
+            
+            window.CacheManager.fetchWithCache(url, { 
+                ttl: 60000, // 1 minute
+                cacheKey: cacheKey 
+            })
+                .then(data => {
+                    if (activityLog) {
+                        activityLog.update(data);
+                    } else {
+                        activityLog = ActivityLog.create('activity-list', data, {
+                            useRelativeTime: true,
+                            maxHeight: 400
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading activities:', error);
+                    const errorMessage = getErrorMessage(error, '활동 로그');
+                    LoadingManager.showError(container, errorMessage, loadRecentActivities);
+                    Toast.error(errorMessage, { 
+                        title: '활동 로그 로딩 실패',
+                        duration: 7000 
+                    });
+                });
+        }
+
+        /**
+         * Get user-friendly error message based on error type
+         * @param {Error} error - The error object
+         * @param {string} dataType - Type of data being loaded (e.g., '지표', '차트 데이터')
+         * @returns {string} User-friendly error message
+         */
+        function getErrorMessage(error, dataType) {
+            // Check if error has a message property
+            const errorMessage = error?.message || String(error);
+
+            // Network errors
+            if (error instanceof TypeError || errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+                return `네트워크 연결을 확인해주세요. 서버에 연결할 수 없습니다.`;
+            }
+
+            // HTTP errors
+            if (errorMessage.includes('HTTP')) {
+                const statusMatch = errorMessage.match(/HTTP (\d+)/);
+                if (statusMatch) {
+                    const status = parseInt(statusMatch[1]);
+                    const httpMessage = getHttpErrorMessage(status);
+                    return `${dataType}를 불러올 수 없습니다. ${httpMessage}`;
+                }
+            }
+
+            // Timeout errors
+            if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+                return `요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.`;
+            }
+
+            // JSON parsing errors
+            if (error instanceof SyntaxError) {
+                return `서버 응답을 처리할 수 없습니다. 관리자에게 문의해주세요.`;
+            }
+
+            // Default error message
+            return `${dataType}를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.`;
+        }
+
+        /**
+         * Get user-friendly message for HTTP status codes
+         * @param {number} status - HTTP status code
+         * @returns {string} User-friendly message
+         */
+        function getHttpErrorMessage(status) {
+            const messages = {
+                400: '잘못된 요청입니다.',
+                401: '인증이 필요합니다. 다시 로그인해주세요.',
+                403: '접근 권한이 없습니다.',
+                404: '요청한 데이터를 찾을 수 없습니다.',
+                408: '요청 시간이 초과되었습니다.',
+                429: '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.',
+                500: '서버 오류가 발생했습니다.',
+                502: '게이트웨이 오류가 발생했습니다.',
+                503: '서비스를 일시적으로 사용할 수 없습니다.',
+                504: '게이트웨이 시간 초과가 발생했습니다.'
+            };
+
+            return messages[status] || `서버 오류 (${status})가 발생했습니다.`;
+        }
+    </script>
+</body>
+</html>

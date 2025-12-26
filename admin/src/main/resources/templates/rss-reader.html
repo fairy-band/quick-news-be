@@ -46,21 +46,72 @@
         .container {
             position: relative;
             z-index: 2;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
             min-height: 100vh;
         }
 
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .page-header {
             text-align: center;
             margin-bottom: 2rem;
         }
 
-        .logo {
+        .page-title {
             font-size: 2.5rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -69,75 +120,55 @@
 
         .subtitle {
             color: #a0aec0;
-            margin-bottom: 1rem;
+            font-size: 1.1rem;
         }
 
-        .nav-back {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            color: #ffffff;
-            text-decoration: none;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .nav-back:hover {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .section-card {
+        .control-panel {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 2rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: #00d4ff;
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .btn {
-            padding: 1rem 1.5rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            margin: 0.5rem;
-        }
-
         .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .btn-secondary {
-            background: linear-gradient(45deg, #f093fb, #f5576c);
+            background: linear-gradient(135deg, #f093fb, #f5576c);
             color: white;
             box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
         }
 
         .btn:hover {
@@ -151,70 +182,267 @@
             transform: none;
         }
 
-        .feed-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .feed-item {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .feed-title {
-            font-weight: 600;
-            color: #00d4ff;
-            margin-bottom: 0.5rem;
-        }
-
-        .feed-url {
-            font-size: 0.9rem;
-            color: #a0aec0;
-            word-break: break-all;
-            margin-bottom: 0.5rem;
-        }
-
-        .feed-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.8rem;
-            color: #a0aec0;
-        }
-
-        .stats-grid {
+        .stats-overview {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1rem;
-            margin-top: 2rem;
+            margin-bottom: 2rem;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1.25rem;
             text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00d4ff, #5a67d8);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 212, 255, 0.2);
+        }
+
+        .stat-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 700;
             color: #00d4ff;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .stat-label {
             color: #a0aec0;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .feeds-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .feed-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feed-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .feed-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.15);
+        }
+
+        .feed-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feed-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .feed-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .feed-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .feed-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .meta-label {
+            font-size: 0.7rem;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .meta-value.success {
+            color: #68d391;
+        }
+
+        .meta-value.warning {
+            color: #f6ad55;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .feed-timestamp {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feed-url {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.75rem;
+            color: #a0aec0;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: #a0aec0;
+            font-size: 0.85rem;
         }
 
         .loading {
             display: none;
             text-align: center;
-            margin: 2rem 0;
+            margin: 1rem 0;
         }
 
         .spinner {
@@ -224,7 +452,7 @@
             border-top: 3px solid #00d4ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 0.5rem;
         }
 
         @keyframes spin {
@@ -234,35 +462,74 @@
 
         .result-message {
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: 12px;
             margin: 1rem 0;
+            font-weight: 500;
+            font-size: 0.9rem;
         }
 
         .success {
-            background: rgba(72, 187, 120, 0.1);
-            border: 1px solid rgba(72, 187, 120, 0.3);
+            background: rgba(72, 187, 120, 0.15);
+            border: 1px solid rgba(72, 187, 120, 0.4);
             color: #68d391;
         }
 
         .error {
-            background: rgba(248, 113, 113, 0.1);
-            border: 1px solid rgba(248, 113, 113, 0.3);
+            background: rgba(248, 113, 113, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.4);
             color: #fca5a5;
         }
 
         .info {
-            background: rgba(66, 153, 225, 0.1);
-            border: 1px solid rgba(66, 153, 225, 0.3);
+            background: rgba(66, 153, 225, 0.15);
+            border: 1px solid rgba(66, 153, 225, 0.4);
             color: #90cdf4;
         }
 
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #a0aec0;
+            grid-column: 1 / -1;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1200px) {
+            .feed-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
-            .main-content {
+            .container {
+                padding: 1rem;
+            }
+            .page-title {
+                font-size: 2rem;
+            }
+            .feed-grid {
                 grid-template-columns: 1fr;
             }
-
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .control-buttons {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .nav-links {
+                display: none;
             }
         }
     </style>
@@ -271,79 +538,89 @@
     <div class="stars"></div>
 
     <div class="container">
-        <header class="header">
-            <a href="./" class="nav-back">← 홈으로 돌아가기</a>
-            <h1 class="logo">📡 RSS 리더 관리</h1>
-            <p class="subtitle">RSS 피드를 관리하고 콘텐츠 수집 상태를 확인하세요</p>
-        </header>
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="./dashboard" class="nav-link">📊 대시보드</a>
+                    <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
+                    <a href="./contents" class="nav-link">📝 콘텐츠</a>
+                    <a href="./keywords" class="nav-link">🔑 키워드</a>
+                    <a href="./exposure-fix" class="nav-link">🔧 노출 관리</a>
+                    <a href="./users" class="nav-link">👥 사용자</a>
+                    <a href="./rss-reader" class="nav-link active">📡 RSS 리더</a>
+                </div>
+            </div>
+        </div>
 
-        <div class="main-content">
-            <div class="section-card">
-                <h2 class="section-title">
-                    🎮 RSS 피드 제어
-                </h2>
-                
+        <div class="page-header">
+            <h2 class="page-title">📡 RSS 리더 관리</h2>
+            <p class="subtitle">RSS 피드를 관리하고 콘텐츠 수집 상태를 실시간으로 확인하세요</p>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-buttons">
                 <button class="btn btn-primary" id="fetch-feeds-btn">
-                    🔄 모든 피드 수집 시작
+                    <span>🔄</span>
+                    <span>모든 피드 수집</span>
                 </button>
                 
                 <button class="btn btn-secondary" id="get-stats-btn">
-                    📊 통계 새로고침
+                    <span>📊</span>
+                    <span>통계 새로고침</span>
                 </button>
                 
-                <button class="btn btn-primary" id="process-ai-btn">
-                    🤖 AI 처리 실행
+                <button class="btn btn-success" id="process-ai-btn">
+                    <span>🤖</span>
+                    <span>AI 처리 실행</span>
                 </button>
-
-                <div class="loading" id="loading">
-                    <div class="spinner"></div>
-                    <p>처리 중입니다...</p>
-                </div>
-
-                <div id="result-message"></div>
             </div>
 
-            <div class="section-card">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>처리 중...</p>
+            </div>
+
+            <div id="result-message"></div>
+        </div>
+
+        <div class="stats-overview" id="overall-stats" style="display: none;"></div>
+
+        <div class="feeds-section">
+            <div class="section-header">
                 <h2 class="section-title">
-                    📈 실시간 통계
+                    <span>📋</span>
+                    <span>피드별 상세 통계</span>
                 </h2>
-                
-                <div id="stats-content">
-                    <p class="info">통계를 불러오려면 '통계 새로고침' 버튼을 클릭하세요</p>
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">전체</button>
+                    <button class="filter-btn" data-filter="priority">우선순위</button>
+                    <button class="filter-btn" data-filter="pending">대기중</button>
+                    <button class="filter-btn" data-filter="errors">오류</button>
                 </div>
             </div>
-        </div>
-
-        <div class="stats-grid" id="overall-stats" style="display: none;">
-            <div class="stat-card">
-                <div class="stat-value" id="total-feeds">0</div>
-                <div class="stat-label">총 피드 수</div>
+            <div class="feed-grid" id="feed-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📡</div>
+                    <p>통계를 불러오려면 '통계 새로고침' 버튼을 클릭하세요</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="total-content">0</div>
-                <div class="stat-label">총 콘텐츠</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="processed-content">0</div>
-                <div class="stat-label">처리된 콘텐츠</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="success-rate">0%</div>
-                <div class="stat-label">처리 성공률</div>
-            </div>
-        </div>
-
-        <div class="section-card">
-            <h2 class="section-title">
-                📋 피드별 상세 통계
-            </h2>
-            <div class="feed-list" id="feed-list">
-                <p class="info">통계를 불러오려면 '통계 새로고침' 버튼을 클릭하세요</p>
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prev-page">◀ 이전</button>
+                <span class="page-info" id="page-info">1 / 1</span>
+                <button class="page-btn" id="next-page">다음 ▶</button>
             </div>
         </div>
     </div>
 
     <script>
+        // 전역 변수
+        let allFeeds = [];
+        let filteredFeeds = [];
+        let currentPage = 1;
+        const itemsPerPage = 9; // 3x3 그리드
+        let currentFilter = 'all';
+
         // 별 배경 생성
         function createStars() {
             const starsContainer = document.querySelector('.stars');
@@ -362,11 +639,38 @@
 
             // 이벤트 리스너 설정
             document.getElementById('fetch-feeds-btn').addEventListener('click', fetchAllFeeds);
-            document.getElementById('get-stats-btn').addEventListener('click', getStats);
+            document.getElementById('get-stats-btn').addEventListener('click', loadAllStats);
             document.getElementById('process-ai-btn').addEventListener('click', processAi);
 
+            // 필터 버튼 이벤트
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    currentPage = 1;
+                    applyFilter();
+                });
+            });
+
+            // 페이지네이션 이벤트
+            document.getElementById('prev-page').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderFeeds();
+                }
+            });
+
+            document.getElementById('next-page').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredFeeds.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderFeeds();
+                }
+            });
+
             // 페이지 로드 시 통계 자동 로드
-            getStats();
+            loadAllStats();
         });
 
         function showLoading() {
@@ -386,7 +690,7 @@
 
         function showMessage(message, type = 'info') {
             const messageDiv = document.getElementById('result-message');
-            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            messageDiv.innerHTML = `<div class="result-message ${type}">${message}</div>`;
         }
 
         async function fetchAllFeeds() {
@@ -406,35 +710,38 @@
                     const totalNewItems = Object.values(data.results).filter(count => count >= 0).reduce((sum, count) => sum + count, 0);
                     
                     showMessage(`
-                        ✅ 피드 수집 완료!<br>
-                        • 처리된 피드: ${successfulFeeds}/${totalFeeds}<br>
-                        • 새로 수집된 항목: ${totalNewItems}개
+                        <strong>✅ 피드 수집 완료!</strong><br>
+                        📡 처리된 피드: <strong>${successfulFeeds}/${totalFeeds}</strong> | 
+                        📄 새로 수집: <strong>${totalNewItems}개</strong>
                     `, 'success');
                     
-                    // 통계 자동 새로고침
-                    setTimeout(() => getStats(), 2000);
+                    setTimeout(() => loadAllStats(), 2000);
                 } else {
-                    showMessage(`❌ 피드 수집 실패: ${data.error}`, 'error');
+                    showMessage(`<strong>❌ 피드 수집 실패</strong><br>${data.error}`, 'error');
                 }
             } catch (error) {
                 hideLoading();
-                showMessage(`❌ 서버 오류: ${error.message}`, 'error');
+                showMessage(`<strong>❌ 서버 오류</strong><br>${error.message}`, 'error');
             }
         }
 
-        async function getStats() {
+        async function loadAllStats() {
             try {
-                const response = await fetch('./admin/rss-newsletter/stats');
-                const data = await response.json();
+                const [detailedResponse, processingResponse] = await Promise.all([
+                    fetch('./admin/rss-newsletter/detailed-stats'),
+                    fetch('./admin/rss-newsletter/processing-stats')
+                ]);
                 
-                if (data.success) {
-                    displayStats(data.stats);
-                    showMessage('📊 통계가 업데이트되었습니다', 'success');
+                const detailedData = await detailedResponse.json();
+                const processingData = await processingResponse.json();
+                
+                if (detailedData.success && processingData.success) {
+                    displayDetailedStats(detailedData.stats, processingData);
                 } else {
-                    showMessage(`❌ 통계 조회 실패: ${data.error}`, 'error');
+                    showMessage(`<strong>❌ 통계 조회 실패</strong>`, 'error');
                 }
             } catch (error) {
-                showMessage(`❌ 통계 조회 오류: ${error.message}`, 'error');
+                showMessage(`<strong>❌ 통계 조회 오류</strong><br>${error.message}`, 'error');
             }
         }
 
@@ -456,81 +763,224 @@
                 
                 if (data.success) {
                     showMessage(`
-                        🤖 AI 처리 완료!<br>
-                        • 처리된 항목: ${data.processedCount}개<br>
-                        • 오류 항목: ${data.errorCount}개<br>
-                        • 오늘 총 처리: ${data.totalProcessedToday}개
+                        <strong>🤖 AI 처리 완료!</strong><br>
+                        ✅ 처리: <strong>${data.processedCount}개</strong> | 
+                        ❌ 오류: <strong>${data.errorCount}개</strong> | 
+                        📊 오늘 총: <strong>${data.totalProcessedToday}개</strong>
                     `, 'success');
                     
-                    // 통계 자동 새로고침
-                    setTimeout(() => getStats(), 2000);
+                    setTimeout(() => loadAllStats(), 2000);
                 } else {
-                    showMessage(`❌ AI 처리 실패: ${data.error}`, 'error');
+                    showMessage(`<strong>❌ AI 처리 실패</strong><br>${data.error}`, 'error');
                 }
             } catch (error) {
                 hideLoading();
-                showMessage(`❌ AI 처리 오류: ${error.message}`, 'error');
+                showMessage(`<strong>❌ AI 처리 오류</strong><br>${error.message}`, 'error');
             }
         }
 
-        function displayStats(stats) {
-            const feedListDiv = document.getElementById('feed-list');
-            const statsContentDiv = document.getElementById('stats-content');
+        function displayDetailedStats(feedStats, processingData) {
             const overallStatsDiv = document.getElementById('overall-stats');
             
-            if (Object.keys(stats).length === 0) {
-                feedListDiv.innerHTML = '<p class="info">수집된 RSS 데이터가 없습니다</p>';
-                statsContentDiv.innerHTML = '<p class="info">통계 데이터가 없습니다</p>';
+            if (Object.keys(feedStats).length === 0) {
+                document.getElementById('feed-list').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>수집된 RSS 데이터가 없습니다</p>
+                    </div>
+                `;
                 return;
             }
             
             // 전체 통계 계산
-            let totalFeeds = Object.keys(stats).length;
-            let totalContent = 0;
-            let processedContent = 0;
+            const feeds = Object.values(feedStats);
+            const totalFeeds = feeds.length;
+            const totalItems = feeds.reduce((sum, feed) => sum + feed.totalItems, 0);
+            const totalProcessed = feeds.reduce((sum, feed) => sum + feed.aiProcessed, 0);
+            const totalPending = feeds.reduce((sum, feed) => sum + feed.pending, 0);
+            const totalErrors = feeds.reduce((sum, feed) => sum + feed.errors, 0);
+            const todayTotal = feeds.reduce((sum, feed) => sum + feed.todayItems, 0);
             
-            Object.values(stats).forEach(stat => {
-                totalContent += stat.totalCount;
-                processedContent += stat.processedCount;
-            });
+            const overallSuccessRate = totalItems > 0 ? Math.round((totalProcessed / totalItems) * 100) : 0;
             
-            const successRate = totalContent > 0 ? Math.round((processedContent / totalContent) * 100) : 0;
-            
-            // 전체 통계 표시
-            document.getElementById('total-feeds').textContent = totalFeeds;
-            document.getElementById('total-content').textContent = totalContent;
-            document.getElementById('processed-content').textContent = processedContent;
-            document.getElementById('success-rate').textContent = successRate + '%';
+            // 전체 통계 표시 (2줄 x 4열)
+            overallStatsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon">📡</div>
+                    <div class="stat-value">${totalFeeds}</div>
+                    <div class="stat-label">총 피드</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📄</div>
+                    <div class="stat-value">${totalItems}</div>
+                    <div class="stat-label">총 콘텐츠</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value">${totalProcessed}</div>
+                    <div class="stat-label">AI 처리 완료</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-value">${overallSuccessRate}%</div>
+                    <div class="stat-label">처리 성공률</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-value">${totalPending}</div>
+                    <div class="stat-label">대기 중</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">❌</div>
+                    <div class="stat-value">${totalErrors}</div>
+                    <div class="stat-label">오류</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-value">${todayTotal}</div>
+                    <div class="stat-label">오늘 수집</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value">${processingData.processedToday}/${processingData.dailyLimit}</div>
+                    <div class="stat-label">오늘 AI 처리</div>
+                </div>
+            `;
             overallStatsDiv.style.display = 'grid';
             
-            // 피드별 상세 통계
-            let feedListHtml = '';
-            Object.entries(stats).forEach(([feedName, stat]) => {
-                const lastUpdated = stat.lastUpdated ? 
-                    new Date(stat.lastUpdated).toLocaleString('ko-KR') : '없음';
+            // 피드 데이터 저장 및 필터 적용
+            allFeeds = Object.entries(feedStats)
+                .map(([key, feed]) => feed)
+                .sort((a, b) => b.priority - a.priority);
+            
+            applyFilter();
+        }
+
+        function applyFilter() {
+            switch(currentFilter) {
+                case 'priority':
+                    filteredFeeds = allFeeds.filter(feed => feed.priority >= 70);
+                    break;
+                case 'pending':
+                    filteredFeeds = allFeeds.filter(feed => feed.pending > 0);
+                    break;
+                case 'errors':
+                    filteredFeeds = allFeeds.filter(feed => feed.errors > 0);
+                    break;
+                default:
+                    filteredFeeds = [...allFeeds];
+            }
+            
+            currentPage = 1;
+            renderFeeds();
+        }
+
+        function renderFeeds() {
+            const feedListDiv = document.getElementById('feed-list');
+            const paginationDiv = document.getElementById('pagination');
+            
+            if (filteredFeeds.length === 0) {
+                feedListDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <p>필터 조건에 맞는 피드가 없습니다</p>
+                    </div>
+                `;
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            const totalPages = Math.ceil(filteredFeeds.length / itemsPerPage);
+            const startIdx = (currentPage - 1) * itemsPerPage;
+            const endIdx = startIdx + itemsPerPage;
+            const pageFeeds = filteredFeeds.slice(startIdx, endIdx);
+            
+            let feedCardsHtml = '';
+            pageFeeds.forEach(feed => {
+                const lastFetch = feed.lastFetch ? 
+                    new Date(feed.lastFetch).toLocaleString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '없음';
                 
-                feedListHtml += `
-                    <div class="feed-item">
-                        <div class="feed-title">${feedName}</div>
-                        <div class="feed-stats">
-                            <span>총 콘텐츠: ${stat.totalCount}</span>
-                            <span>처리됨: ${stat.processedCount}</span>
-                            <span>미처리: ${stat.unprocessedCount}</span>
+                const progressPercent = feed.totalItems > 0 ? 
+                    Math.round((feed.aiProcessed / feed.totalItems) * 100) : 0;
+                
+                const statusClass = progressPercent === 100 ? 'success' : 
+                                   progressPercent > 50 ? 'warning' : '';
+                
+                const priorityBadge = getPriorityBadge(feed.priority);
+                const errorBadge = feed.errors > 0 ? `<span style="color: #fca5a5; font-size: 0.75rem;">⚠️ ${feed.errors}개</span>` : '';
+                
+                feedCardsHtml += `
+                    <div class="feed-card">
+                        <div class="feed-header">
+                            <div class="feed-icon">📡</div>
+                            <div class="feed-info">
+                                <div class="feed-name">${feed.feedName} ${priorityBadge}</div>
+                            </div>
                         </div>
-                        <div class="feed-url">마지막 업데이트: ${lastUpdated}</div>
+                        
+                        <div class="feed-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">총 항목</div>
+                                <div class="meta-value">${feed.totalItems}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">AI 처리</div>
+                                <div class="meta-value ${statusClass}">${feed.aiProcessed}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">대기 중</div>
+                                <div class="meta-value">${feed.pending}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">오늘</div>
+                                <div class="meta-value">${feed.todayItems}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="feed-timestamp">
+                                <span>🕒</span>
+                                <span>${lastFetch}</span>
+                            </div>
+                            ${errorBadge}
+                        </div>
+                        
+                        <div class="feed-url">${feed.feedUrl || '피드 URL 없음'}</div>
                     </div>
                 `;
             });
             
-            feedListDiv.innerHTML = feedListHtml;
+            feedListDiv.innerHTML = feedCardsHtml;
             
-            // 요약 정보 표시
-            statsContentDiv.innerHTML = `
-                <div class="success">
-                    📊 총 ${totalFeeds}개 피드에서 ${totalContent}개 콘텐츠 수집<br>
-                    🎯 ${processedContent}개 처리 완료 (${successRate}% 성공률)
-                </div>
-            `;
+            // 페이지네이션 업데이트
+            if (totalPages > 1) {
+                paginationDiv.style.display = 'flex';
+                document.getElementById('page-info').textContent = `${currentPage} / ${totalPages} (총 ${filteredFeeds.length}개)`;
+                document.getElementById('prev-page').disabled = currentPage === 1;
+                document.getElementById('next-page').disabled = currentPage === totalPages;
+            } else {
+                paginationDiv.style.display = 'none';
+            }
+        }
+
+        function getPriorityBadge(priority) {
+            if (priority >= 90) {
+                return '<span style="background: linear-gradient(135deg, #f093fb, #f5576c); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600;">⭐ 최우선</span>';
+            } else if (priority >= 70) {
+                return '<span style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600;">🔥 높음</span>';
+            } else if (priority >= 50) {
+                return '<span style="background: rgba(255, 255, 255, 0.1); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600;">📌 보통</span>';
+            }
+            return '';
         }
     </script>
 </body>

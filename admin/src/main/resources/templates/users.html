@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사용자 관리 - Newsletter AI Processor</title>
+    <link rel="stylesheet" th:href="@{/css/admin-common.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <!-- Header and Navigation -->
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="./dashboard" class="nav-link">📊 대시보드</a>
+                    <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
+                    <a href="./contents" class="nav-link">📝 콘텐츠</a>
+                    <a href="./keywords" class="nav-link">🔑 키워드</a>
+                    <a href="./exposure-fix" class="nav-link">🔧 노출 관리</a>
+                    <a href="./users" class="nav-link active">👥 사용자</a>
+                    <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Statistics Dashboard -->
+        <div class="section">
+            <h2>📊 전체 통계</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-title">전체 사용자</div>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--color-primary); margin-top: 1rem;">
+                            <span id="total-users">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-title">활성 사용자</div>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--color-success); margin-top: 1rem;">
+                            <span id="active-users">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-title">활성 비율</div>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--color-accent); margin-top: 1rem;">
+                            <span id="active-ratio">-</span>%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Most Active Users -->
+            <div style="margin-top: 2rem;">
+                <h3>🏆 가장 활동적인 사용자 (Top 10)</h3>
+                <div id="most-active-users-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>데이터를 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Trend Chart -->
+        <div class="section">
+            <h2>📈 활동 추이 (최근 30일)</h2>
+            <div style="position: relative; height: 400px;">
+                <canvas id="activity-trend-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- User Search and List -->
+        <div class="section">
+            <h2>👥 사용자 목록</h2>
+
+            <!-- Search Controls -->
+            <div class="row" style="margin-bottom: 1.5rem;">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">사용자 ID로 검색</label>
+                        <input type="text" id="search-user-id" class="form-control" placeholder="사용자 ID 입력...">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">디바이스 토큰으로 검색</label>
+                        <input type="text" id="search-device-token" class="form-control" placeholder="디바이스 토큰 입력...">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <button id="search-btn" class="btn btn-primary">🔍 검색</button>
+                <button id="clear-search-btn" class="btn btn-secondary">✖️ 초기화</button>
+            </div>
+
+            <!-- User List -->
+            <div id="user-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>사용자 목록을 불러오는 중...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="user-pagination">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="modal-overlay" id="user-detail-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">사용자 상세 정보</h3>
+                <button class="modal-close" onclick="closeUserDetailModal()">✕</button>
+            </div>
+            <div class="modal-body" id="user-detail-content">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUserDetailModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Import shared components -->
+    <script th:src="@{/js/utils/cache-manager.js}"></script>
+    <script th:src="@{/js/utils/api-client.js}"></script>
+    <script th:src="@{/js/components/toast.js}"></script>
+    <script th:src="@{/js/components/modal.js}"></script>
+    <script th:src="@{/js/components/content-card.js}"></script>
+    <script th:src="@{/js/components/user-card.js}"></script>
+    <script th:src="@{/js/components/activity-chart.js}"></script>
+
+    <script>
+        // Initialize stars background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // State management
+        let currentPage = 0;
+        let totalPages = 0;
+        let searchUserId = '';
+        let searchDeviceToken = '';
+        let activityChart = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            loadOverallStatistics();
+            loadActivityTrend();
+            loadUsers(0);
+            setupEventListeners();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('search-btn').addEventListener('click', performSearch);
+            document.getElementById('clear-search-btn').addEventListener('click', clearSearch);
+
+            // Allow Enter key to trigger search
+            document.getElementById('search-user-id').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') performSearch();
+            });
+            document.getElementById('search-device-token').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        // Load overall statistics
+        async function loadOverallStatistics() {
+            try {
+                // Cache statistics for 5 minutes (300000ms)
+                const stats = await ApiClient.get('/api/users/statistics', {
+                    cache: true,
+                    cacheTTL: 5 * 60 * 1000
+                });
+
+                document.getElementById('total-users').textContent = stats.totalUsers || 0;
+                document.getElementById('active-users').textContent = stats.activeUsers || 0;
+
+                const ratio = stats.totalUsers > 0
+                    ? ((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)
+                    : 0;
+                document.getElementById('active-ratio').textContent = ratio;
+
+                // Load most active users
+                loadMostActiveUsers();
+            } catch (error) {
+                console.error('Failed to load statistics:', error);
+                Toast.show('통계 데이터를 불러오는데 실패했습니다.', 'error');
+            }
+        }
+
+        // Load most active users
+        async function loadMostActiveUsers() {
+            try {
+                // Cache most active users for 5 minutes
+                const users = await ApiClient.get('/api/users/most-active?limit=10', {
+                    cache: true,
+                    cacheTTL: 5 * 60 * 1000
+                });
+                const container = document.getElementById('most-active-users-list');
+
+                if (!users || users.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">활동 데이터가 없습니다.</p>';
+                    return;
+                }
+
+                container.innerHTML = users.map((user, index) => `
+                    <div class="card" style="cursor: pointer;" onclick="showUserDetail(${user.userId})">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: ${index < 3 ? 'var(--color-warning)' : 'var(--text-secondary)'};">
+                                    #${index + 1}
+                                </div>
+                                <div>
+                                    <div class="card-title">사용자 ID: ${user.userId}</div>
+                                    <div class="card-subtitle">${user.deviceToken ? user.deviceToken.substring(0, 20) + '...' : 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">
+                                    ${user.archiveCount}
+                                </div>
+                                <div class="card-subtitle">아카이브</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load most active users:', error);
+                document.getElementById('most-active-users-list').innerHTML =
+                    '<p class="text-danger text-center">데이터를 불러오는데 실패했습니다.</p>';
+            }
+        }
+
+        // Load activity trend
+        async function loadActivityTrend() {
+            try {
+                // Cache activity trend for 10 minutes
+                const trendData = await ApiClient.get('/api/users/activity-trend?days=30', {
+                    cache: true,
+                    cacheTTL: 10 * 60 * 1000
+                });
+
+                if (!trendData || trendData.length === 0) {
+                    document.getElementById('activity-trend-chart').parentElement.innerHTML =
+                        '<p class="text-muted text-center">활동 데이터가 없습니다.</p>';
+                    return;
+                }
+
+                // Prepare chart data
+                const labels = trendData.map(d => {
+                    const date = new Date(d.date);
+                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                });
+                const data = trendData.map(d => d.count);
+
+                // Create chart using ActivityChart component
+                const ctx = document.getElementById('activity-trend-chart').getContext('2d');
+                activityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '일일 활성 사용자',
+                            data: data,
+                            borderColor: 'rgb(0, 212, 255)',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff'
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: '#a0aec0'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#a0aec0'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load activity trend:', error);
+                Toast.show('활동 추이 데이터를 불러오는데 실패했습니다.', 'error');
+            }
+        }
+
+        // Load users with pagination
+        async function loadUsers(page) {
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    size: 20
+                });
+
+                if (searchUserId) {
+                    params.append('userId', searchUserId);
+                }
+                if (searchDeviceToken) {
+                    params.append('deviceToken', searchDeviceToken);
+                }
+
+                // Cache user list for 2 minutes
+                const response = await ApiClient.get(`/api/users?${params.toString()}`, {
+                    cache: true,
+                    cacheTTL: 2 * 60 * 1000
+                });
+
+                currentPage = response.number || 0;
+                totalPages = response.totalPages || 0;
+
+                renderUserList(response.content || []);
+                renderPagination();
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                document.getElementById('user-list').innerHTML =
+                    '<p class="text-danger text-center">사용자 목록을 불러오는데 실패했습니다.</p>';
+            }
+        }
+
+        // Render user list
+        function renderUserList(users) {
+            const container = document.getElementById('user-list');
+
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">사용자가 없습니다.</p>';
+                return;
+            }
+
+            // Clear container
+            container.innerHTML = '';
+
+            // Render each user card
+            users.forEach(user => {
+                const userCard = new UserCard(user, {
+                    showDetails: true,
+                    actions: [
+                        {
+                            text: '상세 보기',
+                            onClick: () => showUserDetail(user.id),
+                            className: 'btn-primary'
+                        }
+                    ]
+                });
+                container.appendChild(userCard.render());
+            });
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const container = document.getElementById('user-pagination');
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // Previous button
+            html += `<button class="pagination-item" ${currentPage === 0 ? 'disabled' : ''}
+                     onclick="loadUsers(${currentPage - 1})">이전</button>`;
+
+            // Page numbers
+            const startPage = Math.max(0, currentPage - 2);
+            const endPage = Math.min(totalPages - 1, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="pagination-item ${i === currentPage ? 'active' : ''}"
+                         onclick="loadUsers(${i})">${i + 1}</button>`;
+            }
+
+            // Next button
+            html += `<button class="pagination-item" ${currentPage >= totalPages - 1 ? 'disabled' : ''}
+                     onclick="loadUsers(${currentPage + 1})">다음</button>`;
+
+            container.innerHTML = html;
+        }
+
+        // Perform search
+        function performSearch() {
+            searchUserId = document.getElementById('search-user-id').value.trim();
+            searchDeviceToken = document.getElementById('search-device-token').value.trim();
+            loadUsers(0);
+        }
+
+        // Clear search
+        function clearSearch() {
+            searchUserId = '';
+            searchDeviceToken = '';
+            document.getElementById('search-user-id').value = '';
+            document.getElementById('search-device-token').value = '';
+            loadUsers(0);
+        }
+
+        // Show user detail modal
+        async function showUserDetail(userId) {
+            try {
+                const modal = document.getElementById('user-detail-modal');
+                const content = document.getElementById('user-detail-content');
+
+                content.innerHTML = '<div class="loading"><div class="spinner"></div><p>사용자 정보를 불러오는 중...</p></div>';
+                modal.classList.add('active');
+
+                // Load user details
+                const user = await ApiClient.get(`/api/users/${userId}`);
+                const stats = await ApiClient.get(`/api/users/${userId}/statistics`);
+                const categories = await ApiClient.get(`/api/users/${userId}/categories`);
+                const archives = await ApiClient.get(`/api/users/${userId}/archives?days=30`);
+
+                // Render user detail
+                content.innerHTML = `
+                    <div class="card">
+                        <h3 class="card-title">기본 정보</h3>
+                        <div style="margin-top: 1rem;">
+                            <p><strong>사용자 ID:</strong> ${user.id}</p>
+                            <p><strong>디바이스 토큰:</strong> ${user.deviceToken || 'N/A'}</p>
+                            <p><strong>생성일:</strong> ${new Date(user.createdAt).toLocaleString('ko-KR')}</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">활동 통계</h3>
+                        <div style="margin-top: 1rem;">
+                            <p><strong>총 활동 일수:</strong> ${stats.totalDaysActive || 0}일</p>
+                            <p><strong>연속 활동:</strong> ${stats.activityStreak || 0}일</p>
+                            <p><strong>마지막 활동:</strong> ${stats.lastActiveDate ? new Date(stats.lastActiveDate).toLocaleString('ko-KR') : 'N/A'}</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">카테고리 선호도</h3>
+                        <div style="margin-top: 1rem;">
+                            ${categories && categories.length > 0
+                                ? categories.map(cat => `
+                                    <div class="badge badge-primary">${cat.categoryName} (${cat.weight})</div>
+                                `).join('')
+                                : '<p class="text-muted">설정된 카테고리가 없습니다.</p>'
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">�  아카이브 히스토리 (최근 30일)</h3>
+                        <div id="archive-history-${userId}" style="margin-top: 1rem;">
+                            ${renderArchiveHistory(archives)}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load user detail:', error);
+                Toast.show('사용자 정보를 불러오는데 실패했습니다.', 'error');
+                closeUserDetailModal();
+            }
+        }
+
+        // Close user detail modal
+        function closeUserDetailModal() {
+            document.getElementById('user-detail-modal').classList.remove('active');
+        }
+
+        // Close modal on overlay click
+        document.getElementById('user-detail-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserDetailModal();
+            }
+        });
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeUserDetailModal();
+            }
+        });
+
+        // Render archive history
+        function renderArchiveHistory(archives) {
+            if (!archives || archives.length === 0) {
+                return '<p class="text-muted">아카이브 히스토리가 없습니다.</p>';
+            }
+
+            // Create a calendar-like view
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Group by month for headers
+            let html = '';
+            let currentMonth = null;
+
+            archives.forEach((archive, index) => {
+                const date = new Date(archive.date);
+                date.setHours(0, 0, 0, 0);
+                
+                const month = date.getMonth();
+                const year = date.getFullYear();
+                
+                // Add month header when month changes
+                if (currentMonth !== `${year}-${month}`) {
+                    if (index > 0) {
+                        html += '</div>'; // Close previous grid
+                    }
+                    
+                    currentMonth = `${year}-${month}`;
+                    const monthName = date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+                    
+                    html += `<div style="margin-top: ${index > 0 ? '1.5rem' : '0'};">`;
+                    html += `<div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">${monthName}</div>`;
+                    html += '<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;">';
+                }
+                
+                const hasArchive = archive.hasArchive;
+                const contentCount = archive.contentCount || 0;
+                const dayOfMonth = date.getDate();
+                const isToday = date.getTime() === today.getTime();
+
+                html += `
+                    <div style="
+                        padding: 0.5rem;
+                        text-align: center;
+                        border-radius: var(--radius-sm);
+                        background: ${hasArchive ? 'var(--color-success)' : 'var(--bg-overlay)'};
+                        color: ${hasArchive ? 'var(--bg-primary)' : 'var(--text-secondary)'};
+                        font-weight: ${isToday ? '700' : '400'};
+                        border: ${isToday ? '2px solid var(--color-primary)' : 'none'};
+                        font-size: 0.85rem;
+                    " title="${archive.date}${hasArchive ? ` - ${contentCount}개 콘텐츠` : ' - 아카이브 없음'}">
+                        ${dayOfMonth}
+                    </div>
+                `;
+            });
+
+            html += '</div></div>'; // Close last grid and container
+
+            html += '<div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.85rem;">';
+            html += '<div><span style="display: inline-block; width: 12px; height: 12px; background: var(--color-success); border-radius: 2px; margin-right: 0.5rem;"></span>아카이브 있음</div>';
+            html += '<div><span style="display: inline-block; width: 12px; height: 12px; background: var(--bg-overlay); border-radius: 2px; margin-right: 0.5rem;"></span>아카이브 없음</div>';
+            html += '</div>';
+
+            return html;
+        }
+    </script>
+</body>
+</html>

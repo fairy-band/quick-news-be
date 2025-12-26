@@ -227,6 +227,41 @@ class RssContentService(
         )
     }
 
+    fun getDetailedStats(): Map<String, FeedDetailedStats> {
+        val allSources = getRssSources()
+        val allStatuses = rssProcessingStatusRepository.findAll()
+        
+        return allSources
+            .groupBy { it.sender }
+            .mapValues { (feedName, sources) ->
+                val feedUrl = sources.firstOrNull()?.headers?.get("RSS-Feed-URL") ?: ""
+                val statuses = allStatuses.filter { it.rssUrl == feedUrl }
+                
+                val totalItems = statuses.size
+                val aiProcessed = statuses.count { it.aiProcessed }
+                val pending = statuses.count { !it.aiProcessed && it.isProcessed }
+                val errors = statuses.count { it.processingError != null }
+                val todayItems = statuses.count { 
+                    it.createdAt.toLocalDate() == LocalDate.now() 
+                }
+                val lastFetch = sources.mapNotNull { it.createdAt }.maxOrNull()
+                val avgPriority = statuses.map { it.priority }.average().takeIf { !it.isNaN() }?.toInt() ?: 0
+                
+                FeedDetailedStats(
+                    feedName = feedName,
+                    feedUrl = feedUrl,
+                    totalItems = totalItems,
+                    aiProcessed = aiProcessed,
+                    pending = pending,
+                    errors = errors,
+                    todayItems = todayItems,
+                    lastFetch = lastFetch,
+                    priority = avgPriority,
+                    successRate = if (totalItems > 0) (aiProcessed.toDouble() / totalItems * 100).toInt() else 0
+                )
+            }
+    }
+
     private fun fetchUnprocessedItems(limit: Int): List<RssProcessingStatus> {
         val pageable = PageRequest.of(0, limit)
         return rssProcessingStatusRepository.findUnprocessedByPriority(pageable).content
@@ -354,6 +389,19 @@ class RssContentService(
         val dailyLimit: Int,
         val pending: Int,
         val remainingQuota: Int,
+    )
+
+    data class FeedDetailedStats(
+        val feedName: String,
+        val feedUrl: String,
+        val totalItems: Int,
+        val aiProcessed: Int,
+        val pending: Int,
+        val errors: Int,
+        val todayItems: Int,
+        val lastFetch: LocalDateTime?,
+        val priority: Int,
+        val successRate: Int
     )
 }
 

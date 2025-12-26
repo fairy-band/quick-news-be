@@ -4,228 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>노출 콘텐츠 관리 - Newsletter AI Processor</title>
+    <link rel="stylesheet" href="./css/admin-common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .star {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .container {
-            position: relative;
-            z-index: 2;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            min-height: 100vh;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .nav-link {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-        }
-
-        .nav-link.active {
-            background: rgba(0, 212, 255, 0.3);
-            border-color: #00d4ff;
-        }
-
-        .section {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            margin-bottom: 2rem;
-            transition: all 0.3s ease;
-        }
-
-        .section:hover {
-            border-color: rgba(0, 212, 255, 0.5);
-            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
-        }
-
-        .section h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: #00d4ff;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: #fff;
-        }
-
-        .btn-success {
-            background: linear-gradient(45deg, #43e97b, #38f9d7);
-            color: #000;
-        }
-
-        .btn-warning {
-            background: linear-gradient(45deg, #f093fb, #f5576c);
-            color: #fff;
-        }
-
-        .content-card {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .content-card:hover {
-            border-color: #00d4ff;
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
-        }
-
-        .content-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 0.5rem;
-        }
-
-        .content-meta {
-            font-size: 0.9rem;
-            color: #a0aec0;
-            margin-bottom: 1rem;
-        }
-
-        .content-preview {
-            font-size: 0.9rem;
-            color: #cbd5e0;
-            margin-bottom: 1rem;
-            line-height: 1.5;
-            max-height: 100px;
-            overflow: hidden;
-        }
-
+        /* Page-specific styles */
         .keyword-section {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--bg-overlay);
+            border-radius: var(--radius-sm);
         }
 
         .keyword-label {
             font-size: 0.9rem;
-            color: #00d4ff;
-            margin-bottom: 0.5rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
             font-weight: 600;
         }
 
         .keyword-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
         }
 
         .keyword-tag {
             display: inline-flex;
             align-items: center;
-            padding: 0.5rem 0.75rem;
+            padding: var(--spacing-sm) 0.75rem;
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
+            border: 1px solid var(--border-secondary);
+            border-radius: var(--radius-full);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition-base);
             font-size: 0.9rem;
         }
 
         .keyword-tag:hover {
-            border-color: #00d4ff;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-glow);
         }
 
         .keyword-tag.selected {
@@ -234,103 +51,80 @@
             border-color: transparent;
         }
 
-        .custom-keyword-input {
-            width: 100%;
-            padding: 0.75rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 1rem;
-            margin-top: 0.5rem;
-        }
-
-        .custom-keyword-input:focus {
-            outline: none;
-            border-color: #00d4ff;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-        }
-
-        .custom-keyword-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         .stats-container {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            flex-wrap: wrap;
         }
 
         .stat-card {
             flex: 1;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 1.5rem;
+            min-width: 200px;
+            background: var(--bg-overlay);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
             text-align: center;
         }
 
         .stat-value {
             font-size: 2rem;
             font-weight: 700;
-            color: #00d4ff;
-            margin-bottom: 0.5rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
         }
 
         .stat-label {
             font-size: 0.9rem;
-            color: #a0aec0;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #a0aec0;
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            color: var(--text-secondary);
         }
 
         .warning-badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
-            background: linear-gradient(45deg, #f093fb, #f5576c);
-            color: #fff;
-            border-radius: 20px;
+            background: linear-gradient(45deg, var(--color-danger-dark), var(--color-danger));
+            color: var(--text-primary);
+            border-radius: var(--radius-full);
             font-size: 0.8rem;
             font-weight: 600;
-            margin-left: 0.5rem;
+            margin-left: var(--spacing-sm);
+        }
+
+        .success-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(45deg, var(--color-success), var(--color-success-dark));
+            color: #000;
+            border-radius: var(--radius-full);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: var(--spacing-sm);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .filter-group label {
+            color: var(--color-primary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .filter-group select {
+            width: auto;
+            padding: var(--spacing-sm) var(--spacing-md);
         }
     </style>
 </head>
@@ -341,11 +135,12 @@
             <div class="header-left">
                 <h1 class="logo">Newsletter AI</h1>
                 <div class="nav-links">
-                    <a href="./contents" class="nav-link">🏠 홈</a>
+                    <a href="./dashboard" class="nav-link">📊 대시보드</a>
                     <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
+                    <a href="./contents" class="nav-link">📝 콘텐츠</a>
                     <a href="./keywords" class="nav-link">🔑 키워드</a>
-                    <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
-                    <a href="./exposure-fix" class="nav-link active">🔧 콘텐츠 관리</a>
+                    <a href="./exposure-fix" class="nav-link active">🔧 노출 관리</a>
+                    <a href="./users" class="nav-link">👥 사용자</a>
                     <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
                 </div>
             </div>
@@ -353,27 +148,27 @@
 
         <div class="section">
             <h2>🔧 노출 콘텐츠 관리</h2>
-            <p style="color: #a0aec0; margin-bottom: 1.5rem;">
+            <p class="text-muted mb-3">
                 모든 노출 콘텐츠를 조회하고 키워드, 헤드라인, 요약 내용을 수정할 수 있습니다.
                 필터를 사용하여 보정이 필요한 콘텐츠만 볼 수도 있습니다.
             </p>
 
-            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; flex-wrap: wrap;">
+            <div class="filter-controls">
                 <button id="load-btn" class="btn btn-primary">
                     📋 콘텐츠 불러오기
                 </button>
                 
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <label style="color: #00d4ff; font-weight: 600;">필터:</label>
-                    <select id="filter-select" class="custom-keyword-input" style="width: auto; padding: 0.5rem 1rem;">
+                <div class="filter-group">
+                    <label>필터:</label>
+                    <select id="filter-select" class="form-select">
                         <option value="all">전체 보기</option>
                         <option value="no-keywords">보정 필요 (No Keywords)</option>
                     </select>
                 </div>
 
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <label style="color: #00d4ff; font-weight: 600;">페이지 크기:</label>
-                    <select id="page-size-select" class="custom-keyword-input" style="width: auto; padding: 0.5rem 1rem;">
+                <div class="filter-group">
+                    <label>페이지 크기:</label>
+                    <select id="page-size-select" class="form-select">
                         <option value="5">5개</option>
                         <option value="10" selected>10개</option>
                         <option value="20">20개</option>
@@ -382,7 +177,7 @@
                 </div>
             </div>
 
-            <div id="stats-container" class="stats-container" style="display: none;">
+            <div id="stats-container" class="stats-container d-none">
                 <div class="stat-card">
                     <div class="stat-value" id="total-count">0</div>
                     <div class="stat-label">현재 필터 결과</div>
@@ -397,15 +192,15 @@
                 </div>
             </div>
 
-            <div id="loading" class="loading" style="display: none;">
+            <div id="loading" class="loading d-none">
                 <div class="spinner"></div>
                 <p>콘텐츠를 불러오는 중...</p>
             </div>
 
-            <div id="empty-state" class="empty-state" style="display: none;">
-                <div class="empty-icon">📭</div>
+            <div id="empty-state" class="d-none text-center p-4">
+                <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">📭</div>
                 <h3>콘텐츠가 없습니다</h3>
-                <p>선택한 필터에 해당하는 콘텐츠가 없습니다.</p>
+                <p class="text-muted">선택한 필터에 해당하는 콘텐츠가 없습니다.</p>
             </div>
 
             <div id="content-list">
@@ -414,6 +209,12 @@
         </div>
     </div>
 
+    <!-- Include shared components -->
+    <script src="./js/utils/cache-manager.js"></script>
+    <script src="./js/utils/api-client.js"></script>
+    <script src="./js/utils/lazy-loader.js"></script>
+    <script src="./js/components/toast.js"></script>
+    <script src="./js/components/modal.js"></script>
     <script>
         let currentPage = 0;
         let totalPages = 0;
@@ -421,6 +222,7 @@
         let pageSize = 10;
         let fixedCount = 0;
         let currentFilter = 'all';
+        let lazyLoader = null;
 
         function createStars() {
             const stars = document.getElementById('stars');
@@ -436,8 +238,31 @@
             }
         }
 
+        // Initialize lazy loader
+        function initLazyLoader() {
+            if (lazyLoader) {
+                lazyLoader.disconnect();
+            }
+
+            lazyLoader = new LazyLoader({
+                threshold: 0.1,
+                rootMargin: '100px',
+                loadCallback: async (element) => {
+                    // The content is already rendered, just mark as loaded
+                    // This is a placeholder for future enhancements
+                    element.style.opacity = '0';
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    element.style.transition = 'opacity 0.3s ease-in';
+                    element.style.opacity = '1';
+                },
+                batchSize: 5,
+                loadDelay: 50
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             createStars();
+            initLazyLoader();
 
             document.getElementById('load-btn').addEventListener('click', () => {
                 currentFilter = document.getElementById('filter-select').value;
@@ -447,53 +272,53 @@
 
             document.getElementById('filter-select').addEventListener('change', () => {
                 currentFilter = document.getElementById('filter-select').value;
-                if (document.getElementById('stats-container').style.display !== 'none') {
+                if (!document.getElementById('stats-container').classList.contains('d-none')) {
                     loadExposureContents(0);
                 }
             });
 
             document.getElementById('page-size-select').addEventListener('change', () => {
                 pageSize = parseInt(document.getElementById('page-size-select').value);
-                if (document.getElementById('stats-container').style.display !== 'none') {
+                if (!document.getElementById('stats-container').classList.contains('d-none')) {
                     loadExposureContents(0);
                 }
             });
         });
 
-        function loadExposureContents(page = 0) {
+        async function loadExposureContents(page = 0) {
             const loading = document.getElementById('loading');
             const contentList = document.getElementById('content-list');
             const emptyState = document.getElementById('empty-state');
             const statsContainer = document.getElementById('stats-container');
 
-            loading.style.display = 'flex';
+            loading.classList.remove('d-none');
             contentList.innerHTML = '';
-            emptyState.style.display = 'none';
-            statsContainer.style.display = 'none';
+            emptyState.classList.add('d-none');
+            statsContainer.classList.add('d-none');
 
-            const filterParam = currentFilter === 'all' ? '' : `&filter=${currentFilter}`;
-            fetch(`./api/recommendations/exposure-contents/all?page=${page}&size=${pageSize}${filterParam}`)
-                .then(response => response.json())
-                .then(data => {
-                    loading.style.display = 'none';
-                    currentPage = data.currentPage;
-                    totalPages = data.totalPages;
-                    totalElements = data.totalElements;
+            try {
+                const filterParam = currentFilter === 'all' ? '' : `&filter=${currentFilter}`;
+                const url = `./api/recommendations/exposure-contents/all?page=${page}&size=${pageSize}${filterParam}`;
+                
+                const data = await ApiClient.get(url);
+                
+                loading.classList.add('d-none');
+                currentPage = data.currentPage;
+                totalPages = data.totalPages;
+                totalElements = data.totalElements;
 
-                    if (data.totalElements === 0) {
-                        emptyState.style.display = 'block';
-                    } else {
-                        statsContainer.style.display = 'flex';
-                        updateStats(data);
-                        renderContents(data.contents);
-                        renderPagination(data);
-                    }
-                })
-                .catch(error => {
-                    loading.style.display = 'none';
-                    console.error('Error loading contents:', error);
-                    alert('콘텐츠를 불러오는 중 오류가 발생했습니다.');
-                });
+                if (data.totalElements === 0) {
+                    emptyState.classList.remove('d-none');
+                } else {
+                    statsContainer.classList.remove('d-none');
+                    updateStats(data);
+                    renderContents(data.contents);
+                    renderPagination(data);
+                }
+            } catch (error) {
+                loading.classList.add('d-none');
+                ApiClient.handleError(error, (message, type) => Toast.show(message, type));
+            }
         }
 
         function updateStats(data) {
@@ -508,7 +333,17 @@
 
             contents.forEach((content, index) => {
                 const card = createContentCard(content, index);
+                
+                // Add lazy loading class
+                card.classList.add('lazy-pending');
+                card.style.opacity = '0';
+                
                 contentList.appendChild(card);
+                
+                // Observe card for lazy loading
+                if (lazyLoader) {
+                    lazyLoader.observe(card);
+                }
             });
         }
 
@@ -524,14 +359,7 @@
             // Create pagination container
             const pagination = document.createElement('div');
             pagination.id = 'pagination';
-            pagination.style.cssText = `
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 0.5rem;
-                margin-top: 2rem;
-                padding: 1rem;
-            `;
+            pagination.className = 'pagination';
 
             // Previous button
             const prevBtn = document.createElement('button');
@@ -544,13 +372,7 @@
 
             // Page info
             const pageInfo = document.createElement('div');
-            pageInfo.style.cssText = `
-                padding: 0.75rem 1.5rem;
-                background: rgba(0, 0, 0, 0.3);
-                border-radius: 8px;
-                color: #00d4ff;
-                font-weight: 600;
-            `;
+            pageInfo.className = 'pagination-item';
             pageInfo.textContent = `${currentPage + 1} / ${totalPages} 페이지 (총 ${totalElements}개)`;
             pagination.appendChild(pageInfo);
 
@@ -568,25 +390,25 @@
 
         function createContentCard(content, index) {
             const card = document.createElement('div');
-            card.className = 'content-card';
+            card.className = 'card';
             card.id = `content-card-${content.id}`;
 
             const titleDiv = document.createElement('div');
-            titleDiv.className = 'content-title';
+            titleDiv.className = 'card-title';
             const badge = content.provocativeKeyword === 'No Keywords' 
                 ? '<span class="warning-badge">보정 필요</span>' 
-                : '<span class="warning-badge" style="background: linear-gradient(45deg, #43e97b, #38f9d7);">✓</span>';
+                : '<span class="success-badge">✓</span>';
             titleDiv.innerHTML = `${content.title} ${badge}`;
 
             const metaDiv = document.createElement('div');
-            metaDiv.className = 'content-meta';
+            metaDiv.className = 'card-subtitle';
             metaDiv.innerHTML = `
                 📰 ${content.newsletterName} | 
-                <a href="${content.originalUrl}" target="_blank" style="color: #00d4ff;">원문 보기</a>
+                <a href="${content.originalUrl}" target="_blank" style="color: var(--color-primary);">원문 보기</a>
             `;
 
             const previewDiv = document.createElement('div');
-            previewDiv.className = 'content-preview';
+            previewDiv.className = 'card-content';
             previewDiv.textContent = content.contentPreview + '...';
 
             const keywordSection = document.createElement('div');
@@ -599,7 +421,7 @@
 
             const keywordInput = document.createElement('input');
             keywordInput.type = 'text';
-            keywordInput.className = 'custom-keyword-input';
+            keywordInput.className = 'form-control';
             keywordInput.placeholder = '키워드를 입력하세요...';
             keywordInput.value = content.provocativeKeyword === 'No Keywords' ? '' : content.provocativeKeyword;
             keywordInput.id = `keyword-input-${content.id}`;
@@ -611,7 +433,7 @@
             if (content.suggestedKeywords && content.suggestedKeywords.length > 0) {
                 const suggestedLabel = document.createElement('div');
                 suggestedLabel.className = 'keyword-label';
-                suggestedLabel.style.marginTop = '1rem';
+                suggestedLabel.style.marginTop = 'var(--spacing-md)';
                 suggestedLabel.textContent = '💡 제안된 키워드 (클릭하여 선택)';
 
                 const suggestedTags = document.createElement('div');
@@ -639,12 +461,12 @@
             // Provocative Headline Section
             const headlineLabel = document.createElement('div');
             headlineLabel.className = 'keyword-label';
-            headlineLabel.style.marginTop = '1rem';
+            headlineLabel.style.marginTop = 'var(--spacing-md)';
             headlineLabel.textContent = '📢 자극적인 헤드라인';
 
             const headlineInput = document.createElement('input');
             headlineInput.type = 'text';
-            headlineInput.className = 'custom-keyword-input';
+            headlineInput.className = 'form-control';
             headlineInput.placeholder = '헤드라인을 입력하세요...';
             headlineInput.value = content.provocativeHeadline;
             headlineInput.id = `headline-input-${content.id}`;
@@ -655,24 +477,24 @@
             // Summary Content Section
             const summaryLabel = document.createElement('div');
             summaryLabel.className = 'keyword-label';
-            summaryLabel.style.marginTop = '1rem';
+            summaryLabel.style.marginTop = 'var(--spacing-md)';
             summaryLabel.textContent = '📝 요약 콘텐츠';
 
             const summaryTextarea = document.createElement('textarea');
-            summaryTextarea.className = 'custom-keyword-input';
+            summaryTextarea.className = 'form-control';
             summaryTextarea.placeholder = '요약 내용을 입력하세요...';
             summaryTextarea.value = content.summaryContent;
             summaryTextarea.id = `summary-input-${content.id}`;
             summaryTextarea.rows = 4;
-            summaryTextarea.style.resize = 'vertical';
-            summaryTextarea.style.fontFamily = 'inherit';
 
             keywordSection.appendChild(summaryLabel);
             keywordSection.appendChild(summaryTextarea);
 
             // Action buttons
             const actionButtons = document.createElement('div');
-            actionButtons.className = 'action-buttons';
+            actionButtons.style.display = 'flex';
+            actionButtons.style.gap = 'var(--spacing-md)';
+            actionButtons.style.marginTop = 'var(--spacing-md)';
 
             const saveBtn = document.createElement('button');
             saveBtn.className = 'btn btn-success';
@@ -702,19 +524,19 @@
             return card;
         }
 
-        function saveExposureContent(exposureContentId, keyword, headline, summaryContent) {
+        async function saveExposureContent(exposureContentId, keyword, headline, summaryContent) {
             if (!keyword || keyword.trim() === '') {
-                alert('키워드를 입력하거나 선택해주세요.');
+                Toast.error('키워드를 입력하거나 선택해주세요.');
                 return;
             }
 
             if (!headline || headline.trim() === '') {
-                alert('헤드라인을 입력해주세요.');
+                Toast.error('헤드라인을 입력해주세요.');
                 return;
             }
 
             if (!summaryContent || summaryContent.trim() === '') {
-                alert('요약 콘텐츠를 입력해주세요.');
+                Toast.error('요약 콘텐츠를 입력해주세요.');
                 return;
             }
 
@@ -722,26 +544,13 @@
             const trimmedHeadline = headline.trim();
             const trimmedSummary = summaryContent.trim();
 
-            // Update exposure content
-            fetch(`./api/recommendations/exposure-contents/${exposureContentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            try {
+                await ApiClient.put(`./api/recommendations/exposure-contents/${exposureContentId}`, {
                     provocativeKeyword: trimmedKeyword,
                     provocativeHeadline: trimmedHeadline,
                     summaryContent: trimmedSummary
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error('Failed to update exposure content');
-                }
-            })
-            .then(data => {
+                });
+
                 // Remove the card with animation
                 const card = document.getElementById(`content-card-${exposureContentId}`);
                 card.style.transition = 'all 0.3s ease';
@@ -753,7 +562,7 @@
                     fixedCount++;
 
                     // Check if all contents on current page are fixed
-                    const remainingCards = document.querySelectorAll('.content-card');
+                    const remainingCards = document.querySelectorAll('.card[id^="content-card-"]');
                     if (remainingCards.length === 0) {
                         // Reload current page
                         loadExposureContents(currentPage);
@@ -761,12 +570,10 @@
                 }, 300);
 
                 // Show success message
-                showToast(`✅ 콘텐츠가 성공적으로 업데이트되었습니다.`);
-            })
-            .catch(error => {
-                console.error('Error saving exposure content:', error);
-                alert('콘텐츠 저장 중 오류가 발생했습니다.');
-            });
+                Toast.success('콘텐츠가 성공적으로 업데이트되었습니다.');
+            } catch (error) {
+                ApiClient.handleError(error, (message, type) => Toast.show(message, type));
+            }
         }
 
         function skipContent(exposureContentId) {
@@ -779,37 +586,11 @@
                 card.remove();
                 
                 // Check if all contents on current page are skipped
-                const remainingCards = document.querySelectorAll('.content-card');
+                const remainingCards = document.querySelectorAll('.card[id^="content-card-"]');
                 if (remainingCards.length === 0) {
                     loadExposureContents(currentPage);
                 }
             }, 300);
-        }
-
-        function showToast(message) {
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.style.position = 'fixed';
-            toast.style.bottom = '2rem';
-            toast.style.right = '2rem';
-            toast.style.background = 'rgba(0, 212, 255, 0.9)';
-            toast.style.color = '#000';
-            toast.style.padding = '1rem 1.5rem';
-            toast.style.borderRadius = '8px';
-            toast.style.fontWeight = '600';
-            toast.style.zIndex = '1000';
-            toast.style.boxShadow = '0 4px 20px rgba(0, 212, 255, 0.5)';
-            toast.textContent = message;
-
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.transition = 'opacity 0.3s ease';
-                toast.style.opacity = '0';
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 300);
-            }, 3000);
         }
     </script>
 </body>

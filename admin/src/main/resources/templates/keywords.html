@@ -46,10 +46,30 @@
         .container {
             position: relative;
             z-index: 2;
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 2rem;
             min-height: 100vh;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #a0aec0;
+            font-size: 1.1rem;
         }
 
         .header {
@@ -79,6 +99,7 @@
         .nav-links {
             display: flex;
             gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .nav-link {
@@ -89,6 +110,7 @@
             color: #ffffff;
             text-decoration: none;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .nav-link:hover {
@@ -105,23 +127,25 @@
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 2rem;
+            border-radius: 16px;
+            padding: 1.5rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             transition: all 0.3s ease;
         }
 
         .section:hover {
-            border-color: rgba(0, 212, 255, 0.5);
-            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.3);
         }
 
         .section h2 {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .section h3 {
@@ -132,19 +156,21 @@
         }
 
         .keyword-item {
-            padding: 1rem;
-            margin: 0.5rem 0;
+            padding: 0.6rem;
+            margin: 0.4rem 0;
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
+            border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
         }
 
         .keyword-item:hover {
             background: rgba(0, 0, 0, 0.3);
-            transform: translateY(-2px);
+            border-color: rgba(0, 212, 255, 0.3);
         }
 
         .keyword-actions {
@@ -159,11 +185,17 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-success {
@@ -204,38 +236,62 @@
         }
 
         .row {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .col-md-6 {
-            flex: 1;
+            /* 3열 그리드로 변경되어 더 이상 필요 없음 */
+        }
+
+        .col-md-4 {
+            /* 카테고리용 */
         }
 
         .category-list {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 0.5rem;
-            max-height: 300px; /* Adjust as needed */
+            max-height: 300px;
             overflow-y: auto;
-            padding-right: 10px; /* Add some padding for scrollbar */
+            padding-right: 10px;
+        }
+
+        .category-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .category-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .category-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
         }
 
         .category-item {
-            padding: 0.75rem 1rem;
+            padding: 0.6rem;
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            text-align: center;
+            font-size: 0.85rem;
         }
 
         .category-item:hover {
-            background: rgba(0, 212, 255, 0.1);
+            background: rgba(0, 212, 255, 0.15);
+            border-color: #00d4ff;
+            transform: translateY(-2px);
+        }
+
+        .category-item.selected {
+            background: rgba(0, 212, 255, 0.2);
             border-color: #00d4ff;
         }
 
@@ -248,16 +304,17 @@
         }
 
         .pagination-item {
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.75rem;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+            border-radius: 6px;
             color: #ffffff;
             text-decoration: none;
             transition: all 0.3s ease;
             cursor: pointer;
             text-align: center;
-            min-width: 40px;
+            min-width: 35px;
+            font-size: 0.85rem;
         }
 
         .pagination-item:hover {
@@ -290,9 +347,11 @@
         }
 
         .keyword-manager {
-            display: flex;
-            gap: 2rem;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1.5rem;
             margin-top: 1rem;
+            align-items: start;
         }
 
         .keyword-column {
@@ -311,27 +370,44 @@
         }
 
         .keyword-list {
-            max-height: 400px;
+            max-height: 280px;
             overflow-y: auto;
+        }
+
+        .keyword-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .keyword-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .keyword-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
         }
 
         .keyword-list-item {
             display: flex;
             align-items: center;
             padding: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 6px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.85rem;
         }
 
         .keyword-list-item:hover {
-            border-color: #00d4ff;
+            border-color: rgba(0, 212, 255, 0.5);
+            background: rgba(0, 0, 0, 0.4);
         }
 
         .keyword-list-item.selected {
-            background: rgba(0, 212, 255, 0.1);
+            background: rgba(0, 212, 255, 0.15);
             border-color: #00d4ff;
         }
 
@@ -340,9 +416,11 @@
         }
 
         .keyword-list-item .keyword-weight {
-            width: 80px;
+            min-width: 50px;
             text-align: right;
             color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.95rem;
         }
 
         .keyword-list-item .keyword-actions {
@@ -422,6 +500,77 @@
         .weight-input-container input {
             width: 100px;
         }
+
+        .form-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .form-group .form-control {
+            flex: 1;
+        }
+
+        .form-group .btn {
+            white-space: nowrap;
+            padding: 0.75rem 1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .row .col-md-4:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .keyword-manager {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .keyword-transfer-controls {
+                flex-direction: row;
+                justify-content: center;
+                order: 2;
+            }
+
+            .keyword-column:first-child {
+                order: 1;
+            }
+
+            .keyword-column:last-child {
+                order: 3;
+            }
+
+            .category-list {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .category-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .keyword-manager {
+                gap: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -431,55 +580,64 @@
             <div class="header-left">
                 <h1 class="logo">Newsletter AI</h1>
                 <div class="nav-links">
-                    <a href="./contents" class="nav-link">🏠 홈</a>
+                    <a href="./dashboard" class="nav-link">📊 대시보드</a>
                     <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
+                    <a href="./contents" class="nav-link">📝 콘텐츠</a>
                     <a href="./keywords" class="nav-link active">🔑 키워드</a>
-                    <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
-                    <a href="./exposure-fix" class="nav-link">🔧 키워드 보정</a>
+                    <a href="./exposure-fix" class="nav-link">🔧 노출 관리</a>
+                    <a href="./users" class="nav-link">👥 사용자</a>
                     <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
                 </div>
             </div>
         </div>
 
+        <div class="page-header">
+            <h2 class="page-title">🔑 키워드 관리</h2>
+            <p class="subtitle">후보 키워드를 관리하고 카테고리별로 키워드를 분류하세요</p>
+        </div>
+
         <div class="row">
             <!-- Candidate Keywords Section -->
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="section">
-                    <h2>후보 키워드</h2>
+                    <h2>📝 후보 키워드</h2>
                     <div id="candidate-keywords-list"></div>
                     <div class="pagination" id="candidate-pagination"></div>
                     <div class="form-group">
                         <input type="text" id="new-candidate-name" class="form-control" placeholder="새 후보 키워드">
-                        <button id="add-candidate-keyword-btn" class="btn btn-primary">추가</button>
+                        <button id="add-candidate-keyword-btn" class="btn btn-primary">➕</button>
                     </div>
                 </div>
             </div>
 
             <!-- Reserved Keywords Section -->
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="section">
-                    <h2>예약 키워드</h2>
+                    <h2>⭐ 예약 키워드</h2>
                     <div id="reserved-keywords-list"></div>
                     <div class="pagination" id="reserved-pagination"></div>
                     <div class="form-group">
                         <input type="text" id="new-keyword-name" class="form-control" placeholder="새 예약 키워드">
-                        <button id="add-reserved-keyword-btn" class="btn btn-primary">추가</button>
+                        <button id="add-reserved-keyword-btn" class="btn btn-primary">➕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Section -->
+            <div class="col-md-4">
+                <div class="section">
+                    <h2>📂 카테고리</h2>
+                    <div id="categories-list" class="category-list"></div>
+                    <div class="form-group">
+                        <input type="text" id="new-category-name" class="form-control" placeholder="새 카테고리">
+                        <button id="add-category-btn" class="btn btn-primary">➕</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="section">
-            <h2>카테고리</h2>
-            <div id="categories-list" class="category-list"></div>
-            <div class="form-group">
-                <input type="text" id="new-category-name" class="form-control" placeholder="새 카테고리">
-                <button id="add-category-btn" class="btn btn-primary">추가</button>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>카테고리별 키워드</h2>
+            <h2>🏷️ 카테고리별 키워드 매핑</h2>
             <div class="category-selector">
                 <select id="category-select" class="form-select">
                     <option value="">카테고리 선택</option>
