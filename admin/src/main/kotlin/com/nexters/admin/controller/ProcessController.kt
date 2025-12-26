@@ -1,5 +1,6 @@
 package com.nexters.admin.controller
 
+import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.CandidateKeyword
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
@@ -35,6 +36,7 @@ class ProcessController(
     private val exposureContentService: ExposureContentService,
     private val rssContentService: RssContentService,
     private val newsletterProcessingService: NewsletterProcessingService,
+    private val rateLimiterService: com.nexters.external.service.GeminiRateLimiterService,
 ) {
     @GetMapping("/content/{contentId}/keywords")
     fun getContentKeywords(
@@ -308,6 +310,30 @@ class ProcessController(
                 )
             )
         }
+
+    @GetMapping("/gemini/rate-limit")
+    fun getGeminiRateLimit(): ResponseEntity<GeminiRateLimitResponse> {
+        val allUsage = rateLimiterService.getAllTodayUsage()
+
+        val modelUsages =
+            GeminiModel.entries.map { model ->
+                val usage = allUsage[model.modelName] ?: Pair(0, model.rpd)
+                ModelUsage(
+                    modelName = model.modelName,
+                    currentCount = usage.first,
+                    maxCount = usage.second,
+                    remainingCount = usage.second - usage.first,
+                    rpm = model.rpm,
+                    rpd = model.rpd
+                )
+            }
+
+        return ResponseEntity.ok(
+            GeminiRateLimitResponse(
+                modelUsages = modelUsages
+            )
+        )
+    }
 }
 
 data class SaveSummaryRequest(
@@ -365,4 +391,17 @@ data class AutoProcessResponse(
     val success: Boolean,
     val message: String,
     val exposureContentId: Long? = null
+)
+
+data class GeminiRateLimitResponse(
+    val modelUsages: List<ModelUsage>
+)
+
+data class ModelUsage(
+    val modelName: String,
+    val currentCount: Int,
+    val maxCount: Int,
+    val remainingCount: Int,
+    val rpm: Int,
+    val rpd: Int
 )

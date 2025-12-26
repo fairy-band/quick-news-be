@@ -2,7 +2,6 @@ package com.nexters.external.service
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.ContentAnalysisResult
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.Content
@@ -21,7 +20,7 @@ import java.time.LocalDateTime
 
 @Service
 class ContentAnalysisService(
-    private val geminiClient: GeminiClient,
+    private val rateLimiterService: GeminiRateLimiterService,
     private val summaryRepository: SummaryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
@@ -43,7 +42,7 @@ class ContentAnalysisService(
             try {
                 logger.info("Trying to analyze content with model: ${model.modelName}")
 
-                val response = geminiClient.requestContentAnalysis(inputKeywords, model, content)
+                val response = rateLimiterService.executeWithRateLimit(inputKeywords, model, content)
 
                 if (response != null) {
                     val responseText = response.text()
@@ -59,6 +58,10 @@ class ContentAnalysisService(
                 } else {
                     logger.warn("Got null response from ${model.modelName}")
                 }
+            } catch (e: com.nexters.external.exception.RateLimitExceededException) {
+                logger.warn("Rate limit exceeded for model ${model.modelName}, trying next model")
+                // Rate limit 초과 시 다음 모델로 시도
+                continue
             } catch (e: Exception) {
                 logger.error("Error with model ${model.modelName}: ${e.message}", e)
             }
