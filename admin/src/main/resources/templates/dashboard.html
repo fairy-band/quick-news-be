@@ -1,136 +1,21 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>대시보드 - Newsletter AI Processor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel='stylesheet' th:href='@{/css/style.css}'>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* Dashboard Specific Styles */
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .star {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .container {
-            position: relative;
-            z-index: 2;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            min-height: 100vh;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .nav-link {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-        }
-
-        .nav-link.active {
-            background: rgba(0, 212, 255, 0.3);
-            border-color: #00d4ff;
-        }
-
-        .section {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            margin-bottom: 2rem;
-            transition: all 0.3s ease;
-        }
-
-        .section:hover {
-            border-color: rgba(0, 212, 255, 0.5);
-            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
-        }
-
-        .section h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: #00d4ff;
-        }
-
-        .section h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #a0aec0;
-        }
 
         /* Time Range Filter */
         .time-range-filter {
@@ -321,33 +206,13 @@
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
-        /* Loading State */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: #a0aec0;
-        }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
 
         /* Responsive Design */
-        
+
         /* Desktop: Multi-column grid layout (default, already defined above) */
         /* Requirements 9.1 */
-        
+
         /* Tablet: 2-column layout */
         /* Requirements 9.2 */
         @media (max-width: 1024px) {
@@ -677,6 +542,7 @@
                 transform: translateX(100%);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -688,6 +554,7 @@
                 transform: translateX(0);
                 opacity: 1;
             }
+
             to {
                 transform: translateX(100%);
                 opacity: 0;
@@ -710,6 +577,7 @@
 
         /* Print styles */
         @media print {
+
             .stars,
             .nav-links,
             .time-range-filter,
@@ -735,6 +603,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="stars" id="stars"></div>
     <div class="container">
@@ -869,13 +738,13 @@
         let newsletterDistributionChart = null;
         let categoryDistributionChart = null;
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             createStars();
             loadDashboardData();
 
             // Time range filter event listeners
             document.querySelectorAll('.time-range-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     document.querySelectorAll('.time-range-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentTimeRange = this.dataset.range;
@@ -897,13 +766,13 @@
         function loadMetrics() {
             const container = document.getElementById('metrics-grid');
             LoadingManager.showLoading(container, '지표를 불러오는 중...');
-            
+
             const cacheKey = `dashboard-metrics-${currentTimeRange}`;
             const url = `./api/dashboard/metrics?timeRange=${currentTimeRange}`;
-            
-            window.CacheManager.fetchWithCache(url, { 
+
+            window.CacheManager.fetchWithCache(url, {
                 ttl: 120000, // 2 minutes
-                cacheKey: cacheKey 
+                cacheKey: cacheKey
             })
                 .then(data => {
                     MetricCardFactory.renderToContainer(container, data);
@@ -912,9 +781,9 @@
                     console.error('Error loading metrics:', error);
                     const errorMessage = getErrorMessage(error, '지표');
                     LoadingManager.showError(container, errorMessage, loadMetrics);
-                    Toast.error(errorMessage, { 
+                    Toast.error(errorMessage, {
                         title: '지표 로딩 실패',
-                        duration: 7000 
+                        duration: 7000
                     });
                 });
         }
@@ -923,13 +792,13 @@
         function loadChartData() {
             const container = document.getElementById('chart-container');
             LoadingManager.showLoading(container, '차트를 불러오는 중...');
-            
+
             const cacheKey = `dashboard-chart-${currentTimeRange}`;
             const url = `./api/dashboard/chart?timeRange=${currentTimeRange}`;
-            
-            window.CacheManager.fetchWithCache(url, { 
+
+            window.CacheManager.fetchWithCache(url, {
                 ttl: 180000, // 3 minutes
-                cacheKey: cacheKey 
+                cacheKey: cacheKey
             })
                 .then(data => {
                     // Clear loading state
@@ -948,9 +817,9 @@
                     console.error('Error loading chart data:', error);
                     const errorMessage = getErrorMessage(error, '차트 데이터');
                     LoadingManager.showError(container, errorMessage, loadChartData);
-                    Toast.error(errorMessage, { 
+                    Toast.error(errorMessage, {
                         title: '차트 로딩 실패',
-                        duration: 7000 
+                        duration: 7000
                     });
                 });
         }
@@ -959,13 +828,13 @@
         function loadNewsletterDistribution() {
             const container = document.getElementById('newsletter-distribution');
             LoadingManager.showLoading(container, '분포 데이터를 불러오는 중...');
-            
+
             const cacheKey = `dashboard-newsletter-dist-${currentTimeRange}`;
             const url = `./api/dashboard/distribution/newsletter?timeRange=${currentTimeRange}`;
-            
-            window.CacheManager.fetchWithCache(url, { 
+
+            window.CacheManager.fetchWithCache(url, {
                 ttl: 300000, // 5 minutes
-                cacheKey: cacheKey 
+                cacheKey: cacheKey
             })
                 .then(data => {
                     if (data.length === 0) {
@@ -981,7 +850,7 @@
                         newsletterDistributionChart.update(data);
                     } else {
                         newsletterDistributionChart = NewsletterDistributionChart.create(
-                            'newsletter-distribution', 
+                            'newsletter-distribution',
                             data,
                             {
                                 onItemClick: (item) => {
@@ -996,9 +865,9 @@
                     console.error('Error loading newsletter distribution:', error);
                     const errorMessage = getErrorMessage(error, '뉴스레터 분포 데이터');
                     LoadingManager.showError(container, errorMessage, loadNewsletterDistribution);
-                    Toast.error(errorMessage, { 
+                    Toast.error(errorMessage, {
                         title: '뉴스레터 분포 로딩 실패',
-                        duration: 7000 
+                        duration: 7000
                     });
                 });
         }
@@ -1007,13 +876,13 @@
         function loadCategoryDistribution() {
             const container = document.getElementById('category-distribution');
             LoadingManager.showLoading(container, '분포 데이터를 불러오는 중...');
-            
+
             const cacheKey = `dashboard-category-dist-${currentTimeRange}`;
             const url = `./api/dashboard/distribution/category?timeRange=${currentTimeRange}`;
-            
-            window.CacheManager.fetchWithCache(url, { 
+
+            window.CacheManager.fetchWithCache(url, {
                 ttl: 300000, // 5 minutes
-                cacheKey: cacheKey 
+                cacheKey: cacheKey
             })
                 .then(data => {
                     if (data.length === 0) {
@@ -1029,7 +898,7 @@
                         categoryDistributionChart.update(data);
                     } else {
                         categoryDistributionChart = CategoryDistributionChart.create(
-                            'category-distribution', 
+                            'category-distribution',
                             data,
                             {
                                 chartType: 'doughnut',
@@ -1045,9 +914,9 @@
                     console.error('Error loading category distribution:', error);
                     const errorMessage = getErrorMessage(error, '카테고리 분포 데이터');
                     LoadingManager.showError(container, errorMessage, loadCategoryDistribution);
-                    Toast.error(errorMessage, { 
+                    Toast.error(errorMessage, {
                         title: '카테고리 분포 로딩 실패',
-                        duration: 7000 
+                        duration: 7000
                     });
                 });
         }
@@ -1058,13 +927,13 @@
         function loadRecentActivities() {
             const container = document.getElementById('activity-list');
             LoadingManager.showLoading(container, '활동 로그를 불러오는 중...');
-            
+
             const cacheKey = 'dashboard-activities';
             const url = './api/dashboard/activities?limit=20';
-            
-            window.CacheManager.fetchWithCache(url, { 
+
+            window.CacheManager.fetchWithCache(url, {
                 ttl: 60000, // 1 minute
-                cacheKey: cacheKey 
+                cacheKey: cacheKey
             })
                 .then(data => {
                     if (activityLog) {
@@ -1080,9 +949,9 @@
                     console.error('Error loading activities:', error);
                     const errorMessage = getErrorMessage(error, '활동 로그');
                     LoadingManager.showError(container, errorMessage, loadRecentActivities);
-                    Toast.error(errorMessage, { 
+                    Toast.error(errorMessage, {
                         title: '활동 로그 로딩 실패',
-                        duration: 7000 
+                        duration: 7000
                     });
                 });
         }
@@ -1149,4 +1018,5 @@
         }
     </script>
 </body>
+
 </html>

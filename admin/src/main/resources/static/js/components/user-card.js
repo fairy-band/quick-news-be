@@ -35,7 +35,7 @@ class UserCard {
      */
     render() {
         const card = document.createElement('div');
-        card.className = 'card user-card';
+        card.className = 'result-card user-card';
         card.dataset.userId = this.user.id;
 
         // Add click handler if provided
@@ -85,10 +85,10 @@ class UserCard {
      */
     _createHeader() {
         const header = document.createElement('div');
-        header.className = 'card-header';
+        // header.className = 'card-header'; // Removed legacy class
 
         const title = document.createElement('h3');
-        title.className = 'card-title';
+        title.className = 'result-title';
         title.textContent = `User #${this.user.id}`;
         header.appendChild(title);
 
@@ -390,7 +390,7 @@ class UserCard {
      */
     static createLoadingCard() {
         const card = document.createElement('div');
-        card.className = 'card user-card';
+        card.className = 'result-card user-card';
         card.style.minHeight = '150px';
         card.style.display = 'flex';
         card.style.alignItems = 'center';
@@ -415,7 +415,7 @@ class UserCard {
      */
     static createEmptyCard(message = 'No users found') {
         const card = document.createElement('div');
-        card.className = 'card';
+        card.className = 'result-card';
         card.style.textAlign = 'center';
         card.style.padding = 'var(--spacing-xl)';
         card.style.color = 'var(--text-secondary)';

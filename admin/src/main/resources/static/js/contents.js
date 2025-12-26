@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function () {
         addContentBtn.addEventListener('click', openAddContentModal);
     }
 
+    // Setup batch process button
+    const batchProcessBtn = document.getElementById('batch-process-trigger-btn');
+    if (batchProcessBtn) {
+        batchProcessBtn.addEventListener('click', openBatchProcessModal);
+    }
+
     // Setup add content form submission
     document.getElementById('add-content-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -1320,12 +1326,38 @@ function populateSidebar(content) {
                     <div id="sidebar-keywords-container" style="min-height: 50px;">
                         <div style="text-align: center; color: #94a3b8; padding: 1rem;">로딩 중...</div>
                     </div>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+                        <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">키워드 추가</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="manual-keyword-input" class="form-control" 
+                                placeholder="키워드 입력..." style="flex: 1; padding: 0.5rem;">
+                            <button class="btn btn-primary" onclick="addManualKeyword(${content.id})" 
+                                style="padding: 0.5rem 1rem; white-space: nowrap;">
+                                ➕ 추가
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">📝 요약</div>
                     <div id="sidebar-summaries-container" style="min-height: 50px;">
                         <div style="text-align: center; color: #94a3b8; padding: 1rem;">로딩 중...</div>
+                    </div>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+                        <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">요약 추가</div>
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="text" id="manual-summary-title" class="form-control" 
+                                placeholder="제목 (선택사항)" style="padding: 0.5rem; margin-bottom: 0.5rem;">
+                        </div>
+                        <div style="margin-bottom: 0.5rem;">
+                            <textarea id="manual-summary-text" class="form-control" 
+                                placeholder="요약 내용 입력..." rows="3" style="padding: 0.5rem;"></textarea>
+                        </div>
+                        <button class="btn btn-success" onclick="addManualSummary(${content.id})" 
+                            style="width: 100%; padding: 0.5rem;">
+                            ✅ 요약 저장
+                        </button>
                     </div>
                 </div>
         `;
@@ -1412,6 +1444,23 @@ function openAddContentModal() {
 function closeAddContentModal() {
     document.getElementById('add-content-modal').classList.remove('active');
     document.getElementById('add-content-form').reset();
+}
+
+// ===== Batch Process Modal Functions =====
+function openBatchProcessModal() {
+    document.getElementById('batch-process-modal').classList.add('active');
+    document.getElementById('batch-empty-state').style.display = 'block';
+    document.getElementById('no-summary-contents-section').style.display = 'none';
+    
+    // 뉴스레터 목록 다시 불러오기
+    fetchNewsletterNames();
+    
+    // 모달이 열릴 때 이벤트 리스너 재설정
+    setupNoSummaryContentEvents();
+}
+
+function closeBatchProcessModal() {
+    document.getElementById('batch-process-modal').classList.remove('active');
 }
 
 // Close modal on overlay click
@@ -2332,19 +2381,40 @@ function fetchNewsletterNames() {
     fetch('./api/contents/newsletter-names')
         .then(response => response.json())
         .then(data => {
-            const newsletterSelect = document.getElementById('newsletter-select');
-            if (!newsletterSelect) return;
+            // 정렬
+            const sortedNames = data.sort();
+            
+            // 메인 필터 업데이트
+            const newsletterFilter = document.getElementById('newsletter-filter');
+            if (newsletterFilter) {
+                newsletterFilter.innerHTML = '<option value="">모든 뉴스레터</option>';
+                sortedNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    newsletterFilter.appendChild(option);
+                });
+            }
 
-            // Clear existing options
-            newsletterSelect.innerHTML = '<option value="">모든 뉴스레터</option>';
+            // 일괄 처리 모달 필터 업데이트
+            const noSummaryFilter = document.getElementById('no-summary-newsletter-filter');
+            if (noSummaryFilter) {
+                noSummaryFilter.innerHTML = '<option value="">모든 뉴스레터</option>';
+                sortedNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    noSummaryFilter.appendChild(option);
+                });
+            }
 
-            // Add new options
-            data.sort().forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                newsletterSelect.appendChild(option);
-            });
+            // 모달의 뉴스레터 목록 버튼용 (있다면)
+            const modalNewsletterFilter = document.getElementById('modal-newsletter-name');
+            if (modalNewsletterFilter) {
+                // 이건 input이므로 옵션을 추가하지 않음
+            }
+
+            console.log(`Loaded ${sortedNames.length} newsletter names`);
         })
         .catch(error => console.error('Error fetching newsletter names:', error));
 }
@@ -2352,48 +2422,73 @@ function fetchNewsletterNames() {
 // 요약 없음 콘텐츠 관련 이벤트 설정
 function setupNoSummaryContentEvents() {
     // 요약 없음 콘텐츠 불러오기 버튼
-    document.getElementById('load-no-summary-contents-btn').addEventListener('click',
-        function () {
-            loadNoSummaryContents();
-        });
+    const loadBtn = document.getElementById('load-no-summary-contents-btn');
+    if (loadBtn) {
+        // 기존 이벤트 리스너 제거 후 새로 추가 (중복 방지)
+        loadBtn.replaceWith(loadBtn.cloneNode(true));
+        document.getElementById('load-no-summary-contents-btn').addEventListener('click',
+            function () {
+                console.log('Loading no-summary contents...');
+                loadNoSummaryContents();
+            });
+    }
 
     // 전체 선택 버튼
-    document.getElementById('select-all-no-summary-btn').addEventListener('click', function () {
-        const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
+    const selectAllBtn = document.getElementById('select-all-no-summary-btn');
+    if (selectAllBtn) {
+        selectAllBtn.replaceWith(selectAllBtn.cloneNode(true));
+        document.getElementById('select-all-no-summary-btn').addEventListener('click', function () {
+            const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateSelectedNoSummaryCount();
         });
-        updateSelectedNoSummaryCount();
-    });
+    }
 
     // 선택 해제 버튼
-    document.getElementById('deselect-all-no-summary-btn').addEventListener('click', function () {
-        const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
+    const deselectAllBtn = document.getElementById('deselect-all-no-summary-btn');
+    if (deselectAllBtn) {
+        deselectAllBtn.replaceWith(deselectAllBtn.cloneNode(true));
+        document.getElementById('deselect-all-no-summary-btn').addEventListener('click', function () {
+            const checkboxes = document.querySelectorAll('#no-summary-contents-list input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateSelectedNoSummaryCount();
         });
-        updateSelectedNoSummaryCount();
-    });
+    }
 
     // 일괄 자동 처리 버튼
-    document.getElementById('bulk-auto-process-btn').addEventListener('click', function
-        () {
-        bulkAutoProcessContents();
-    });
+    const bulkProcessBtn = document.getElementById('bulk-auto-process-btn');
+    if (bulkProcessBtn) {
+        bulkProcessBtn.replaceWith(bulkProcessBtn.cloneNode(true));
+        document.getElementById('bulk-auto-process-btn').addEventListener('click', function () {
+            bulkAutoProcessContents();
+        });
+    }
 
     // 자동 생성 버튼
-    document.getElementById('auto-generate-btn').addEventListener('click', function () {
-        toggleAutoGeneration();
-    });
+    const autoGenBtn = document.getElementById('auto-generate-btn');
+    if (autoGenBtn) {
+        autoGenBtn.replaceWith(autoGenBtn.cloneNode(true));
+        document.getElementById('auto-generate-btn').addEventListener('click', function () {
+            toggleAutoGeneration();
+        });
+    }
 
     // 뉴스레터 필터 변경 시 자동으로 목록 새로고침
-    document.getElementById('no-summary-newsletter-filter').addEventListener('change',
-        function () {
-            const noSummarySection = document.getElementById('no-summary-contents-section');
-            if (noSummarySection.style.display !== 'none') {
-                loadNoSummaryContents();
-            }
-        });
+    const filterSelect = document.getElementById('no-summary-newsletter-filter');
+    if (filterSelect) {
+        filterSelect.replaceWith(filterSelect.cloneNode(true));
+        document.getElementById('no-summary-newsletter-filter').addEventListener('change',
+            function () {
+                const noSummarySection = document.getElementById('no-summary-contents-section');
+                if (noSummarySection && noSummarySection.style.display !== 'none') {
+                    loadNoSummaryContents();
+                }
+            });
+    }
 }
 
 // 요약 없음 콘텐츠 불러오기
@@ -2414,6 +2509,12 @@ function loadNoSummaryContents(page = 0, size = 20) {
             hideLoading();
             renderNoSummaryContentsList(data.content);
             renderNoSummaryPagination(data);
+
+            // 빈 상태 숨기기
+            const emptyState = document.getElementById('batch-empty-state');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
 
             // 섹션 표시
             document.getElementById('no-summary-contents-section').style.display = 'block';
@@ -2971,4 +3072,144 @@ async function bulkAutoProcessContents() {
 
     // 첫 번째 콘텐츠부터 처리 시작
     await processNextContent(0);
+}
+
+
+// ===== Manual Keyword and Summary Functions =====
+
+/**
+ * 수동으로 키워드 추가
+ */
+function addManualKeyword(contentId) {
+    const input = document.getElementById('manual-keyword-input');
+    const keywordName = input.value.trim();
+
+    if (!keywordName) {
+        alert('키워드를 입력해주세요.');
+        return;
+    }
+
+    // 먼저 키워드가 예약 키워드로 존재하는지 확인
+    fetch(`./api/keywords/reserved/search?name=${encodeURIComponent(keywordName)}`)
+        .then(response => response.json())
+        .then(keyword => {
+            if (keyword && keyword.id) {
+                // 예약 키워드가 존재하면 해당 키워드를 콘텐츠에 추가
+                return addKeywordToContent(contentId, keyword.id);
+            } else {
+                // 예약 키워드가 없으면 후보 키워드로 생성 후 콘텐츠에 추가
+                return createCandidateKeywordAndAdd(contentId, keywordName);
+            }
+        })
+        .then(() => {
+            input.value = '';
+            loadSidebarKeywords(contentId);
+            alert('키워드가 추가되었습니다.');
+        })
+        .catch(error => {
+            console.error('Error adding keyword:', error);
+            alert('키워드 추가 중 오류가 발생했습니다: ' + error.message);
+        });
+}
+
+/**
+ * 키워드를 콘텐츠에 추가
+ */
+function addKeywordToContent(contentId, keywordId) {
+    return fetch(`./api/process/content/${contentId}/keywords`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ keywordId: keywordId })
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('키워드 추가에 실패했습니다.');
+        }
+        return response.json();
+    });
+}
+
+/**
+ * 후보 키워드 생성 후 콘텐츠에 추가
+ */
+function createCandidateKeywordAndAdd(contentId, keywordName) {
+    // 1. 후보 키워드 생성
+    return fetch('./api/keywords/candidate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: keywordName })
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('후보 키워드 생성에 실패했습니다.');
+            }
+            return response.json();
+        })
+        .then(candidateKeyword => {
+            // 2. 후보 키워드를 예약 키워드로 승격
+            return fetch(`./api/keywords/candidate/${candidateKeyword.id}/promote-to-reserved`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('키워드 승격에 실패했습니다.');
+            }
+            return response.json();
+        })
+        .then(reservedKeyword => {
+            // 3. 예약 키워드를 콘텐츠에 추가
+            return addKeywordToContent(contentId, reservedKeyword.id);
+        });
+}
+
+/**
+ * 수동으로 요약 추가
+ */
+function addManualSummary(contentId) {
+    const titleInput = document.getElementById('manual-summary-title');
+    const textInput = document.getElementById('manual-summary-text');
+
+    const title = titleInput.value.trim();
+    const summary = textInput.value.trim();
+
+    if (!summary) {
+        alert('요약 내용을 입력해주세요.');
+        return;
+    }
+
+    const summaryData = {
+        title: title || null,
+        summary: summary
+    };
+
+    fetch(`./api/process/content/${contentId}/summaries`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(summaryData)
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('요약 저장에 실패했습니다.');
+            }
+            return response.json();
+        })
+        .then(() => {
+            titleInput.value = '';
+            textInput.value = '';
+            loadSidebarSummaries(contentId);
+            alert('요약이 저장되었습니다.');
+        })
+        .catch(error => {
+            console.error('Error saving summary:', error);
+            alert('요약 저장 중 오류가 발생했습니다: ' + error.message);
+        });
 }

@@ -1,128 +1,19 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RSS Reader - Newsletter AI Processor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .star {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .container {
-            position: relative;
-            z-index: 2;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            min-height: 100vh;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .nav-link {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .nav-link:hover {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-        }
-
-        .nav-link.active {
-            background: rgba(0, 212, 255, 0.3);
-            border-color: #00d4ff;
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(45deg, #00d4ff, #5a67d8);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            color: #a0aec0;
-            font-size: 1.1rem;
-        }
-
+        /* Page Specific Styles */
         .control-panel {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -138,48 +29,6 @@
             gap: 1rem;
             flex-wrap: wrap;
             justify-content: center;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            color: white;
-            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
-            color: white;
-            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .stats-overview {
@@ -399,7 +248,7 @@
         .feed-url {
             margin-top: 0.5rem;
             padding-top: 0.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 0.75rem;
             color: #a0aec0;
             word-break: break-all;
@@ -439,26 +288,7 @@
             font-size: 0.85rem;
         }
 
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 1rem 0;
-        }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 0.5rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
 
         .result-message {
             padding: 1rem;
@@ -503,6 +333,7 @@
             .feed-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+
             .stats-overview {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -512,28 +343,35 @@
             .container {
                 padding: 1rem;
             }
+
             .page-title {
                 font-size: 2rem;
             }
+
             .feed-grid {
                 grid-template-columns: 1fr;
             }
+
             .stats-overview {
                 grid-template-columns: repeat(2, 1fr);
             }
+
             .control-buttons {
                 flex-direction: column;
             }
+
             .btn {
                 width: 100%;
                 justify-content: center;
             }
+
             .nav-links {
                 display: none;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="stars"></div>
 
@@ -564,12 +402,12 @@
                     <span>🔄</span>
                     <span>모든 피드 수집</span>
                 </button>
-                
+
                 <button class="btn btn-secondary" id="get-stats-btn">
                     <span>📊</span>
                     <span>통계 새로고침</span>
                 </button>
-                
+
                 <button class="btn btn-success" id="process-ai-btn">
                     <span>🤖</span>
                     <span>AI 처리 실행</span>
@@ -634,7 +472,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             createStars();
 
             // 이벤트 리스너 설정
@@ -644,7 +482,7 @@
 
             // 필터 버튼 이벤트
             document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentFilter = this.dataset.filter;
@@ -695,26 +533,26 @@
 
         async function fetchAllFeeds() {
             showLoading();
-            
+
             try {
                 const response = await fetch('./admin/rss-newsletter/fetch-all', {
                     method: 'POST'
                 });
-                
+
                 const data = await response.json();
                 hideLoading();
-                
+
                 if (data.success) {
                     const totalFeeds = Object.keys(data.results).length;
                     const successfulFeeds = Object.values(data.results).filter(count => count >= 0).length;
                     const totalNewItems = Object.values(data.results).filter(count => count >= 0).reduce((sum, count) => sum + count, 0);
-                    
+
                     showMessage(`
                         <strong>✅ 피드 수집 완료!</strong><br>
                         📡 처리된 피드: <strong>${successfulFeeds}/${totalFeeds}</strong> | 
                         📄 새로 수집: <strong>${totalNewItems}개</strong>
                     `, 'success');
-                    
+
                     setTimeout(() => loadAllStats(), 2000);
                 } else {
                     showMessage(`<strong>❌ 피드 수집 실패</strong><br>${data.error}`, 'error');
@@ -731,10 +569,10 @@
                     fetch('./admin/rss-newsletter/detailed-stats'),
                     fetch('./admin/rss-newsletter/processing-stats')
                 ]);
-                
+
                 const detailedData = await detailedResponse.json();
                 const processingData = await processingResponse.json();
-                
+
                 if (detailedData.success && processingData.success) {
                     displayDetailedStats(detailedData.stats, processingData);
                 } else {
@@ -747,20 +585,20 @@
 
         async function processAi() {
             showLoading();
-            
+
             try {
                 const response = await fetch('./admin/rss-newsletter/process-ai', {
                     method: 'POST'
                 });
-                
+
                 if (!response.ok) {
                     const text = await response.text();
                     throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
                 }
-                
+
                 const data = await response.json();
                 hideLoading();
-                
+
                 if (data.success) {
                     showMessage(`
                         <strong>🤖 AI 처리 완료!</strong><br>
@@ -768,7 +606,7 @@
                         ❌ 오류: <strong>${data.errorCount}개</strong> | 
                         📊 오늘 총: <strong>${data.totalProcessedToday}개</strong>
                     `, 'success');
-                    
+
                     setTimeout(() => loadAllStats(), 2000);
                 } else {
                     showMessage(`<strong>❌ AI 처리 실패</strong><br>${data.error}`, 'error');
@@ -781,7 +619,7 @@
 
         function displayDetailedStats(feedStats, processingData) {
             const overallStatsDiv = document.getElementById('overall-stats');
-            
+
             if (Object.keys(feedStats).length === 0) {
                 document.getElementById('feed-list').innerHTML = `
                     <div class="empty-state">
@@ -791,7 +629,7 @@
                 `;
                 return;
             }
-            
+
             // 전체 통계 계산
             const feeds = Object.values(feedStats);
             const totalFeeds = feeds.length;
@@ -800,9 +638,9 @@
             const totalPending = feeds.reduce((sum, feed) => sum + feed.pending, 0);
             const totalErrors = feeds.reduce((sum, feed) => sum + feed.errors, 0);
             const todayTotal = feeds.reduce((sum, feed) => sum + feed.todayItems, 0);
-            
+
             const overallSuccessRate = totalItems > 0 ? Math.round((totalProcessed / totalItems) * 100) : 0;
-            
+
             // 전체 통계 표시 (2줄 x 4열)
             overallStatsDiv.innerHTML = `
                 <div class="stat-card">
@@ -847,17 +685,17 @@
                 </div>
             `;
             overallStatsDiv.style.display = 'grid';
-            
+
             // 피드 데이터 저장 및 필터 적용
             allFeeds = Object.entries(feedStats)
                 .map(([key, feed]) => feed)
                 .sort((a, b) => b.priority - a.priority);
-            
+
             applyFilter();
         }
 
         function applyFilter() {
-            switch(currentFilter) {
+            switch (currentFilter) {
                 case 'priority':
                     filteredFeeds = allFeeds.filter(feed => feed.priority >= 70);
                     break;
@@ -870,7 +708,7 @@
                 default:
                     filteredFeeds = [...allFeeds];
             }
-            
+
             currentPage = 1;
             renderFeeds();
         }
@@ -878,7 +716,7 @@
         function renderFeeds() {
             const feedListDiv = document.getElementById('feed-list');
             const paginationDiv = document.getElementById('pagination');
-            
+
             if (filteredFeeds.length === 0) {
                 feedListDiv.innerHTML = `
                     <div class="empty-state">
@@ -889,31 +727,31 @@
                 paginationDiv.style.display = 'none';
                 return;
             }
-            
+
             const totalPages = Math.ceil(filteredFeeds.length / itemsPerPage);
             const startIdx = (currentPage - 1) * itemsPerPage;
             const endIdx = startIdx + itemsPerPage;
             const pageFeeds = filteredFeeds.slice(startIdx, endIdx);
-            
+
             let feedCardsHtml = '';
             pageFeeds.forEach(feed => {
-                const lastFetch = feed.lastFetch ? 
+                const lastFetch = feed.lastFetch ?
                     new Date(feed.lastFetch).toLocaleString('ko-KR', {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
                     }) : '없음';
-                
-                const progressPercent = feed.totalItems > 0 ? 
+
+                const progressPercent = feed.totalItems > 0 ?
                     Math.round((feed.aiProcessed / feed.totalItems) * 100) : 0;
-                
-                const statusClass = progressPercent === 100 ? 'success' : 
-                                   progressPercent > 50 ? 'warning' : '';
-                
+
+                const statusClass = progressPercent === 100 ? 'success' :
+                    progressPercent > 50 ? 'warning' : '';
+
                 const priorityBadge = getPriorityBadge(feed.priority);
                 const errorBadge = feed.errors > 0 ? `<span style="color: #fca5a5; font-size: 0.75rem;">⚠️ ${feed.errors}개</span>` : '';
-                
+
                 feedCardsHtml += `
                     <div class="feed-card">
                         <div class="feed-header">
@@ -958,9 +796,9 @@
                     </div>
                 `;
             });
-            
+
             feedListDiv.innerHTML = feedCardsHtml;
-            
+
             // 페이지네이션 업데이트
             if (totalPages > 1) {
                 paginationDiv.style.display = 'flex';
@@ -984,4 +822,5 @@
         }
     </script>
 </body>
+
 </html>

@@ -13,7 +13,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
         rel="stylesheet">
 
-    <link rel='stylesheet' th:href='@{/css/contents.css}'>
+    <link rel='stylesheet' th:href='@{/css/style.css}'>
 </head>
 
 <body>
@@ -42,10 +42,16 @@
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                         <h2 style="margin: 0;">📋 콘텐츠 관리</h2>
-                        <button id="add-content-trigger-btn" class="btn btn-success"
-                            style="padding: 0.75rem 1.5rem; font-weight: 600; border-radius: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
-                            ➕ 새 콘텐츠 추가
-                        </button>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button id="batch-process-trigger-btn" class="btn"
+                                style="padding: 0.75rem 1.5rem; font-weight: 600; border-radius: 12px; background: linear-gradient(45deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">
+                                ⚡ 일괄 처리
+                            </button>
+                            <button id="add-content-trigger-btn" class="btn btn-success"
+                                style="padding: 0.75rem 1.5rem; font-weight: 600; border-radius: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                                ➕ 새 콘텐츠 추가
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Integrated Filter Bar -->
@@ -97,89 +103,6 @@
                     </div>
                     <div class="pagination" id="pagination">
                         <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Batch Processing Section (Collapsible) -->
-                <div class="section" style="margin-top: 2rem;">
-                    <button id="toggle-batch-section" class="btn"
-                        style="width: 100%; padding: 1rem; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c4b5fd; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
-                        <span>⚡ 요약 없음 콘텐츠 일괄 처리</span>
-                        <span id="batch-toggle-icon">▼</span>
-                    </button>
-
-                    <div id="batch-processing-area" style="display: none; margin-top: 1rem;">
-                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
-                            <button id="load-no-summary-contents-btn" class="btn btn-primary">
-                                📋 요약 없음 콘텐츠 불러오기
-                            </button>
-                            <div style="flex: 1;">
-                                <select id="no-summary-newsletter-filter" class="form-select">
-                                    <option value="">모든 뉴스레터</option>
-                                    <!-- Will be populated by JavaScript -->
-                                </select>
-                            </div>
-                            <button id="select-all-no-summary-btn" class="btn"
-                                style="background: rgba(255, 255, 255, 0.1);" disabled>
-                                전체 선택
-                            </button>
-                            <button id="deselect-all-no-summary-btn" class="btn"
-                                style="background: rgba(255, 255, 255, 0.1);" disabled>
-                                선택 해제
-                            </button>
-                        </div>
-
-                        <div id="no-summary-contents-section" style="display: none;">
-                            <div
-                                style="margin-bottom: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                    <div id="no-summary-count-info" style="color: #00d4ff; font-weight: 600;">
-                                        총 0개의 요약 없음 콘텐츠
-                                    </div>
-                                    <div id="selected-no-summary-count-info" style="color: #10b981; font-weight: 600;">
-                                        0개 선택됨
-                                    </div>
-                                </div>
-
-                                <div style="display: flex; gap: 1rem;">
-                                    <button id="bulk-auto-process-btn" class="btn"
-                                        style="flex: 1; padding: 1rem; font-size: 1.1rem; font-weight: 600; background: linear-gradient(45deg, #10b981, #059669); color: #fff;"
-                                        disabled>
-                                        🚀 선택된 콘텐츠 일괄 자동 처리
-                                    </button>
-                                    <button id="auto-generate-btn" class="btn"
-                                        style="flex: 1; padding: 1rem; font-size: 1.1rem; font-weight: 600; background: linear-gradient(45deg, #8b5cf6, #7c3aed); color: #fff;"
-                                        disabled>
-                                        ⚡ 자동 생성 시작 (1분마다 20개)
-                                    </button>
-                                </div>
-
-                                <div id="bulk-processing-progress"
-                                    style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
-                                    <div id="bulk-progress-text" style="text-align: center; margin-bottom: 0.5rem;">처리
-                                        중...</div>
-                                    <div
-                                        style="width: 100%; height: 10px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden;">
-                                        <div id="bulk-progress-bar"
-                                            style="width: 0%; height: 100%; background-color: #00d4ff; transition: width 0.3s ease;">
-                                        </div>
-                                    </div>
-                                    <div id="bulk-progress-details"
-                                        style="font-size: 0.9rem; color: #a0aec0; margin-top: 0.5rem; text-align: center;">
-                                        <!-- Progress details will be shown here -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="no-summary-contents-list" style="max-height: 600px; overflow-y: auto;">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-
-                            <div class="pagination" id="no-summary-pagination">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -262,6 +185,100 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Processing Modal -->
+        <div class="modal-overlay" id="batch-process-modal">
+            <div class="modal-content" style="max-width: 1200px; width: 95%;">
+                <div class="modal-header">
+                    <div class="modal-title">⚡ 요약 없음 콘텐츠 일괄 처리</div>
+                    <div class="modal-close" onclick="closeBatchProcessModal()">×</div>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Filter Section -->
+                    <div style="margin-bottom: 1.5rem; padding: 1.25rem; background: rgba(0, 0, 0, 0.2); border-radius: 12px;">
+                        <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">뉴스레터 필터</label>
+                                <select id="no-summary-newsletter-filter" class="form-select">
+                                    <option value="">모든 뉴스레터</option>
+                                </select>
+                            </div>
+                            <button id="load-no-summary-contents-btn" class="btn btn-primary" style="white-space: nowrap;">
+                                📋 콘텐츠 불러오기
+                            </button>
+                            <button id="select-all-no-summary-btn" class="btn" style="background: rgba(255, 255, 255, 0.1);" disabled>
+                                전체 선택
+                            </button>
+                            <button id="deselect-all-no-summary-btn" class="btn" style="background: rgba(255, 255, 255, 0.1);" disabled>
+                                선택 해제
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content List Section -->
+                    <div id="no-summary-contents-section" style="display: none;">
+                        <!-- Stats and Actions -->
+                        <div style="margin-bottom: 1rem; padding: 1.25rem; background: rgba(0, 0, 0, 0.2); border-radius: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div id="no-summary-count-info" style="color: #00d4ff; font-weight: 600; font-size: 1.1rem;">
+                                    총 0개의 요약 없음 콘텐츠
+                                </div>
+                                <div id="selected-no-summary-count-info" style="color: #10b981; font-weight: 600; font-size: 1.1rem;">
+                                    0개 선택됨
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem;">
+                                <button id="bulk-auto-process-btn" class="btn"
+                                    style="flex: 1; padding: 1rem; font-size: 1rem; font-weight: 600; background: linear-gradient(45deg, #10b981, #059669); color: #fff;"
+                                    disabled>
+                                    🚀 선택된 콘텐츠 일괄 자동 처리
+                                </button>
+                                <button id="auto-generate-btn" class="btn"
+                                    style="flex: 1; padding: 1rem; font-size: 1rem; font-weight: 600; background: linear-gradient(45deg, #8b5cf6, #7c3aed); color: #fff;"
+                                    disabled>
+                                    ⚡ 자동 생성 (1분마다 20개)
+                                </button>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div id="bulk-processing-progress"
+                                style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                                <div id="bulk-progress-text" style="text-align: center; margin-bottom: 0.5rem; font-weight: 600;">
+                                    처리 중...
+                                </div>
+                                <div style="width: 100%; height: 12px; background-color: rgba(255, 255, 255, 0.1); border-radius: 6px; overflow: hidden;">
+                                    <div id="bulk-progress-bar"
+                                        style="width: 0%; height: 100%; background: linear-gradient(90deg, #00d4ff, #667eea); transition: width 0.3s ease;">
+                                    </div>
+                                </div>
+                                <div id="bulk-progress-details"
+                                    style="font-size: 0.9rem; color: #a0aec0; margin-top: 0.5rem; text-align: center;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Content List -->
+                        <div id="no-summary-contents-list" style="max-height: 500px; overflow-y: auto; margin-bottom: 1rem;">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="pagination" id="no-summary-pagination">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="batch-empty-state" style="text-align: center; padding: 3rem; color: #94a3b8;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+                        <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">요약 없음 콘텐츠를 불러오세요</div>
+                        <div style="font-size: 0.9rem; color: #64748b;">위의 "콘텐츠 불러오기" 버튼을 클릭하세요</div>
+                    </div>
                 </div>
             </div>
         </div>

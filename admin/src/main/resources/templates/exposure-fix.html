@@ -1,12 +1,43 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>노출 콘텐츠 관리 - Newsletter AI Processor</title>
-    <link rel="stylesheet" href="./css/admin-common.css">
+    <!-- Common JS for Modal/Toast/API -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
     <style>
         /* Page-specific styles */
+        :root {
+            --color-primary: #667eea;
+            --color-success: #4facfe;
+            --color-danger: #f5576c;
+            --color-warning: #f6ad55;
+            --color-warning-dark: #dd6b20;
+            --text-secondary: #94a3b8;
+            --text-primary: #ffffff;
+            --bg-overlay: rgba(0, 0, 0, 0.2);
+            --border-primary: rgba(255, 255, 255, 0.08);
+            --border-secondary: rgba(255, 255, 255, 0.12);
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-full: 9999px;
+            --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+            --transition-base: 0.3s ease;
+        }
+
         .keyword-section {
             margin-top: var(--spacing-md);
             padding: var(--spacing-md);
@@ -126,8 +157,28 @@
             width: auto;
             padding: var(--spacing-sm) var(--spacing-md);
         }
+
+        .card-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-top: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            display: -webkit-box;
+            line-clamp: 3;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: 0.95rem;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, var(--color-warning), var(--color-warning-dark));
+            color: #fff;
+            font-weight: 700;
+        }
     </style>
 </head>
+
 <body>
     <div class="stars" id="stars"></div>
     <div class="container">
@@ -157,7 +208,7 @@
                 <button id="load-btn" class="btn btn-primary">
                     📋 콘텐츠 불러오기
                 </button>
-                
+
                 <div class="filter-group">
                     <label>필터:</label>
                     <select id="filter-select" class="form-select">
@@ -260,7 +311,7 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             createStars();
             initLazyLoader();
 
@@ -299,9 +350,9 @@
             try {
                 const filterParam = currentFilter === 'all' ? '' : `&filter=${currentFilter}`;
                 const url = `./api/recommendations/exposure-contents/all?page=${page}&size=${pageSize}${filterParam}`;
-                
+
                 const data = await ApiClient.get(url);
-                
+
                 loading.classList.add('d-none');
                 currentPage = data.currentPage;
                 totalPages = data.totalPages;
@@ -333,13 +384,13 @@
 
             contents.forEach((content, index) => {
                 const card = createContentCard(content, index);
-                
+
                 // Add lazy loading class
                 card.classList.add('lazy-pending');
                 card.style.opacity = '0';
-                
+
                 contentList.appendChild(card);
-                
+
                 // Observe card for lazy loading
                 if (lazyLoader) {
                     lazyLoader.observe(card);
@@ -349,7 +400,7 @@
 
         function renderPagination(data) {
             const contentList = document.getElementById('content-list');
-            
+
             // Remove existing pagination if any
             const existingPagination = document.getElementById('pagination');
             if (existingPagination) {
@@ -390,21 +441,23 @@
 
         function createContentCard(content, index) {
             const card = document.createElement('div');
-            card.className = 'card';
+            card.className = 'result-card';
             card.id = `content-card-${content.id}`;
+            // Add margin between cards if result-card doesn't cover it enough
+            card.style.marginBottom = 'var(--spacing-lg)';
 
             const titleDiv = document.createElement('div');
-            titleDiv.className = 'card-title';
-            const badge = content.provocativeKeyword === 'No Keywords' 
-                ? '<span class="warning-badge">보정 필요</span>' 
+            titleDiv.className = 'result-title';
+            const badge = content.provocativeKeyword === 'No Keywords'
+                ? '<span class="warning-badge">보정 필요</span>'
                 : '<span class="success-badge">✓</span>';
             titleDiv.innerHTML = `${content.title} ${badge}`;
 
             const metaDiv = document.createElement('div');
-            metaDiv.className = 'card-subtitle';
+            metaDiv.className = 'content-source';
             metaDiv.innerHTML = `
                 📰 ${content.newsletterName} | 
-                <a href="${content.originalUrl}" target="_blank" style="color: var(--color-primary);">원문 보기</a>
+                <a href="${content.originalUrl}" target="_blank" style="color: var(--color-primary); text-decoration: none;">원문 보기</a>
             `;
 
             const previewDiv = document.createElement('div');
@@ -444,7 +497,7 @@
                     tag.className = 'keyword-tag';
                     tag.textContent = keyword;
                     tag.dataset.keyword = keyword;
-                    tag.addEventListener('click', function() {
+                    tag.addEventListener('click', function () {
                         // Toggle selection
                         const tags = suggestedTags.querySelectorAll('.keyword-tag');
                         tags.forEach(t => t.classList.remove('selected'));
@@ -501,8 +554,8 @@
             saveBtn.textContent = '✅ 저장';
             saveBtn.style.flex = '1';
             saveBtn.addEventListener('click', () => saveExposureContent(
-                content.id, 
-                keywordInput.value, 
+                content.id,
+                keywordInput.value,
                 headlineInput.value,
                 summaryTextarea.value
             ));
@@ -584,7 +637,7 @@
 
             setTimeout(() => {
                 card.remove();
-                
+
                 // Check if all contents on current page are skipped
                 const remainingCards = document.querySelectorAll('.card[id^="content-card-"]');
                 if (remainingCards.length === 0) {
@@ -594,4 +647,5 @@
         }
     </script>
 </body>
+
 </html>

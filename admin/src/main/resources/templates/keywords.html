@@ -1,57 +1,19 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>키워드 관리 - Newsletter AI Processor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel='stylesheet' th:href='@{/css/style.css}'>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .star {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
-        .container {
-            position: relative;
-            z-index: 2;
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 2rem;
-            min-height: 100vh;
-        }
-
+        /* Keywords Specific Styles */
         .page-header {
             text-align: center;
             margin-bottom: 2rem;
@@ -72,89 +34,6 @@
             font-size: 1.1rem;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .nav-link {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .nav-link:hover {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-        }
-
-        .nav-link.active {
-            background: rgba(0, 212, 255, 0.3);
-            border-color: #00d4ff;
-        }
-
-        .section {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .section:hover {
-            border-color: rgba(0, 212, 255, 0.3);
-        }
-
-        .section h2 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: #00d4ff;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .section h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #a0aec0;
-        }
-
         .keyword-item {
             padding: 0.6rem;
             margin: 0.4rem 0;
@@ -173,67 +52,7 @@
             border-color: rgba(0, 212, 255, 0.3);
         }
 
-        .keyword-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
 
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-success {
-            background: linear-gradient(45deg, #43e97b, #38f9d7);
-            color: #000;
-        }
-
-        .btn-danger {
-            background: linear-gradient(45deg, #f093fb, #f5576c);
-            color: #fff;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: #fff;
-        }
-
-        .form-select, .form-control {
-            width: 100%;
-            padding: 0.75rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-select:focus, .form-control:focus {
-            outline: none;
-            border-color: #00d4ff;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-        }
-
-        .form-select option {
-            background-color: #16213e;
-            color: #ffffff;
-        }
 
         .row {
             display: grid;
@@ -370,22 +189,7 @@
         }
 
         .keyword-list {
-            max-height: 280px;
-            overflow-y: auto;
-        }
-
-        .keyword-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .keyword-list::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-
-        .keyword-list::-webkit-scrollbar-thumb {
-            background: rgba(0, 212, 255, 0.3);
-            border-radius: 10px;
+            /* Removed max-height and overflow-y to eliminate scrolling */
         }
 
         .keyword-list-item {
@@ -573,6 +377,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="stars" id="stars"></div>
     <div class="container">
@@ -650,7 +455,8 @@
                     <input type="text" id="all-keywords-search" class="keyword-search" placeholder="키워드 검색...">
                     <div class="weight-input-container">
                         <label>기본 가중치:</label>
-                        <input type="number" id="default-weight" class="form-control" value="1.0" step="0.1" min="0" max="10">
+                        <input type="number" id="default-weight" class="form-control" value="1.0" step="0.1" min="0"
+                            max="10">
                     </div>
                     <div id="all-keywords-list" class="keyword-list">
                         <!-- Will be populated by JavaScript -->
@@ -658,8 +464,10 @@
                 </div>
 
                 <div class="keyword-transfer-controls">
-                    <button id="add-to-category-btn" class="keyword-transfer-btn" disabled title="카테고리에 추가">&rarr;</button>
-                    <button id="remove-from-category-btn" class="keyword-transfer-btn" disabled title="카테고리에서 제거">&larr;</button>
+                    <button id="add-to-category-btn" class="keyword-transfer-btn" disabled
+                        title="카테고리에 추가">&rarr;</button>
+                    <button id="remove-from-category-btn" class="keyword-transfer-btn" disabled
+                        title="카테고리에서 제거">&larr;</button>
                 </div>
 
                 <div class="keyword-column">
@@ -1067,21 +875,21 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to promote keyword');
-                }
-                return response.json();
-            })
-            .then(() => {
-                // Refresh both lists
-                fetchCandidateKeywords();
-                fetchReservedKeywords();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to promote keyword');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // Refresh both lists
+                    fetchCandidateKeywords();
+                    fetchReservedKeywords();
 
-                // Refresh all keywords list for category mapping
-                fetchAllReservedKeywords();
-            })
-            .catch(error => console.error('Error promoting keyword:', error));
+                    // Refresh all keywords list for category mapping
+                    fetchAllReservedKeywords();
+                })
+                .catch(error => console.error('Error promoting keyword:', error));
         }
 
         function promoteCandidateToReserved(candidateId) {
@@ -1091,21 +899,21 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to promote candidate to reserved');
-                }
-                return response.json();
-            })
-            .then(() => {
-                // Refresh both lists
-                fetchCandidateKeywords();
-                fetchReservedKeywords();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to promote candidate to reserved');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // Refresh both lists
+                    fetchCandidateKeywords();
+                    fetchReservedKeywords();
 
-                // Refresh all keywords list for category mapping
-                fetchAllReservedKeywords();
-            })
-            .catch(error => console.error('Error promoting candidate to reserved:', error));
+                    // Refresh all keywords list for category mapping
+                    fetchAllReservedKeywords();
+                })
+                .catch(error => console.error('Error promoting candidate to reserved:', error));
         }
 
         function createReservedKeyword(keywordName) {
@@ -1118,26 +926,26 @@
                     name: keywordName
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to create reserved keyword');
-                }
-                return response.json();
-            })
-            .then(() => {
-                // Refresh reserved keywords list with pagination
-                fetchReservedKeywords();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to create reserved keyword');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // Refresh reserved keywords list with pagination
+                    fetchReservedKeywords();
 
-                // Refresh all keywords list for category mapping
-                fetchAllReservedKeywords();
+                    // Refresh all keywords list for category mapping
+                    fetchAllReservedKeywords();
 
-                // Clear input
-                document.getElementById('new-keyword-name').value = '';
-            })
-            .catch(error => {
-                console.error('Error creating reserved keyword:', error);
-                alert('예약 키워드 생성에 실패했습니다.');
-            });
+                    // Clear input
+                    document.getElementById('new-keyword-name').value = '';
+                })
+                .catch(error => {
+                    console.error('Error creating reserved keyword:', error);
+                    alert('예약 키워드 생성에 실패했습니다.');
+                });
         }
 
         function createCandidateKeyword(keywordName) {
@@ -1150,23 +958,23 @@
                     name: keywordName
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to create candidate keyword');
-                }
-                return response.json();
-            })
-            .then(() => {
-                // Refresh candidate keywords list
-                fetchCandidateKeywords();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to create candidate keyword');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // Refresh candidate keywords list
+                    fetchCandidateKeywords();
 
-                // Clear input
-                document.getElementById('new-candidate-name').value = '';
-            })
-            .catch(error => {
-                console.error('Error creating candidate keyword:', error);
-                alert('후보 키워드 생성에 실패했습니다.');
-            });
+                    // Clear input
+                    document.getElementById('new-candidate-name').value = '';
+                })
+                .catch(error => {
+                    console.error('Error creating candidate keyword:', error);
+                    alert('후보 키워드 생성에 실패했습니다.');
+                });
         }
 
         function createCategory(categoryName) {
@@ -1179,23 +987,23 @@
                     name: categoryName
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to create category');
-                }
-                return response.json();
-            })
-            .then(() => {
-                // Refresh categories list
-                fetchCategories();
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to create category');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // Refresh categories list
+                    fetchCategories();
 
-                // Clear input
-                document.getElementById('new-category-name').value = '';
-            })
-            .catch(error => {
-                console.error('Error creating category:', error);
-                alert('카테고리 생성에 실패했습니다.');
-            });
+                    // Clear input
+                    document.getElementById('new-category-name').value = '';
+                })
+                .catch(error => {
+                    console.error('Error creating category:', error);
+                    alert('카테고리 생성에 실패했습니다.');
+                });
         }
 
         function deleteCandidateKeyword(candidateId) {
@@ -1203,17 +1011,17 @@
                 fetch(`./api/keywords/candidate/${candidateId}`, {
                     method: 'DELETE'
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to delete candidate keyword');
-                    }
-                    // Refresh lists
-                    fetchCandidateKeywords();
-                })
-                .catch(error => {
-                    console.error('Error deleting candidate keyword:', error);
-                    alert('키워드 삭제에 실패했습니다.');
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to delete candidate keyword');
+                        }
+                        // Refresh lists
+                        fetchCandidateKeywords();
+                    })
+                    .catch(error => {
+                        console.error('Error deleting candidate keyword:', error);
+                        alert('키워드 삭제에 실패했습니다.');
+                    });
             }
         }
 
@@ -1265,57 +1073,57 @@
                     weight: weight
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to add keyword to category');
-                }
-                return response.json();
-            })
-            .then(() => {
-                // 키워드 선택 해제
-                document.querySelectorAll('#all-keywords-list .keyword-list-item.selected').forEach(el => {
-                    el.classList.remove('selected');
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to add keyword to category');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // 키워드 선택 해제
+                    document.querySelectorAll('#all-keywords-list .keyword-list-item.selected').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+
+                    // 버튼 상태 업데이트
+                    updateTransferButtonsState();
+
+                    // 카테고리 키워드 목록 새로고침
+                    fetchCategoryKeywords(categoryId);
+                })
+                .catch(error => {
+                    console.error('Error adding keyword to category:', error);
+                    alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
                 });
-
-                // 버튼 상태 업데이트
-                updateTransferButtonsState();
-
-                // 카테고리 키워드 목록 새로고침
-                fetchCategoryKeywords(categoryId);
-            })
-            .catch(error => {
-                console.error('Error adding keyword to category:', error);
-                alert('키워드 추가에 실패했습니다. 이미 추가되어 있을 수 있습니다.');
-            });
         }
 
         function removeKeywordFromCategory(categoryId, keywordId) {
             fetch(`./api/keywords/categories/${categoryId}/keywords/${keywordId}`, {
                 method: 'DELETE'
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to remove keyword from category');
-                }
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to remove keyword from category');
+                    }
 
-                // 키워드 선택 해제
-                document.querySelectorAll('#category-keywords-list .keyword-list-item.selected').forEach(el => {
-                    el.classList.remove('selected');
+                    // 키워드 선택 해제
+                    document.querySelectorAll('#category-keywords-list .keyword-list-item.selected').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+
+                    // 버튼 상태 업데이트
+                    updateTransferButtonsState();
+
+                    // 카테고리 키워드 목록 새로고침
+                    fetchCategoryKeywords(categoryId);
+                })
+                .catch(error => {
+                    console.error('Error removing keyword from category:', error);
+                    alert('키워드 제거에 실패했습니다.');
                 });
-
-                // 버튼 상태 업데이트
-                updateTransferButtonsState();
-
-                // 카테고리 키워드 목록 새로고침
-                fetchCategoryKeywords(categoryId);
-            })
-            .catch(error => {
-                console.error('Error removing keyword from category:', error);
-                alert('키워드 제거에 실패했습니다.');
-            });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             createStars();
 
             // Fetch all candidate keywords
@@ -1328,7 +1136,7 @@
             fetchCategories();
 
             // Set up category select change event
-            document.getElementById('category-select').addEventListener('change', function() {
+            document.getElementById('category-select').addEventListener('change', function () {
                 const categoryId = this.value;
                 if (categoryId) {
                     fetchCategoryKeywords(categoryId);
@@ -1341,7 +1149,7 @@
             });
 
             // 키워드 추가 버튼 이벤트 설정
-            document.getElementById('add-to-category-btn').addEventListener('click', function() {
+            document.getElementById('add-to-category-btn').addEventListener('click', function () {
                 const categoryId = document.getElementById('category-select').value;
                 const selectedKeyword = document.querySelector('#all-keywords-list .keyword-list-item.selected');
                 const defaultWeight = document.getElementById('default-weight').value;
@@ -1358,7 +1166,7 @@
             });
 
             // 키워드 제거 버튼 이벤트 설정
-            document.getElementById('remove-from-category-btn').addEventListener('click', function() {
+            document.getElementById('remove-from-category-btn').addEventListener('click', function () {
                 const categoryId = document.getElementById('category-select').value;
                 const selectedKeyword = document.querySelector('#category-keywords-list .keyword-list-item.selected');
 
@@ -1375,7 +1183,7 @@
             });
 
             // Set up add reserved keyword button
-            document.getElementById('add-reserved-keyword-btn').addEventListener('click', function() {
+            document.getElementById('add-reserved-keyword-btn').addEventListener('click', function () {
                 const keywordName = document.getElementById('new-keyword-name').value.trim();
 
                 if (!keywordName) {
@@ -1387,7 +1195,7 @@
             });
 
             // Set up add candidate keyword button
-            document.getElementById('add-candidate-keyword-btn').addEventListener('click', function() {
+            document.getElementById('add-candidate-keyword-btn').addEventListener('click', function () {
                 const candidateName = document.getElementById('new-candidate-name').value.trim();
 
                 if (!candidateName) {
@@ -1399,7 +1207,7 @@
             });
 
             // Set up add category button
-            document.getElementById('add-category-btn').addEventListener('click', function() {
+            document.getElementById('add-category-btn').addEventListener('click', function () {
                 const categoryName = document.getElementById('new-category-name').value.trim();
 
                 if (!categoryName) {
@@ -1412,4 +1220,5 @@
         });
     </script>
 </body>
+
 </html>
