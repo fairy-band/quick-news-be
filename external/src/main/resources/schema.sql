@@ -186,3 +186,17 @@ CREATE TABLE IF NOT EXISTS content_provider_category_mappings
     UNIQUE (content_provider_id, category_id)
 );
 
+
+-- Gemini rate limit table
+CREATE TABLE IF NOT EXISTS gemini_rate_limit
+(
+    id                    SERIAL PRIMARY KEY,
+    model_name            VARCHAR(100) NOT NULL,
+    limit_date            DATE         NOT NULL,
+    request_count         INTEGER      NOT NULL DEFAULT 0,
+    max_requests_per_day  INTEGER      NOT NULL DEFAULT 20,
+    created_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_model_date ON gemini_rate_limit (model_name, limit_date);

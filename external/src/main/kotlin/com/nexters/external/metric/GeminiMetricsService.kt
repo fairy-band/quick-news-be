@@ -248,8 +248,8 @@ class GeminiMetricsService(
     companion object {
         private val MODEL_PRICING =
             mapOf(
-                GeminiModel.TWO_ZERO_FLASH_LITE to ModelPricing(0.075, 0.30),
-                GeminiModel.TWO_ZERO_FLASH to ModelPricing(1.25, 5.00),
+                GeminiModel.TWO_FIVE_FLASH to ModelPricing(1.25, 5.00),
+                GeminiModel.TWO_FIVE_FLASH_LITE to ModelPricing(0.075, 0.30),
             )
         private val logger = LoggerFactory.getLogger(GeminiMetricsService::class.java)
     }

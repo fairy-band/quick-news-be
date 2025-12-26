@@ -44,4 +44,8 @@ dependencies {
 
     // RSS Feed parsing
     implementation(libs.rome)
+
+    // Resilience4j for rate limiting
+    implementation(libs.resilience4j.ratelimiter)
+    implementation(libs.resilience4j.spring.boot3)
 }

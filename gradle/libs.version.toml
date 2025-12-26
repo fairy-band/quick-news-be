@@ -25,6 +25,7 @@ postgresql = "42.7.2"
 h2 = "2.2.224"
 thymeleaf = "3.1.2.RELEASE"
 firebase-admin = "9.2.0"
+resilience4j = "2.1.0"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -69,6 +70,10 @@ google-genai = { group = "com.google.genai", name = "google-genai", version.ref 
 
 # Firebase
 firebase-admin = { group = "com.google.firebase", name = "firebase-admin", version.ref = "firebase-admin" }
+
+# Resilience4j
+resilience4j-ratelimiter = { group = "io.github.resilience4j", name = "resilience4j-ratelimiter", version.ref = "resilience4j" }
+resilience4j-spring-boot3 = { group = "io.github.resilience4j", name = "resilience4j-spring-boot3", version.ref = "resilience4j" }
 
 # Gson
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
