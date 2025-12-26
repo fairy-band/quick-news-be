@@ -643,7 +643,32 @@
                     <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
                     <a href="./keywords" class="nav-link">🔑 키워드</a>
                     <a href="./recommendations" class="nav-link active">🔍 오늘의 추천</a>
+                    <a href="./exposure-fix" class="nav-link">🔧 키워드 보정</a>
                     <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- No Keywords Exposure Content Section -->
+        <div class="section">
+            <h2>🔧 키워드 보정 필요 콘텐츠</h2>
+            <p>"No Keywords"로 설정된 노출 콘텐츠를 찾아서 적절한 키워드로 보정합니다.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <button id="load-no-keywords-btn" class="btn btn-primary">키워드 보정 필요 콘텐츠 불러오기</button>
+            </div>
+
+            <div id="no-keywords-container" style="margin-top: 1.5rem; display: none;">
+                <div style="padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 10px; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div id="no-keywords-count" style="color: #00d4ff; font-weight: 600;">
+                            총 0개의 보정 필요 콘텐츠
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-keywords-list" style="max-height: 600px; overflow-y: auto;">
+                    <!-- Will be populated by JavaScript -->
                 </div>
             </div>
         </div>

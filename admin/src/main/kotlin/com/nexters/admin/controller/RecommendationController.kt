@@ -32,7 +32,35 @@ class RecommendationController(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentRepository: ContentRepository,
     private val userService: UserService,
+    private val contentKeywordMappingRepository: com.nexters.external.repository.ContentKeywordMappingRepository,
 ) {
+    @GetMapping("/exposure-contents/no-keywords")
+    fun getExposureContentsWithNoKeywords(): ResponseEntity<List<ExposureContentWithKeywordsResponse>> {
+        val allExposureContents = exposureContentService.getAllExposureContents()
+        val noKeywordsContents = allExposureContents.filter { it.provocativeKeyword == "No Keywords" }
+
+        val response = noKeywordsContents.map { exposureContent ->
+            val content = exposureContent.content
+            // Get content's existing keywords
+            val keywordMappings = contentKeywordMappingRepository.findByContent(content)
+            val contentKeywords = keywordMappings.map { it.keyword.name }
+
+            ExposureContentWithKeywordsResponse(
+                id = exposureContent.id!!,
+                contentId = content.id!!,
+                title = content.title,
+                newsletterName = content.newsletterName,
+                originalUrl = content.originalUrl,
+                provocativeKeyword = exposureContent.provocativeKeyword,
+                provocativeHeadline = exposureContent.provocativeHeadline,
+                summaryContent = exposureContent.summaryContent,
+                contentPreview = content.content.take(200),
+                suggestedKeywords = contentKeywords
+            )
+        }
+
+        return ResponseEntity.ok(response)
+    }
     @GetMapping("/categories")
     fun getAllCategories(): ResponseEntity<List<CategoryResponse>> {
         val categories = categoryRepository.findAll()
@@ -566,4 +594,17 @@ data class CategoryResponse(
     val name: String,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
+)
+
+data class ExposureContentWithKeywordsResponse(
+    val id: Long,
+    val contentId: Long,
+    val title: String,
+    val newsletterName: String,
+    val originalUrl: String,
+    val provocativeKeyword: String,
+    val provocativeHeadline: String,
+    val summaryContent: String,
+    val contentPreview: String,
+    val suggestedKeywords: List<String>
 )

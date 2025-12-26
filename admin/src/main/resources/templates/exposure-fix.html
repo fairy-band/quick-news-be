@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>노출 콘텐츠 키워드 보정 - Newsletter AI Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00d4ff, #5a67d8, #ed64a6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #000;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: #fff;
+        }
+
+        .content-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .content-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .content-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .content-meta {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            margin-bottom: 1rem;
+        }
+
+        .content-preview {
+            font-size: 0.9rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            max-height: 100px;
+            overflow: hidden;
+        }
+
+        .keyword-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .keyword-label {
+            font-size: 0.9rem;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .keyword-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .keyword-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .keyword-tag:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .keyword-tag.selected {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: #000;
+            border-color: transparent;
+        }
+
+        .custom-keyword-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .custom-keyword-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .custom-keyword-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #a0aec0;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .warning-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: #fff;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="logo">Newsletter AI</h1>
+                <div class="nav-links">
+                    <a href="./contents" class="nav-link">🏠 홈</a>
+                    <a href="./newsletter-sources" class="nav-link">📧 뉴스레터 소스</a>
+                    <a href="./keywords" class="nav-link">🔑 키워드</a>
+                    <a href="./recommendations" class="nav-link">🔍 오늘의 추천</a>
+                    <a href="./exposure-fix" class="nav-link active">🔧 키워드 보정</a>
+                    <a href="./rss-reader" class="nav-link">📡 RSS 리더</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 노출 콘텐츠 키워드 보정</h2>
+            <p style="color: #a0aec0; margin-bottom: 1.5rem;">
+                "No Keywords"로 설정된 노출 콘텐츠를 찾아서 적절한 키워드로 보정합니다.
+                제안된 키워드 중에서 선택하거나 직접 입력할 수 있습니다.
+            </p>
+
+            <div style="margin-bottom: 2rem;">
+                <button id="load-btn" class="btn btn-primary">
+                    📋 보정 필요 콘텐츠 불러오기
+                </button>
+            </div>
+
+            <div id="stats-container" class="stats-container" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-count">0</div>
+                    <div class="stat-label">보정 필요</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="fixed-count">0</div>
+                    <div class="stat-label">보정 완료</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="remaining-count">0</div>
+                    <div class="stat-label">남은 항목</div>
+                </div>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>콘텐츠를 불러오는 중...</p>
+            </div>
+
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon">✅</div>
+                <h3>보정이 필요한 콘텐츠가 없습니다</h3>
+                <p>모든 노출 콘텐츠에 적절한 키워드가 설정되어 있습니다.</p>
+            </div>
+
+            <div id="content-list">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allContents = [];
+        let fixedCount = 0;
+
+        function createStars() {
+            const stars = document.getElementById('stars');
+            const count = 100;
+
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                stars.appendChild(star);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+
+            document.getElementById('load-btn').addEventListener('click', loadNoKeywordsContents);
+        });
+
+        function loadNoKeywordsContents() {
+            const loading = document.getElementById('loading');
+            const contentList = document.getElementById('content-list');
+            const emptyState = document.getElementById('empty-state');
+            const statsContainer = document.getElementById('stats-container');
+
+            loading.style.display = 'flex';
+            contentList.innerHTML = '';
+            emptyState.style.display = 'none';
+            statsContainer.style.display = 'none';
+
+            fetch('./api/recommendations/exposure-contents/no-keywords')
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    allContents = data;
+                    fixedCount = 0;
+
+                    if (data.length === 0) {
+                        emptyState.style.display = 'block';
+                    } else {
+                        statsContainer.style.display = 'flex';
+                        updateStats();
+                        renderContents(data);
+                    }
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    console.error('Error loading contents:', error);
+                    alert('콘텐츠를 불러오는 중 오류가 발생했습니다.');
+                });
+        }
+
+        function updateStats() {
+            document.getElementById('total-count').textContent = allContents.length;
+            document.getElementById('fixed-count').textContent = fixedCount;
+            document.getElementById('remaining-count').textContent = allContents.length - fixedCount;
+        }
+
+        function renderContents(contents) {
+            const contentList = document.getElementById('content-list');
+            contentList.innerHTML = '';
+
+            contents.forEach((content, index) => {
+                const card = createContentCard(content, index);
+                contentList.appendChild(card);
+            });
+        }
+
+        function createContentCard(content, index) {
+            const card = document.createElement('div');
+            card.className = 'content-card';
+            card.id = `content-card-${content.id}`;
+
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'content-title';
+            titleDiv.innerHTML = `${content.title} <span class="warning-badge">No Keywords</span>`;
+
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'content-meta';
+            metaDiv.innerHTML = `
+                📰 ${content.newsletterName} | 
+                <a href="${content.originalUrl}" target="_blank" style="color: #00d4ff;">원문 보기</a>
+            `;
+
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'content-preview';
+            previewDiv.textContent = content.contentPreview + '...';
+
+            const keywordSection = document.createElement('div');
+            keywordSection.className = 'keyword-section';
+
+            // Suggested keywords
+            if (content.suggestedKeywords && content.suggestedKeywords.length > 0) {
+                const suggestedLabel = document.createElement('div');
+                suggestedLabel.className = 'keyword-label';
+                suggestedLabel.textContent = '💡 제안된 키워드 (클릭하여 선택)';
+
+                const suggestedTags = document.createElement('div');
+                suggestedTags.className = 'keyword-tags';
+
+                content.suggestedKeywords.forEach(keyword => {
+                    const tag = document.createElement('div');
+                    tag.className = 'keyword-tag';
+                    tag.textContent = keyword;
+                    tag.dataset.keyword = keyword;
+                    tag.addEventListener('click', function() {
+                        // Toggle selection
+                        const tags = suggestedTags.querySelectorAll('.keyword-tag');
+                        tags.forEach(t => t.classList.remove('selected'));
+                        this.classList.add('selected');
+                        customInput.value = keyword;
+                    });
+                    suggestedTags.appendChild(tag);
+                });
+
+                keywordSection.appendChild(suggestedLabel);
+                keywordSection.appendChild(suggestedTags);
+            }
+
+            // Custom keyword input
+            const customLabel = document.createElement('div');
+            customLabel.className = 'keyword-label';
+            customLabel.textContent = '✏️ 직접 입력 또는 선택된 키워드 수정';
+
+            const customInput = document.createElement('input');
+            customInput.type = 'text';
+            customInput.className = 'custom-keyword-input';
+            customInput.placeholder = '키워드를 입력하세요...';
+            customInput.id = `keyword-input-${content.id}`;
+
+            keywordSection.appendChild(customLabel);
+            keywordSection.appendChild(customInput);
+
+            // Action buttons
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn btn-success';
+            saveBtn.textContent = '✅ 키워드 저장';
+            saveBtn.style.flex = '1';
+            saveBtn.addEventListener('click', () => saveKeyword(content.id, customInput.value));
+
+            const skipBtn = document.createElement('button');
+            skipBtn.className = 'btn btn-warning';
+            skipBtn.textContent = '⏭️ 건너뛰기';
+            skipBtn.addEventListener('click', () => skipContent(content.id));
+
+            actionButtons.appendChild(saveBtn);
+            actionButtons.appendChild(skipBtn);
+
+            card.appendChild(titleDiv);
+            card.appendChild(metaDiv);
+            card.appendChild(previewDiv);
+            card.appendChild(keywordSection);
+            card.appendChild(actionButtons);
+
+            return card;
+        }
+
+        function saveKeyword(exposureContentId, keyword) {
+            if (!keyword || keyword.trim() === '') {
+                alert('키워드를 입력하거나 선택해주세요.');
+                return;
+            }
+
+            const trimmedKeyword = keyword.trim();
+
+            // Update exposure content
+            fetch(`./api/recommendations/exposure-contents/${exposureContentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    provocativeKeyword: trimmedKeyword,
+                    provocativeHeadline: document.querySelector(`#content-card-${exposureContentId} .content-title`).textContent.replace(' No Keywords', ''),
+                    summaryContent: allContents.find(c => c.id === exposureContentId).summaryContent
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to update exposure content');
+                }
+            })
+            .then(data => {
+                // Remove the card with animation
+                const card = document.getElementById(`content-card-${exposureContentId}`);
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(100px)';
+
+                setTimeout(() => {
+                    card.remove();
+                    fixedCount++;
+                    updateStats();
+
+                    // Check if all contents are fixed
+                    if (fixedCount === allContents.length) {
+                        document.getElementById('empty-state').style.display = 'block';
+                        document.getElementById('stats-container').style.display = 'none';
+                    }
+                }, 300);
+
+                // Show success message
+                showToast(`✅ "${trimmedKeyword}" 키워드가 저장되었습니다.`);
+            })
+            .catch(error => {
+                console.error('Error saving keyword:', error);
+                alert('키워드 저장 중 오류가 발생했습니다.');
+            });
+        }
+
+        function skipContent(exposureContentId) {
+            const card = document.getElementById(`content-card-${exposureContentId}`);
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(-100px)';
+
+            setTimeout(() => {
+                card.remove();
+                fixedCount++;
+                updateStats();
+
+                if (fixedCount === allContents.length) {
+                    document.getElementById('empty-state').style.display = 'block';
+                    document.getElementById('stats-container').style.display = 'none';
+                }
+            }, 300);
+        }
+
+        function showToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.style.position = 'fixed';
+            toast.style.bottom = '2rem';
+            toast.style.right = '2rem';
+            toast.style.background = 'rgba(0, 212, 255, 0.9)';
+            toast.style.color = '#000';
+            toast.style.padding = '1rem 1.5rem';
+            toast.style.borderRadius = '8px';
+            toast.style.fontWeight = '600';
+            toast.style.zIndex = '1000';
+            toast.style.boxShadow = '0 4px 20px rgba(0, 212, 255, 0.5)';
+            toast.textContent = message;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

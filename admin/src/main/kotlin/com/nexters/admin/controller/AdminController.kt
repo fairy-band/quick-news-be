@@ -34,6 +34,9 @@ class AdminController {
     @GetMapping("/recommendations")
     fun recommendations(): String = "recommendations"
 
+    @GetMapping("/exposure-fix")
+    fun exposureFix(): String = "exposure-fix"
+
     @GetMapping("/rss-reader")
     fun rssReader(): String = "rss-reader"
 
