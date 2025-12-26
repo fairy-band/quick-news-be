@@ -4,13 +4,20 @@ on:
   pull_request:
     types: [opened]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   auto-assign:
     name: Auto Assign
     runs-on: ubuntu-latest
-    
+
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Auto assign PR
       uses: kentaro-m/auto-assign-action@v2.0.0
       with:
-        configuration-path: .github/auto-assign.yml 
+        configuration-path: .github/auto-assign.yml
