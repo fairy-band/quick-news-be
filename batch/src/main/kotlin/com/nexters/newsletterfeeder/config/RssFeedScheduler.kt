@@ -27,7 +27,7 @@ class RssFeedScheduler(
 
         logger.info("Starting scheduled RSS feed fetch for ${rssFeeds.size} feeds")
 
-        val results = rssContentService.fetchAndSaveFeeds(rssFeeds)
+        val results = rssContentService.fetchAndSaveRssFeed(*rssFeeds.toTypedArray())
 
         results.forEach { (feedUrl, count) ->
             if (count >= 0) {

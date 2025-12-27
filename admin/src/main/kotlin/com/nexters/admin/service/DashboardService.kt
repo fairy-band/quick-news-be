@@ -60,11 +60,12 @@ class DashboardService(
 
         // N+1 방지: 한 번의 쿼리로 요약이 있는 Content ID 조회
         val contentIds = allContents.mapNotNull { it.id }
-        val contentIdsWithSummary = if (contentIds.isNotEmpty()) {
-            dashboardSummaryRepository.findContentIdsWithSummary(contentIds).toSet()
-        } else {
-            emptySet()
-        }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                dashboardSummaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
 
         val contentsWithSummary = contentIdsWithSummary.size.toLong()
         val contentsWithoutSummary = allContents.size - contentsWithSummary
@@ -107,18 +108,20 @@ class DashboardService(
         val unprocessedData = mutableListOf<Int>()
 
         // 전체 기간의 콘텐츠를 한 번에 조회
-        val allContents = dashboardContentRepository.findAllByCreatedAtBetween(
-            startDate.atStartOfDay(),
-            endDate.plusDays(1).atStartOfDay()
-        )
+        val allContents =
+            dashboardContentRepository.findAllByCreatedAtBetween(
+                startDate.atStartOfDay(),
+                endDate.plusDays(1).atStartOfDay()
+            )
 
         // N+1 방지: 한 번의 쿼리로 요약이 있는 Content ID 조회
         val contentIds = allContents.mapNotNull { it.id }
-        val contentIdsWithSummary = if (contentIds.isNotEmpty()) {
-            dashboardSummaryRepository.findContentIdsWithSummary(contentIds).toSet()
-        } else {
-            emptySet()
-        }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                dashboardSummaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
 
         // 날짜별로 그룹화
         val contentsByDate = allContents.groupBy { it.createdAt.toLocalDate() }
@@ -269,11 +272,12 @@ class DashboardService(
 
         // N+1 방지: 한 번의 쿼리로 요약이 있는 Content ID 조회
         val contentIds = contents.mapNotNull { it.id }
-        val contentIdsWithSummary = if (contentIds.isNotEmpty()) {
-            dashboardSummaryRepository.findContentIdsWithSummary(contentIds).toSet()
-        } else {
-            emptySet()
-        }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                dashboardSummaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
 
         val totalAttempts = contents.size.toLong()
         val successCount = contentIdsWithSummary.size.toLong()

@@ -2,7 +2,6 @@ package com.nexters.newsletterfeeder.service
 
 import com.nexters.external.repository.ContentRepository
 import com.nexters.newsletter.service.NewsletterProcessingService
-import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -12,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional
 class ContentAiProcessingService(
     private val contentRepository: ContentRepository,
     private val newsletterProcessingService: NewsletterProcessingService,
-    private val rssContentService: RssContentService
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingService::class.java)
 
@@ -52,10 +50,6 @@ class ContentAiProcessingService(
 
         return ProcessingResult(processedCount, errorCount, remainingCount)
     }
-
-    fun processRssWithAi() = rssContentService.processDailyRssWithAi()
-
-    fun getRssProcessingStats() = rssContentService.getProcessingStats()
 
     data class ProcessingResult(
         val processedCount: Int,

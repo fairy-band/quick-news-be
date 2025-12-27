@@ -31,13 +31,15 @@ class RssNewsletterAdminController(
         logger.info("Fetching RSS feed: $feedUrl")
 
         return try {
-            val savedCount = rssContentService.fetchAndSaveRssFeed(feedUrl)
+            val results = rssContentService.fetchAndSaveRssFeed(feedUrl)
+            val savedCount = results[feedUrl] ?: 0
+
             ResponseEntity.ok(
                 mapOf<String, Any>(
                     "success" to true,
                     "feedUrl" to feedUrl,
                     "newItemsCount" to savedCount,
-                    "message" to "Successfully fetched $savedCount new items"
+                    "message" to "Successfully fetched and saved $savedCount new items"
                 )
             )
         } catch (e: Exception) {
@@ -51,36 +53,6 @@ class RssNewsletterAdminController(
             )
         }
     }
-
-    @PostMapping("/fetch-and-process")
-    fun fetchAndProcessRssFeed(
-        @RequestParam feedUrl: String
-    ): ResponseEntity<Map<String, Any>> {
-        logger.info("Fetching and processing RSS feed: $feedUrl")
-
-        return try {
-            val processedCount = rssContentService.fetchAndProcessRssFeed(feedUrl)
-            ResponseEntity.ok(
-                mapOf<String, Any>(
-                    "success" to true,
-                    "feedUrl" to feedUrl,
-                    "processedCount" to processedCount,
-                    "message" to "Successfully fetched and processed $processedCount items"
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("Error fetching and processing RSS feed: $feedUrl", e)
-            ResponseEntity.badRequest().body(
-                mapOf<String, Any>(
-                    "success" to false,
-                    "feedUrl" to feedUrl,
-                    "error" to (e.message ?: "Unknown error")
-                )
-            )
-        }
-    }
-
-    // RSS 컨텐츠는 저장시 즉시 요약이 생성되므로 별도 처리 불필요
 
     @GetMapping("/recent")
     fun getRecentSources(
@@ -107,7 +79,7 @@ class RssNewsletterAdminController(
         return try {
             val stats = rssContentService.getSourceStats()
             ResponseEntity.ok(
-                mapOf<String, Any>(
+                mapOf(
                     "success" to true,
                     "stats" to stats
                 )
@@ -137,71 +109,18 @@ class RssNewsletterAdminController(
         }
 
         return try {
-            val feedUrls = rssFeeds
-            val results = rssContentService.fetchAndSaveFeeds(feedUrls)
+            val results = rssContentService.fetchAndSaveRssFeed(*rssFeeds.toTypedArray())
 
             ResponseEntity.ok(
-                mapOf<String, Any>(
+                mapOf(
                     "success" to true,
                     "results" to results,
-                    "totalFeeds" to feedUrls.size,
+                    "totalFeeds" to rssFeeds.size,
                     "message" to "Fetched all configured RSS feeds"
                 )
             )
         } catch (e: Exception) {
             logger.error("Error fetching all RSS feeds", e)
-            ResponseEntity.badRequest().body(
-                mapOf<String, Any>(
-                    "success" to false,
-                    "error" to (e.message ?: "Unknown error")
-                )
-            )
-        }
-    }
-
-    @PostMapping("/process-ai")
-    fun processRssWithAi(): ResponseEntity<Map<String, Any>> {
-        logger.info("Starting manual RSS AI processing")
-
-        return try {
-            val result = rssContentService.processDailyRssWithAi()
-            ResponseEntity.ok(
-                mapOf<String, Any>(
-                    "success" to true,
-                    "message" to result.message,
-                    "processedCount" to result.processedCount,
-                    "errorCount" to result.errorCount,
-                    "totalProcessedToday" to result.totalProcessedToday
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("Error processing RSS with AI", e)
-            ResponseEntity.badRequest().body(
-                mapOf<String, Any>(
-                    "success" to false,
-                    "error" to (e.message ?: "Unknown error")
-                )
-            )
-        }
-    }
-
-    @GetMapping("/processing-stats")
-    fun getProcessingStats(): ResponseEntity<Map<String, Any>> {
-        logger.info("Getting RSS AI processing statistics")
-
-        return try {
-            val stats = rssContentService.getProcessingStats()
-            ResponseEntity.ok(
-                mapOf<String, Any>(
-                    "success" to true,
-                    "processedToday" to stats.processedToday,
-                    "dailyLimit" to stats.dailyLimit,
-                    "pending" to stats.pending,
-                    "remainingQuota" to stats.remainingQuota
-                )
-            )
-        } catch (e: Exception) {
-            logger.error("Error getting RSS AI processing stats", e)
             ResponseEntity.badRequest().body(
                 mapOf<String, Any>(
                     "success" to false,
@@ -218,7 +137,7 @@ class RssNewsletterAdminController(
         return try {
             val stats = rssContentService.getDetailedStats()
             ResponseEntity.ok(
-                mapOf<String, Any>(
+                mapOf(
                     "success" to true,
                     "stats" to stats
                 )

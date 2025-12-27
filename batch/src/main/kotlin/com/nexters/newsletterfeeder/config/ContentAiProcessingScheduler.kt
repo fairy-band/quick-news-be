@@ -26,25 +26,4 @@ class ContentAiProcessingScheduler(
             logger.error("Error during content AI processing", e)
         }
     }
-
-    @Scheduled(cron = "0 0 0 * * *") // 매일 자정에 실행
-    fun processRssWithAi() {
-        logger.info("Starting RSS AI processing scheduler")
-        try {
-            val result = contentAiProcessingService.processRssWithAi()
-            logger.info("RSS AI processing completed: $result")
-        } catch (e: Exception) {
-            logger.error("Error during RSS AI processing", e)
-        }
-    }
-
-    @Scheduled(cron = "0 0 12 * * *") // 매일 정오에 실행
-    fun logProcessingStats() {
-        try {
-            val stats = contentAiProcessingService.getRssProcessingStats()
-            logger.info("RSS AI Processing Stats - Processed today: ${stats.processedToday}/${stats.dailyLimit}, Pending: ${stats.pending}")
-        } catch (e: Exception) {
-            logger.error("Error getting RSS processing stats", e)
-        }
-    }
 }

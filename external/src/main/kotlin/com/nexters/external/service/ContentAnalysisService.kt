@@ -9,6 +9,7 @@ import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
 import com.nexters.external.exception.AiProcessingException
+import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
@@ -58,7 +59,7 @@ class ContentAnalysisService(
                 } else {
                     logger.warn("Got null response from ${model.modelName}")
                 }
-            } catch (e: com.nexters.external.exception.RateLimitExceededException) {
+            } catch (_: RateLimitExceededException) {
                 logger.warn("Rate limit exceeded for model ${model.modelName}, trying next model")
                 // Rate limit 초과 시 다음 모델로 시도
                 continue

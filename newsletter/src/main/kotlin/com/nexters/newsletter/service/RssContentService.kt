@@ -12,9 +12,7 @@ import com.nexters.external.service.ContentService
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.external.service.RssReaderService
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -28,24 +26,21 @@ class RssContentService(
     private val contentService: ContentService,
     private val contentProviderService: ContentProviderService,
     private val rssProcessingStatusRepository: RssProcessingStatusRepository,
-    private val newsletterProcessingService: NewsletterProcessingService,
-    @Value("\${rss.ai.daily-limit:100}")
-    private val dailyLimit: Int = 100,
 ) {
     private val logger = LoggerFactory.getLogger(RssContentService::class.java)
 
     @Transactional
-    fun fetchAndSaveFeeds(feedUrls: List<String>): Map<String, Int> =
+    fun fetchAndSaveRssFeed(vararg feedUrls: String): Map<String, Int> =
         feedUrls.associateWith { feedUrl ->
             try {
-                fetchAndSaveRssFeed(feedUrl)
+                processSingleFeed(feedUrl)
             } catch (e: Exception) {
                 logger.error("Error processing feed $feedUrl: ${e.message}", e)
                 -1
             }
         }
 
-    fun fetchAndSaveRssFeed(feedUrl: String): Int {
+    private fun processSingleFeed(feedUrl: String): Int {
         logger.info("Fetching RSS feed from: $feedUrl")
 
         val feedMetadata =
@@ -67,98 +62,6 @@ class RssContentService(
 
         logger.info("Saved $savedCount new items from feed: $feedUrl")
         return savedCount
-    }
-
-    fun fetchAndProcessRssFeed(feedUrl: String): Int {
-        logger.info("Fetching and processing RSS feed from: $feedUrl")
-
-        val feedMetadata =
-            rssReaderService.fetchFeed(feedUrl) ?: run {
-                logger.error("Failed to fetch RSS feed from: $feedUrl")
-                return 0
-            }
-
-        val processedCount =
-            feedMetadata.items.count { item ->
-                if (isItemAlreadyProcessed(item.link)) {
-                    false
-                } else {
-                    saveRssItem(feedUrl, feedMetadata.title, item)
-                    true
-                }
-            }
-
-        logger.info("Processed $processedCount new items from feed: $feedUrl")
-        return processedCount
-    }
-
-    private fun isItemAlreadyProcessed(itemUrl: String): Boolean = rssProcessingStatusRepository.findByItemUrl(itemUrl) != null
-
-    private fun saveRssItem(
-        feedUrl: String,
-        feedTitle: String,
-        item: RssItem,
-    ) {
-        val newsletterSource = createNewsletterSource(feedUrl, feedTitle, item)
-        val savedSource = newsletterSourceService.save(newsletterSource)
-
-        val processingStatus = createProcessingStatus(feedUrl, feedTitle, item, savedSource.id!!.toString())
-        val savedStatus = rssProcessingStatusRepository.save(processingStatus)
-
-        tryProcessItemWithAi(savedStatus, item.title)
-
-        logger.debug("Saved new RSS source: ${item.title}")
-    }
-
-    private fun createNewsletterSource(
-        feedUrl: String,
-        feedTitle: String,
-        item: RssItem,
-    ): NewsletterSource =
-        NewsletterSource(
-            subject = item.title,
-            sender = feedTitle,
-            senderEmail = "rss@${item.link.extractDomain()}",
-            recipient = "system",
-            recipientEmail = "system@newsletter.ai",
-            content = item.toContentText(),
-            contentType = "text/html",
-            receivedDate = item.publishedDate ?: LocalDateTime.now(),
-            headers =
-                mapOf(
-                    "RSS-Feed-URL" to feedUrl,
-                    "RSS-Item-URL" to item.link,
-                    "RSS-Categories" to item.categories.joinToString(","),
-                ),
-        )
-
-    private fun createProcessingStatus(
-        feedUrl: String,
-        feedTitle: String,
-        item: RssItem,
-        newsletterSourceId: String,
-    ): RssProcessingStatus =
-        RssProcessingStatus(
-            newsletterSourceId = newsletterSourceId,
-            rssUrl = feedUrl,
-            itemUrl = item.link,
-            title = item.title,
-            isProcessed = true,
-            aiProcessed = false,
-            priority = feedTitle.calculateFeedPriority(),
-        )
-
-    private fun tryProcessItemWithAi(
-        status: RssProcessingStatus,
-        itemTitle: String,
-    ) {
-        try {
-            logger.info("Starting immediate RSS AI processing for: ${status.title}")
-            processRssItem(status)
-            logger.info("Immediately processed RSS item with AI: $itemTitle")
-        } catch (e: Exception) {
-            logger.error("Failed to process RSS item immediately: $itemTitle", e)
-        }
     }
 
     fun getRecentSources(days: Int): List<NewsletterSource> {
@@ -185,133 +88,86 @@ class RssContentService(
                 )
             }
 
-    private fun getRssSources(): List<NewsletterSource> =
-        newsletterSourceService
-            .findAll()
-            .filter { it.senderEmail.startsWith("rss@") }
-
-    @Transactional
-    fun processDailyRssWithAi(): ProcessingResult {
-        logger.info("Starting RSS AI processing")
-
-        val todayStart = LocalDate.now().atStartOfDay()
-        val processedToday = rssProcessingStatusRepository.countProcessedToday(todayStart).toInt()
-
-        if (processedToday >= dailyLimit) {
-            logger.info("Daily limit reached: $processedToday/$dailyLimit items processed today")
-            return ProcessingResult(0, 0, processedToday, "Daily limit reached")
-        }
-
-        val remainingQuota = dailyLimit - processedToday
-        logger.info("Processing up to $remainingQuota RSS items (already processed today: $processedToday)")
-
-        val unprocessedItems = fetchUnprocessedItems(remainingQuota)
-        val (processedCount, errorCount) = processItems(unprocessedItems, remainingQuota)
-
-        val totalProcessedToday = processedToday + processedCount
-        logger.info("RSS AI processing completed. Processed: $processedCount, Errors: $errorCount")
-
-        return ProcessingResult(processedCount, errorCount, totalProcessedToday, "Processing completed")
-    }
-
-    fun getProcessingStats(): ProcessingStats {
-        val todayStart = LocalDate.now().atStartOfDay()
-        val processedToday = rssProcessingStatusRepository.countProcessedToday(todayStart).toInt()
-        val totalPending = countPendingItems()
-
-        return ProcessingStats(
-            processedToday = processedToday,
-            dailyLimit = dailyLimit,
-            pending = totalPending,
-            remainingQuota = maxOf(0, dailyLimit - processedToday),
-        )
-    }
-
     fun getDetailedStats(): Map<String, FeedDetailedStats> {
         val allSources = getRssSources()
         val allStatuses = rssProcessingStatusRepository.findAll()
-        
+
         return allSources
             .groupBy { it.sender }
             .mapValues { (feedName, sources) ->
                 val feedUrl = sources.firstOrNull()?.headers?.get("RSS-Feed-URL") ?: ""
                 val statuses = allStatuses.filter { it.rssUrl == feedUrl }
-                
-                val totalItems = statuses.size
-                val aiProcessed = statuses.count { it.aiProcessed }
-                val pending = statuses.count { !it.aiProcessed && it.isProcessed }
-                val errors = statuses.count { it.processingError != null }
-                val todayItems = statuses.count { 
-                    it.createdAt.toLocalDate() == LocalDate.now() 
-                }
-                val lastFetch = sources.mapNotNull { it.createdAt }.maxOrNull()
-                val avgPriority = statuses.map { it.priority }.average().takeIf { !it.isNaN() }?.toInt() ?: 0
-                
+
                 FeedDetailedStats(
                     feedName = feedName,
                     feedUrl = feedUrl,
-                    totalItems = totalItems,
-                    aiProcessed = aiProcessed,
-                    pending = pending,
-                    errors = errors,
-                    todayItems = todayItems,
-                    lastFetch = lastFetch,
-                    priority = avgPriority,
-                    successRate = if (totalItems > 0) (aiProcessed.toDouble() / totalItems * 100).toInt() else 0
+                    totalItems = statuses.size,
+                    aiProcessed = statuses.count { it.aiProcessed },
+                    pending = statuses.count { !it.aiProcessed && it.isProcessed },
+                    errors = statuses.count { it.processingError != null },
+                    todayItems = statuses.count { it.createdAt.toLocalDate() == LocalDate.now() },
+                    lastFetch = sources.mapNotNull { it.createdAt }.maxOrNull(),
+                    priority =
+                        statuses
+                            .map { it.priority }
+                            .average()
+                            .takeIf { !it.isNaN() }
+                            ?.toInt() ?: 0,
+                    successRate =
+                        if (statuses.isNotEmpty()) {
+                            (statuses.count { it.aiProcessed }.toDouble() / statuses.size * 100).toInt()
+                        } else {
+                            0
+                        }
                 )
             }
     }
 
-    private fun fetchUnprocessedItems(limit: Int): List<RssProcessingStatus> {
-        val pageable = PageRequest.of(0, limit)
-        return rssProcessingStatusRepository.findUnprocessedByPriority(pageable).content
+    private fun isItemAlreadyProcessed(itemUrl: String): Boolean = rssProcessingStatusRepository.findByItemUrl(itemUrl) != null
+
+    private fun saveRssItem(
+        feedUrl: String,
+        feedTitle: String,
+        item: RssItem
+    ) {
+        val newsletterSource = createNewsletterSource(feedUrl, feedTitle, item)
+        val savedSource = newsletterSourceService.save(newsletterSource)
+
+        val content = createContentFromNewsletterSource(savedSource, item)
+        contentService.save(content)
+
+        val processingStatus = createProcessingStatus(feedUrl, feedTitle, item, savedSource.id!!)
+        rssProcessingStatusRepository.save(processingStatus)
+
+        logger.debug("Saved RSS item: ${item.title}")
     }
 
-    private fun processItems(
-        items: List<RssProcessingStatus>,
-        totalQuota: Int,
-    ): Pair<Int, Int> {
-        var processedCount = 0
-        var errorCount = 0
-
-        items.forEach { status ->
-            try {
-                processRssItem(status)
-                processedCount++
-                logger.info("Processed RSS item $processedCount/$totalQuota: ${status.title}")
-            } catch (e: Exception) {
-                errorCount++
-                handleProcessingError(status, e)
-            }
-        }
-
-        return Pair(processedCount, errorCount)
-    }
-
-    private fun processRssItem(status: RssProcessingStatus) {
-        val newsletterSource = findNewsletterSourceOrDelete(status) ?: return
-
-        val content = createContentFromSource(newsletterSource)
-        val savedContent = contentService.save(content)
-
-        processContentWithAi(savedContent)
-        updateProcessingStatus(status, savedContent.id)
-
-        logger.info(
-            "Fully processed RSS item: ${savedContent.title} (ID: ${savedContent.id})",
+    private fun createNewsletterSource(
+        feedUrl: String,
+        feedTitle: String,
+        item: RssItem
+    ): NewsletterSource =
+        NewsletterSource(
+            subject = item.title,
+            sender = feedTitle,
+            senderEmail = "rss@${item.link.extractDomain()}",
+            recipient = "system",
+            recipientEmail = "system@newsletter.ai",
+            content = item.toContentText(),
+            contentType = "text/html",
+            receivedDate = item.publishedDate ?: LocalDateTime.now(),
+            headers =
+                mapOf(
+                    "RSS-Feed-URL" to feedUrl,
+                    "RSS-Item-URL" to item.link,
+                    "RSS-Categories" to item.categories.joinToString(","),
+                ),
         )
-    }
 
-    private fun findNewsletterSourceOrDelete(status: RssProcessingStatus): NewsletterSource? {
-        val source = newsletterSourceService.findById(status.newsletterSourceId)
-        if (source == null) {
-            logger.warn("NewsletterSource not found for ID: ${status.newsletterSourceId}, removing RssProcessingStatus")
-            rssProcessingStatusRepository.delete(status)
-        }
-        return source
-    }
-
-    private fun createContentFromSource(newsletterSource: NewsletterSource): Content {
+    private fun createContentFromNewsletterSource(
+        newsletterSource: NewsletterSource,
+        item: RssItem
+    ): Content {
         val contentProvider = resolveContentProvider(newsletterSource.sender)
 
         return Content(
@@ -319,13 +175,31 @@ class RssContentService(
             title = newsletterSource.subject ?: "Untitled",
             content = newsletterSource.content,
             newsletterName = newsletterSource.sender,
-            originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: "",
+            originalUrl = item.link,
             publishedAt = newsletterSource.receivedDate.toLocalDate(),
             contentProvider = contentProvider,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
         )
     }
+
+    private fun createProcessingStatus(
+        feedUrl: String,
+        feedTitle: String,
+        item: RssItem,
+        newsletterSourceId: String,
+    ): RssProcessingStatus =
+        RssProcessingStatus(
+            newsletterSourceId = newsletterSourceId,
+            rssUrl = feedUrl,
+            itemUrl = item.link,
+            title = item.title,
+            isProcessed = true,
+            aiProcessed = false,
+            priority = feedTitle.calculateFeedPriority(),
+        )
+
+    private fun getRssSources(): List<NewsletterSource> = newsletterSourceService.findAll().filter { it.senderEmail.startsWith("rss@") }
 
     private fun resolveContentProvider(newsletterName: String): ContentProvider? =
         try {
@@ -335,60 +209,11 @@ class RssContentService(
             null
         }
 
-    private fun processContentWithAi(content: Content) {
-        try {
-            newsletterProcessingService.processExistingContent(content)
-            logger.info("AI processing completed for content ID: ${content.id}")
-        } catch (e: Exception) {
-            logger.error("Failed to process content with AI for content ID: ${content.id}", e)
-            throw e
-        }
-    }
-
-    private fun updateProcessingStatus(
-        status: RssProcessingStatus,
-        contentId: Long?,
-    ) {
-        status.aiProcessed = true
-        status.aiProcessedAt = LocalDateTime.now()
-        status.contentId = contentId
-        rssProcessingStatusRepository.save(status)
-    }
-
-    private fun handleProcessingError(
-        status: RssProcessingStatus,
-        error: Exception,
-    ) {
-        logger.error("Error processing RSS item: ${status.title}", error)
-        status.processingError = "AI processing failed: ${error.message}"
-        rssProcessingStatusRepository.save(status)
-    }
-
-    private fun countPendingItems(): Int =
-        rssProcessingStatusRepository
-            .findByAiProcessedFalseAndIsProcessedTrue(PageRequest.of(0, 1))
-            .totalElements
-            .toInt()
-
     data class SourceStats(
         val totalCount: Int,
         val processedCount: Int,
         val unprocessedCount: Int,
         val lastUpdated: LocalDateTime?,
-    )
-
-    data class ProcessingResult(
-        val processedCount: Int,
-        val errorCount: Int,
-        val totalProcessedToday: Int,
-        val message: String,
-    )
-
-    data class ProcessingStats(
-        val processedToday: Int,
-        val dailyLimit: Int,
-        val pending: Int,
-        val remainingQuota: Int,
     )
 
     data class FeedDetailedStats(

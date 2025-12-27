@@ -76,41 +76,47 @@ class NewsletterApiController(
         val pageable = PageRequest.of(0, size)
         val page = exposureContentService.getAllExposureContentsWithPaging(lastSeenOffset, pageable)
 
-        val contents = page.content.map { exposureContent ->
-            ExposureContentApiResponse(
-                id = exposureContent.id!!,
-                content = ExposureContentApiResponse.ContentInfo(
-                    id = exposureContent.content.id!!,
-                    url = exposureContent.content.originalUrl,
-                    newsletterName = exposureContent.content.newsletterName,
-                    language = Language.fromString(exposureContent.content.contentProvider?.language)
-                ),
-                exposure = ExposureContentApiResponse.ExposureInfo(
-                    provocativeKeyword = exposureContent.provocativeKeyword,
-                    provocativeHeadline = exposureContent.provocativeHeadline,
-                    summaryContent = exposureContent.summaryContent,
-                    engagementScore = null // TODO: 추후 engagement 지표 추가
-                ),
-                timestamps = ExposureContentApiResponse.Timestamps(
-                    createdAt = exposureContent.createdAt,
-                    updatedAt = exposureContent.updatedAt
+        val contents =
+            page.content.map { exposureContent ->
+                ExposureContentApiResponse(
+                    id = exposureContent.id!!,
+                    content =
+                        ExposureContentApiResponse.ContentInfo(
+                            id = exposureContent.content.id!!,
+                            url = exposureContent.content.originalUrl,
+                            newsletterName = exposureContent.content.newsletterName,
+                            language = Language.fromString(exposureContent.content.contentProvider?.language)
+                        ),
+                    exposure =
+                        ExposureContentApiResponse.ExposureInfo(
+                            provocativeKeyword = exposureContent.provocativeKeyword,
+                            provocativeHeadline = exposureContent.provocativeHeadline,
+                            summaryContent = exposureContent.summaryContent,
+                            engagementScore = null // TODO: 추후 engagement 지표 추가
+                        ),
+                    timestamps =
+                        ExposureContentApiResponse.Timestamps(
+                            createdAt = exposureContent.createdAt,
+                            updatedAt = exposureContent.updatedAt
+                        )
                 )
-            )
-        }
+            }
 
         val hasMore = page.content.size == size
         val nextOffset = if (hasMore && contents.isNotEmpty()) contents.last().id else null
 
         return ExposureContentListApiResponse(
-            metadata = ExposureContentListApiResponse.ListMetadata(
-                totalFetched = contents.size
-            ),
+            metadata =
+                ExposureContentListApiResponse.ListMetadata(
+                    totalFetched = contents.size
+                ),
             contents = contents,
-            pagination = ExposureContentListApiResponse.PaginationInfo(
-                hasMore = hasMore,
-                nextOffset = nextOffset,
-                currentSize = contents.size
-            )
+            pagination =
+                ExposureContentListApiResponse.PaginationInfo(
+                    hasMore = hasMore,
+                    nextOffset = nextOffset,
+                    currentSize = contents.size
+                )
         )
     }
 }

@@ -248,44 +248,6 @@ class ProcessController(
         return ResponseEntity.ok(result)
     }
 
-    @PostMapping("/rss/process-ai")
-    fun processRssWithAi(): ResponseEntity<RssProcessingResponse> =
-        try {
-            val result = rssContentService.processDailyRssWithAi()
-            ResponseEntity.ok(
-                RssProcessingResponse(
-                    success = true,
-                    message = result.message,
-                    processedCount = result.processedCount,
-                    errorCount = result.errorCount,
-                    totalProcessedToday = result.totalProcessedToday
-                )
-            )
-        } catch (e: Exception) {
-            ResponseEntity.ok(
-                RssProcessingResponse(
-                    success = false,
-                    message = "RSS AI processing failed: ${e.message}",
-                    processedCount = 0,
-                    errorCount = 1,
-                    totalProcessedToday = 0
-                )
-            )
-        }
-
-    @GetMapping("/rss/stats")
-    fun getRssProcessingStats(): ResponseEntity<RssStatsResponse> {
-        val stats = rssContentService.getProcessingStats()
-        return ResponseEntity.ok(
-            RssStatsResponse(
-                processedToday = stats.processedToday,
-                dailyLimit = stats.dailyLimit,
-                pending = stats.pending,
-                remainingQuota = stats.remainingQuota
-            )
-        )
-    }
-
     @PostMapping("/content/{contentId}/auto-process")
     fun autoProcessContent(
         @PathVariable contentId: Long
@@ -370,21 +332,6 @@ data class AddCandidateKeywordsResponse(
 
 data class BulkContentExposureStatusRequest(
     val contentIds: List<Long>
-)
-
-data class RssProcessingResponse(
-    val success: Boolean,
-    val message: String,
-    val processedCount: Int,
-    val errorCount: Int,
-    val totalProcessedToday: Int
-)
-
-data class RssStatsResponse(
-    val processedToday: Int,
-    val dailyLimit: Int,
-    val pending: Int,
-    val remainingQuota: Int
 )
 
 data class AutoProcessResponse(

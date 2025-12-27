@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
@@ -20,7 +21,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
      */
     fun countByCreatedAtBetween(
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): Long
 
     /**
@@ -28,7 +29,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
      */
     fun findAllByCreatedAtBetween(
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): List<Content>
 
     /**
@@ -41,11 +42,11 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         GROUP BY c.newsletterName
         ORDER BY COUNT(c) DESC
-        """
+        """,
     )
     fun countByNewsletterNameBetween(
         @Param("startDate") startDate: LocalDateTime,
-        @Param("endDate") endDate: LocalDateTime
+        @Param("endDate") endDate: LocalDateTime,
     ): List<NewsletterDistribution>
 
     /**
@@ -57,7 +58,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         FROM Content c
         GROUP BY c.newsletterName
         ORDER BY COUNT(c) DESC
-        """
+        """,
     )
     fun countByNewsletterName(): List<NewsletterDistribution>
 
@@ -71,11 +72,11 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         GROUP BY DATE(c.createdAt)
         ORDER BY DATE(c.createdAt)
-        """
+        """,
     )
     fun countByDateBetween(
         @Param("startDate") startDate: LocalDateTime,
-        @Param("endDate") endDate: LocalDateTime
+        @Param("endDate") endDate: LocalDateTime,
     ): List<DailyContentCount>
 
     /**
@@ -85,7 +86,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         """
         SELECT c FROM Content c
         ORDER BY c.createdAt DESC
-        """
+        """,
     )
     fun findRecentContents(): List<Content>
 
@@ -97,11 +98,11 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         SELECT c FROM Content c
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         ORDER BY c.createdAt DESC
-        """
+        """,
     )
     fun findRecentContentsBetween(
         @Param("startDate") startDate: LocalDateTime,
-        @Param("endDate") endDate: LocalDateTime
+        @Param("endDate") endDate: LocalDateTime,
     ): List<Content>
 
     /**
@@ -110,7 +111,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
     fun findByNewsletterNameAndCreatedAtBetween(
         newsletterName: String,
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): List<Content>
 
     /**
@@ -119,7 +120,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
     fun countByNewsletterNameAndCreatedAtBetween(
         newsletterName: String,
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): Long
 
     /**
@@ -135,11 +136,11 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         GROUP BY cat.name
         ORDER BY COUNT(DISTINCT c) DESC
-        """
+        """,
     )
     fun countByCategoryBetween(
         @Param("startDate") startDate: LocalDateTime,
-        @Param("endDate") endDate: LocalDateTime
+        @Param("endDate") endDate: LocalDateTime,
     ): List<CategoryDistribution>
 
     /**
@@ -154,7 +155,7 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         JOIN Category cat ON catkm.category.id = cat.id
         GROUP BY cat.name
         ORDER BY COUNT(DISTINCT c) DESC
-        """
+        """,
     )
     fun countByCategory(): List<CategoryDistribution>
 }
@@ -169,31 +170,8 @@ interface DashboardExposureContentRepository : JpaRepository<ExposureContent, Lo
      */
     fun countByCreatedAtBetween(
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): Long
-
-    /**
-     * 기간별 노출 콘텐츠 목록 조회
-     */
-    fun findAllByCreatedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): List<ExposureContent>
-
-    /**
-     * 기간별 최근 노출 콘텐츠 조회
-     */
-    @Query(
-        """
-        SELECT e FROM ExposureContent e
-        WHERE e.createdAt BETWEEN :startDate AND :endDate
-        ORDER BY e.createdAt DESC
-        """
-    )
-    fun findRecentExposureContentsBetween(
-        @Param("startDate") startDate: LocalDateTime,
-        @Param("endDate") endDate: LocalDateTime
-    ): List<ExposureContent>
 }
 
 /**
@@ -202,78 +180,24 @@ interface DashboardExposureContentRepository : JpaRepository<ExposureContent, Lo
 @Repository
 interface DashboardSummaryRepository : JpaRepository<Summary, Long> {
     /**
-     * 기간별 요약 수 조회
-     */
-    fun countByCreatedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Long
-
-    /**
-     * 기간별 요약 목록 조회
-     */
-    fun findAllByCreatedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): List<Summary>
-
-    /**
-     * 요약 생성 시간 기준 기간별 수 조회
-     */
-    fun countBySummarizedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Long
-
-    /**
-     * Content로 Summary 조회
-     */
-    fun findByContent(content: Content): List<Summary>
-
-    /**
-     * 여러 Content의 Summary를 한 번에 조회 (N+1 방지)
-     */
-    @Query(
-        """
-        SELECT s FROM Summary s
-        WHERE s.content IN :contents
-        """
-    )
-    fun findByContentIn(@Param("contents") contents: List<Content>): List<Summary>
-
-    /**
      * Content ID 목록으로 요약이 있는 Content ID 조회 (N+1 방지)
      */
     @Query(
         """
         SELECT DISTINCT s.content.id FROM Summary s
         WHERE s.content.id IN :contentIds
-        """
+        """,
     )
-    fun findContentIdsWithSummary(@Param("contentIds") contentIds: List<Long>): List<Long>
+    fun findContentIdsWithSummary(
+        @Param("contentIds") contentIds: List<Long>,
+    ): List<Long>
 }
 
 /**
  * 대시보드용 ReservedKeyword 조회 Repository
  */
 @Repository
-interface DashboardKeywordRepository : JpaRepository<ReservedKeyword, Long> {
-    /**
-     * 기간별 키워드 수 조회
-     */
-    fun countByCreatedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Long
-
-    /**
-     * 기간별 키워드 목록 조회
-     */
-    fun findAllByCreatedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): List<ReservedKeyword>
-}
+interface DashboardKeywordRepository : JpaRepository<ReservedKeyword, Long>
 
 /**
  * 뉴스레터 분포 데이터 인터페이스
@@ -287,7 +211,7 @@ interface NewsletterDistribution {
  * 일별 콘텐츠 수 데이터 인터페이스
  */
 interface DailyContentCount {
-    val date: java.time.LocalDate
+    val date: LocalDate
     val count: Long
 }
 
