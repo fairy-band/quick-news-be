@@ -1,13 +1,13 @@
 # PR 자동 리뷰어 할당 설정
 addReviewers: true
-addAssignees: true
+addAssignees: author  # PR 작성자를 assignee로 설정
 
 reviewers:
   - ah-jo
   - 1117mg
   - char-y
 
-numberOfReviewers: 0  # 0 = 모든 리뷰어 추가
+numberOfReviewers: 0  # 0 = 모든 리뷰어 추가 (작성자 제외)
 
 skipKeywords:
   - wip
