@@ -1,8 +1,8 @@
 package com.nexters.admin.controller
 
+import com.nexters.admin.repository.ContentAdminRepository
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.NewsletterSource
-import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.NewsletterSourceRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.ContentAnalysisService
@@ -39,7 +39,7 @@ class NewsletterSourceAdminController {
 @RequestMapping("/api/newsletter-sources")
 class NewsletterSourceApiController(
     private val newsletterSourceRepository: NewsletterSourceRepository,
-    private val contentRepository: ContentRepository,
+    private val contentAdminRepository: ContentAdminRepository,
     private val summaryRepository: SummaryRepository,
     private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
@@ -89,7 +89,7 @@ class NewsletterSourceApiController(
             newsletterSources.content.map { source ->
                 val hasContent =
                     source.id?.let { id ->
-                        contentRepository.existsByNewsletterSourceId(id)
+                        contentAdminRepository.existsByNewsletterSourceId(id)
                     } ?: false
                 NewsletterSourceWithContentStatus.from(source, hasContent)
             }
@@ -113,7 +113,7 @@ class NewsletterSourceApiController(
                 .findById(id)
                 .orElseThrow { NoSuchElementException("NewsletterSource not found with id: $id") }
 
-        val hasContent = contentRepository.existsByNewsletterSourceId(id)
+        val hasContent = contentAdminRepository.existsByNewsletterSourceId(id)
         val sourceWithContentStatus = NewsletterSourceWithContentStatus.from(newsletterSource, hasContent)
 
         return ResponseEntity.ok(sourceWithContentStatus)
@@ -147,7 +147,7 @@ class NewsletterSourceApiController(
                 updatedAt = LocalDateTime.now()
             )
 
-        val savedContent = contentRepository.save(newContent)
+        val savedContent = contentAdminRepository.save(newContent)
         return ResponseEntity.ok(savedContent)
     }
 
@@ -262,7 +262,7 @@ class NewsletterSourceApiController(
                 updatedAt = LocalDateTime.now()
             )
 
-        val savedContent = contentRepository.save(newContent)
+        val savedContent = contentAdminRepository.save(newContent)
         return ResponseEntity.ok(savedContent)
     }
 
