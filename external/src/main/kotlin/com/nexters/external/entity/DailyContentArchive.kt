@@ -4,14 +4,12 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.core.mapping.Field
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Document(collection = "daily_content_archive")
 data class DailyContentArchive(
     @Id
-    @Field("_id")
     val id: String? = null,
     val date: LocalDate,
     val user: UserSnapshot,
@@ -22,7 +20,6 @@ data class DailyContentArchive(
     val updatedAt: LocalDateTime? = null
 ) {
     data class UserSnapshot(
-        @Field("_id")
         val id: Long,
         val deviceToken: String,
         val categories: List<Long> = emptyList(), // Category IDs

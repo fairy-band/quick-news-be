@@ -1,12 +1,12 @@
 package com.nexters.admin.controller
 
+import com.nexters.admin.repository.ContentAdminRepository
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentProviderRepository
-import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
@@ -45,7 +45,7 @@ class ContentAdminController(
 @RestController
 @RequestMapping("/api/contents")
 class ContentApiController(
-    private val contentRepository: ContentRepository,
+    private val contentAdminRepository: ContentAdminRepository,
     private val categoryRepository: CategoryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
@@ -55,11 +55,11 @@ class ContentApiController(
     private val contentProviderRepository: ContentProviderRepository
 ) {
     @GetMapping
-    fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentRepository.findAll(pageable))
+    fun getAllContents(pageable: Pageable): ResponseEntity<Page<Content>> = ResponseEntity.ok(contentAdminRepository.findAll(pageable))
 
     @GetMapping("/newsletter-names")
     fun getNewsletterNames(): ResponseEntity<List<String>> {
-        val newsletterNames = contentRepository.findDistinctNewsletterNames()
+        val newsletterNames = contentAdminRepository.findDistinctNewsletterNames()
         return ResponseEntity.ok(newsletterNames)
     }
 
@@ -82,7 +82,7 @@ class ContentApiController(
                 updatedAt = LocalDateTime.now()
             )
 
-        val savedContent = contentRepository.save(newContent)
+        val savedContent = contentAdminRepository.save(newContent)
         return ResponseEntity.ok(savedContent)
     }
 
@@ -91,7 +91,7 @@ class ContentApiController(
         @PathVariable contentId: Long
     ): ResponseEntity<Content> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
         return ResponseEntity.ok(content)
@@ -103,7 +103,7 @@ class ContentApiController(
         @RequestBody request: UpdateContentRequest
     ): ResponseEntity<Content> {
         val existingContent =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
@@ -129,7 +129,7 @@ class ContentApiController(
                 updatedAt = LocalDateTime.now()
             )
 
-        return ResponseEntity.ok(contentRepository.save(updatedContent))
+        return ResponseEntity.ok(contentAdminRepository.save(updatedContent))
     }
 
     @DeleteMapping("/{contentId}")
@@ -137,7 +137,7 @@ class ContentApiController(
         @PathVariable contentId: Long
     ): ResponseEntity<Void> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
@@ -146,7 +146,7 @@ class ContentApiController(
         contentKeywordMappingRepository.deleteAll(mappings)
 
         // Then delete the content
-        contentRepository.delete(content)
+        contentAdminRepository.delete(content)
 
         return ResponseEntity.noContent().build()
     }
@@ -156,7 +156,7 @@ class ContentApiController(
         @PathVariable contentId: Long
     ): ResponseEntity<List<ReservedKeyword>> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
@@ -172,7 +172,7 @@ class ContentApiController(
         @RequestBody request: AddKeywordToContentRequest
     ): ResponseEntity<ContentKeywordMapping> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
@@ -204,7 +204,7 @@ class ContentApiController(
         @PathVariable keywordId: Long
     ): ResponseEntity<Void> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
@@ -232,7 +232,7 @@ class ContentApiController(
                 .findById(categoryId)
                 .orElseThrow { NoSuchElementException("Category not found with id: $categoryId") }
 
-        val contents = contentRepository.findContentsByCategory(categoryId, pageable)
+        val contents = contentAdminRepository.findContentsByCategory(categoryId, pageable)
 
         val contentResponses =
             contents.map { content ->
@@ -259,7 +259,7 @@ class ContentApiController(
         @PathVariable contentId: Long
     ): ResponseEntity<Map<String, Any>> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
@@ -270,7 +270,7 @@ class ContentApiController(
 
     @GetMapping("/with-summary-status")
     fun getAllContentsWithSummaryStatus(pageable: Pageable): ResponseEntity<Page<ContentWithSummaryStatusResponse>> {
-        val contents = contentRepository.findAll(pageable)
+        val contents = contentAdminRepository.findAll(pageable)
 
         // N+1 방지: 한 번의 쿼리로 요약이 있는 Content ID 조회
         val contentIds = contents.content.mapNotNull { it.id }
@@ -313,9 +313,9 @@ class ContentApiController(
                 "noSummary" -> {
                     // 요약 없는 콘텐츠 우선 정렬 (DB 쿼리로 처리)
                     if (newsletterName != null) {
-                        contentRepository.findContentsWithoutSummaryByNewsletterName(newsletterName, pageable)
+                        contentAdminRepository.findContentsWithoutSummaryByNewsletterName(newsletterName, pageable)
                     } else {
-                        contentRepository.findContentsWithoutSummary(pageable)
+                        contentAdminRepository.findContentsWithoutSummary(pageable)
                     }
                 }
                 "notExposed" -> {
@@ -343,9 +343,9 @@ class ContentApiController(
                             Sort.by(Sort.Direction.DESC, "publishedAt")
                         )
                     if (newsletterName != null) {
-                        contentRepository.findByNewsletterName(newsletterName, pageRequest)
+                        contentAdminRepository.findByNewsletterName(newsletterName, pageRequest)
                     } else {
-                        contentRepository.findAll(pageRequest)
+                        contentAdminRepository.findAll(pageRequest)
                     }
                 }
             }
@@ -406,9 +406,9 @@ class ContentApiController(
                 "noSummary" -> {
                     // 요약 없는 콘텐츠 우선 정렬 (DB 쿼리로 처리)
                     if (newsletterName != null) {
-                        contentRepository.findContentsByCategoryWithoutSummaryAndNewsletterName(categoryId, newsletterName, pageable)
+                        contentAdminRepository.findContentsByCategoryWithoutSummaryAndNewsletterName(categoryId, newsletterName, pageable)
                     } else {
-                        contentRepository.findContentsByCategoryWithoutSummary(categoryId, pageable)
+                        contentAdminRepository.findContentsByCategoryWithoutSummary(categoryId, pageable)
                     }
                 }
                 "notExposed" -> {
@@ -440,9 +440,9 @@ class ContentApiController(
                             Sort.by(Sort.Direction.DESC, "publishedAt")
                         )
                     if (newsletterName != null) {
-                        contentRepository.findContentsByCategoryAndNewsletterName(categoryId, newsletterName, pageRequest)
+                        contentAdminRepository.findContentsByCategoryAndNewsletterName(categoryId, newsletterName, pageRequest)
                     } else {
-                        contentRepository.findContentsByCategory(categoryId, pageRequest)
+                        contentAdminRepository.findContentsByCategory(categoryId, pageRequest)
                     }
                 }
             }
@@ -495,7 +495,7 @@ class ContentApiController(
                 .findById(keywordId)
                 .orElseThrow { NoSuchElementException("Keyword not found with id: $keywordId") }
 
-        val contents = contentRepository.findContentsByKeywordId(keywordId, pageable)
+        val contents = contentAdminRepository.findContentsByKeywordId(keywordId, pageable)
 
         // 요약 정보 및 노출 정보 가져오기 (N+1 방지)
         val contentIds = contents.content.mapNotNull { it.id }
@@ -540,7 +540,7 @@ class ContentApiController(
         @PathVariable contentId: Long
     ): ResponseEntity<MatchReservedKeywordsResponse> {
         val content =
-            contentRepository
+            contentAdminRepository
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 

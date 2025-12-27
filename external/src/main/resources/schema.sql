@@ -170,6 +170,7 @@ CREATE TABLE IF NOT EXISTS content_provider
     name       VARCHAR(255) NOT NULL,
     channel    VARCHAR(255) NOT NULL,
     language   VARCHAR(10)  NOT NULL,
+    type       VARCHAR(20)  NOT NULL CHECK (type IN ('BLOG', 'NEWSLETTER')),
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

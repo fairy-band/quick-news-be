@@ -38,6 +38,8 @@ class ContentAnalysisService(
         inputKeywords: List<String> = emptyList()
     ): ContentAnalysisResult {
         val models = GeminiModel.entries
+        var allFailedDueToRateLimit = true
+        var lastRateLimitException: RateLimitExceededException? = null
 
         for (model in models) {
             try {
@@ -55,17 +57,27 @@ class ContentAnalysisService(
                         return analysisResult
                     } else {
                         logger.warn("Failed to parse JSON response from ${model.modelName}")
+                        allFailedDueToRateLimit = false
                     }
                 } else {
                     logger.warn("Got null response from ${model.modelName}")
+                    allFailedDueToRateLimit = false
                 }
-            } catch (_: RateLimitExceededException) {
+            } catch (e: RateLimitExceededException) {
                 logger.warn("Rate limit exceeded for model ${model.modelName}, trying next model")
+                lastRateLimitException = e
                 // Rate limit 초과 시 다음 모델로 시도
                 continue
             } catch (e: Exception) {
                 logger.error("Error with model ${model.modelName}: ${e.message}", e)
+                allFailedDueToRateLimit = false
             }
+        }
+
+        // 모든 모델이 Rate Limit으로 실패한 경우 RateLimitExceededException 던지기
+        if (allFailedDueToRateLimit && lastRateLimitException != null) {
+            logger.error("All models failed due to rate limit")
+            throw lastRateLimitException
         }
 
         logger.error("All models failed to analyze content")
