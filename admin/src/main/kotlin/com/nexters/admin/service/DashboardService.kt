@@ -84,14 +84,32 @@ class DashboardService(
         val totalKeywords = dashboardKeywordRepository.count()
         val activeNewsletterSources = newsletterSourceRepository.count()
 
-        // Rate Limit 정보 조회
+        // Rate Limit 정보 조회 (현재 정의된 모델만 포함)
         val allUsage = geminiRateLimiterService.getAllTodayUsage()
-        val todayApiCalls = allUsage.values.sumOf { it.first }
-        val totalApiLimit = allUsage.values.sumOf { it.second }
+
+        // 현재 GeminiModel enum에 정의된 모델만 순회하면서 사용량 집계
+        var todayApiCalls = 0
+        var totalApiLimit = 0
+
+        val currentModelNames = GeminiModel.entries.map { it.modelName }.toSet()
+
+        GeminiModel.entries.forEach { model ->
+            val usage = allUsage[model.modelName]
+            if (usage != null) {
+                todayApiCalls += usage.first
+                totalApiLimit += usage.second
+            } else {
+                // DB에 레코드가 없는 경우 (아직 사용되지 않음)
+                totalApiLimit += model.rpd
+            }
+        }
+
         val apiCallsRemaining = totalApiLimit - todayApiCalls
         val apiUsagePercentage = if (totalApiLimit > 0) (todayApiCalls.toDouble() / totalApiLimit) * 100 else 0.0
 
-        logger.info { "대시보드 지표 조회 완료: totalContents=$totalContents, todayApiCalls=$todayApiCalls" }
+        logger.info {
+            "대시보드 지표 조회 완료: totalContents=$totalContents, todayApiCalls=$todayApiCalls, totalApiLimit=$totalApiLimit, currentModels=$currentModelNames"
+        }
 
         return DashboardMetrics(
             totalContents = totalContents,

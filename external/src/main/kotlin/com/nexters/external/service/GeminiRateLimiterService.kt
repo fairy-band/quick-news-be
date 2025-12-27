@@ -71,10 +71,12 @@ class GeminiRateLimiterService(
 
     fun getAllTodayUsage(): Map<String, Pair<Int, Int>> {
         val today = LocalDate.now()
+        val currentModelNames = GeminiModel.entries.map { it.modelName }.toSet()
+
         val rateLimits =
             rateLimitRepository
                 .findAll()
-                .filter { it.limitDate == today }
+                .filter { it.limitDate == today && it.modelName in currentModelNames }
 
         return rateLimits.associate {
             it.modelName to Pair(it.requestCount, it.maxRequestsPerDay)
