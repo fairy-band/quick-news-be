@@ -14,28 +14,44 @@ import org.springframework.stereotype.Repository
 @Repository
 interface ContentAdminRepository : JpaRepository<Content, Long> {
     /**
-     * 요약이 없는 콘텐츠 조회
+     * 요약이 없는 콘텐츠 조회 (우선순위: BLOG > NEWSLETTER > 기타, 생성일 내림차순)
      */
     @Query(
         """
         SELECT c FROM Content c
+        LEFT JOIN c.contentProvider cp
         WHERE c.id NOT IN (
             SELECT DISTINCT s.content.id FROM Summary s
         )
+        ORDER BY 
+            CASE 
+                WHEN cp.type = 'BLOG' THEN 0
+                WHEN cp.type = 'NEWSLETTER' THEN 1
+                ELSE 2
+            END,
+            c.createdAt DESC
     """
     )
     fun findContentsWithoutSummary(pageable: Pageable): Page<Content>
 
     /**
-     * 뉴스레터 이름으로 필터링하여 요약이 없는 콘텐츠 조회
+     * 뉴스레터 이름으로 필터링하여 요약이 없는 콘텐츠 조회 (우선순위: BLOG > NEWSLETTER > 기타, 생성일 내림차순)
      */
     @Query(
         """
         SELECT c FROM Content c
+        LEFT JOIN c.contentProvider cp
         WHERE c.newsletterName = :newsletterName
         AND c.id NOT IN (
             SELECT DISTINCT s.content.id FROM Summary s
         )
+        ORDER BY 
+            CASE 
+                WHEN cp.type = 'BLOG' THEN 0
+                WHEN cp.type = 'NEWSLETTER' THEN 1
+                ELSE 2
+            END,
+            c.createdAt DESC
     """
     )
     fun findContentsWithoutSummaryByNewsletterName(
@@ -74,17 +90,25 @@ interface ContentAdminRepository : JpaRepository<Content, Long> {
     ): Page<Content>
 
     /**
-     * 카테고리별 요약 없는 콘텐츠 조회
+     * 카테고리별 요약 없는 콘텐츠 조회 (우선순위: BLOG > NEWSLETTER > 기타, 생성일 내림차순)
      */
     @Query(
         """
         SELECT DISTINCT c FROM Content c
+        LEFT JOIN c.contentProvider cp
         JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
         JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
         WHERE catkm.category.id = :categoryId
         AND c.id NOT IN (
             SELECT DISTINCT s.content.id FROM Summary s
         )
+        ORDER BY 
+            CASE 
+                WHEN cp.type = 'BLOG' THEN 0
+                WHEN cp.type = 'NEWSLETTER' THEN 1
+                ELSE 2
+            END,
+            c.createdAt DESC
     """
     )
     fun findContentsByCategoryWithoutSummary(
@@ -93,11 +117,12 @@ interface ContentAdminRepository : JpaRepository<Content, Long> {
     ): Page<Content>
 
     /**
-     * 카테고리와 뉴스레터 이름으로 요약 없는 콘텐츠 조회
+     * 카테고리와 뉴스레터 이름으로 요약 없는 콘텐츠 조회 (우선순위: BLOG > NEWSLETTER > 기타, 생성일 내림차순)
      */
     @Query(
         """
         SELECT DISTINCT c FROM Content c
+        LEFT JOIN c.contentProvider cp
         JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
         JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
         WHERE catkm.category.id = :categoryId
@@ -105,6 +130,13 @@ interface ContentAdminRepository : JpaRepository<Content, Long> {
         AND c.id NOT IN (
             SELECT DISTINCT s.content.id FROM Summary s
         )
+        ORDER BY 
+            CASE 
+                WHEN cp.type = 'BLOG' THEN 0
+                WHEN cp.type = 'NEWSLETTER' THEN 1
+                ELSE 2
+            END,
+            c.createdAt DESC
     """
     )
     fun findContentsByCategoryWithoutSummaryAndNewsletterName(
