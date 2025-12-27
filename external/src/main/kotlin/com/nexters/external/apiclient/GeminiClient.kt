@@ -1,11 +1,13 @@
 package com.nexters.external.apiclient
 
 import com.google.genai.Client
+import com.google.genai.errors.ClientException
 import com.google.genai.types.GenerateContentConfig
 import com.google.genai.types.GenerateContentResponse
 import com.google.genai.types.Schema
 import com.google.genai.types.Type
 import com.nexters.external.dto.GeminiModel
+import com.nexters.external.exception.RateLimitExceededException
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -44,6 +46,17 @@ class GeminiClient(
                     .responseSchema(CONTENT_ANALYSIS_SCHEMA)
                     .build(),
             )
+        } catch (e: ClientException) {
+            if (e.message?.contains("429") == true || e.message?.contains("Too Many Requests") == true) {
+                logger.warn("Rate limit (429) exceeded for model ${model.modelName}")
+                throw RateLimitExceededException(
+                    "Rate limit exceeded: 429 Too Many Requests for model ${model.modelName}",
+                    "API_RATE_LIMIT",
+                    model.modelName
+                )
+            }
+            logger.error("Model ${model.modelName} failed with ClientException: ${e.message}", e)
+            null
         } catch (e: Exception) {
             logger.error("Model ${model.modelName} failed with exception: ${e.message}", e)
             null
