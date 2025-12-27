@@ -6,12 +6,15 @@ import com.nexters.admin.dto.ActivityType
 import com.nexters.admin.dto.ChartData
 import com.nexters.admin.dto.DashboardMetrics
 import com.nexters.admin.dto.Distribution
+import com.nexters.admin.dto.ModelRateLimitStatus
 import com.nexters.admin.dto.TimeRange
 import com.nexters.admin.repository.DashboardContentRepository
 import com.nexters.admin.repository.DashboardExposureContentRepository
 import com.nexters.admin.repository.DashboardKeywordRepository
 import com.nexters.admin.repository.DashboardSummaryRepository
+import com.nexters.external.dto.GeminiModel
 import com.nexters.external.repository.NewsletterSourceRepository
+import com.nexters.external.service.GeminiRateLimiterService
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -27,7 +30,8 @@ class DashboardService(
     private val dashboardExposureContentRepository: DashboardExposureContentRepository,
     private val dashboardSummaryRepository: DashboardSummaryRepository,
     private val dashboardKeywordRepository: DashboardKeywordRepository,
-    private val newsletterSourceRepository: NewsletterSourceRepository
+    private val newsletterSourceRepository: NewsletterSourceRepository,
+    private val geminiRateLimiterService: GeminiRateLimiterService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -80,7 +84,14 @@ class DashboardService(
         val totalKeywords = dashboardKeywordRepository.count()
         val activeNewsletterSources = newsletterSourceRepository.count()
 
-        logger.info { "대시보드 지표 조회 완료: totalContents=$totalContents" }
+        // Rate Limit 정보 조회
+        val allUsage = geminiRateLimiterService.getAllTodayUsage()
+        val todayApiCalls = allUsage.values.sumOf { it.first }
+        val totalApiLimit = allUsage.values.sumOf { it.second }
+        val apiCallsRemaining = totalApiLimit - todayApiCalls
+        val apiUsagePercentage = if (totalApiLimit > 0) (todayApiCalls.toDouble() / totalApiLimit) * 100 else 0.0
+
+        logger.info { "대시보드 지표 조회 완료: totalContents=$totalContents, todayApiCalls=$todayApiCalls" }
 
         return DashboardMetrics(
             totalContents = totalContents,
@@ -89,7 +100,10 @@ class DashboardService(
             contentsWithoutSummary = contentsWithoutSummary,
             exposedContents = exposedContents,
             totalKeywords = totalKeywords,
-            activeNewsletterSources = activeNewsletterSources
+            activeNewsletterSources = activeNewsletterSources,
+            todayApiCalls = todayApiCalls,
+            apiCallsRemaining = apiCallsRemaining,
+            apiUsagePercentage = apiUsagePercentage
         )
     }
 
@@ -299,6 +313,38 @@ class DashboardService(
             totalApiCalls = totalAttempts,
             failureCount = failureCount
         )
+    }
+
+    /**
+     * 모델별 오늘 Rate Limit 현황 조회
+     */
+    fun getModelRateLimitStatus(): List<ModelRateLimitStatus> {
+        logger.info { "모델별 Rate Limit 현황 조회 시작" }
+
+        val allUsage = geminiRateLimiterService.getAllTodayUsage()
+
+        val rateLimitStatuses =
+            GeminiModel.entries.map { model ->
+                val usage = allUsage[model.modelName] ?: Pair(0, model.rpd)
+                val currentCount = usage.first
+                val maxCount = usage.second
+                val remainingCount = maxCount - currentCount
+                val usagePercentage = if (maxCount > 0) (currentCount.toDouble() / maxCount) * 100 else 0.0
+
+                ModelRateLimitStatus(
+                    modelName = model.modelName,
+                    currentCount = currentCount,
+                    maxCount = maxCount,
+                    remainingCount = remainingCount,
+                    usagePercentage = usagePercentage,
+                    rpm = model.rpm,
+                    rpd = model.rpd
+                )
+            }
+
+        logger.info { "모델별 Rate Limit 현황 조회 완료: ${rateLimitStatuses.size}개 모델" }
+
+        return rateLimitStatuses
     }
 
     /**

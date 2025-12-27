@@ -12,7 +12,10 @@ data class DashboardMetrics(
     val contentsWithoutSummary: Long,
     val exposedContents: Long,
     val totalKeywords: Long,
-    val activeNewsletterSources: Long
+    val activeNewsletterSources: Long,
+    val todayApiCalls: Int,
+    val apiCallsRemaining: Int,
+    val apiUsagePercentage: Double
 )
 
 /**
@@ -79,3 +82,16 @@ enum class TimeRange {
     THIS_MONTH,
     ALL_TIME
 }
+
+/**
+ * 모델별 Rate Limit 현황 DTO
+ */
+data class ModelRateLimitStatus(
+    val modelName: String,
+    val currentCount: Int,
+    val maxCount: Int,
+    val remainingCount: Int,
+    val usagePercentage: Double,
+    val rpm: Int,
+    val rpd: Int
+)

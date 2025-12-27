@@ -272,9 +272,18 @@ class ContentApiController(
     fun getAllContentsWithSummaryStatus(pageable: Pageable): ResponseEntity<Page<ContentWithSummaryStatusResponse>> {
         val contents = contentRepository.findAll(pageable)
 
+        // N+1 방지: 한 번의 쿼리로 요약이 있는 Content ID 조회
+        val contentIds = contents.content.mapNotNull { it.id }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                summaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+
         val contentResponses =
             contents.map { content ->
-                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
+                val hasSummary = content.id in contentIdsWithSummary
                 ContentWithSummaryStatusResponse(
                     id = content.id ?: 0,
                     newsletterSourceId = content.newsletterSourceId,
@@ -341,11 +350,25 @@ class ContentApiController(
                 }
             }
 
-        // 요약 정보 및 노출 정보 가져오기
+        // 요약 정보 및 노출 정보 가져오기 (N+1 방지)
+        val contentIds = contents.content.mapNotNull { it.id }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                summaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+        val contentIdsWithExposure =
+            if (contentIds.isNotEmpty()) {
+                exposureContentRepository.findContentIdsWithExposure(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+
         val contentResponses =
             contents.map { content ->
-                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
-                val isExposed = exposureContentRepository.findByContent(content) != null
+                val hasSummary = content.id in contentIdsWithSummary
+                val isExposed = content.id in contentIdsWithExposure
 
                 ContentWithSortInfoResponse(
                     id = content.id ?: 0,
@@ -424,11 +447,25 @@ class ContentApiController(
                 }
             }
 
-        // 요약 정보 및 노출 정보 가져오기
+        // 요약 정보 및 노출 정보 가져오기 (N+1 방지)
+        val contentIds = contents.content.mapNotNull { it.id }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                summaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+        val contentIdsWithExposure =
+            if (contentIds.isNotEmpty()) {
+                exposureContentRepository.findContentIdsWithExposure(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+
         val contentResponses =
             contents.map { content ->
-                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
-                val isExposed = exposureContentRepository.findByContent(content) != null
+                val hasSummary = content.id in contentIdsWithSummary
+                val isExposed = content.id in contentIdsWithExposure
 
                 ContentWithSortInfoResponse(
                     id = content.id ?: 0,
@@ -460,11 +497,25 @@ class ContentApiController(
 
         val contents = contentRepository.findContentsByKeywordId(keywordId, pageable)
 
-        // 요약 정보 및 노출 정보 가져오기
+        // 요약 정보 및 노출 정보 가져오기 (N+1 방지)
+        val contentIds = contents.content.mapNotNull { it.id }
+        val contentIdsWithSummary =
+            if (contentIds.isNotEmpty()) {
+                summaryRepository.findContentIdsWithSummary(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+        val contentIdsWithExposure =
+            if (contentIds.isNotEmpty()) {
+                exposureContentRepository.findContentIdsWithExposure(contentIds).toSet()
+            } else {
+                emptySet()
+            }
+
         val contentResponses =
             contents.map { content ->
-                val hasSummary = summaryRepository.findByContent(content).isNotEmpty()
-                val isExposed = exposureContentRepository.findByContent(content) != null
+                val hasSummary = content.id in contentIdsWithSummary
+                val isExposed = content.id in contentIdsWithExposure
 
                 ContentWithSortInfoResponse(
                     id = content.id ?: 0,

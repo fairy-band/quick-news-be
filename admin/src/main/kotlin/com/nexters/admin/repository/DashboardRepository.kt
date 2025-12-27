@@ -17,6 +17,18 @@ import java.time.LocalDateTime
 @Repository
 interface DashboardContentRepository : JpaRepository<Content, Long> {
     /**
+     * 전체 콘텐츠 조회 (N+1 방지 - fetch join 사용)
+     */
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
+        """,
+    )
+    override fun findAll(): List<Content>
+
+    /**
      * 기간별 콘텐츠 수 조회
      */
     fun countByCreatedAtBetween(
@@ -25,11 +37,19 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
     ): Long
 
     /**
-     * 기간별 콘텐츠 목록 조회
+     * 기간별 콘텐츠 목록 조회 (N+1 방지 - fetch join 사용)
      */
+    @Query(
+        """
+        SELECT DISTINCT c FROM Content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
+        WHERE c.createdAt BETWEEN :startDate AND :endDate
+        """,
+    )
     fun findAllByCreatedAtBetween(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime,
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime,
     ): List<Content>
 
     /**
@@ -80,22 +100,26 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
     ): List<DailyContentCount>
 
     /**
-     * 최근 생성된 콘텐츠 조회
+     * 최근 생성된 콘텐츠 조회 (N+1 방지 - fetch join 사용)
      */
     @Query(
         """
-        SELECT c FROM Content c
+        SELECT DISTINCT c FROM Content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
         ORDER BY c.createdAt DESC
         """,
     )
     fun findRecentContents(): List<Content>
 
     /**
-     * 기간별 최근 생성된 콘텐츠 조회
+     * 기간별 최근 생성된 콘텐츠 조회 (N+1 방지 - fetch join 사용)
      */
     @Query(
         """
-        SELECT c FROM Content c
+        SELECT DISTINCT c FROM Content c
+        LEFT JOIN FETCH c.contentProvider
+        LEFT JOIN FETCH c.reservedKeywords
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         ORDER BY c.createdAt DESC
         """,

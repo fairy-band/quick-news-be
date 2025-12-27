@@ -5,6 +5,7 @@ import com.nexters.admin.dto.Activity
 import com.nexters.admin.dto.ChartData
 import com.nexters.admin.dto.DashboardMetrics
 import com.nexters.admin.dto.Distribution
+import com.nexters.admin.dto.ModelRateLimitStatus
 import com.nexters.admin.dto.TimeRange
 import com.nexters.admin.service.DashboardService
 import mu.KotlinLogging
@@ -110,5 +111,15 @@ class DashboardApiController(
         logger.info { "AI 성능 지표 조회 API 호출: timeRange=$timeRange" }
         val aiMetrics = dashboardService.getAIMetrics(timeRange)
         return ResponseEntity.ok(aiMetrics)
+    }
+
+    /**
+     * 모델별 오늘 Rate Limit 현황 조회
+     */
+    @GetMapping("/rate-limit")
+    fun getModelRateLimitStatus(): ResponseEntity<List<ModelRateLimitStatus>> {
+        logger.info { "모델별 Rate Limit 현황 조회 API 호출" }
+        val rateLimitStatus = dashboardService.getModelRateLimitStatus()
+        return ResponseEntity.ok(rateLimitStatus)
     }
 }

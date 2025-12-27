@@ -205,4 +205,17 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         @Param("userId") userId: Long,
         @Param("contentProviderIds") contentProviderIds: List<Long>
     ): List<ExposureContent>
+
+    /**
+     * Content ID 목록으로 노출된 Content ID 조회 (N+1 방지)
+     */
+    @Query(
+        """
+        SELECT DISTINCT e.content.id FROM ExposureContent e
+        WHERE e.content.id IN :contentIds
+        """,
+    )
+    fun findContentIdsWithExposure(
+        @Param("contentIds") contentIds: List<Long>,
+    ): List<Long>
 }

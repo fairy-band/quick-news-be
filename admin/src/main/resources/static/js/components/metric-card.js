@@ -10,12 +10,16 @@ class MetricCard {
      * @param {string} config.title - Title of the metric
      * @param {number} config.value - Numeric value of the metric
      * @param {string} [config.trend] - Optional trend indicator (up/down/neutral)
+     * @param {string} [config.subtitle] - Optional subtitle text
+     * @param {string} [config.status] - Optional status (normal/warning/danger)
      */
     constructor(config) {
         this.icon = config.icon;
         this.title = config.title;
         this.value = config.value;
         this.trend = config.trend;
+        this.subtitle = config.subtitle;
+        this.status = config.status;
     }
 
     /**
@@ -25,12 +29,15 @@ class MetricCard {
     render() {
         const formattedValue = this.formatValue(this.value);
         const trendHtml = this.trend ? this.renderTrend() : '';
+        const subtitleHtml = this.subtitle ? `<div class="metric-subtitle">${this.subtitle}</div>` : '';
+        const statusClass = this.status ? `metric-card-${this.status}` : '';
         
         return `
-            <div class="metric-card">
+            <div class="metric-card ${statusClass}">
                 <div class="metric-icon">${this.icon}</div>
                 <div class="metric-title">${this.title}</div>
                 <div class="metric-value">${formattedValue}</div>
+                ${subtitleHtml}
                 ${trendHtml}
             </div>
         `;
@@ -96,6 +103,19 @@ class MetricCardFactory {
      * @returns {Array<MetricCard>} Array of MetricCard instances
      */
     static createFromMetrics(metricsData) {
+        // Determine API usage status
+        let apiStatus = 'normal';
+        let apiIcon = '🤖';
+        if (metricsData.apiUsagePercentage >= 90) {
+            apiStatus = 'danger';
+            apiIcon = '🔴';
+        } else if (metricsData.apiUsagePercentage >= 70) {
+            apiStatus = 'warning';
+            apiIcon = '🟡';
+        } else {
+            apiIcon = '🟢';
+        }
+
         return [
             new MetricCard({
                 icon: '📄',
@@ -131,6 +151,13 @@ class MetricCardFactory {
                 icon: '📧',
                 title: '활성 뉴스레터 소스',
                 value: metricsData.activeNewsletterSources
+            }),
+            new MetricCard({
+                icon: apiIcon,
+                title: '오늘 AI API 호출',
+                value: metricsData.todayApiCalls,
+                subtitle: `남은: ${metricsData.apiCallsRemaining.toLocaleString()} / 전체: ${(metricsData.todayApiCalls + metricsData.apiCallsRemaining).toLocaleString()} (${metricsData.apiUsagePercentage.toFixed(1)}%)`,
+                status: apiStatus
             })
         ];
     }
