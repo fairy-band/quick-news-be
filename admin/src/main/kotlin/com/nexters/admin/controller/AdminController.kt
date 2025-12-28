@@ -23,7 +23,7 @@ class AdminController {
     }
 
     @GetMapping("/")
-    fun index(): String = "redirect:/dashboard"
+    fun index(): String = "dashboard"
 
     @GetMapping("/keywords")
     fun keywords(): String = "keywords"
@@ -32,7 +32,7 @@ class AdminController {
     fun contents(): String = "contents"
 
     @GetMapping("/recommendations")
-    fun recommendations(): String = REDIRECT_TO_HOME
+    fun recommendations(): String = "recommendations"
 
     @GetMapping("/exposure-fix")
     fun exposureFix(): String = "exposure-fix"
