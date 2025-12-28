@@ -53,11 +53,11 @@ class NewsletterApiController(
     @ApiResponses(
         value = [
             ApiResponse(responseCode = "200", description = "콘텐츠 새로고침 성공"),
-            ApiResponse(responseCode = "400", description = "콘텐츠 새로고침 실패, 회수 초과")
-        ]
+            ApiResponse(responseCode = "400", description = "콘텐츠 새로고침 실패, 회수 초과"),
+        ],
     )
     fun refreshContents(
-        @PathVariable userId: Long
+        @PathVariable userId: Long,
     ) {
         dayArchiveResolver.refreshTodayArchives(userId)
     }
@@ -65,13 +65,13 @@ class NewsletterApiController(
     @GetMapping("/explore/contents")
     @Operation(
         summary = "탐색 콘텐츠 조회",
-        description = "노출 콘텐츠 목록을 무한 페이징으로 조회합니다. lastSeenOffset을 사용하여 다음 페이지를 요청할 수 있습니다."
+        description = "노출 콘텐츠 목록을 무한 페이징으로 조회합니다. lastSeenOffset을 사용하여 다음 페이지를 요청할 수 있습니다.",
     )
     fun getExploreContents(
         @Parameter(description = "마지막으로 본 콘텐츠의 ID (기본값: 0)", example = "0")
         @RequestParam(defaultValue = "0") lastSeenOffset: Long,
         @Parameter(description = "한 번에 가져올 콘텐츠 개수 (기본값: 20)", example = "20")
-        @RequestParam(defaultValue = "20") size: Int
+        @RequestParam(defaultValue = "20") size: Int,
     ): ExposureContentListApiResponse {
         val pageable = PageRequest.of(0, size)
         val page = exposureContentService.getAllExposureContentsWithPaging(lastSeenOffset, pageable)
@@ -80,25 +80,15 @@ class NewsletterApiController(
             page.content.map { exposureContent ->
                 ExposureContentApiResponse(
                     id = exposureContent.id!!,
-                    content =
-                        ExposureContentApiResponse.ContentInfo(
-                            id = exposureContent.content.id!!,
-                            url = exposureContent.content.originalUrl,
-                            newsletterName = exposureContent.content.newsletterName,
-                            language = Language.fromString(exposureContent.content.contentProvider?.language)
-                        ),
-                    exposure =
-                        ExposureContentApiResponse.ExposureInfo(
-                            provocativeKeyword = exposureContent.provocativeKeyword,
-                            provocativeHeadline = exposureContent.provocativeHeadline,
-                            summaryContent = exposureContent.summaryContent,
-                            engagementScore = null // TODO: 추후 engagement 지표 추가
-                        ),
-                    timestamps =
-                        ExposureContentApiResponse.Timestamps(
-                            createdAt = exposureContent.createdAt,
-                            updatedAt = exposureContent.updatedAt
-                        )
+                    contentId = exposureContent.content.id!!,
+                    provocativeKeyword = exposureContent.provocativeKeyword,
+                    provocativeHeadline = exposureContent.provocativeHeadline,
+                    summaryContent = exposureContent.summaryContent,
+                    contentUrl = exposureContent.content.originalUrl,
+                    newsletterName = exposureContent.content.newsletterName,
+                    language = Language.fromString(exposureContent.content.contentProvider?.language),
+                    createdAt = exposureContent.createdAt,
+                    updatedAt = exposureContent.updatedAt,
                 )
             }
 
@@ -106,17 +96,9 @@ class NewsletterApiController(
         val nextOffset = if (hasMore && contents.isNotEmpty()) contents.last().id else null
 
         return ExposureContentListApiResponse(
-            metadata =
-                ExposureContentListApiResponse.ListMetadata(
-                    totalFetched = contents.size
-                ),
             contents = contents,
-            pagination =
-                ExposureContentListApiResponse.PaginationInfo(
-                    hasMore = hasMore,
-                    nextOffset = nextOffset,
-                    currentSize = contents.size
-                )
+            hasMore = hasMore,
+            nextOffset = nextOffset,
         )
     }
 }
