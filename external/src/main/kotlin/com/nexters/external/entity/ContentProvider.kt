@@ -24,8 +24,8 @@ class ContentProvider(
     @Column(nullable = false, length = 10)
     val language: String,
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    val type: ContentProviderType,
+    @Column(nullable = true, length = 20)
+    val type: ContentProviderType?, // 이전 하위호환을 위해 nullable을 허용, mongo deserialize 할 때 null일 수 있음
     @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false, name = "updated_at")

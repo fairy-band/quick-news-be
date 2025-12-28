@@ -396,32 +396,6 @@
             <p class="subtitle">RSS 피드를 관리하고 콘텐츠 수집 상태를 실시간으로 확인하세요</p>
         </div>
 
-        <div class="control-panel">
-            <div class="control-buttons">
-                <button class="btn btn-primary" id="fetch-feeds-btn">
-                    <span>🔄</span>
-                    <span>모든 피드 수집</span>
-                </button>
-
-                <button class="btn btn-secondary" id="get-stats-btn">
-                    <span>📊</span>
-                    <span>통계 새로고침</span>
-                </button>
-
-                <button class="btn btn-success" id="process-ai-btn">
-                    <span>🤖</span>
-                    <span>AI 처리 실행</span>
-                </button>
-            </div>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>처리 중...</p>
-            </div>
-
-            <div id="result-message"></div>
-        </div>
-
         <div class="stats-overview" id="overall-stats" style="display: none;"></div>
 
         <div class="feeds-section">
@@ -474,12 +448,6 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             createStars();
-
-            // 이벤트 리스너 설정
-            document.getElementById('fetch-feeds-btn').addEventListener('click', fetchAllFeeds);
-            document.getElementById('get-stats-btn').addEventListener('click', loadAllStats);
-            document.getElementById('process-ai-btn').addEventListener('click', processAi);
-
             // 필터 버튼 이벤트
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -535,7 +503,7 @@
             showLoading();
 
             try {
-                const response = await fetch('./admin/rss-newsletter/fetch-all', {
+                const response = await fetch('./rss-newsletter/fetch-all', {
                     method: 'POST'
                 });
 
@@ -549,7 +517,7 @@
 
                     showMessage(`
                         <strong>✅ 피드 수집 완료!</strong><br>
-                        📡 처리된 피드: <strong>${successfulFeeds}/${totalFeeds}</strong> | 
+                        📡 처리된 피드: <strong>${successfulFeeds}/${totalFeeds}</strong> |
                         📄 새로 수집: <strong>${totalNewItems}개</strong>
                     `, 'success');
 
@@ -565,16 +533,14 @@
 
         async function loadAllStats() {
             try {
-                const [detailedResponse, processingResponse] = await Promise.all([
+                const [detailedResponse] = await Promise.all([
                     fetch('./admin/rss-newsletter/detailed-stats'),
-                    fetch('./admin/rss-newsletter/processing-stats')
                 ]);
 
                 const detailedData = await detailedResponse.json();
-                const processingData = await processingResponse.json();
 
-                if (detailedData.success && processingData.success) {
-                    displayDetailedStats(detailedData.stats, processingData);
+                if (detailedData.success) {
+                    displayDetailedStats(detailedData.stats);
                 } else {
                     showMessage(`<strong>❌ 통계 조회 실패</strong>`, 'error');
                 }
@@ -602,8 +568,8 @@
                 if (data.success) {
                     showMessage(`
                         <strong>🤖 AI 처리 완료!</strong><br>
-                        ✅ 처리: <strong>${data.processedCount}개</strong> | 
-                        ❌ 오류: <strong>${data.errorCount}개</strong> | 
+                        ✅ 처리: <strong>${data.processedCount}개</strong> |
+                        ❌ 오류: <strong>${data.errorCount}개</strong> |
                         📊 오늘 총: <strong>${data.totalProcessedToday}개</strong>
                     `, 'success');
 
@@ -617,7 +583,7 @@
             }
         }
 
-        function displayDetailedStats(feedStats, processingData) {
+        function displayDetailedStats(feedStats) {
             const overallStatsDiv = document.getElementById('overall-stats');
 
             if (Object.keys(feedStats).length === 0) {
@@ -677,11 +643,6 @@
                     <div class="stat-icon">📅</div>
                     <div class="stat-value">${todayTotal}</div>
                     <div class="stat-label">오늘 수집</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🎯</div>
-                    <div class="stat-value">${processingData.processedToday}/${processingData.dailyLimit}</div>
-                    <div class="stat-label">오늘 AI 처리</div>
                 </div>
             `;
             overallStatsDiv.style.display = 'grid';
@@ -760,7 +721,7 @@
                                 <div class="feed-name">${feed.feedName} ${priorityBadge}</div>
                             </div>
                         </div>
-                        
+
                         <div class="feed-meta">
                             <div class="meta-item">
                                 <div class="meta-label">총 항목</div>
@@ -779,11 +740,11 @@
                                 <div class="meta-value">${feed.todayItems}</div>
                             </div>
                         </div>
-                        
+
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progressPercent}%"></div>
                         </div>
-                        
+
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div class="feed-timestamp">
                                 <span>🕒</span>
@@ -791,7 +752,7 @@
                             </div>
                             ${errorBadge}
                         </div>
-                        
+
                         <div class="feed-url">${feed.feedUrl || '피드 URL 없음'}</div>
                     </div>
                 `;
