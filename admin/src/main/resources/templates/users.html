@@ -247,7 +247,7 @@
         async function loadOverallStatistics() {
             try {
                 // Cache statistics for 5 minutes (300000ms)
-                const stats = await ApiClient.get('/api/users/statistics', {
+                const stats = await ApiClient.get('./api/users/statistics', {
                     cache: true,
                     cacheTTL: 5 * 60 * 1000
                 });
@@ -272,7 +272,7 @@
         async function loadMostActiveUsers() {
             try {
                 // Cache most active users for 5 minutes
-                const users = await ApiClient.get('/api/users/most-active?limit=10', {
+                const users = await ApiClient.get('./api/users/most-active?limit=10', {
                     cache: true,
                     cacheTTL: 5 * 60 * 1000
                 });
@@ -315,7 +315,7 @@
         async function loadActivityTrend() {
             try {
                 // Cache activity trend for 10 minutes
-                const trendData = await ApiClient.get('/api/users/activity-trend?days=30', {
+                const trendData = await ApiClient.get('./api/users/activity-trend?days=30', {
                     cache: true,
                     cacheTTL: 10 * 60 * 1000
                 });
@@ -401,7 +401,7 @@
                 }
 
                 // Cache user list for 2 minutes
-                const response = await ApiClient.get(`/api/users?${params.toString()}`, {
+                const response = await ApiClient.get(`./api/users?${params.toString()}`, {
                     cache: true,
                     cacheTTL: 2 * 60 * 1000
                 });
@@ -503,10 +503,10 @@
                 modal.classList.add('active');
 
                 // Load user details
-                const user = await ApiClient.get(`/api/users/${userId}`);
-                const stats = await ApiClient.get(`/api/users/${userId}/statistics`);
-                const categories = await ApiClient.get(`/api/users/${userId}/categories`);
-                const archives = await ApiClient.get(`/api/users/${userId}/archives?days=30`);
+                const user = await ApiClient.get(`./api/users/${userId}`);
+                const stats = await ApiClient.get(`./api/users/${userId}/statistics`);
+                const categories = await ApiClient.get(`./api/users/${userId}/categories`);
+                const archives = await ApiClient.get(`./api/users/${userId}/archives?days=30`);
 
                 // Render user detail
                 content.innerHTML = `
