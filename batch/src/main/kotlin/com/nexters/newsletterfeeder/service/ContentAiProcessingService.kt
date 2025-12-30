@@ -15,7 +15,6 @@ class ContentAiProcessingService(
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingService::class.java)
 
-    @Transactional
     fun processUnprocessedContents(): ProcessingResult {
         logger.info("Starting unprocessed content AI processing")
 
