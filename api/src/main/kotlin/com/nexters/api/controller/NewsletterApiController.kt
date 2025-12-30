@@ -75,6 +75,7 @@ class NewsletterApiController(
     ): ExposureContentListApiResponse {
         val pageable = PageRequest.of(0, size)
         val page = exposureContentService.getAllExposureContentsWithPaging(lastSeenOffset, pageable)
+        val totalCount = exposureContentService.getNoKeywordsCount()
 
         val contents =
             page.content.map { exposureContent ->
@@ -97,6 +98,7 @@ class NewsletterApiController(
 
         return ExposureContentListApiResponse(
             contents = contents,
+            totalCount = totalCount,
             hasMore = hasMore,
             nextOffset = nextOffset,
         )

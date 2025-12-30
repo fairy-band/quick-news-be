@@ -5,6 +5,7 @@ import java.time.LocalDateTime
 
 data class ExposureContentListApiResponse(
     val contents: List<ExposureContentApiResponse>,
+    val totalCount: Long,
     val hasMore: Boolean,
     val nextOffset: Long?
 )

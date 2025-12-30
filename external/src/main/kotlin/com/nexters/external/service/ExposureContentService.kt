@@ -208,4 +208,6 @@ class ExposureContentService(
         userId: Long,
         contentProviderIds: List<Long>
     ): List<ExposureContent> = exposureContentRepository.findNotExposedByContentProviderIds(userId, contentProviderIds)
+
+    fun countAllExposureContents(): Long = exposureContentRepository.count()
 }
