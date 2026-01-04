@@ -1,5 +1,8 @@
 package com.nexters.api.batch.service
 
+import com.google.gson.JsonSyntaxException
+import com.nexters.external.entity.Content
+import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentAnalysisService
@@ -64,7 +67,7 @@ class ContentAiProcessingService(
      * 콘텐츠 배치를 실제로 처리합니다.
      * 토큰 제한을 고려하여 콘텐츠 길이를 체크합니다.
      */
-    private fun processContentsBatch(contents: List<com.nexters.external.entity.Content>): ProcessingResult {
+    private fun processContentsBatch(contents: List<Content>): ProcessingResult {
         var processedCount = 0
         var errorCount = 0
 
@@ -106,16 +109,10 @@ class ContentAiProcessingService(
                                     "(type: $providerType, ID: $contentId): ${content.title}"
                             )
                         } else {
-                            // Fallback: 기본 ExposureContent 생성
-                            exposureContentService.createOrUpdateExposureContent(
-                                content = content,
-                                provocativeKeyword = "Newsletter",
-                                provocativeHeadline = content.title,
-                                summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else "",
-                            )
-                            processedCount++
+                            // TODO: summary가 생성되지 않은 경우 처리 로직 추가 필요
+                            errorCount++
                             logger.warn(
-                                "Processed content with fallback (no summary) " +
+                                "No summary found for content " +
                                     "(type: $providerType, ID: $contentId): ${content.title}"
                             )
                         }
@@ -235,11 +232,12 @@ class ContentAiProcessingService(
      * 안전한 제한: 콘텐츠당 최대 10,000자 (약 20,000-30,000 토큰)
      * 배치 5개 기준: 총 50,000자 이하 권장
      */
-    private fun validateContentLength(contents: List<com.nexters.external.entity.Content>): List<com.nexters.external.entity.Content> {
+    private fun validateContentLength(contents: List<Content>): List<
+        Content> {
         val maxContentLength = 10_000 // 콘텐츠당 최대 10,000자
         val maxTotalLength = 50_000 // 배치 전체 최대 50,000자
 
-        val validatedContents = mutableListOf<com.nexters.external.entity.Content>()
+        val validatedContents = mutableListOf<Content>()
         var totalLength = 0
 
         contents.forEach { content ->
@@ -280,10 +278,10 @@ class ContentAiProcessingService(
             is RateLimitExceededException -> false
 
             // AI 처리 오류 (파싱 실패, 응답 형식 오류 등)는 fallback 시도
-            is com.nexters.external.exception.AiProcessingException -> true
+            is AiProcessingException -> true
 
             // JSON 파싱 오류는 fallback 시도 (개별 처리로 복구 가능)
-            is com.google.gson.JsonSyntaxException -> true
+            is JsonSyntaxException -> true
 
             // 기타 예외는 보수적으로 fallback 하지 않음 (API 할당량 보존)
             else -> {
