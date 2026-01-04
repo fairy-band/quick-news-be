@@ -425,36 +425,23 @@ class ContentAnalysisService(
 
             val resultsArray = jsonResponse["results"] as? List<*> ?: emptyList<Any>()
 
-            val resultsMap = mutableMapOf<String, BatchContentAnalysisItem>()
+            val resultsMap = resultsArray
+                .mapNotNull { obj ->
+                    (obj as? Map<*, *>)?.let { map ->
+                        (map["contentId"] as? String)?.let { id ->
+                            id to BatchContentAnalysisItem(
+                                contentId = id,
+                                summary = map["summary"] as? String ?: "",
+                                provocativeHeadlines = (map["provocativeHeadlines"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                matchedKeywords = (map["matchedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                suggestedKeywords = (map["suggestedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                provocativeKeywords = (map["provocativeKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                            )
+                        }
+                    }
+                }
+                .toMap()
 
-            resultsArray.forEach { resultObj ->
-                val resultMap = resultObj as? Map<*, *> ?: return@forEach
-
-                val contentId = resultMap["contentId"] as? String ?: return@forEach
-                val summary = resultMap["summary"] as? String ?: ""
-                val provocativeHeadlines =
-                    (resultMap["provocativeHeadlines"] as? List<*>)
-                        ?.filterIsInstance<String>() ?: emptyList()
-                val matchedKeywords =
-                    (resultMap["matchedKeywords"] as? List<*>)
-                        ?.filterIsInstance<String>() ?: emptyList()
-                val suggestedKeywords =
-                    (resultMap["suggestedKeywords"] as? List<*>)
-                        ?.filterIsInstance<String>() ?: emptyList()
-                val provocativeKeywords =
-                    (resultMap["provocativeKeywords"] as? List<*>)
-                        ?.filterIsInstance<String>() ?: emptyList()
-
-                resultsMap[contentId] =
-                    BatchContentAnalysisItem(
-                        contentId = contentId,
-                        summary = summary,
-                        provocativeHeadlines = provocativeHeadlines,
-                        matchedKeywords = matchedKeywords,
-                        suggestedKeywords = suggestedKeywords,
-                        provocativeKeywords = provocativeKeywords
-                    )
-            }
 
             BatchContentAnalysisResult(
                 results = resultsMap,
