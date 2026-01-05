@@ -139,8 +139,6 @@ class ContentAiProcessingService(
             // 배치 전체 실패 시 처리 전략 결정
             logger.error("Batch processing failed: ${e.message}", e)
 
-            // API 관련 오류가 아닌 경우에만 fallback 시도
-            // (파싱 오류, 네트워크 오류 등)
             if (shouldFallbackToIndividual(e)) {
                 logger.warn("Attempting fallback to individual processing (Rate Limit preserved)")
                 return fallbackToIndividualProcessing(validatedContents)
@@ -175,7 +173,7 @@ class ContentAiProcessingService(
      * 배치 처리 실패 시 개별 처리로 폴백합니다.
      * 메모리 누수 방지를 위해 처리 후 즉시 참조를 해제합니다.
      */
-    private fun fallbackToIndividualProcessing(contents: List<com.nexters.external.entity.Content>): ProcessingResult {
+    private fun fallbackToIndividualProcessing(contents: List<Content>): ProcessingResult {
         logger.info("Starting fallback: individual processing for ${contents.size} contents")
 
         var processedCount = 0
