@@ -29,9 +29,9 @@ class ContentAiProcessingService(
 
     /**
      * 미처리 콘텐츠를 배치로 처리합니다.
-     * 5개의 콘텐츠를 1번의 API 호출로 처리하여 Rate Limit을 효율적으로 관리합니다.
-     * 메모리 누수 방지를 위해 처리 후 즉시 참조를 해제합니다.
-     * 동시성 제어를 통해 중복 실행을 방지합니다.
+     * - 배치 크기: 5개
+     * - 동시성 제어: 중복 실행 방지
+     * - Rate Limit 관리: 1회 API 호출
      */
     fun processUnprocessedContents(): ProcessingResult {
         // 동시성 제어: 이미 처리 중이면 스킵
@@ -65,155 +65,178 @@ class ContentAiProcessingService(
 
     /**
      * 콘텐츠 배치를 실제로 처리합니다.
-     * 토큰 제한을 고려하여 콘텐츠 길이를 체크합니다.
+     * 1. 콘텐츠 길이 검증
+     * 2. AI 배치 분석 (1회 API 호출)
+     * 3. ExposureContent 생성
      */
     private fun processContentsBatch(contents: List<Content>): ProcessingResult {
-        var processedCount = 0
-        var errorCount = 0
-
-        // 토큰 제한 체크: 콘텐츠 길이 검증
+        // 1. 토큰 제한 체크: 콘텐츠 길이 검증
         val validatedContents = validateContentLength(contents)
         if (validatedContents.isEmpty()) {
             logger.warn("All contents exceeded token limit. Skipping batch.")
             return ProcessingResult(0, contents.size, getRemainingCount())
         }
 
-        if (validatedContents.size < contents.size) {
-            logger.warn(
-                "Filtered out ${contents.size - validatedContents.size} contents due to excessive length. " +
-                    "Processing ${validatedContents.size} contents."
-            )
-        }
+        logContentValidationResult(contents.size, validatedContents.size)
 
-        try {
-            // 배치로 분석 및 저장 (1번의 API 호출로 validatedContents 처리)
-            logger.info("Processing ${validatedContents.size} contents in a single batch API call")
-            val batchResults = contentAnalysisService.analyzeBatchAndSave(validatedContents)
-
-            // 각 콘텐츠에 대해 ExposureContent 생성
-            validatedContents.forEach { content ->
-                try {
-                    val contentId = content.id!!.toString()
-                    val providerType = content.contentProvider?.type?.name ?: "UNKNOWN"
-
-                    if (batchResults.containsKey(contentId)) {
-                        // 배치 분석 성공 - ExposureContent 생성
-                        val summaries = contentAnalysisService.getPrioritizedSummaryByContent(content)
-
-                        if (summaries.isNotEmpty()) {
-                            val latestSummary = summaries.first()
-                            exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
-                            processedCount++
-                            logger.info(
-                                "Successfully processed content $processedCount/${contents.size} " +
-                                    "(type: $providerType, ID: $contentId): ${content.title}"
-                            )
-                        } else {
-                            // TODO: summary가 생성되지 않은 경우 처리 로직 추가 필요
-                            errorCount++
-                            logger.warn(
-                                "No summary found for content " +
-                                    "(type: $providerType, ID: $contentId): ${content.title}"
-                            )
-                        }
-                    } else {
-                        errorCount++
-                        logger.warn("Content ID $contentId not found in batch results")
-                    }
-                } catch (e: Exception) {
-                    errorCount++
-                    logger.error("Error creating ExposureContent for content ID ${content.id}: ${content.title}", e)
-                }
-            }
-
-            logger.info(
-                "Batch processing completed successfully. " +
-                    "API calls: 1, Processed: $processedCount/${validatedContents.size}, Errors: $errorCount"
-            )
+        // 2. 배치 분석 및 ExposureContent 생성
+        return try {
+            executeBatchProcessing(validatedContents)
         } catch (e: RateLimitExceededException) {
-            // Rate Limit 초과 시 배치 전체 중단
-            // 주의: 이미 1회 API 호출이 카운트되었으므로 fallback 하지 않음
-            logger.error("Rate limit exceeded during batch processing. Halting batch without fallback to preserve API quota.", e)
-            throw e
+            handleRateLimitException(e)
         } catch (e: Exception) {
-            // 배치 전체 실패 시 처리 전략 결정
-            logger.error("Batch processing failed: ${e.message}", e)
-
-            if (shouldFallbackToIndividual(e)) {
-                logger.warn("Attempting fallback to individual processing (Rate Limit preserved)")
-                return fallbackToIndividualProcessing(validatedContents)
-            } else {
-                // 복구 불가능한 오류는 그냥 실패 처리
-                logger.error("Non-recoverable error. Skipping fallback to preserve API quota.")
-                return ProcessingResult(0, contents.size, getRemainingCount())
-            }
-        } finally {
-            // 메모리 누수 방지: 명시적으로 큰 객체 참조 해제
-            // Kotlin의 GC가 처리하지만, 명시적으로 클리어하여 빠른 회수 유도
-            logger.debug("Clearing content references to prevent memory leaks")
+            handleBatchProcessingException(e, validatedContents)
         }
+    }
 
-        // 남은 미처리 콘텐츠 수 조회
-        val remainingCount =
-            contentRepository
-                .findContentsWithoutSummaryOrderedByProviderTypePriority(
-                    PageRequest.of(0, 1)
-                ).totalElements
-                .toInt()
+    /**
+     * 배치 처리를 실행하고 결과를 반환합니다.
+     */
+    private fun executeBatchProcessing(validatedContents: List<Content>): ProcessingResult {
+        logger.info("Processing ${validatedContents.size} contents in single batch API call")
+
+        // AI 배치 분석 (1회 API 호출)
+        val batchResults = contentAnalysisService.analyzeBatchAndSave(validatedContents)
+
+        // ExposureContent 생성
+        val metrics = createExposureContentsFromBatchResults(validatedContents, batchResults)
 
         logger.info(
-            "Content AI batch processing completed. " +
-                "Processed: $processedCount, Errors: $errorCount, Remaining: $remainingCount"
+            "Batch completed successfully. " +
+                "API calls: 1, Processed: ${metrics.processedCount}/${validatedContents.size}, " +
+                "Errors: ${metrics.errorCount}"
         )
 
-        return ProcessingResult(processedCount, errorCount, remainingCount)
+        return ProcessingResult(
+            processedCount = metrics.processedCount,
+            errorCount = metrics.errorCount,
+            remainingCount = getRemainingCount()
+        )
+    }
+
+    /**
+     * Rate Limit 초과 예외를 처리합니다.
+     */
+    private fun handleRateLimitException(e: RateLimitExceededException): Nothing {
+        logger.error("Rate limit exceeded. Halting batch without fallback to preserve API quota.", e)
+        throw e
+    }
+
+    /**
+     * 배치 처리 예외를 처리하고 필요시 폴백을 시도합니다.
+     */
+    private fun handleBatchProcessingException(
+        e: Exception,
+        validatedContents: List<Content>
+    ): ProcessingResult {
+        logger.error("Batch processing failed: ${e.message}", e)
+
+        return if (shouldFallbackToIndividual(e)) {
+            logger.warn("Attempting fallback to individual processing")
+            fallbackToIndividualProcessing(validatedContents)
+        } else {
+            logger.error("Non-recoverable error. Skipping fallback to preserve API quota.")
+            ProcessingResult(0, validatedContents.size, getRemainingCount())
+        }
+    }
+
+    /**
+     * 콘텐츠 검증 결과를 로깅합니다.
+     */
+    private fun logContentValidationResult(
+        originalSize: Int,
+        validatedSize: Int
+    ) {
+        if (validatedSize < originalSize) {
+            logger.warn("Filtered out ${originalSize - validatedSize} contents due to length. Processing $validatedSize.")
+        }
+    }
+
+    /**
+     * 배치 분석 결과를 바탕으로 ExposureContent를 생성합니다.
+     *
+     * @return BatchProcessingMetrics 처리 성공/실패 통계
+     */
+    private fun createExposureContentsFromBatchResults(
+        contents: List<Content>,
+        batchResults: Map<String, *>
+    ): BatchProcessingMetrics {
+        var processedCount = 0
+        var errorCount = 0
+
+        contents.forEach { content ->
+            try {
+                val result = processContentAndCreateExposure(content, batchResults)
+                if (result) {
+                    processedCount++
+                } else {
+                    errorCount++
+                }
+            } catch (e: Exception) {
+                errorCount++
+                logger.error("Failed to create ExposureContent for content ID ${content.id}: ${content.title}", e)
+            }
+        }
+
+        return BatchProcessingMetrics(processedCount, errorCount)
+    }
+
+    /**
+     * 개별 콘텐츠를 처리하고 ExposureContent를 생성합니다.
+     *
+     * @return Boolean 성공 여부
+     */
+    private fun processContentAndCreateExposure(
+        content: Content,
+        batchResults: Map<String, *>
+    ): Boolean {
+        val contentId = content.id!!.toString()
+        val providerType = content.contentProvider?.type?.name ?: "UNKNOWN"
+
+        if (!batchResults.containsKey(contentId)) {
+            logger.warn("Content ID $contentId not found in batch results")
+            return false
+        }
+
+        val summaries = contentAnalysisService.getPrioritizedSummaryByContent(content)
+        if (summaries.isEmpty()) {
+            logger.warn("No summary found for content (type: $providerType, ID: $contentId): ${content.title}")
+            return false
+        }
+
+        val latestSummary = summaries.first()
+        exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
+        logger.info("Processed content (type: $providerType, ID: $contentId): ${content.title}")
+        return true
     }
 
     /**
      * 배치 처리 실패 시 개별 처리로 폴백합니다.
-     * 메모리 누수 방지를 위해 처리 후 즉시 참조를 해제합니다.
      */
     private fun fallbackToIndividualProcessing(contents: List<Content>): ProcessingResult {
-        logger.info("Starting fallback: individual processing for ${contents.size} contents")
+        logger.info("Fallback: processing ${contents.size} contents individually")
 
         var processedCount = 0
         var errorCount = 0
 
         contents.forEach { content ->
             try {
-                val providerType = content.contentProvider?.type?.name ?: "UNKNOWN"
-                logger.info("Processing content individually (type: $providerType): ${content.title}")
-
-                // 개별 처리
                 newsletterProcessingService.processExistingContent(content)
                 processedCount++
-                logger.info(
-                    "Processed content $processedCount/${contents.size} (type: $providerType): ${content.title}"
-                )
+                logger.debug("Processed content ID ${content.id}: ${content.title}")
             } catch (e: RateLimitExceededException) {
-                // Rate Limit 초과 시 중단
-                logger.error("Rate limit exceeded during individual processing for content ID ${content.id}", e)
+                logger.error("Rate limit exceeded during fallback processing", e)
                 throw e
             } catch (e: Exception) {
-                // 다른 예외는 로깅만 하고 계속 진행
                 errorCount++
-                logger.error("Error processing content ID ${content.id}: ${content.title}", e)
+                logger.error("Failed to process content ID ${content.id}: ${content.title}", e)
             }
         }
 
-        // 남은 미처리 콘텐츠 수 조회
-        val remainingCount =
-            contentRepository
-                .findContentsWithoutSummaryOrderedByProviderTypePriority(
-                    PageRequest.of(0, 1)
-                ).totalElements
-                .toInt()
+        val result = ProcessingResult(processedCount, errorCount, getRemainingCount())
+        logger.info("Fallback completed. Processed: $processedCount, Errors: $errorCount, Remaining: ${result.remainingCount}")
 
-        logger.info(
-            "Fallback processing completed. Processed: $processedCount, Errors: $errorCount, Remaining: $remainingCount"
-        )
-
-        return ProcessingResult(processedCount, errorCount, remainingCount)
+        return result
     }
 
     data class ProcessingResult(
@@ -223,19 +246,17 @@ class ContentAiProcessingService(
     )
 
     /**
-     * 콘텐츠 길이를 검증합니다.
-     * 토큰 제한(maxOutputTokens: 8000)을 고려하여 너무 긴 콘텐츠는 필터링합니다.
-     *
-     * 대략적인 토큰 추정: 한글 1자 ≈ 2-3 토큰, 영어 1단어 ≈ 1-2 토큰
-     * 안전한 제한: 콘텐츠당 최대 10,000자 (약 20,000-30,000 토큰)
-     * 배치 5개 기준: 총 50,000자 이하 권장
+     * 배치 처리 통계를 담는 데이터 클래스
      */
-    private fun validateContentLength(contents: List<Content>): List<
-        Content
-    > {
-        val maxContentLength = 10_000 // 콘텐츠당 최대 10,000자
-        val maxTotalLength = 50_000 // 배치 전체 최대 50,000자
+    private data class BatchProcessingMetrics(
+        val processedCount: Int,
+        val errorCount: Int
+    )
 
+    /**
+     * 콘텐츠 길이를 검증하여 토큰 제한 내의 콘텐츠만 반환합니다.
+     */
+    private fun validateContentLength(contents: List<Content>): List<Content> {
         val validatedContents = mutableListOf<Content>()
         var totalLength = 0
 
@@ -243,18 +264,12 @@ class ContentAiProcessingService(
             val contentLength = content.content.length
 
             when {
-                contentLength > maxContentLength -> {
-                    logger.warn(
-                        "Content ID ${content.id} exceeds max length ($contentLength > $maxContentLength). " +
-                            "Skipping to prevent token limit issues."
-                    )
+                contentLength > MAX_CONTENT_LENGTH -> {
+                    logger.warn("Content ID ${content.id} exceeds max length ($contentLength > $MAX_CONTENT_LENGTH). Skipping.")
                 }
-                totalLength + contentLength > maxTotalLength -> {
-                    logger.warn(
-                        "Adding content ID ${content.id} would exceed total batch limit " +
-                            "($totalLength + $contentLength > $maxTotalLength). Stopping batch here."
-                    )
-                    return validatedContents // 여기서 배치 중단
+                (totalLength + contentLength) > MAX_TOTAL_BATCH_LENGTH -> {
+                    logger.warn("Batch size limit reached at content ID ${content.id}. Stopping here.")
+                    return validatedContents
                 }
                 else -> {
                     validatedContents.add(content)
@@ -263,35 +278,25 @@ class ContentAiProcessingService(
             }
         }
 
-        logger.debug("Validated ${validatedContents.size}/${contents.size} contents. Total length: $totalLength chars")
+        logger.debug("Validated ${validatedContents.size}/${contents.size} contents (total: $totalLength chars)")
         return validatedContents
     }
 
     /**
      * Fallback 처리 여부를 결정합니다.
-     * Rate Limit을 절약하기 위해 API 관련 오류가 아닌 경우에만 fallback을 시도합니다.
+     * API 할당량을 보존하기 위해 복구 가능한 오류만 폴백을 시도합니다.
      */
     private fun shouldFallbackToIndividual(exception: Exception): Boolean =
         when (exception) {
-            // Rate Limit 관련 오류는 fallback 하지 않음
-            is RateLimitExceededException -> false
-
-            // AI 처리 오류 (파싱 실패, 응답 형식 오류 등)는 fallback 시도
-            is AiProcessingException -> true
-
-            // JSON 파싱 오류는 fallback 시도 (개별 처리로 복구 가능)
-            is JsonSyntaxException -> true
-
-            // 기타 예외는 보수적으로 fallback 하지 않음 (API 할당량 보존)
+            is RateLimitExceededException -> false // API 할당량 보존
+            is AiProcessingException -> true // 파싱 실패 등 복구 가능
+            is JsonSyntaxException -> true // 개별 처리로 복구 가능
             else -> {
-                logger.warn("Unknown exception type: ${exception::class.simpleName}. Skipping fallback.")
+                logger.warn("Unknown exception: ${exception::class.simpleName}. Skipping fallback.")
                 false
             }
         }
 
-    /**
-     * 남은 미처리 콘텐츠 수를 조회합니다.
-     */
     private fun getRemainingCount(): Int =
         contentRepository
             .findContentsWithoutSummaryOrderedByProviderTypePriority(
@@ -301,5 +306,7 @@ class ContentAiProcessingService(
 
     companion object {
         private const val BATCH_SIZE = 5
+        private const val MAX_CONTENT_LENGTH = 10_000 // 콘텐츠당 최대 길이 (약 20K-30K 토큰)
+        private const val MAX_TOTAL_BATCH_LENGTH = 50_000 // 배치 전체 최대 길이
     }
 }
