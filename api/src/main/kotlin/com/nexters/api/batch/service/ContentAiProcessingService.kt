@@ -233,7 +233,8 @@ class ContentAiProcessingService(
      * 배치 5개 기준: 총 50,000자 이하 권장
      */
     private fun validateContentLength(contents: List<Content>): List<
-        Content> {
+        Content
+    > {
         val maxContentLength = 10_000 // 콘텐츠당 최대 10,000자
         val maxTotalLength = 50_000 // 배치 전체 최대 50,000자
 

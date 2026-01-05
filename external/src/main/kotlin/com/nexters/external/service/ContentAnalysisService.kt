@@ -425,23 +425,26 @@ class ContentAnalysisService(
 
             val resultsArray = jsonResponse["results"] as? List<*> ?: emptyList<Any>()
 
-            val resultsMap = resultsArray
-                .mapNotNull { obj ->
-                    (obj as? Map<*, *>)?.let { map ->
-                        (map["contentId"] as? String)?.let { id ->
-                            id to BatchContentAnalysisItem(
-                                contentId = id,
-                                summary = map["summary"] as? String ?: "",
-                                provocativeHeadlines = (map["provocativeHeadlines"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                matchedKeywords = (map["matchedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                suggestedKeywords = (map["suggestedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                provocativeKeywords = (map["provocativeKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
-                            )
+            val resultsMap =
+                resultsArray
+                    .mapNotNull { obj ->
+                        (obj as? Map<*, *>)?.let { map ->
+                            (map["contentId"] as? String)?.let { id ->
+                                id to
+                                    BatchContentAnalysisItem(
+                                        contentId = id,
+                                        summary = map["summary"] as? String ?: "",
+                                        provocativeHeadlines =
+                                            (map["provocativeHeadlines"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                        matchedKeywords = (map["matchedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                        suggestedKeywords =
+                                            (map["suggestedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                        provocativeKeywords =
+                                            (map["provocativeKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                                    )
+                            }
                         }
-                    }
-                }
-                .toMap()
-
+                    }.toMap()
 
             BatchContentAnalysisResult(
                 results = resultsMap,
