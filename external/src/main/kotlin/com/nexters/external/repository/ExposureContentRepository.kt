@@ -47,7 +47,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     @Query(
         """
         SELECT e FROM ExposureContent e
-        WHERE e.id > :lastSeenOffset
+        WHERE e.id < :lastSeenOffset OR :lastSeenOffset = 0
         ORDER BY e.id DESC
     """
     )
