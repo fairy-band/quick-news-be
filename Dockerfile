@@ -15,15 +15,11 @@ COPY gradle/libs.version.toml gradle/
 COPY . .
 
 # Build the application with layered JARs
-RUN ./gradlew :api:bootJar :batch:bootJar :admin:bootJar --no-daemon
+RUN ./gradlew :api:bootJar :admin:bootJar --no-daemon
 
 # Extract layered JARs for better Docker layer caching
 # Extract API layered JAR
 WORKDIR /app/api/build/libs
-RUN java -Djarmode=layertools -jar *.jar extract
-
-# Extract Batch layered JAR
-WORKDIR /app/batch/build/libs
 RUN java -Djarmode=layertools -jar *.jar extract
 
 # Extract Admin layered JAR
@@ -46,22 +42,6 @@ RUN apk add --no-cache fontconfig font-noto-cjk font-noto ttf-dejavu
 
 # Expose port
 EXPOSE 8080
-
-# Run the application
-ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
-
-# Runtime stage for Batch
-FROM azul/zulu-openjdk-alpine:21-jre AS batch
-WORKDIR /app
-
-# Copy layers in order for optimal caching
-COPY --from=build /app/batch/build/libs/dependencies/ ./
-COPY --from=build /app/batch/build/libs/spring-boot-loader/ ./
-COPY --from=build /app/batch/build/libs/snapshot-dependencies/ ./
-COPY --from=build /app/batch/build/libs/application/ ./
-
-# Expose port
-EXPOSE 8082
 
 # Run the application
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

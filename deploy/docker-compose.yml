@@ -13,6 +13,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
       ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
       FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
@@ -28,47 +33,6 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/health || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - newsletter-network
-
-  batch:
-    image: ahj0/fairy-band:batch
-    container_name: newsletter-batch
-    restart: always
-    ports:
-      - "8082:8082"
-    environment:
-      TZ: Asia/Seoul
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
-      SPRING_DATASOURCE_USERNAME: ${DB_USER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      SERVER_PORT: 8082
-      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
-      FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
-      DISCORD_USER_REGISTRATION_ENABLED: ${DISCORD_USER_REGISTRATION_ENABLED}
-      DISCORD_USER_REGISTRATION_WEBHOOK_URL: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL}
-    volumes:
-      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
-      - ./logs/batch:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8082/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -190,8 +154,6 @@ services:
       - /var/www/certbot:/var/www/certbot
     depends_on:
       api:
-        condition: service_healthy
-      batch:
         condition: service_healthy
       admin:
         condition: service_healthy

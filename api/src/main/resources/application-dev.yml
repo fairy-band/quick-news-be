@@ -2,6 +2,7 @@ spring:
   config:
     import:
       - postgresql-dev.yml
+      - mongo-dev.yml
 
 # Development Discord Webhook Configuration
 notification:

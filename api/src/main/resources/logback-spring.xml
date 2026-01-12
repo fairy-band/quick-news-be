@@ -33,6 +33,12 @@
         </appender>
     </springProfile>
 
+    <!-- Logger configurations -->
+    <logger name="org.springframework.integration" level="WARN"/>
+    <logger name="org.springframework.mail" level="WARN"/>
+    <logger name="jakarta.mail" level="WARN"/>
+    <logger name="com.nexters.api" level="INFO"/>
+
     <!-- Root logger configuration -->
     <springProfile name="local">
         <root level="INFO">

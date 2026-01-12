@@ -1,6 +1,42 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: api
+  config:
+    import:
+      - gemini.yml
+      - rss-feeds.yml
+  mail:
+    host: pop.gmail.com
+    port: 995
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    protocol: pop3s
+    properties:
+      mail:
+        pop3s:
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
+            port: 995
+        store:
+          protocol: pop3s
+        debug: false
+
+management:
+  health:
+    mail:
+      enabled: false
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 
 # Swagger UI Configuration
 springdoc:
@@ -22,6 +58,22 @@ ai:
 firebase:
   service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
   project-id: ${FIREBASE_PROJECT_ID:news-letter-da24c}
+
+# RSS Configuration
+rss:
+  scheduler:
+    fetch:
+      delay: ${RSS_FETCH_DELAY:3600000}
+    stats:
+      cron: ${RSS_STATS_CRON:0 0 */6 * * *}
+
+# Google Analytics Configuration
+google:
+  analytics:
+    property:
+      id: ${GA_PROPERTY_ID:496409651}
+    credentials:
+      path: ${GA_CREDENTIALS_PATH:firebase-service-account.json}
 
 # Logging
 logging:
