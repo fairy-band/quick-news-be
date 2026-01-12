@@ -106,7 +106,7 @@ class ContentAnalysisService(
             val summary =
                 Summary(
                     content = contentEntity,
-                    title = contentEntity.title,
+                    title = result.provocativeHeadlines.firstOrNull() ?: contentEntity.title,
                     summarizedContent = result.summary,
                     model = usedModel
                 )
