@@ -116,29 +116,6 @@ services:
       start_period: 40s
     networks:
       - newsletter-network
-  mongo-express:
-    image: mongo-express:1.0.2
-    container_name: newsletter-mongo-express
-    restart: always
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
-      ME_CONFIG_SITE_BASEURL: /mongo-express/
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: wget --quiet --tries=1 --spider http://localhost:8081 || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - newsletter-network
 
   nginx:
     image: nginx:alpine
