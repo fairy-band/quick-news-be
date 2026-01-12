@@ -2,6 +2,7 @@ spring:
   config:
     import:
       - postgresql-prod.yml
+      - mongo-prod.yml
       - gemini.yml
 server:
   forward-headers-strategy: framework

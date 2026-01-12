@@ -13,7 +13,6 @@ dependencyResolutionManagement {
 }
 
 include("api")
-include("batch")
 include("external")
 include("admin")
 include("newsletter")

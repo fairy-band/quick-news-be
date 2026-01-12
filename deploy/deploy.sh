@@ -16,7 +16,7 @@ echo "🧹 Docker 이미지 정리..."
 docker image prune -f
 
 echo "📥 최신 서비스 이미지 pull 중..."
-docker compose pull api batch admin nginx
+docker compose pull api admin nginx
 
 echo "🛑 기존 서비스 중지..."
 docker compose down
@@ -31,7 +31,7 @@ echo "🔍 nginx 컨테이너 로그 확인..."
 docker logs newsletter-nginx --tail 10
 
 echo "🔍 서비스 상태 확인..."
-docker compose ps api batch admin nginx
+docker compose ps api admin nginx
 
 echo "🌐 연결 테스트..."
 curl -I https://fairy-band.com/health || echo "⚠️ 연결 확인 필요"
