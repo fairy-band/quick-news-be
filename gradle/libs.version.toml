@@ -26,6 +26,8 @@ h2 = "2.2.224"
 thymeleaf = "3.1.2.RELEASE"
 firebase-admin = "9.2.0"
 resilience4j = "2.1.0"
+google-analytics-data = "0.50.0"
+google-auth-oauth2 = "1.19.0"
 
 # Code Quality
 ktlint = "12.1.1"
@@ -70,6 +72,10 @@ google-genai = { group = "com.google.genai", name = "google-genai", version.ref 
 
 # Firebase
 firebase-admin = { group = "com.google.firebase", name = "firebase-admin", version.ref = "firebase-admin" }
+
+# Google Analytics
+google-analytics-data = { group = "com.google.analytics", name = "google-analytics-data", version.ref = "google-analytics-data" }
+google-auth-oauth2 = { group = "com.google.auth", name = "google-auth-library-oauth2-http", version.ref = "google-auth-oauth2" }
 
 # Resilience4j
 resilience4j-ratelimiter = { group = "io.github.resilience4j", name = "resilience4j-ratelimiter", version.ref = "resilience4j" }

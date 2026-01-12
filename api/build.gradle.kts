@@ -18,8 +18,8 @@ dependencies {
     implementation(libs.jakarta.activation.api)
     implementation(libs.spring.boot.starter.logging)
     implementation(libs.jsoup)
-    implementation("com.google.analytics:google-analytics-data:0.50.0")
-    implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+    implementation(libs.google.analytics.data)
+    implementation(libs.google.auth.oauth2)
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     annotationProcessor(libs.spring.boot.configuration.processor)
