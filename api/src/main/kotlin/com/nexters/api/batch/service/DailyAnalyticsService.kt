@@ -2,10 +2,12 @@ package com.nexters.api.batch.service
 
 import com.nexters.external.service.NotificationService
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
 @Service
+@Profile("prod")
 class DailyAnalyticsService(
     private val googleAnalyticsService: GoogleAnalyticsService,
     private val notificationService: NotificationService

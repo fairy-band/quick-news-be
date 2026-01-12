@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
-@Profile("prod", "dev")
+@Profile("prod")
 class AnalyticsScheduler(
     private val dailyAnalyticsService: DailyAnalyticsService,
     private val weeklyAnalyticsService: WeeklyAnalyticsService

@@ -1,12 +1,14 @@
 package com.nexters.api.batch.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.integration.support.MessageBuilder
 import org.springframework.messaging.MessageChannel
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 
 @Service
+@Profile("prod")
 class MailTriggerService(
     private val scheduleTriggerChannel: MessageChannel,
     private val mailInputChannel: MessageChannel

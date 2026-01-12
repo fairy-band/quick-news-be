@@ -2,6 +2,7 @@ package com.nexters.api.batch.controller
 
 import com.nexters.api.batch.config.AlarmIntegrationConfig.Companion.ALARM_TITLE
 import com.nexters.api.batch.service.DailyNotificationService
+import org.springframework.context.annotation.Profile
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/batch/notifications")
+@Profile("prod")
 class NotificationController(
     private val dailyNotificationService: DailyNotificationService
 ) {

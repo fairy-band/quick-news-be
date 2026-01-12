@@ -4,10 +4,12 @@ import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.ContentRepository
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
+@Profile("prod")
 class ContentAiProcessingService(
     private val contentRepository: ContentRepository,
     private val newsletterProcessingService: NewsletterProcessingService,

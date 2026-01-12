@@ -5,6 +5,7 @@ import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -18,6 +19,7 @@ data class MailProcessingResult(
 )
 
 @Service
+@Profile("prod")
 class MailProcessor(
     private val newsletterSourceService: NewsletterSourceService,
     private val newsletterProcessingService: NewsletterProcessingService,

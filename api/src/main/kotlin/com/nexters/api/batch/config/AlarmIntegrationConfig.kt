@@ -8,6 +8,7 @@ import com.nexters.external.service.PushNotificationService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.integration.channel.DirectChannel
 import org.springframework.integration.channel.PublishSubscribeChannel
 import org.springframework.integration.config.EnableIntegration
@@ -18,6 +19,7 @@ import org.springframework.messaging.MessageChannel
 
 @Configuration
 @EnableIntegration
+@Profile("prod")
 class AlarmIntegrationConfig(
     private val pushNotificationService: PushNotificationService,
     private val alarmMessageResolver: AlarmMessageResolver,

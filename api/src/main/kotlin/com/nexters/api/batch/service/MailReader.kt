@@ -3,6 +3,7 @@ package com.nexters.api.batch.service
 import com.nexters.api.batch.dto.EmailMessage
 import jakarta.mail.internet.MimeMessage
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.integration.core.MessageSource
 import org.springframework.stereotype.Service
 
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service
  * 메일 수신 및 처리를 담당하는 서비스
  */
 @Service
+@Profile("prod")
 class MailReader(
     private val mailMessageSource: MessageSource<*>
 ) {
