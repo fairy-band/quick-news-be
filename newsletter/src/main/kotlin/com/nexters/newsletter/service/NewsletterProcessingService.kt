@@ -4,6 +4,7 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
@@ -30,18 +31,38 @@ class NewsletterProcessingService(
     @Transactional
     fun processExistingContent(content: Content): ExposureContent {
         try {
-            logger.info("Starting complete processing for existing content ID: $content.id")
+            logger.info("Starting complete processing for existing content ID: ${content.id}")
+
+            // 콘텐츠 길이 검증
+            val contentLength = content.content.length
+            if (contentLength > MAX_CONTENT_LENGTH) {
+                val errorMsg = "Content ID ${content.id} exceeds max length ($contentLength > $MAX_CONTENT_LENGTH). Skipping AI processing."
+                logger.warn(errorMsg)
+                throw IllegalArgumentException(errorMsg)
+            }
 
             // Analyze content (summary + keywords in one call)
+            // Note: Rate Limiter는 ContentAnalysisService#analyzeContent 내부에서 자동으로 적용됨
             analyzeContent(content)
 
             // Create exposure content
             val exposureContent = createExposureContent(content)
 
-            logger.info("End complete processing for existing content ID: $content.id")
+            logger.info("End complete processing for existing content ID: ${content.id}")
             return exposureContent
+        } catch (e: RateLimitExceededException) {
+            logger.error(
+                "Rate limit exceeded for content ID: ${content.id}. " +
+                    "LimitType: ${e.limitType}, Model: ${e.modelName}",
+                e
+            )
+            throw e
+        } catch (e: IllegalArgumentException) {
+            // 콘텐츠 길이 초과 등의 검증 오류
+            logger.error("Validation failed for content ID: ${content.id}", e)
+            throw e
         } catch (e: Exception) {
-            logger.error("Failed to process existing content ID: $content.id", e)
+            logger.error("Failed to process existing content ID: ${content.id}", e)
             throw e
         }
     }
@@ -143,5 +164,9 @@ class NewsletterProcessingService(
                 summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else "",
             )
         }
+    }
+
+    companion object {
+        private const val MAX_CONTENT_LENGTH = 10_000 // 콘텐츠당 최대 길이 (약 20K-30K 토큰)
     }
 }
