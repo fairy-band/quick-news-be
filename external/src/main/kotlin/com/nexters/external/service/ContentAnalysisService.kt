@@ -289,7 +289,7 @@ class ContentAnalysisService(
             val summary =
                 Summary(
                     content = content,
-                    title = content.title,
+                    title = item.provocativeHeadlines.firstOrNull() ?: content.title,
                     summarizedContent = item.summary,
                     model = modelName
                 )
