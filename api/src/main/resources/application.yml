@@ -75,6 +75,10 @@ google:
     credentials:
       path: ${GA_CREDENTIALS_PATH:firebase-service-account.json}
 
+# Batch Configuration
+batch:
+  enabled: ${BATCH_ENABLED:false}
+
 # Logging
 logging:
   level:

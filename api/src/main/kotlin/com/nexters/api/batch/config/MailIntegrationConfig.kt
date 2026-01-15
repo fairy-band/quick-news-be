@@ -7,9 +7,9 @@ import com.nexters.external.entity.NewsletterSource
 import jakarta.mail.Authenticator
 import jakarta.mail.PasswordAuthentication
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
 import org.springframework.integration.channel.DirectChannel
 import org.springframework.integration.channel.PublishSubscribeChannel
 import org.springframework.integration.config.EnableIntegration
@@ -26,7 +26,11 @@ import kotlin.toString
 
 @Configuration
 @EnableIntegration
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class MailIntegrationConfig(
     private val mailProperties: MailProperties,
     private val mailProcessor: MailProcessor,

@@ -3,12 +3,16 @@ package com.nexters.api.batch.config
 import com.nexters.external.config.RssFeedProperties
 import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Profile
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class RssFeedScheduler(
     private val rssContentService: RssContentService,
     private val rssFeedProperties: RssFeedProperties,
