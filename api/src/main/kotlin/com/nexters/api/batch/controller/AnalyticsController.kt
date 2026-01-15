@@ -3,7 +3,7 @@ package com.nexters.api.batch.controller
 import com.nexters.api.batch.service.DailyAnalyticsService
 import com.nexters.api.batch.service.WeeklyAnalyticsService
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Profile
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -14,7 +14,11 @@ import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/analytics")
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class AnalyticsController(
     private val dailyAnalyticsService: DailyAnalyticsService,
     private val weeklyAnalyticsService: WeeklyAnalyticsService
