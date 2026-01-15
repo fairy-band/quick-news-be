@@ -1,7 +1,7 @@
 package com.nexters.api.batch.controller
 
 import com.nexters.api.batch.service.MailTriggerService
-import org.springframework.context.annotation.Profile
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -10,7 +10,11 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/mail")
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class MailController(
     private val mailTriggerService: MailTriggerService
 ) {

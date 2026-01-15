@@ -6,9 +6,9 @@ import com.nexters.api.batch.dto.FcmNotificationResult
 import com.nexters.external.service.AlarmMessageResolver
 import com.nexters.external.service.PushNotificationService
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
 import org.springframework.integration.channel.DirectChannel
 import org.springframework.integration.channel.PublishSubscribeChannel
 import org.springframework.integration.config.EnableIntegration
@@ -19,7 +19,11 @@ import org.springframework.messaging.MessageChannel
 
 @Configuration
 @EnableIntegration
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class AlarmIntegrationConfig(
     private val pushNotificationService: PushNotificationService,
     private val alarmMessageResolver: AlarmMessageResolver,

@@ -9,13 +9,17 @@ import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Profile
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Service
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class ContentAiProcessingService(
     private val contentRepository: ContentRepository,
     private val newsletterProcessingService: NewsletterProcessingService,

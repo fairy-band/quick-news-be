@@ -5,15 +5,19 @@ import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings
 import com.google.auth.oauth2.GoogleCredentials
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
 import org.springframework.core.io.ClassPathResource
 import java.io.File
 import java.io.FileInputStream
 
 @Configuration
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["batch.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class GoogleAnalyticsConfig {
     private val logger = LoggerFactory.getLogger(GoogleAnalyticsConfig::class.java)
 

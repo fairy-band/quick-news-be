@@ -23,6 +23,7 @@ services:
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
       DISCORD_USER_REGISTRATION_ENABLED: ${DISCORD_USER_REGISTRATION_ENABLED}
       DISCORD_USER_REGISTRATION_WEBHOOK_URL: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL}
+      BATCH_ENABLED: ${BATCH_ENABLED:-false}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - ./logs/api:/app/logs
