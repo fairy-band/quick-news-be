@@ -1,5 +1,6 @@
 package com.nexters.external.repository
 
+import com.nexters.external.constants.ContentConstants.MAX_CONTENT_LENGTH
 import com.nexters.external.entity.Content
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -40,8 +41,9 @@ interface ContentRepository : JpaRepository<Content, Long> {
         WHERE c.id NOT IN (
             SELECT DISTINCT s.content.id FROM Summary s
         )
-        ORDER BY 
-            CASE 
+        AND LENGTH(c.content) <= $MAX_CONTENT_LENGTH
+        ORDER BY
+            CASE
                 WHEN cp.type = 'BLOG' THEN 0
                 WHEN cp.type = 'NEWSLETTER' THEN 1
                 ELSE 2
