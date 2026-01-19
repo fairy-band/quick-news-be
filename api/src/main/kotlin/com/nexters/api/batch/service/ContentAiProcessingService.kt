@@ -1,6 +1,8 @@
 package com.nexters.api.batch.service
 
 import com.google.gson.JsonSyntaxException
+import com.nexters.external.constants.ContentConstants.MAX_CONTENT_LENGTH
+import com.nexters.external.constants.ContentConstants.MAX_TOTAL_BATCH_LENGTH
 import com.nexters.external.entity.Content
 import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.exception.RateLimitExceededException
@@ -310,7 +312,5 @@ class ContentAiProcessingService(
 
     companion object {
         private const val BATCH_SIZE = 5
-        private const val MAX_CONTENT_LENGTH = 10_000 // 콘텐츠당 최대 길이 (약 20K-30K 토큰)
-        private const val MAX_TOTAL_BATCH_LENGTH = 50_000 // 배치 전체 최대 길이
     }
 }
