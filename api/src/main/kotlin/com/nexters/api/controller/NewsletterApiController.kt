@@ -97,7 +97,7 @@ class NewsletterApiController(
 
         return ExposureContentListApiResponse(
             contents = contents,
-            totalCount = page.totalElements,
+            totalCount = exposureContentService.countAllExposureContents(),
             hasMore = hasMore,
             nextOffset = nextOffset,
         )
