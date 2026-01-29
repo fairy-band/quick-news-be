@@ -28,6 +28,7 @@ class OpenApiConfig(
                     )
             ).addServersItem(Server().url(swaggerBaseUrl).description("로컬 개발 서버"))
             .addServersItem(Server().url("http://121.78.130.82/api").description("가비아"))
+            .addServersItem(Server().url("http://152.69.225.128").description("오라클"))
 
     @Bean
     fun forwardedHeaderFilter(): ForwardedHeaderFilter = ForwardedHeaderFilter()
