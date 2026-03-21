@@ -24,7 +24,7 @@ class AdminMemberRepositoryTest {
     fun `활성화된 관리자를 이메일로 조회할 수 있다`() {
         // given
         val email = "admin@example.com"
-        val adminMember = AdminMember.Companion.create(email, "관리자")
+        val adminMember = AdminMember.create(email, "관리자")
         entityManager.persistAndFlush(adminMember)
 
         // when
@@ -41,7 +41,7 @@ class AdminMemberRepositoryTest {
     fun `비활성화된 관리자는 조회되지 않는다`() {
         // given
         val email = "admin@example.com"
-        val adminMember = AdminMember.Companion.create(email, "관리자")
+        val adminMember = AdminMember.create(email, "관리자")
         adminMember.deactivate()
         entityManager.persistAndFlush(adminMember)
 
@@ -75,7 +75,7 @@ class AdminMemberRepositoryTest {
     fun `활성화된 관리자의 존재 여부를 확인할 수 있다`() {
         // given
         val email = "admin@example.com"
-        val adminMember = AdminMember.Companion.create(email, "관리자")
+        val adminMember = AdminMember.create(email, "관리자")
         entityManager.persistAndFlush(adminMember)
 
         // when
@@ -90,7 +90,7 @@ class AdminMemberRepositoryTest {
     fun `비활성화된 관리자는 존재하지 않는 것으로 확인된다`() {
         // given
         val email = "admin@example.com"
-        val adminMember = AdminMember.Companion.create(email, "관리자")
+        val adminMember = AdminMember.create(email, "관리자")
         adminMember.deactivate()
         entityManager.persistAndFlush(adminMember)
 

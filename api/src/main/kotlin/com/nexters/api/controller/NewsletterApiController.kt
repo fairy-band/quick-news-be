@@ -2,9 +2,14 @@ package com.nexters.api.controller
 
 import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
+import com.nexters.api.dto.CreateContentApiRequest
+import com.nexters.api.dto.CreateContentApiResponse
 import com.nexters.api.dto.ExposureContentApiResponse
 import com.nexters.api.dto.ExposureContentListApiResponse
 import com.nexters.api.enums.Language
+import com.nexters.api.exception.UnauthorizedException
+import com.nexters.api.util.TokenUtil
+import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import io.swagger.v3.oas.annotations.Operation
@@ -13,11 +18,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.PageRequest
+import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 
@@ -27,6 +36,8 @@ import java.time.LocalDate
 class NewsletterApiController(
     private val dayArchiveResolver: DailyContentArchiveResolver,
     private val exposureContentService: ExposureContentService,
+    private val contentService: ContentService,
+    private val tokenUtil: TokenUtil,
 ) {
     @GetMapping("/contents/{userId}")
     fun getNewsletterContents(
@@ -100,6 +111,47 @@ class NewsletterApiController(
             totalCount = exposureContentService.countAllExposureContents(),
             hasMore = hasMore,
             nextOffset = nextOffset,
+        )
+    }
+
+    @PostMapping("/contents")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+        summary = "콘텐츠 등록",
+        description = "새로운 콘텐츠를 등록합니다. contentProviderName이 없으면 자동으로 생성됩니다.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "콘텐츠 등록 성공"),
+            ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            ApiResponse(responseCode = "401", description = "인증 실패"),
+        ],
+    )
+    fun createContent(
+        @RequestHeader("Access-Token") accessToken: String,
+        @RequestBody request: CreateContentApiRequest,
+    ): CreateContentApiResponse {
+        try {
+            tokenUtil.validateAndGetEmail(accessToken)
+        } catch (e: Exception) {
+            throw UnauthorizedException("Invalid access token: ${e.message}")
+        }
+
+        val content =
+            contentService.createContent(
+                title = request.title,
+                content = request.content,
+                originalUrl = request.originalUrl,
+                publishedAt = request.publishedAt,
+                contentProviderName = request.contentProviderName,
+            )
+
+        return CreateContentApiResponse(
+            id = content.id!!,
+            title = content.title,
+            newsletterName = content.newsletterName,
+            originalUrl = content.originalUrl,
+            createdAt = content.createdAt,
         )
     }
 }
