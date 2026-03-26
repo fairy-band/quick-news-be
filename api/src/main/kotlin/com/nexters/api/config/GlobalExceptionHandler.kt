@@ -1,6 +1,7 @@
 package com.nexters.api.config
 
 import com.nexters.api.dto.ApiResponse
+import com.nexters.api.exception.UnauthorizedException
 import com.nexters.api.exception.UserNotFoundException
 import com.nexters.newsletter.resolver.RefreshNotAvailableException
 import org.springframework.http.HttpStatus
@@ -15,6 +16,12 @@ class GlobalExceptionHandler {
         ResponseEntity
             .status(HttpStatus.NOT_FOUND)
             .body(ApiResponse(success = false, message = ex.message ?: "User not found"))
+
+    @ExceptionHandler(UnauthorizedException::class)
+    fun handleUnauthorizedException(ex: UnauthorizedException): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(ApiResponse(success = false, message = ex.message ?: "Unauthorized"))
 
     @ExceptionHandler(NoSuchElementException::class)
     fun handleNoSuchElementException(ex: NoSuchElementException): ResponseEntity<ApiResponse<Nothing>> =
