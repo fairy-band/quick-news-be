@@ -53,17 +53,6 @@ jobs:
             ahj0/fairy-band:api-${{ github.sha }}
           platforms: linux/amd64
 
-      - name: Build and push Admin image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: admin
-          push: true
-          tags: |
-            ahj0/fairy-band:admin
-            ahj0/fairy-band:admin-${{ github.sha }}
-          platforms: linux/amd64
-
       - name: Discord notification for build
         if: always()
         uses: sarisia/actions-status-discord@v1
