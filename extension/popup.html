@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter Content Saver</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>콘텐츠 저장</h1>
+    
+    <div class="status" id="status"></div>
+    
+    <div class="form-group">
+      <label for="accessToken">Access Token</label>
+      <input type="password" id="accessToken" placeholder="액세스 토큰을 입력하세요" />
+    </div>
+    
+    <div class="form-group">
+      <label for="title">제목</label>
+      <input type="text" id="title" placeholder="자동으로 가져옵니다" />
+    </div>
+    
+    <div class="form-group">
+      <label for="contentProviderName">콘텐츠 제공자</label>
+      <input type="text" id="contentProviderName" placeholder="예: Kotlin Weekly" />
+    </div>
+    
+    <div class="form-group">
+      <label for="url">URL</label>
+      <input type="text" id="url" readonly />
+    </div>
+    
+    <div class="form-group">
+      <label for="content">본문</label>
+      <textarea id="content" rows="6" placeholder="본문을 입력하거나 수정하세요"></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="publishedAt">발행 날짜</label>
+      <input type="date" id="publishedAt" />
+    </div>
+    
+    <div class="button-group">
+      <button id="loadPageInfo" class="btn btn-secondary">페이지 정보 가져오기</button>
+      <button id="saveContent" class="btn btn-primary">저장</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
