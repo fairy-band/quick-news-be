@@ -6,6 +6,7 @@ import com.nexters.external.constants.ContentConstants.MAX_TOTAL_BATCH_LENGTH
 import com.nexters.external.entity.Content
 import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.exception.RateLimitExceededException
+import com.nexters.external.filter.FilterChain
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ExposureContentService
@@ -32,6 +33,15 @@ class ContentAiProcessingService(
 
     // 동시성 제어: 현재 배치 처리 중인지 확인
     private val isProcessing = AtomicBoolean(false)
+
+    // 필터 체인 설정
+    private val filterChain =
+        FilterChain
+            .builder()
+            .addLengthFilter(
+                minLength = MIN_CONTENT_LENGTH,
+                maxLength = MAX_CONTENT_LENGTH
+            ).build()
 
     /**
      * 미처리 콘텐츠를 배치로 처리합니다.
@@ -71,21 +81,29 @@ class ContentAiProcessingService(
 
     /**
      * 콘텐츠 배치를 실제로 처리합니다.
-     * 1. 콘텐츠 길이 검증
-     * 2. AI 배치 분석 (1회 API 호출)
-     * 3. ExposureContent 생성
+     * 1. 필터 체인 적용 (길이, provider type, 날짜 등)
+     * 2. 토큰 제한 체크
+     * 3. AI 배치 분석 (1회 API 호출)
+     * 4. ExposureContent 생성
      */
     private fun processContentsBatch(contents: List<Content>): ProcessingResult {
-        // 1. 토큰 제한 체크: 콘텐츠 길이 검증
-        val validatedContents = validateContentLength(contents)
-        if (validatedContents.isEmpty()) {
-            logger.warn("All contents exceeded token limit. Skipping batch.")
+        // 1. 필터 체인 적용
+        val filteredContents = filterChain.filter(contents)
+        if (filteredContents.isEmpty()) {
+            logger.warn("All contents filtered out by filter chain. Skipping batch.")
             return ProcessingResult(0, contents.size, getRemainingCount())
         }
 
-        logContentValidationResult(contents.size, validatedContents.size)
+        // 2. 토큰 제한 체크: 배치 전체 길이 검증
+        val validatedContents = validateBatchLength(filteredContents)
+        if (validatedContents.isEmpty()) {
+            logger.warn("All contents exceeded batch token limit. Skipping batch.")
+            return ProcessingResult(0, filteredContents.size, getRemainingCount())
+        }
 
-        // 2. 배치 분석 및 ExposureContent 생성
+        logContentValidationResult(filteredContents.size, validatedContents.size)
+
+        // 3. 배치 분석 및 ExposureContent 생성
         return try {
             executeBatchProcessing(validatedContents)
         } catch (e: RateLimitExceededException) {
@@ -260,8 +278,33 @@ class ContentAiProcessingService(
     )
 
     /**
-     * 콘텐츠 길이를 검증하여 토큰 제한 내의 콘텐츠만 반환합니다.
+     * 배치 전체 길이를 검증하여 토큰 제한 내의 콘텐츠만 반환합니다.
      */
+    private fun validateBatchLength(contents: List<Content>): List<Content> {
+        val validatedContents = mutableListOf<Content>()
+        var totalLength = 0
+
+        contents.forEach { content ->
+            val contentLength = content.content.length
+
+            if ((totalLength + contentLength) > MAX_TOTAL_BATCH_LENGTH) {
+                logger.warn("Batch size limit reached at content ID ${content.id}. Stopping here.")
+                return validatedContents
+            }
+
+            validatedContents.add(content)
+            totalLength += contentLength
+        }
+
+        logger.debug("Validated ${validatedContents.size}/${contents.size} contents (total: $totalLength chars)")
+        return validatedContents
+    }
+
+    /**
+     * 콘텐츠 길이를 검증하여 토큰 제한 내의 콘텐츠만 반환합니다.
+     * @deprecated 필터 체인으로 대체됨. 하위 호환성을 위해 유지
+     */
+    @Deprecated("Use FilterChain instead")
     private fun validateContentLength(contents: List<Content>): List<Content> {
         val validatedContents = mutableListOf<Content>()
         var totalLength = 0
@@ -312,5 +355,6 @@ class ContentAiProcessingService(
 
     companion object {
         private const val BATCH_SIZE = 5
+        private const val MIN_CONTENT_LENGTH = 500 // 최소 500자
     }
 }
