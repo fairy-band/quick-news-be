@@ -108,6 +108,9 @@ class ProcessController(
                     title = summary.title,
                     summary = summary.summarizedContent,
                     model = summary.model,
+                    qualityScore = summary.qualityScore,
+                    qualityReason = summary.qualityReason,
+                    retryCount = summary.retryCount,
                     summarizedAt = summary.summarizedAt,
                     createdAt = summary.createdAt
                 )
@@ -255,12 +258,16 @@ class ProcessController(
         try {
             val content = contentRepository.findById(contentId).orElseThrow()
             val exposureContent = newsletterProcessingService.processExistingContent(content)
+            val latestSummary = contentAnalysisService.getPrioritizedSummaryByContent(content).firstOrNull()
 
             ResponseEntity.ok(
                 AutoProcessResponse(
                     success = true,
                     message = "콘텐츠가 성공적으로 자동 처리되었습니다.",
-                    exposureContentId = exposureContent?.id
+                    exposureContentId = exposureContent.id,
+                    qualityScore = latestSummary?.qualityScore,
+                    qualityReason = latestSummary?.qualityReason,
+                    retryCount = latestSummary?.retryCount,
                 )
             )
         } catch (e: Exception) {
@@ -268,7 +275,10 @@ class ProcessController(
                 AutoProcessResponse(
                     success = false,
                     message = "자동 처리 중 오류가 발생했습니다: ${e.message}",
-                    exposureContentId = null
+                    exposureContentId = null,
+                    qualityScore = null,
+                    qualityReason = null,
+                    retryCount = null,
                 )
             )
         }
@@ -315,6 +325,9 @@ data class SummaryDetailResponse(
     val title: String,
     val summary: String,
     val model: String,
+    val qualityScore: Int? = null,
+    val qualityReason: String? = null,
+    val retryCount: Int? = null,
     val summarizedAt: LocalDateTime,
     val createdAt: LocalDateTime
 )
@@ -337,7 +350,10 @@ data class BulkContentExposureStatusRequest(
 data class AutoProcessResponse(
     val success: Boolean,
     val message: String,
-    val exposureContentId: Long? = null
+    val exposureContentId: Long? = null,
+    val qualityScore: Int? = null,
+    val qualityReason: String? = null,
+    val retryCount: Int? = null,
 )
 
 data class GeminiRateLimitResponse(

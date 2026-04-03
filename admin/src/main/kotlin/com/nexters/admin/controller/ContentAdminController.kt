@@ -552,7 +552,7 @@ class ContentApiController(
         val reservedKeywordNames = allReservedKeywords.map { it.name }
 
         // Get full analysis result for suggestions and provocative keywords
-        val analysisResult = contentAnalysisService.analyzeContent(content.content, reservedKeywordNames)
+        val analysisResult = contentAnalysisService.analyzeLegacyKeywordDiscovery(content.content, reservedKeywordNames)
 
         // Process matched keywords and add them to content
         val addedKeywords = mutableListOf<String>()
