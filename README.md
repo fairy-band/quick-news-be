@@ -2,6 +2,10 @@
 
 Spring Boot + Spring Integration을 사용하여 POP3 프로토콜로 Gmail에서 메일을 읽어오는 멀티 모듈 애플리케이션입니다.
 
+## 문서
+
+- [Human-Like Headline/Summary Pipeline](./docs/human-like-content-analysis-pipeline.md)
+
 ## 프로젝트 구조
 
 ```
