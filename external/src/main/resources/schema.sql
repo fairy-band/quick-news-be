@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS contents
     content              TEXT         NOT NULL,
     newsletter_name      VARCHAR(255) NOT NULL,
     original_url         VARCHAR(255) NOT NULL,
+    image_url            VARCHAR(1024),
     published_at         DATE         NOT NULL,
     created_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,

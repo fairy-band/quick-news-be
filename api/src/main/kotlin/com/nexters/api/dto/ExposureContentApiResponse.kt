@@ -17,6 +17,7 @@ data class ExposureContentApiResponse(
     val provocativeHeadline: String,
     val summaryContent: String,
     val contentUrl: String,
+    val imageUrl: String? = null,
     val newsletterName: String,
     val language: Language,
     val createdAt: LocalDateTime,

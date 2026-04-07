@@ -23,6 +23,7 @@ data class ContentDetailResponse(
         val title: String,
         val content: String,
         val originalUrl: String,
+        val imageUrl: String? = null,
         val preview: String = content.take(200) + if (content.length > 200) "..." else ""
     )
 

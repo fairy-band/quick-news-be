@@ -31,6 +31,8 @@ class Content(
     val newsletterName: String,
     @Column(nullable = false, name = "original_url")
     val originalUrl: String,
+    @Column(nullable = true, name = "image_url")
+    val imageUrl: String? = null,
     @Column(nullable = true, name = "published_at")
     val publishedAt: LocalDate,
     @ManyToOne(fetch = FetchType.EAGER)

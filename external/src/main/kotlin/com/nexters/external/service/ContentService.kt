@@ -24,6 +24,7 @@ class ContentService(
         originalUrl: String,
         publishedAt: LocalDate,
         newsletterSourceId: String? = null,
+        imageUrl: String? = null,
     ): Content {
         val contentProvider =
             contentProviderName.let { name ->
@@ -37,6 +38,7 @@ class ContentService(
                 content = content,
                 newsletterName = contentProviderName,
                 originalUrl = originalUrl,
+                imageUrl = imageUrl,
                 publishedAt = publishedAt,
                 newsletterSourceId = newsletterSourceId,
                 contentProvider = contentProvider,

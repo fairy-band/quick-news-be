@@ -76,6 +76,7 @@ class ContentApiController(
                 content = request.content,
                 newsletterName = request.newsletterName,
                 originalUrl = request.originalUrl,
+                imageUrl = request.imageUrl,
                 publishedAt = request.publishedAt,
                 contentProvider = contentProvider,
                 createdAt = LocalDateTime.now(),
@@ -123,6 +124,7 @@ class ContentApiController(
                 content = request.content ?: existingContent.content,
                 newsletterName = updatedNewsletterName,
                 originalUrl = request.originalUrl ?: existingContent.originalUrl,
+                imageUrl = request.imageUrl ?: existingContent.imageUrl,
                 publishedAt = request.publishedAt ?: existingContent.publishedAt,
                 contentProvider = contentProvider,
                 createdAt = existingContent.createdAt,
@@ -244,6 +246,7 @@ class ContentApiController(
                     content = content.content,
                     newsletterName = content.newsletterName,
                     originalUrl = content.originalUrl,
+                    imageUrl = content.imageUrl,
                     publishedAt = content.publishedAt,
                     createdAt = content.createdAt,
                     updatedAt = content.updatedAt,
@@ -291,6 +294,7 @@ class ContentApiController(
                     content = content.content,
                     newsletterName = content.newsletterName,
                     originalUrl = content.originalUrl,
+                    imageUrl = content.imageUrl,
                     publishedAt = content.publishedAt,
                     createdAt = content.createdAt,
                     updatedAt = content.updatedAt,
@@ -377,6 +381,7 @@ class ContentApiController(
                     content = content.content,
                     newsletterName = content.newsletterName,
                     originalUrl = content.originalUrl,
+                    imageUrl = content.imageUrl,
                     publishedAt = content.publishedAt,
                     createdAt = content.createdAt,
                     updatedAt = content.updatedAt,
@@ -474,6 +479,7 @@ class ContentApiController(
                     content = content.content,
                     newsletterName = content.newsletterName,
                     originalUrl = content.originalUrl,
+                    imageUrl = content.imageUrl,
                     publishedAt = content.publishedAt,
                     createdAt = content.createdAt,
                     updatedAt = content.updatedAt,
@@ -524,6 +530,7 @@ class ContentApiController(
                     content = content.content,
                     newsletterName = content.newsletterName,
                     originalUrl = content.originalUrl,
+                    imageUrl = content.imageUrl,
                     publishedAt = content.publishedAt,
                     createdAt = content.createdAt,
                     updatedAt = content.updatedAt,
@@ -604,6 +611,7 @@ data class CreateContentRequest(
     val content: String,
     val newsletterName: String,
     val originalUrl: String,
+    val imageUrl: String? = null,
     val publishedAt: LocalDate
 )
 
@@ -613,6 +621,7 @@ data class UpdateContentRequest(
     val content: String? = null,
     val newsletterName: String? = null,
     val originalUrl: String? = null,
+    val imageUrl: String? = null,
     val publishedAt: LocalDate? = null
 )
 
@@ -623,6 +632,7 @@ data class ContentWithSummaryStatusResponse(
     val content: String,
     val newsletterName: String,
     val originalUrl: String,
+    val imageUrl: String? = null,
     val publishedAt: LocalDate,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
@@ -636,6 +646,7 @@ data class ContentWithSortInfoResponse(
     val content: String,
     val newsletterName: String,
     val originalUrl: String,
+    val imageUrl: String? = null,
     val publishedAt: LocalDate,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,

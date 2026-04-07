@@ -13,6 +13,7 @@ data class ContentViewApiResponse(
         val topKeyword: String,
         val summary: String,
         val contentUrl: String,
+        val imageUrl: String? = null,
         val newsletterName: String,
         val language: Language,
     )

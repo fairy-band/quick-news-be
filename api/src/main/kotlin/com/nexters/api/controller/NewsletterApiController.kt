@@ -54,6 +54,7 @@ class NewsletterApiController(
                         topKeyword = it.provocativeKeyword,
                         summary = it.summaryContent,
                         contentUrl = it.content.originalUrl,
+                        imageUrl = it.content.imageUrl,
                         newsletterName = it.content.newsletterName,
                         language = Language.fromString(it.content.contentProvider?.language),
                     )
@@ -96,6 +97,7 @@ class NewsletterApiController(
                     provocativeHeadline = exposureContent.provocativeHeadline,
                     summaryContent = exposureContent.summaryContent,
                     contentUrl = exposureContent.content.originalUrl,
+                    imageUrl = exposureContent.content.imageUrl,
                     newsletterName = exposureContent.content.newsletterName,
                     language = Language.fromString(exposureContent.content.contentProvider?.language),
                     createdAt = exposureContent.createdAt,
