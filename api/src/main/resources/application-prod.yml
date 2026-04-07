@@ -7,8 +7,6 @@ spring:
 server:
   forward-headers-strategy: framework
   url: http://152.69.225.128/api
-  servlet:
-    context-path: /api
 
 # Notification Configuration
 notification:
