@@ -2,6 +2,7 @@ package com.nexters.external.service
 
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
+import com.nexters.external.enums.ContentProviderType
 import com.nexters.external.repository.ContentProviderRepository
 import com.nexters.external.repository.ContentRepository
 import org.springframework.stereotype.Service
@@ -55,7 +56,7 @@ class ContentService(
                 name = name,
                 channel = name,
                 language = "ko",
-                type = null,
+                type = ContentProviderType.USER_PROVIDE_CONTENT,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now(),
             )
