@@ -70,24 +70,72 @@ function extractPageContent() {
   // 제목 추출
   const title = document.title || getMetaContent('og:title') || getMetaContent('twitter:title');
   
-  // 본문 추출 (article 태그 우선, 없으면 body의 텍스트)
+  // 본문 추출 - 여러 선택자를 시도하여 가장 적합한 콘텐츠 찾기
   let content = '';
+  
+  // 1. article 태그 시도
   const article = document.querySelector('article');
-  if (article) {
+  if (article && article.innerText.length > 100) {
     content = article.innerText;
-  } else {
-    const mainContent = document.querySelector('main') || document.body;
-    content = mainContent.innerText;
   }
   
-  // 너무 긴 콘텐츠는 잘라내기 (10000자 제한)
-  if (content.length > 10000) {
-    content = content.substring(0, 10000) + '...';
+  // 2. main 태그 시도
+  if (!content) {
+    const main = document.querySelector('main');
+    if (main && main.innerText.length > 100) {
+      content = main.innerText;
+    }
   }
+  
+  // 3. role="main" 속성을 가진 요소 시도
+  if (!content) {
+    const roleMain = document.querySelector('[role="main"]');
+    if (roleMain && roleMain.innerText.length > 100) {
+      content = roleMain.innerText;
+    }
+  }
+  
+  // 4. 일반적인 콘텐츠 클래스명 시도
+  if (!content) {
+    const contentSelectors = [
+      '.post-content',
+      '.article-content',
+      '.entry-content',
+      '.content',
+      '#content',
+      '.post-body',
+      '.article-body'
+    ];
+    
+    for (const selector of contentSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.innerText.length > 100) {
+        content = element.innerText;
+        break;
+      }
+    }
+  }
+  
+  // 5. 마지막 수단으로 body 사용
+  if (!content) {
+    content = document.body.innerText;
+  }
+  
+  // 불필요한 공백 정리
+  content = content
+    .replace(/\n{3,}/g, '\n\n')  // 3개 이상의 연속 줄바꿈을 2개로
+    .trim();
+  
+  // 너무 긴 콘텐츠는 잘라내기 (100000자 제한 - 약 100KB)
+  if (content.length > 100000) {
+    content = content.substring(0, 100000) + '\n\n[콘텐츠가 너무 길어 잘렸습니다]';
+  }
+  
+  console.log('Extracted content length:', content.length);
   
   return {
     title: title.trim(),
-    content: content.trim(),
+    content: content,
     url: window.location.href
   };
 }
