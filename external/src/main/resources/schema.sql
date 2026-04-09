@@ -63,6 +63,32 @@ CREATE TABLE IF NOT EXISTS contents
     content_provider_id  BIGINT
 );
 
+CREATE TABLE IF NOT EXISTS content_generation_attempts
+(
+    id                BIGSERIAL PRIMARY KEY,
+    content_id        BIGINT       NOT NULL,
+    generation_mode   VARCHAR(20)  NOT NULL CHECK (generation_mode IN ('SINGLE', 'BATCH')),
+    attempt_number    INTEGER      NOT NULL,
+    model             VARCHAR(255) NOT NULL,
+    prompt_version    VARCHAR(100) NOT NULL,
+    generated_summary TEXT         NOT NULL,
+    generated_headlines TEXT       NOT NULL,
+    matched_keywords  TEXT         NOT NULL,
+    quality_score     INTEGER      NOT NULL,
+    quality_reason    TEXT         NOT NULL,
+    ai_like_patterns  TEXT         NOT NULL,
+    recommended_fix   TEXT         NOT NULL,
+    passed            BOOLEAN      NOT NULL DEFAULT FALSE,
+    accepted          BOOLEAN      NOT NULL DEFAULT FALSE,
+    retry_count       INTEGER      NOT NULL DEFAULT 0,
+    created_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_content_generation_attempt_content FOREIGN KEY (content_id) REFERENCES contents (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_generation_attempt_content_id
+    ON content_generation_attempts (content_id);
+
 -- Summaries table
 CREATE TABLE IF NOT EXISTS summaries
 (
@@ -70,12 +96,29 @@ CREATE TABLE IF NOT EXISTS summaries
     content_id         BIGINT       NOT NULL,
     title              VARCHAR(255) NOT NULL,
     summarized_content TEXT         NOT NULL,
+    generation_attempt_id BIGINT,
+    quality_score      INTEGER,
+    quality_reason     TEXT,
+    retry_count        INTEGER,
     summarized_at      TIMESTAMP    NOT NULL,
     model              VARCHAR(50)  NOT NULL,
     created_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (content_id) REFERENCES contents (id)
+    FOREIGN KEY (content_id) REFERENCES contents (id),
+    CONSTRAINT fk_summary_generation_attempt FOREIGN KEY (generation_attempt_id) REFERENCES content_generation_attempts (id)
 );
+
+ALTER TABLE summaries
+    ADD COLUMN IF NOT EXISTS generation_attempt_id BIGINT;
+
+ALTER TABLE summaries
+    ADD COLUMN IF NOT EXISTS quality_score INTEGER;
+
+ALTER TABLE summaries
+    ADD COLUMN IF NOT EXISTS quality_reason TEXT;
+
+ALTER TABLE summaries
+    ADD COLUMN IF NOT EXISTS retry_count INTEGER;
 
 -- Category-Keyword mappings table
 CREATE TABLE IF NOT EXISTS category_keyword_mappings

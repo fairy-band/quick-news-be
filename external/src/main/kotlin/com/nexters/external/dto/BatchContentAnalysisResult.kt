@@ -16,16 +16,12 @@ data class BatchContentItem(
  * @property summary 요약
  * @property provocativeHeadlines 자극적인 헤드라인 목록
  * @property matchedKeywords 매칭된 키워드 목록
- * @property suggestedKeywords 제안된 키워드 목록
- * @property provocativeKeywords 자극적인 키워드 목록
  */
 data class BatchContentAnalysisItem(
     val contentId: String,
     val summary: String,
     val provocativeHeadlines: List<String>,
     val matchedKeywords: List<String>,
-    val suggestedKeywords: List<String>,
-    val provocativeKeywords: List<String>,
 )
 
 /**

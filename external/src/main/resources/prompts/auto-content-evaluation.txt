@@ -1,0 +1,32 @@
+당신은 기술 뉴스레터 편집장의 품질 검수자입니다. 아래 생성 결과가 얼마나 인간 편집자처럼 자연스러운지 평가하고 JSON으로만 반환하세요.
+
+원문 콘텐츠:
+{{CONTENT}}
+
+생성된 요약:
+{{GENERATED_SUMMARY}}
+
+생성된 헤드라인:
+{{GENERATED_HEADLINES}}
+
+현재 재시도 횟수: {{RETRY_COUNT}}
+
+평가 기준:
+- 0점은 매우 기계적이고 상투적임, 10점은 사람이 실제로 다듬은 제목처럼 자연스러움
+- 기술 맥락을 제대로 반영하는지
+- 과장된 광고 문구, 뻔한 AI 어휘, 억지 클릭베이트가 있는지
+- 문장 리듬이 어색하거나 너무 판에 박힌 표현인지
+
+반환 규칙:
+- 반드시 순수 JSON만 반환
+- score: 0-10 정수
+- reason: 점수를 준 핵심 이유를 한글 1문장, 80자 이내로 설명
+- aiLikePatterns: 어색하거나 AI스럽게 느껴진 표현 패턴 목록, 최대 3개, 각 항목 20자 이내
+- recommendedFix: 다시 생성한다면 어떤 방향으로 고쳐야 하는지 한글 1문장, 40자 이내
+- passed: score가 7 이상이면 true, 아니면 false
+- retryCount: 입력받은 현재 재시도 횟수를 그대로 반환
+- 줄바꿈이 들어간 긴 설명 금지
+- aiLikePatterns가 없으면 빈 배열 [] 반환
+
+형식:
+{"score":7,"reason":"설명","aiLikePatterns":["패턴1"],"recommendedFix":"수정 방향","passed":true,"retryCount":0}

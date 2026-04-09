@@ -1398,12 +1398,14 @@ function loadSidebarSummaries(contentId) {
             const container = document.getElementById('sidebar-summaries-container');
             if (data.content && data.content.length > 0) {
                 const latestSummary = data.content[0];
+                const qualityMeta = renderQualityMeta(latestSummary, { compact: true });
                 container.innerHTML = `
                 <div
                     style="background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
                     <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.5rem;">최신 요약</div>
                     <div style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">${latestSummary.summary || '내용 없음'}</div>
                     ${latestSummary.title ? `<div style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.8rem;">제목: ${latestSummary.title}</div>` : ''}
+                    ${qualityMeta}
                     <div
                         style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.75rem; color: #64748b;">
                         총 ${data.content.length}개의 요약
@@ -1418,6 +1420,32 @@ function loadSidebarSummaries(contentId) {
             console.error('Failed to load summaries:', err);
             document.getElementById('sidebar-summaries-container').innerHTML = '<div style="color: #ef4444;">로드 실패</div>';
         });
+}
+
+function renderQualityMeta(data, options = {}) {
+    if (data.qualityScore === null || data.qualityScore === undefined) {
+        return '';
+    }
+
+    const compact = options.compact === true;
+    const retryLabel = (data.retryCount ?? 0) > 0 ? ` · 재생성 ${data.retryCount}회` : '';
+    const reason = data.qualityReason ? `<div style="margin-top: 0.35rem; color: #cbd5e1;">${data.qualityReason}</div>` : '';
+
+    if (compact) {
+        return `
+        <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #94a3b8; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.18); border-radius: 6px; padding: 0.5rem 0.65rem;">
+            품질 점수 ${data.qualityScore}/10${retryLabel}
+            ${reason}
+        </div>
+        `;
+    }
+
+    return `
+    <div style="margin: 0.75rem 0; padding: 0.75rem; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.18); border-radius: 8px; color: #d1fae5;">
+        <div style="font-weight: 600;">자연스러움 점수 ${data.qualityScore}/10${retryLabel}</div>
+        ${reason}
+    </div>
+    `;
 }
 
 function deleteContentFromSidebar(contentId) {
@@ -1586,6 +1614,7 @@ function autoProcessContent(contentId) {
             hideLoading();
 
             if (data.success) {
+                const qualityMeta = renderQualityMeta(data);
                 let html = `
                         <div class="result-card">
                             <div class="result-title">🚀 자동 처리 완료!</div>
@@ -1598,6 +1627,7 @@ function autoProcessContent(contentId) {
                                     <li>🏷️ 예약 키워드 자동 매칭 및 할당</li>
                                     <li>🌟 노출 컨텐츠 생성 및 활성화</li>
                                 </ul>
+                                ${qualityMeta}
                                 `;
 
                 if (data.exposureContentId) {
@@ -1733,6 +1763,7 @@ function fetchSavedSummaries(contentId, page = 0, size = 10) {
                 checkExposureContentExists(summary.id, (exists, exposureContentId) => {
                     let exposureContentButton = '';
                     let activeStatus = '';
+                    const qualityMeta = renderQualityMeta(summary);
 
                     if (exists) {
                         activeStatus = `<div
@@ -1763,6 +1794,7 @@ function fetchSavedSummaries(contentId, page = 0, size = 10) {
                             생성일: ${summaryDate} | 모델: ${summary.model}
                         </div>
                         ${activeStatus}
+                        ${qualityMeta}
                         <p>${summary.summary}</p>
                         <div style="margin-top: 1rem;">
                             ${exposureContentButton}

@@ -2,18 +2,28 @@ package com.nexters.external.service
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
+import com.nexters.external.apiclient.GeminiClient
+import com.nexters.external.config.AiGeminiContentAnalysisProperties
+import com.nexters.external.dto.AutoContentEvaluationInput
+import com.nexters.external.dto.BatchAutoContentEvaluationInput
 import com.nexters.external.dto.BatchContentAnalysisItem
 import com.nexters.external.dto.BatchContentAnalysisResult
+import com.nexters.external.dto.BatchContentEvaluationItem
+import com.nexters.external.dto.BatchContentEvaluationResult
 import com.nexters.external.dto.BatchContentItem
 import com.nexters.external.dto.ContentAnalysisResult
+import com.nexters.external.dto.ContentEvaluationResult
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.ContentGenerationAttempt
 import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
+import com.nexters.external.enums.ContentGenerationMode
 import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.CandidateKeywordRepository
+import com.nexters.external.repository.ContentGenerationAttemptRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
@@ -21,7 +31,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
-import kotlin.collections.emptyList
 
 @Service
 class ContentAnalysisService(
@@ -30,298 +39,81 @@ class ContentAnalysisService(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
+    private val contentGenerationAttemptRepository: ContentGenerationAttemptRepository,
+    private val contentAnalysisProperties: AiGeminiContentAnalysisProperties,
     private val gson: Gson = Gson(),
 ) {
     private val logger = LoggerFactory.getLogger(ContentAnalysisService::class.java)
 
-    /**
-     * 콘텐츠를 분석하여 요약, 헤드라인, 키워드를 한 번에 추출합니다.
-     */
     fun analyzeContent(
         content: String,
-        inputKeywords: List<String> = emptyList()
-    ): ContentAnalysisResult {
-        val models = GeminiModel.entries
-        var allFailedDueToRateLimit = true
-        var lastRateLimitException: RateLimitExceededException? = null
+        inputKeywords: List<String> = emptyList(),
+    ): ContentAnalysisResult = resolveSinglePipeline(content, inputKeywords).last().toFinalResult()
 
-        for (model in models) {
-            try {
-                logger.info("Trying to analyze content with model: ${model.modelName}")
-
-                val response = rateLimiterService.executeWithRateLimit(inputKeywords, model, content)
-
-                if (response != null) {
-                    val responseText = response.text()
-                    logger.info("Got response from ${model.modelName}: $responseText")
-
-                    val analysisResult = parseJsonResponse(responseText, model)
-                    if (analysisResult != null) {
-                        logger.info("Successfully parsed response from ${model.modelName}")
-                        return analysisResult
-                    } else {
-                        logger.warn("Failed to parse JSON response from ${model.modelName}")
-                        allFailedDueToRateLimit = false
-                    }
-                } else {
-                    logger.warn("Got null response from ${model.modelName}")
-                    allFailedDueToRateLimit = false
-                }
-            } catch (e: RateLimitExceededException) {
-                logger.warn("Rate limit exceeded for model ${model.modelName}, trying next model")
-                lastRateLimitException = e
-                // Rate limit 초과 시 다음 모델로 시도
-                continue
-            } catch (e: Exception) {
-                logger.error("Error with model ${model.modelName}: ${e.message}", e)
-                allFailedDueToRateLimit = false
-            }
-        }
-
-        // 모든 모델이 Rate Limit으로 실패한 경우 RateLimitExceededException 던지기
-        if (allFailedDueToRateLimit && lastRateLimitException != null) {
-            logger.error("All models failed due to rate limit")
-            throw lastRateLimitException
-        }
-
-        logger.error("All models failed to analyze content")
-        throw AiProcessingException("Failed to analyze content: all models failed")
-    }
-
-    /**
-     * 콘텐츠를 분석하고 결과를 저장합니다.
-     */
     @Transactional
     fun analyzeAndSave(contentEntity: Content): ContentAnalysisResult {
-        // 예약된 키워드 목록 가져오기
-        val reservedKeywords =
-            reservedKeywordRepository
-                .findAll()
-                .map { it.name }
-                .toList()
+        val attempts = resolveSinglePipeline(contentEntity.content, getReservedKeywordNames())
+        val savedAttempts = persistAttempts(contentEntity, attempts, ContentGenerationMode.SINGLE)
+        val acceptedResult = attempts.last().toFinalResult()
 
-        // 콘텐츠 분석 수행
-        val result = analyzeContent(contentEntity.content, reservedKeywords)
+        saveGeneratedSummary(
+            content = contentEntity,
+            result = acceptedResult,
+            generationAttempt = savedAttempts.last(),
+            skipWhenSummaryExists = false,
+        )
 
-        // 요약 저장
-        if (result.summary.isNotEmpty()) {
-            val usedModel = result.usedModel?.modelName ?: "unknown"
+        assignKeywordsToContent(
+            contentEntity,
+            reservedKeywordRepository.findByNameIn(acceptedResult.matchedKeywords),
+        )
 
-            val summary =
-                Summary(
-                    content = contentEntity,
-                    title = result.provocativeHeadlines.firstOrNull() ?: contentEntity.title,
-                    summarizedContent = result.summary,
-                    model = usedModel
-                )
-
-            summaryRepository.save(summary)
-            logger.info("Saved summary for content ID: ${contentEntity.id}")
-        } else {
-            logger.warn("Not saving empty summary for content ID: ${contentEntity.id}")
-        }
-
-        // 매칭된 키워드 저장
-        val matchedReservedKeywords = reservedKeywordRepository.findByNameIn(result.matchedKeywords)
-        assignKeywordsToContent(contentEntity, matchedReservedKeywords)
-
-        return result
+        return acceptedResult
     }
 
-    /**
-     * 여러 콘텐츠를 한 번에 분석합니다. (배치 처리)
-     * API 호출 횟수를 줄여 Rate Limit을 효율적으로 관리합니다.
-     *
-     * @param contentEntities 분석할 콘텐츠 엔티티 리스트
-     * @param inputKeywords 매칭할 키워드 목록
-     * @return contentId를 키로 하는 분석 결과 맵
-     */
-    fun analyzeBatchContent(
-        contentEntities: List<Content>,
-        inputKeywords: List<String> = emptyList()
-    ): BatchContentAnalysisResult {
-        if (contentEntities.isEmpty()) {
-            logger.warn("No content entities provided for batch analysis")
-            return BatchContentAnalysisResult(emptyMap(), null)
-        }
-
-        // Content 엔티티를 BatchContentItem으로 변환
-        val contentItems =
-            contentEntities.map { content ->
-                BatchContentItem(
-                    contentId = content.id!!.toString(),
-                    content = content.content
-                )
-            }
-
-        val models = GeminiModel.entries
-        var allFailedDueToRateLimit = true
-        var lastRateLimitException: RateLimitExceededException? = null
-
-        for (model in models) {
-            try {
-                logger.info("Trying to analyze ${contentItems.size} contents with model: ${model.modelName}")
-
-                val response = rateLimiterService.executeBatchWithRateLimit(inputKeywords, model, contentItems)
-
-                if (response != null) {
-                    val responseText = response.text()
-                    logger.info("Got batch response from ${model.modelName}")
-
-                    val analysisResult = parseBatchJsonResponse(responseText, model)
-                    if (analysisResult != null) {
-                        logger.info(
-                            "Successfully parsed batch response from ${model.modelName} with ${analysisResult.results.size} results"
-                        )
-                        return analysisResult
-                    } else {
-                        logger.warn("Failed to parse batch JSON response from ${model.modelName}")
-                        allFailedDueToRateLimit = false
-                    }
-                } else {
-                    logger.warn("Got null response from ${model.modelName}")
-                    allFailedDueToRateLimit = false
-                }
-            } catch (e: RateLimitExceededException) {
-                logger.warn("Rate limit exceeded for model ${model.modelName}, trying next model")
-                lastRateLimitException = e
-                continue
-            } catch (e: Exception) {
-                logger.error("Error with model ${model.modelName}: ${e.message}", e)
-                allFailedDueToRateLimit = false
-            }
-        }
-
-        // 모든 모델이 Rate Limit으로 실패한 경우 RateLimitExceededException 던지기
-        if (allFailedDueToRateLimit && lastRateLimitException != null) {
-            logger.error("All models failed due to rate limit for batch processing")
-            throw lastRateLimitException
-        }
-
-        logger.error("All models failed to analyze batch content")
-        throw AiProcessingException("Failed to analyze batch content: all models failed")
-    }
-
-    /**
-     * 여러 콘텐츠를 한 번에 분석하고 결과를 저장합니다. (배치 처리)
-     * 트랜잭션을 분리하여 부분 실패 시에도 성공한 항목은 저장됩니다.
-     *
-     * @param contentEntities 분석할 콘텐츠 엔티티 리스트
-     * @return contentId를 키로 하는 분석 결과 맵
-     */
     fun analyzeBatchAndSave(contentEntities: List<Content>): Map<String, ContentAnalysisResult> {
         if (contentEntities.isEmpty()) {
             logger.warn("No content entities provided for batch analysis and save")
             return emptyMap()
         }
 
-        // 예약된 키워드 목록 가져오기
-        val reservedKeywords =
-            reservedKeywordRepository
-                .findAll()
-                .map { it.name }
-                .toList()
-
-        // 배치 분석 수행 (트랜잭션 외부 - API 호출)
-        val batchResult = analyzeBatchContent(contentEntities, reservedKeywords)
-
-        // contentId를 키로 하는 Content 맵 생성 (빠른 조회를 위해)
+        val histories = resolveBatchPipeline(contentEntities, getReservedKeywordNames())
         val contentMap = contentEntities.associateBy { it.id!!.toString() }
-
-        // 결과를 저장하고 ContentAnalysisResult로 변환
         val resultMap = mutableMapOf<String, ContentAnalysisResult>()
 
-        // 각 항목을 개별 트랜잭션으로 저장 (부분 실패 허용)
-        batchResult.results.forEach { (contentId, item) ->
+        histories.forEach { (contentId, attempts) ->
             val content = contentMap[contentId]
-            if (content != null) {
-                try {
-                    // 개별 트랜잭션으로 저장
-                    saveSingleAnalysisResult(content, item, batchResult.usedModel)
-
-                    // ContentAnalysisResult로 변환하여 맵에 추가
-                    resultMap[contentId] =
-                        ContentAnalysisResult(
-                            summary = item.summary,
-                            provocativeHeadlines = item.provocativeHeadlines,
-                            matchedKeywords = item.matchedKeywords,
-                            suggestedKeywords = item.suggestedKeywords,
-                            provocativeKeywords = item.provocativeKeywords,
-                            usedModel = batchResult.usedModel
-                        )
-
-                    logger.info("Successfully saved analysis result for content ID: $contentId")
-                } catch (e: Exception) {
-                    logger.error("Failed to save analysis result for content ID: $contentId", e)
-                    // 개별 실패는 무시하고 계속 진행
-                }
-            } else {
+            if (content == null) {
                 logger.warn("Content not found for contentId: $contentId")
+                return@forEach
+            }
+
+            try {
+                val savedAttempts = persistAttempts(content, attempts, ContentGenerationMode.BATCH)
+                val acceptedResult = attempts.last().toFinalResult()
+
+                saveGeneratedSummary(
+                    content = content,
+                    result = acceptedResult,
+                    generationAttempt = savedAttempts.last(),
+                    skipWhenSummaryExists = true,
+                )
+
+                assignKeywordsToContent(
+                    content,
+                    reservedKeywordRepository.findByNameIn(acceptedResult.matchedKeywords),
+                )
+
+                resultMap[contentId] = acceptedResult
+                logger.info("Successfully saved analysis result for content ID: $contentId")
+            } catch (e: Exception) {
+                logger.error("Failed to save analysis result for content ID: $contentId", e)
             }
         }
 
         return resultMap
     }
 
-    /**
-     * 단일 분석 결과를 개별 트랜잭션으로 저장합니다.
-     * 부분 실패를 허용하여 배치 처리의 안정성을 높입니다.
-     */
-    @Transactional
-    fun saveSingleAnalysisResult(
-        content: Content,
-        item: BatchContentAnalysisItem,
-        usedModel: GeminiModel?
-    ) {
-        val contentId = content.id!!.toString()
-
-        // 중복 저장 방지: 이미 Summary가 있는지 확인
-        val existingSummaries = summaryRepository.findByContent(content)
-        if (existingSummaries.isNotEmpty()) {
-            logger.warn("Summary already exists for content ID: $contentId. Skipping save.")
-            return
-        }
-
-        // 요약 저장
-        if (item.summary.isNotEmpty()) {
-            val modelName = usedModel?.modelName ?: "unknown"
-
-            val summary =
-                Summary(
-                    content = content,
-                    title = item.provocativeHeadlines.firstOrNull() ?: content.title,
-                    summarizedContent = item.summary,
-                    model = modelName
-                )
-
-            summaryRepository.save(summary)
-            logger.debug("Saved summary for content ID: $contentId")
-        } else {
-            logger.warn("Not saving empty summary for content ID: $contentId")
-        }
-
-        // 매칭된 키워드 저장
-        val matchedReservedKeywords = reservedKeywordRepository.findByNameIn(item.matchedKeywords)
-        assignKeywordsToContent(content, matchedReservedKeywords)
-    }
-
-    /**
-     * 예약된 키워드와 매칭되는 키워드를 찾습니다.
-     */
-    fun matchReservedKeywords(content: String): List<ReservedKeyword> {
-        val reservedKeywords =
-            reservedKeywordRepository
-                .findAll()
-                .map { it.name }
-                .toList()
-
-        val result = analyzeContent(content, reservedKeywords)
-        return reservedKeywordRepository.findByNameIn(result.matchedKeywords)
-    }
-
-    /**
-     * 콘텐츠에 키워드를 할당합니다.
-     */
     @Transactional
     fun assignKeywordsToContent(
         content: Content,
@@ -345,9 +137,6 @@ class ContentAnalysisService(
         }
     }
 
-    /**
-     * 후보 키워드를 예약 키워드로 승격합니다.
-     */
     @Transactional
     fun promoteCandidateKeyword(candidateKeywordId: Long): ReservedKeyword {
         val candidateKeyword =
@@ -366,95 +155,650 @@ class ContentAnalysisService(
         return reservedKeyword
     }
 
-    /**
-     * 요약을 저장합니다.
-     */
     fun saveSummary(summary: Summary): Summary = summaryRepository.save(summary)
 
-    /**
-     * 콘텐츠에 대한 요약을 조회합니다.
-     */
     fun getPrioritizedSummaryByContent(content: Content): List<Summary> = summaryRepository.findByContent(content)
 
-    private fun parseJsonResponse(
-        responseText: String?,
-        model: GeminiModel
-    ): ContentAnalysisResult? =
+    private fun resolveSinglePipeline(
+        content: String,
+        inputKeywords: List<String>,
+    ): List<ContentAnalysisAttempt> {
+        val attempts = mutableListOf<ContentAnalysisAttempt>()
+        val totalAttempts = contentAnalysisProperties.maxRegenerationAttempts.coerceAtLeast(0) + 1
+        var additionalAvoidPatterns = emptyList<String>()
+
+        repeat(totalAttempts) { retryCount ->
+            val attempt = resolveSingleAttempt(content, inputKeywords, retryCount, additionalAvoidPatterns)
+            attempts.add(attempt)
+
+            if (attempt.evaluation.passed) {
+                return attempts
+            }
+
+            additionalAvoidPatterns = (additionalAvoidPatterns + attempt.evaluation.aiLikePatterns).normalizedAvoidPatterns()
+        }
+
+        return attempts
+    }
+
+    private fun resolveSingleAttempt(
+        content: String,
+        inputKeywords: List<String>,
+        retryCount: Int,
+        additionalAvoidPatterns: List<String> = emptyList(),
+    ): ContentAnalysisAttempt {
+        val generated =
+            withModelFallback("generate auto content") { model ->
+                val response = rateLimiterService.executeAutoGeneration(inputKeywords, model, content, additionalAvoidPatterns)
+                parseAutoGenerationResponse(response?.text())?.let { draft ->
+                    GeneratedDraftWithModel(draft, model)
+                }
+            }
+
+        val evaluation =
+            withModelFallback("evaluate auto content") { model ->
+                val response =
+                    rateLimiterService.executeAutoEvaluation(
+                        model = model,
+                        input =
+                            AutoContentEvaluationInput(
+                                content = content,
+                                generatedSummary = generated.draft.summary,
+                                generatedHeadlines = generated.draft.provocativeHeadlines,
+                                retryCount = retryCount,
+                            ),
+                    )
+
+                parseEvaluationResponse(response?.text(), model)?.normalized(retryCount)
+            }
+
+        return ContentAnalysisAttempt(
+            summary = generated.draft.summary,
+            provocativeHeadlines = generated.draft.provocativeHeadlines,
+            matchedKeywords = generated.draft.matchedKeywords,
+            evaluation = evaluation,
+            generationModel = generated.model,
+        )
+    }
+
+    private fun resolveBatchPipeline(
+        contentEntities: List<Content>,
+        inputKeywords: List<String>,
+    ): Map<String, List<ContentAnalysisAttempt>> {
+        val contentItems =
+            contentEntities.map { content ->
+                BatchContentItem(
+                    contentId = content.id!!.toString(),
+                    content = content.content,
+                )
+            }
+
+        val batchGeneration = resolveBatchGeneration(contentItems, inputKeywords)
+        val batchEvaluation = resolveBatchEvaluation(contentItems, batchGeneration)
+
+        return contentItems.associate { item ->
+            val initialAttempt =
+                if (batchGeneration.results.containsKey(item.contentId) && batchEvaluation.containsKey(item.contentId)) {
+                    buildBatchAttempt(item, batchGeneration, batchEvaluation)
+                } else {
+                    logger.warn("Batch result missing for contentId=${item.contentId}. Falling back to single generation path.")
+                    resolveSingleAttempt(
+                        content = item.content,
+                        inputKeywords = inputKeywords,
+                        retryCount = 0,
+                    )
+                }
+            val attempts = mutableListOf(initialAttempt)
+
+            for (retryCount in 1..contentAnalysisProperties.maxRegenerationAttempts.coerceAtLeast(0)) {
+                if (attempts.last().evaluation.passed) {
+                    break
+                }
+
+                attempts.add(
+                    resolveSingleAttempt(
+                        content = item.content,
+                        inputKeywords = inputKeywords,
+                        retryCount = retryCount,
+                        additionalAvoidPatterns = attempts.flatMap { it.evaluation.aiLikePatterns }.normalizedAvoidPatterns(),
+                    ),
+                )
+            }
+
+            item.contentId to attempts
+        }
+    }
+
+    private fun resolveBatchGeneration(
+        contentItems: List<BatchContentItem>,
+        inputKeywords: List<String>,
+    ): BatchContentAnalysisResult =
+        withModelFallback("generate batch auto content") { model ->
+            val response = rateLimiterService.executeBatchAutoGeneration(inputKeywords, model, contentItems)
+            parseBatchGenerationResponse(response?.text(), model)
+        }
+
+    private fun resolveBatchEvaluation(
+        contentItems: List<BatchContentItem>,
+        batchGeneration: BatchContentAnalysisResult,
+    ): Map<String, BatchContentEvaluationItem> {
+        val evaluationInputs =
+            contentItems.mapNotNull { item ->
+                batchGeneration.results[item.contentId]?.let { generated ->
+                    BatchAutoContentEvaluationInput(
+                        contentId = item.contentId,
+                        content = item.content,
+                        generatedSummary = generated.summary,
+                        generatedHeadlines = generated.provocativeHeadlines,
+                        retryCount = 0,
+                    )
+                }
+            }
+
+        if (evaluationInputs.isEmpty()) {
+            logger.warn("No batch evaluation inputs were produced from batch generation results")
+            return emptyMap()
+        }
+
+        val batchEvaluation =
+            withModelFallback("evaluate batch auto content") { model ->
+                val response = rateLimiterService.executeBatchAutoEvaluation(model, evaluationInputs)
+                parseBatchEvaluationResponse(response?.text(), model)?.normalized()
+            }
+
+        return batchEvaluation.results
+    }
+
+    private fun buildBatchAttempt(
+        item: BatchContentItem,
+        batchGeneration: BatchContentAnalysisResult,
+        batchEvaluation: Map<String, BatchContentEvaluationItem>,
+    ): ContentAnalysisAttempt {
+        val generated =
+            batchGeneration.results[item.contentId]
+                ?: throw AiProcessingException("Missing batch generation result for contentId=${item.contentId}")
+        val evaluation =
+            batchEvaluation[item.contentId]
+                ?: throw AiProcessingException("Missing batch evaluation result for contentId=${item.contentId}")
+
+        return ContentAnalysisAttempt(
+            summary = generated.summary,
+            provocativeHeadlines = generated.provocativeHeadlines,
+            matchedKeywords = generated.matchedKeywords,
+            evaluation =
+                ContentEvaluationResult(
+                    score = evaluation.score,
+                    reason = evaluation.reason,
+                    aiLikePatterns = evaluation.aiLikePatterns,
+                    recommendedFix = evaluation.recommendedFix,
+                    passed = evaluation.passed,
+                    retryCount = evaluation.retryCount,
+                    usedModel = batchGeneration.usedModel,
+                ),
+            generationModel = batchGeneration.usedModel,
+        )
+    }
+
+    private fun persistAttempts(
+        content: Content,
+        attempts: List<ContentAnalysisAttempt>,
+        generationMode: ContentGenerationMode,
+    ): List<ContentGenerationAttempt> =
+        attempts.mapIndexed { index, attempt ->
+            contentGenerationAttemptRepository.save(
+                ContentGenerationAttempt(
+                    content = content,
+                    generationMode = generationMode,
+                    attemptNumber = index + 1,
+                    model = buildModelLabel(attempt),
+                    promptVersion = GeminiClient.AUTO_GENERATION_PROMPT_VERSION,
+                    generatedSummary = attempt.summary,
+                    generatedHeadlines = gson.toJson(attempt.provocativeHeadlines),
+                    matchedKeywords = gson.toJson(attempt.matchedKeywords),
+                    qualityScore = attempt.evaluation.score,
+                    qualityReason = attempt.evaluation.reason,
+                    aiLikePatterns = gson.toJson(attempt.evaluation.aiLikePatterns),
+                    recommendedFix = attempt.evaluation.recommendedFix,
+                    passed = attempt.evaluation.passed,
+                    accepted = index == attempts.lastIndex,
+                    retryCount = attempt.evaluation.retryCount,
+                ),
+            )
+        }
+
+    private fun saveGeneratedSummary(
+        content: Content,
+        result: ContentAnalysisResult,
+        generationAttempt: ContentGenerationAttempt,
+        skipWhenSummaryExists: Boolean,
+    ) {
+        val existingSummaries = summaryRepository.findByContent(content)
+        if (skipWhenSummaryExists && existingSummaries.isNotEmpty()) {
+            logger.warn("Summary already exists for content ID: ${content.id}. Skipping save.")
+            return
+        }
+
+        if (result.summary.isEmpty()) {
+            logger.warn("Not saving empty summary for content ID: ${content.id}")
+            return
+        }
+
+        summaryRepository.save(
+            Summary(
+                content = content,
+                title = result.provocativeHeadlines.firstOrNull() ?: content.title,
+                summarizedContent = result.summary,
+                generationAttempt = generationAttempt,
+                qualityScore = result.qualityScore,
+                qualityReason = result.qualityReason,
+                retryCount = result.retryCount,
+                model = result.usedModel?.modelName ?: generationAttempt.model,
+            ),
+        )
+    }
+
+    private fun buildModelLabel(attempt: ContentAnalysisAttempt): String {
+        val evaluationModel = attempt.evaluation.usedModel?.modelName
+        val generationModel = attempt.generationModel?.modelName
+
+        return when {
+            generationModel != null && evaluationModel != null -> "$generationModel -> $evaluationModel"
+            generationModel != null -> generationModel
+            evaluationModel != null -> evaluationModel
+            else -> "unknown"
+        }
+    }
+
+    private fun parseAutoGenerationResponse(responseText: String?): AutoGeneratedContentDraft? =
         try {
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
-
-            val summary = jsonResponse["summary"] as? String ?: ""
-            val provocativeHeadlines =
-                (jsonResponse["provocativeHeadlines"] as? List<*>)
-                    ?.filterIsInstance<String>() ?: emptyList()
-            val matchedKeywords =
-                (jsonResponse["matchedKeywords"] as? List<*>)
-                    ?.filterIsInstance<String>() ?: emptyList()
-            val suggestedKeywords =
-                (jsonResponse["suggestedKeywords"] as? List<*>)
-                    ?.filterIsInstance<String>() ?: emptyList()
-            val provocativeKeywords =
-                (jsonResponse["provocativeKeywords"] as? List<*>)
-                    ?.filterIsInstance<String>() ?: emptyList()
-
-            ContentAnalysisResult(
-                summary = summary,
-                provocativeHeadlines = provocativeHeadlines,
-                matchedKeywords = matchedKeywords,
-                suggestedKeywords = suggestedKeywords,
-                provocativeKeywords = provocativeKeywords,
-                usedModel = model
+            AutoGeneratedContentDraft(
+                summary = jsonResponse.stringValue("summary"),
+                provocativeHeadlines = jsonResponse.stringList("provocativeHeadlines").singleHeadline(),
+                matchedKeywords = jsonResponse.stringList("matchedKeywords"),
             )
         } catch (e: JsonSyntaxException) {
-            logger.error("Failed to parse JSON response: $responseText", e)
+            logger.error("Failed to parse auto generation response: $responseText", e)
             null
         } catch (e: Exception) {
-            logger.error("Unexpected error parsing response: $responseText", e)
+            logger.error("Unexpected error parsing auto generation response: $responseText", e)
             null
         }
 
-    /**
-     * 배치 분석 JSON 응답을 파싱합니다.
-     */
-    private fun parseBatchJsonResponse(
+    private fun parseBatchGenerationResponse(
         responseText: String?,
-        model: GeminiModel
+        model: GeminiModel,
     ): BatchContentAnalysisResult? =
         try {
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
-
             val resultsArray = jsonResponse["results"] as? List<*> ?: emptyList<Any>()
 
             val resultsMap =
                 resultsArray
                     .mapNotNull { obj ->
                         (obj as? Map<*, *>)?.let { map ->
-                            (map["contentId"] as? String)?.let { id ->
-                                id to
-                                    BatchContentAnalysisItem(
-                                        contentId = id,
-                                        summary = map["summary"] as? String ?: "",
-                                        provocativeHeadlines =
-                                            (map["provocativeHeadlines"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                        matchedKeywords = (map["matchedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                        suggestedKeywords =
-                                            (map["suggestedKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                        provocativeKeywords =
-                                            (map["provocativeKeywords"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
-                                    )
-                            }
+                            val contentId = map["contentId"] as? String ?: return@let null
+                            contentId to
+                                BatchContentAnalysisItem(
+                                    contentId = contentId,
+                                    summary = map.stringValue("summary"),
+                                    provocativeHeadlines = map.stringList("provocativeHeadlines").singleHeadline(),
+                                    matchedKeywords = map.stringList("matchedKeywords"),
+                                )
                         }
                     }.toMap()
 
-            BatchContentAnalysisResult(
-                results = resultsMap,
-                usedModel = model
-            )
+            BatchContentAnalysisResult(results = resultsMap, usedModel = model)
         } catch (e: JsonSyntaxException) {
-            logger.error("Failed to parse batch JSON response: $responseText", e)
+            logger.error("Failed to parse batch generation response: $responseText", e)
             null
         } catch (e: Exception) {
-            logger.error("Unexpected error parsing batch response: $responseText", e)
+            logger.error("Unexpected error parsing batch generation response: $responseText", e)
             null
         }
+
+    private fun parseEvaluationResponse(
+        responseText: String?,
+        model: GeminiModel,
+    ): ContentEvaluationResult? =
+        try {
+            val jsonResponse = gson.fromJson(responseText, Map::class.java)
+            ContentEvaluationResult(
+                score = jsonResponse.intValue("score"),
+                reason = jsonResponse.stringValue("reason"),
+                aiLikePatterns = jsonResponse.stringList("aiLikePatterns"),
+                recommendedFix = jsonResponse.stringValue("recommendedFix"),
+                passed = jsonResponse.booleanValue("passed"),
+                retryCount = jsonResponse.intValue("retryCount"),
+                usedModel = model,
+            )
+        } catch (e: JsonSyntaxException) {
+            recoverEvaluationResponse(responseText, model)?.also {
+                logger.warn("Recovered malformed evaluation response for model: ${model.modelName}")
+            } ?: run {
+                logger.error("Failed to parse evaluation response: $responseText", e)
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Unexpected error parsing evaluation response: $responseText", e)
+            null
+        }
+
+    private fun parseBatchEvaluationResponse(
+        responseText: String?,
+        model: GeminiModel,
+    ): BatchContentEvaluationResult? =
+        try {
+            val jsonResponse = gson.fromJson(responseText, Map::class.java)
+            val resultsArray = jsonResponse["results"] as? List<*> ?: emptyList<Any>()
+
+            val resultsMap =
+                resultsArray
+                    .mapNotNull { obj ->
+                        (obj as? Map<*, *>)?.let { map ->
+                            val contentId = map["contentId"] as? String ?: return@let null
+                            contentId to
+                                BatchContentEvaluationItem(
+                                    contentId = contentId,
+                                    score = map.intValue("score"),
+                                    reason = map.stringValue("reason"),
+                                    aiLikePatterns = map.stringList("aiLikePatterns"),
+                                    recommendedFix = map.stringValue("recommendedFix"),
+                                    passed = map.booleanValue("passed"),
+                                    retryCount = map.intValue("retryCount"),
+                                )
+                        }
+                    }.toMap()
+
+            BatchContentEvaluationResult(results = resultsMap, usedModel = model)
+        } catch (e: JsonSyntaxException) {
+            recoverBatchEvaluationResponse(responseText, model)?.also {
+                logger.warn("Recovered malformed batch evaluation response for model: ${model.modelName}")
+            } ?: run {
+                logger.error("Failed to parse batch evaluation response: $responseText", e)
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Unexpected error parsing batch evaluation response: $responseText", e)
+            null
+        }
+
+    private fun ContentAnalysisAttempt.toFinalResult(): ContentAnalysisResult =
+        ContentAnalysisResult(
+            summary = summary,
+            provocativeHeadlines = provocativeHeadlines,
+            matchedKeywords = matchedKeywords,
+            qualityScore = evaluation.score,
+            qualityReason = evaluation.reason,
+            aiLikePatterns = evaluation.aiLikePatterns,
+            recommendedFix = evaluation.recommendedFix,
+            passed = evaluation.passed,
+            retryCount = evaluation.retryCount,
+            usedModel = generationModel ?: evaluation.usedModel,
+        )
+
+    private fun ContentEvaluationResult.normalized(retryCount: Int): ContentEvaluationResult {
+        val normalizedScore = score.coerceIn(0, 10)
+        return copy(
+            score = normalizedScore,
+            passed = normalizedScore >= contentAnalysisProperties.minNaturalnessScore,
+            retryCount = retryCount,
+        )
+    }
+
+    private fun BatchContentEvaluationResult.normalized(): BatchContentEvaluationResult =
+        copy(
+            results =
+                results.mapValues { (_, item) ->
+                    item.copy(
+                        score = item.score.coerceIn(0, 10),
+                        passed = item.score.coerceIn(0, 10) >= contentAnalysisProperties.minNaturalnessScore,
+                    )
+                },
+        )
+
+    private fun getReservedKeywordNames(): List<String> =
+        reservedKeywordRepository
+            .findAll()
+            .map { it.name }
+            .toList()
+
+    private fun <T> withModelFallback(
+        actionName: String,
+        block: (GeminiModel) -> T?,
+    ): T {
+        val models = GeminiModel.entries
+        var allFailedDueToRateLimit = true
+        var lastRateLimitException: RateLimitExceededException? = null
+
+        for (model in models) {
+            try {
+                logger.info("Trying to $actionName with model: ${model.modelName}")
+                val result = block(model)
+                if (result != null) {
+                    logger.info("Successfully completed $actionName with model: ${model.modelName}")
+                    return result
+                }
+                allFailedDueToRateLimit = false
+                logger.warn("$actionName returned null for model: ${model.modelName}")
+            } catch (e: RateLimitExceededException) {
+                logger.warn("Rate limit exceeded for model ${model.modelName} during $actionName, trying next model")
+                lastRateLimitException = e
+            } catch (e: Exception) {
+                logger.error("Error while trying to $actionName with model ${model.modelName}: ${e.message}", e)
+                allFailedDueToRateLimit = false
+            }
+        }
+
+        if (allFailedDueToRateLimit && lastRateLimitException != null) {
+            logger.error("All models failed due to rate limit while trying to $actionName")
+            throw lastRateLimitException
+        }
+
+        throw AiProcessingException("Failed to $actionName: all models failed")
+    }
+
+    private fun Map<*, *>.stringValue(key: String): String = this[key] as? String ?: ""
+
+    private fun Map<*, *>.stringList(key: String): List<String> = (this[key] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+
+    private fun Map<*, *>.intValue(key: String): Int = (this[key] as? Number)?.toInt() ?: 0
+
+    private fun Map<*, *>.booleanValue(key: String): Boolean = this[key] as? Boolean ?: false
+
+    private fun List<String>.singleHeadline(): List<String> = take(1)
+
+    private fun List<String>.normalizedAvoidPatterns(): List<String> =
+        map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+            .take(5)
+
+    private fun recoverEvaluationResponse(
+        responseText: String?,
+        model: GeminiModel,
+    ): ContentEvaluationResult? {
+        val text = responseText?.trim().orEmpty()
+        if (text.isEmpty()) {
+            return null
+        }
+
+        val score = extractIntField(text, "score") ?: return null
+        val reason = extractStringField(text, "reason") ?: "평가 응답 일부가 손상되어 기본 사유를 사용했습니다."
+        val recommendedFix = extractStringField(text, "recommendedFix").orEmpty()
+        val passed = extractBooleanField(text, "passed") ?: (score >= contentAnalysisProperties.minNaturalnessScore)
+        val retryCount = extractIntField(text, "retryCount") ?: 0
+
+        return ContentEvaluationResult(
+            score = score,
+            reason = reason,
+            aiLikePatterns = extractStringArrayField(text, "aiLikePatterns"),
+            recommendedFix = recommendedFix,
+            passed = passed,
+            retryCount = retryCount,
+            usedModel = model,
+        )
+    }
+
+    private fun recoverBatchEvaluationResponse(
+        responseText: String?,
+        model: GeminiModel,
+    ): BatchContentEvaluationResult? {
+        val text = responseText?.trim().orEmpty()
+        if (text.isEmpty()) {
+            return null
+        }
+
+        val results =
+            extractBalancedJsonObjects(text)
+                .mapNotNull { objectText ->
+                    recoverBatchEvaluationItem(objectText)
+                }.associateBy { it.contentId }
+
+        return if (results.isEmpty()) {
+            null
+        } else {
+            BatchContentEvaluationResult(results = results, usedModel = model)
+        }
+    }
+
+    private fun recoverBatchEvaluationItem(objectText: String): BatchContentEvaluationItem? {
+        val contentId = extractStringField(objectText, "contentId") ?: return null
+        val score = extractIntField(objectText, "score") ?: return null
+
+        return BatchContentEvaluationItem(
+            contentId = contentId,
+            score = score,
+            reason = extractStringField(objectText, "reason") ?: "평가 응답 일부가 손상되어 기본 사유를 사용했습니다.",
+            aiLikePatterns = extractStringArrayField(objectText, "aiLikePatterns"),
+            recommendedFix = extractStringField(objectText, "recommendedFix").orEmpty(),
+            passed = extractBooleanField(objectText, "passed") ?: (score >= contentAnalysisProperties.minNaturalnessScore),
+            retryCount = extractIntField(objectText, "retryCount") ?: 0,
+        )
+    }
+
+    private fun extractBalancedJsonObjects(text: String): List<String> {
+        val arrayStart =
+            text
+                .indexOf("\"results\"")
+                .takeIf { it >= 0 }
+                ?.let { text.indexOf('[', it) }
+                ?: text.indexOf('[')
+
+        if (arrayStart < 0) {
+            return emptyList()
+        }
+
+        val objects = mutableListOf<String>()
+        var depth = 0
+        var startIndex = -1
+        var inString = false
+        var escaped = false
+
+        text.drop(arrayStart + 1).forEachIndexed { offset, char ->
+            val index = arrayStart + 1 + offset
+            when {
+                escaped -> escaped = false
+                char == '\\' && inString -> escaped = true
+                char == '"' -> inString = !inString
+                inString -> Unit
+                char == '{' -> {
+                    if (depth == 0) {
+                        startIndex = index
+                    }
+                    depth++
+                }
+                char == '}' && depth > 0 -> {
+                    depth--
+                    if (depth == 0 && startIndex >= 0) {
+                        objects.add(text.substring(startIndex, index + 1))
+                        startIndex = -1
+                    }
+                }
+                char == ']' && depth == 0 -> return objects
+            }
+        }
+
+        return objects
+    }
+
+    private fun extractIntField(
+        text: String,
+        field: String,
+    ): Int? =
+        Regex(""""$field"\s*:\s*(-?\d+)""")
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.toIntOrNull()
+
+    private fun extractBooleanField(
+        text: String,
+        field: String,
+    ): Boolean? =
+        Regex(""""$field"\s*:\s*(true|false)""")
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.toBooleanStrictOrNull()
+
+    private fun extractStringField(
+        text: String,
+        field: String,
+    ): String? =
+        Regex(""""$field"\s*:\s*"((?:\\.|[^"\\])*)"""", setOf(RegexOption.DOT_MATCHES_ALL))
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.let(::decodeJsonString)
+            ?.trim()
+
+    private fun extractStringArrayField(
+        text: String,
+        field: String,
+    ): List<String> {
+        val arrayContent =
+            Regex(""""$field"\s*:\s*\[(.*?)]""", setOf(RegexOption.DOT_MATCHES_ALL))
+                .find(text)
+                ?.groupValues
+                ?.get(1)
+                ?: return emptyList()
+
+        return Regex(""""((?:\\.|[^"\\])*)"""", setOf(RegexOption.DOT_MATCHES_ALL))
+            .findAll(arrayContent)
+            .map { decodeJsonString(it.groupValues[1]).trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+    }
+
+    private fun decodeJsonString(value: String): String =
+        runCatching {
+            gson.fromJson("\"$value\"", String::class.java)
+        }.getOrElse {
+            value
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+        }
+
+    private data class AutoGeneratedContentDraft(
+        val summary: String,
+        val provocativeHeadlines: List<String>,
+        val matchedKeywords: List<String>,
+    )
+
+    private data class GeneratedDraftWithModel(
+        val draft: AutoGeneratedContentDraft,
+        val model: GeminiModel,
+    )
+
+    private data class ContentAnalysisAttempt(
+        val summary: String,
+        val provocativeHeadlines: List<String>,
+        val matchedKeywords: List<String>,
+        val evaluation: ContentEvaluationResult,
+        val generationModel: GeminiModel?,
+    )
 }

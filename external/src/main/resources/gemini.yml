@@ -1,3 +1,6 @@
 ai:
   gemini:
     key: ${GEMINI_API_KEY:}
+    content-analysis:
+      min-naturalness-score: ${AI_GEMINI_CONTENT_ANALYSIS_MIN_NATURALNESS_SCORE:7}
+      max-regeneration-attempts: ${AI_GEMINI_CONTENT_ANALYSIS_MAX_REGENERATION_ATTEMPTS:1}

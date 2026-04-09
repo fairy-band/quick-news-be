@@ -2,6 +2,8 @@ package com.nexters.external.service
 
 import com.google.genai.types.GenerateContentResponse
 import com.nexters.external.apiclient.GeminiClient
+import com.nexters.external.dto.AutoContentEvaluationInput
+import com.nexters.external.dto.BatchAutoContentEvaluationInput
 import com.nexters.external.dto.BatchContentItem
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.GeminiRateLimit
@@ -26,43 +28,48 @@ class GeminiRateLimiterService(
 
     private val rateLimiters = ConcurrentHashMap<String, RateLimiter>()
 
-    fun executeWithRateLimit(
+    fun executeAutoGeneration(
         inputKeywords: List<String>,
         model: GeminiModel,
         content: String,
-    ): GenerateContentResponse? {
-        // RPM 체크
-        checkRpmLimit(model)
+        additionalAvoidPatterns: List<String> = emptyList(),
+    ): GenerateContentResponse? =
+        execute(model) {
+            geminiClient.requestAutoContentGeneration(inputKeywords, model, content, additionalAvoidPatterns)
+        }
 
-        // RPD 체크 및 증가 (트랜잭션 필요 - 별도 서비스 사용)
-        dailyLimitService.incrementDailyLimit(model)
-
-        // API 호출
-        return geminiClient.requestContentAnalysis(inputKeywords, model, content)
-    }
-
-    /**
-     * 배치 콘텐츠 분석을 Rate Limit 체크와 함께 실행합니다.
-     * 여러 콘텐츠를 한 번의 API 호출로 처리하여 RPD(Requests Per Day) 제한을 효율적으로 관리합니다.
-     *
-     * @param inputKeywords 매칭할 키워드 목록
-     * @param model 사용할 Gemini 모델
-     * @param contentItems 분석할 콘텐츠 항목 리스트
-     * @return GenerateContentResponse 또는 null
-     */
-    fun executeBatchWithRateLimit(
+    fun executeBatchAutoGeneration(
         inputKeywords: List<String>,
         model: GeminiModel,
         contentItems: List<BatchContentItem>,
+    ): GenerateContentResponse? =
+        execute(model) {
+            geminiClient.requestBatchAutoContentGeneration(inputKeywords, model, contentItems)
+        }
+
+    fun executeAutoEvaluation(
+        model: GeminiModel,
+        input: AutoContentEvaluationInput,
+    ): GenerateContentResponse? =
+        execute(model) {
+            geminiClient.requestAutoContentEvaluation(model, input)
+        }
+
+    fun executeBatchAutoEvaluation(
+        model: GeminiModel,
+        items: List<BatchAutoContentEvaluationInput>,
+    ): GenerateContentResponse? =
+        execute(model) {
+            geminiClient.requestBatchAutoContentEvaluation(model, items)
+        }
+
+    private fun execute(
+        model: GeminiModel,
+        block: () -> GenerateContentResponse?,
     ): GenerateContentResponse? {
-        // RPM 체크
         checkRpmLimit(model)
-
-        // RPD 체크 및 증가 (1번의 API 호출이지만 여러 콘텐츠를 처리)
         dailyLimitService.incrementDailyLimit(model)
-
-        // 배치 API 호출
-        return geminiClient.requestBatchContentAnalysis(inputKeywords, model, contentItems)
+        return block()
     }
 
     private fun checkRpmLimit(model: GeminiModel) {

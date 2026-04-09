@@ -551,15 +551,11 @@ class ContentApiController(
                 .findById(contentId)
                 .orElseThrow { NoSuchElementException("Content not found with id: $contentId") }
 
-        // Use ContentAnalysisService to match reserved keywords
-        val matchedKeywords = contentAnalysisService.matchReservedKeywords(content.content)
-
         // Get all reserved keywords for total count
         val allReservedKeywords = reservedKeywordRepository.findAll()
         val reservedKeywordNames = allReservedKeywords.map { it.name }
-
-        // Get full analysis result for suggestions and provocative keywords
         val analysisResult = contentAnalysisService.analyzeContent(content.content, reservedKeywordNames)
+        val matchedKeywords = reservedKeywordRepository.findByNameIn(analysisResult.matchedKeywords)
 
         // Process matched keywords and add them to content
         val addedKeywords = mutableListOf<String>()
@@ -591,8 +587,8 @@ class ContentApiController(
                 matchedKeywords = matchedKeywords.map { it.name },
                 addedKeywords = addedKeywords,
                 alreadyExistingKeywords = alreadyExistingKeywords,
-                suggestedKeywords = analysisResult.suggestedKeywords,
-                provocativeKeywords = analysisResult.provocativeKeywords,
+                suggestedKeywords = emptyList(),
+                provocativeKeywords = emptyList(),
                 message =
                     "총 ${allReservedKeywords.size}개의 예약 키워드 중 ${matchedKeywords.size}개가 매칭되었습니다. " +
                         "${addedKeywords.size}개가 새로 추가되었고, ${alreadyExistingKeywords.size}개는 이미 존재합니다."

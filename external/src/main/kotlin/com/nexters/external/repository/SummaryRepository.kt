@@ -9,10 +9,26 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface SummaryRepository : JpaRepository<Summary, Long> {
-    fun findByContent(content: Content): List<Summary>
-
+    @Query(
+        """
+        SELECT s FROM Summary s
+        WHERE s.content = :content
+        ORDER BY s.createdAt DESC
+        """,
+    )
     fun findByContent(
-        content: Content,
+        @Param("content") content: Content,
+    ): List<Summary>
+
+    @Query(
+        """
+        SELECT s FROM Summary s
+        WHERE s.content = :content
+        ORDER BY s.createdAt DESC
+        """,
+    )
+    fun findByContent(
+        @Param("content") content: Content,
         pageable: Pageable
     ): Page<Summary>
 

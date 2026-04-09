@@ -24,6 +24,15 @@ class Summary(
     val title: String,
     @Column(nullable = false, columnDefinition = "TEXT", name = "summarized_content")
     val summarizedContent: String,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "generation_attempt_id")
+    val generationAttempt: ContentGenerationAttempt? = null,
+    @Column(name = "quality_score")
+    val qualityScore: Int? = null,
+    @Column(columnDefinition = "TEXT", name = "quality_reason")
+    val qualityReason: String? = null,
+    @Column(name = "retry_count")
+    val retryCount: Int? = null,
     @Column(nullable = false, name = "summarized_at")
     val summarizedAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false)
