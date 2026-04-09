@@ -71,10 +71,10 @@ class ContentAnalysisServiceTest {
         val content = sampleContent(id = 1L)
 
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content.content)
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, content.content, any())
         } returns mockResponse("""{"summary":"요약","provocativeHeadlines":["자연스러운 헤드라인"],"matchedKeywords":["kotlin"]}""")
         every {
-            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"score":8,"reason":"사람이 다듬은 문장처럼 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0}""",
@@ -93,18 +93,48 @@ class ContentAnalysisServiceTest {
     }
 
     @Test
-    fun `below threshold single retry then accept stores failed and accepted attempts`() {
-        val content = sampleContent(id = 2L)
+    fun `multiple generated headlines are reduced to a single headline`() {
+        val content = sampleContent(id = 101L)
 
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content.content)
-        } returnsMany
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, content.content, any())
+        } returns
+            mockResponse(
+                """{"summary":"요약","provocativeHeadlines":["첫 번째 헤드라인","두 번째 헤드라인"],"matchedKeywords":["kotlin"]}""",
+            )
+        every {
+            rateLimiterService.executeAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
+        } returns
+            mockResponse(
+                """{"score":8,"reason":"자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0}""",
+            )
+
+        val result = service.analyzeAndSave(content)
+
+        assertEquals(listOf("첫 번째 헤드라인"), result.provocativeHeadlines)
+        assertEquals("첫 번째 헤드라인", savedSummaries.single().title)
+    }
+
+    @Test
+    fun `below threshold single retry then accept stores failed and accepted attempts`() {
+        val content = sampleContent(id = 2L)
+        val capturedAvoidPatterns = mutableListOf<List<String>>()
+        val generationResponses =
             listOf(
                 mockResponse("""{"summary":"요약1","provocativeHeadlines":["헤드라인1"],"matchedKeywords":["kotlin"]}"""),
                 mockResponse("""{"summary":"요약2","provocativeHeadlines":["헤드라인2"],"matchedKeywords":["kotlin"]}"""),
             )
+        var generationCallCount = 0
+
         every {
-            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, content.content, any())
+        } answers {
+            @Suppress("UNCHECKED_CAST")
+            capturedAvoidPatterns.add(args[3] as List<String>)
+            generationResponses[generationCallCount++]
+        }
+        every {
+            rateLimiterService.executeAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returnsMany
             listOf(
                 mockResponse(
@@ -124,6 +154,8 @@ class ContentAnalysisServiceTest {
         assertEquals(1, savedAttempts.last().retryCount)
         assertEquals(8, result.qualityScore)
         assertEquals(1, result.retryCount)
+        assertEquals(emptyList(), capturedAvoidPatterns[0])
+        assertEquals(listOf("상투적 표현"), capturedAvoidPatterns[1])
     }
 
     @Test
@@ -132,22 +164,22 @@ class ContentAnalysisServiceTest {
         val content2 = sampleContent(id = 11L, body = "두 번째 콘텐츠")
 
         every {
-            rateLimiterService.executeBatchAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeBatchAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"results":[{"contentId":"10","summary":"요약1","provocativeHeadlines":["헤드라인1"],"matchedKeywords":["kotlin"]},{"contentId":"11","summary":"요약2","provocativeHeadlines":["헤드라인2"],"matchedKeywords":["redis"]}]}""",
             )
         every {
-            rateLimiterService.executeBatchAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeBatchAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"results":[{"contentId":"10","score":8,"reason":"좋습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0},{"contentId":"11","score":4,"reason":"표현이 뻔합니다.","aiLikePatterns":["클릭베이트"],"recommendedFix":"핵심 대상을 드러내세요.","passed":false,"retryCount":0}]}""",
             )
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content2.content)
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, content2.content, any())
         } returns mockResponse("""{"summary":"재생성 요약","provocativeHeadlines":["재생성 헤드라인"],"matchedKeywords":["redis"]}""")
         every {
-            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"score":8,"reason":"재생성 후 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":1}""",
@@ -168,10 +200,10 @@ class ContentAnalysisServiceTest {
         val content = sampleContent(id = 20L)
 
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content.content)
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, content.content, any())
         } returns mockResponse("""{"summary":"요약","provocativeHeadlines":["헤드라인"],"matchedKeywords":["kotlin"]}""")
         every {
-            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"score":7,"reason":"요약은 자연스럽지만 표현이 조금 상투적입니다.","aiLikePatterns":["필수""",
@@ -193,22 +225,22 @@ class ContentAnalysisServiceTest {
         val content2 = sampleContent(id = 31L, body = "두 번째 콘텐츠")
 
         every {
-            rateLimiterService.executeBatchAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeBatchAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"results":[{"contentId":"30","summary":"요약1","provocativeHeadlines":["헤드라인1"],"matchedKeywords":["kotlin"]},{"contentId":"31","summary":"요약2","provocativeHeadlines":["헤드라인2"],"matchedKeywords":["redis"]}]}""",
             )
         every {
-            rateLimiterService.executeBatchAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeBatchAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"results":[{"contentId":"30","score":8,"reason":"좋습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0},{"contentId":"31","score":4,"reason":"표현이 뻔합니다.","aiLikePatterns":["필수""",
             )
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content2.content)
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, content2.content, any())
         } returns mockResponse("""{"summary":"재생성 요약","provocativeHeadlines":["재생성 헤드라인"],"matchedKeywords":["redis"]}""")
         every {
-            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeAutoEvaluation(GeminiModel.TWO_FIVE_FLASH, any())
         } returns
             mockResponse(
                 """{"score":8,"reason":"재생성 후 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0}""",
@@ -226,10 +258,10 @@ class ContentAnalysisServiceTest {
     @Test
     fun `all rate limited generation throws rate limit exception`() {
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, any())
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH, any(), any())
         } throws RateLimitExceededException("limited", "RPM", GeminiModel.TWO_FIVE_FLASH.modelName)
         every {
-            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH_LITE, any())
+            rateLimiterService.executeAutoGeneration(any(), GeminiModel.TWO_FIVE_FLASH_LITE, any(), any())
         } throws RateLimitExceededException("limited", "RPM", GeminiModel.TWO_FIVE_FLASH_LITE.modelName)
 
         assertFailsWith<RateLimitExceededException> {

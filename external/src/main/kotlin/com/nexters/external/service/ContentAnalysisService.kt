@@ -14,7 +14,6 @@ import com.nexters.external.dto.BatchContentItem
 import com.nexters.external.dto.ContentAnalysisResult
 import com.nexters.external.dto.ContentEvaluationResult
 import com.nexters.external.dto.GeminiModel
-import com.nexters.external.dto.KeywordResult
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentGenerationAttempt
 import com.nexters.external.entity.ContentKeywordMapping
@@ -50,15 +49,6 @@ class ContentAnalysisService(
         content: String,
         inputKeywords: List<String> = emptyList(),
     ): ContentAnalysisResult = resolveSinglePipeline(content, inputKeywords).last().toFinalResult()
-
-    fun analyzeLegacyKeywordDiscovery(
-        content: String,
-        inputKeywords: List<String> = emptyList(),
-    ): KeywordResult =
-        withModelFallback("analyze legacy keywords") { model ->
-            val response = rateLimiterService.executeLegacyKeywordDiscoveryWithRateLimit(inputKeywords, model, content)
-            parseLegacyKeywordResponse(response?.text())
-        }
 
     @Transactional
     fun analyzeAndSave(contentEntity: Content): ContentAnalysisResult {
@@ -124,11 +114,6 @@ class ContentAnalysisService(
         return resultMap
     }
 
-    fun matchReservedKeywords(content: String): List<ReservedKeyword> {
-        val result = analyzeLegacyKeywordDiscovery(content, getReservedKeywordNames())
-        return reservedKeywordRepository.findByNameIn(result.matchedKeywords)
-    }
-
     @Transactional
     fun assignKeywordsToContent(
         content: Content,
@@ -180,14 +165,17 @@ class ContentAnalysisService(
     ): List<ContentAnalysisAttempt> {
         val attempts = mutableListOf<ContentAnalysisAttempt>()
         val totalAttempts = contentAnalysisProperties.maxRegenerationAttempts.coerceAtLeast(0) + 1
+        var additionalAvoidPatterns = emptyList<String>()
 
         repeat(totalAttempts) { retryCount ->
-            val attempt = resolveSingleAttempt(content, inputKeywords, retryCount)
+            val attempt = resolveSingleAttempt(content, inputKeywords, retryCount, additionalAvoidPatterns)
             attempts.add(attempt)
 
             if (attempt.evaluation.passed) {
                 return attempts
             }
+
+            additionalAvoidPatterns = (additionalAvoidPatterns + attempt.evaluation.aiLikePatterns).normalizedAvoidPatterns()
         }
 
         return attempts
@@ -197,10 +185,11 @@ class ContentAnalysisService(
         content: String,
         inputKeywords: List<String>,
         retryCount: Int,
+        additionalAvoidPatterns: List<String> = emptyList(),
     ): ContentAnalysisAttempt {
         val generated =
             withModelFallback("generate auto content") { model ->
-                val response = rateLimiterService.executeAutoGenerationWithRateLimit(inputKeywords, model, content)
+                val response = rateLimiterService.executeAutoGeneration(inputKeywords, model, content, additionalAvoidPatterns)
                 parseAutoGenerationResponse(response?.text())?.let { draft ->
                     GeneratedDraftWithModel(draft, model)
                 }
@@ -209,7 +198,7 @@ class ContentAnalysisService(
         val evaluation =
             withModelFallback("evaluate auto content") { model ->
                 val response =
-                    rateLimiterService.executeAutoEvaluationWithRateLimit(
+                    rateLimiterService.executeAutoEvaluation(
                         model = model,
                         input =
                             AutoContentEvaluationInput(
@@ -271,6 +260,7 @@ class ContentAnalysisService(
                         content = item.content,
                         inputKeywords = inputKeywords,
                         retryCount = retryCount,
+                        additionalAvoidPatterns = attempts.flatMap { it.evaluation.aiLikePatterns }.normalizedAvoidPatterns(),
                     ),
                 )
             }
@@ -284,7 +274,7 @@ class ContentAnalysisService(
         inputKeywords: List<String>,
     ): BatchContentAnalysisResult =
         withModelFallback("generate batch auto content") { model ->
-            val response = rateLimiterService.executeBatchAutoGenerationWithRateLimit(inputKeywords, model, contentItems)
+            val response = rateLimiterService.executeBatchAutoGeneration(inputKeywords, model, contentItems)
             parseBatchGenerationResponse(response?.text(), model)
         }
 
@@ -312,7 +302,7 @@ class ContentAnalysisService(
 
         val batchEvaluation =
             withModelFallback("evaluate batch auto content") { model ->
-                val response = rateLimiterService.executeBatchAutoEvaluationWithRateLimit(model, evaluationInputs)
+                val response = rateLimiterService.executeBatchAutoEvaluation(model, evaluationInputs)
                 parseBatchEvaluationResponse(response?.text(), model)?.normalized()
             }
 
@@ -424,7 +414,7 @@ class ContentAnalysisService(
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
             AutoGeneratedContentDraft(
                 summary = jsonResponse.stringValue("summary"),
-                provocativeHeadlines = jsonResponse.stringList("provocativeHeadlines"),
+                provocativeHeadlines = jsonResponse.stringList("provocativeHeadlines").singleHeadline(),
                 matchedKeywords = jsonResponse.stringList("matchedKeywords"),
             )
         } catch (e: JsonSyntaxException) {
@@ -452,7 +442,7 @@ class ContentAnalysisService(
                                 BatchContentAnalysisItem(
                                     contentId = contentId,
                                     summary = map.stringValue("summary"),
-                                    provocativeHeadlines = map.stringList("provocativeHeadlines"),
+                                    provocativeHeadlines = map.stringList("provocativeHeadlines").singleHeadline(),
                                     matchedKeywords = map.stringList("matchedKeywords"),
                                 )
                         }
@@ -464,22 +454,6 @@ class ContentAnalysisService(
             null
         } catch (e: Exception) {
             logger.error("Unexpected error parsing batch generation response: $responseText", e)
-            null
-        }
-
-    private fun parseLegacyKeywordResponse(responseText: String?): KeywordResult? =
-        try {
-            val jsonResponse = gson.fromJson(responseText, Map::class.java)
-            KeywordResult(
-                matchedKeywords = jsonResponse.stringList("matchedKeywords"),
-                suggestedKeywords = jsonResponse.stringList("suggestedKeywords"),
-                provocativeKeywords = jsonResponse.stringList("provocativeKeywords"),
-            )
-        } catch (e: JsonSyntaxException) {
-            logger.error("Failed to parse legacy keyword response: $responseText", e)
-            null
-        } catch (e: Exception) {
-            logger.error("Unexpected error parsing legacy keyword response: $responseText", e)
             null
         }
 
@@ -631,6 +605,14 @@ class ContentAnalysisService(
     private fun Map<*, *>.intValue(key: String): Int = (this[key] as? Number)?.toInt() ?: 0
 
     private fun Map<*, *>.booleanValue(key: String): Boolean = this[key] as? Boolean ?: false
+
+    private fun List<String>.singleHeadline(): List<String> = take(1)
+
+    private fun List<String>.normalizedAvoidPatterns(): List<String> =
+        map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+            .take(5)
 
     private fun recoverEvaluationResponse(
         responseText: String?,
