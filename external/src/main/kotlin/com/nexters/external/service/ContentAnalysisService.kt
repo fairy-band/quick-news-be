@@ -49,8 +49,7 @@ class ContentAnalysisService(
     fun analyzeContent(
         content: String,
         inputKeywords: List<String> = emptyList(),
-    ): ContentAnalysisResult =
-        resolveSinglePipeline(content, inputKeywords).last().toFinalResult()
+    ): ContentAnalysisResult = resolveSinglePipeline(content, inputKeywords).last().toFinalResult()
 
     fun analyzeLegacyKeywordDiscovery(
         content: String,
@@ -500,8 +499,12 @@ class ContentAnalysisService(
                 usedModel = model,
             )
         } catch (e: JsonSyntaxException) {
-            logger.error("Failed to parse evaluation response: $responseText", e)
-            null
+            recoverEvaluationResponse(responseText, model)?.also {
+                logger.warn("Recovered malformed evaluation response for model: ${model.modelName}")
+            } ?: run {
+                logger.error("Failed to parse evaluation response: $responseText", e)
+                null
+            }
         } catch (e: Exception) {
             logger.error("Unexpected error parsing evaluation response: $responseText", e)
             null
@@ -535,8 +538,12 @@ class ContentAnalysisService(
 
             BatchContentEvaluationResult(results = resultsMap, usedModel = model)
         } catch (e: JsonSyntaxException) {
-            logger.error("Failed to parse batch evaluation response: $responseText", e)
-            null
+            recoverBatchEvaluationResponse(responseText, model)?.also {
+                logger.warn("Recovered malformed batch evaluation response for model: ${model.modelName}")
+            } ?: run {
+                logger.error("Failed to parse batch evaluation response: $responseText", e)
+                null
+            }
         } catch (e: Exception) {
             logger.error("Unexpected error parsing batch evaluation response: $responseText", e)
             null
@@ -619,12 +626,180 @@ class ContentAnalysisService(
 
     private fun Map<*, *>.stringValue(key: String): String = this[key] as? String ?: ""
 
-    private fun Map<*, *>.stringList(key: String): List<String> =
-        (this[key] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+    private fun Map<*, *>.stringList(key: String): List<String> = (this[key] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
     private fun Map<*, *>.intValue(key: String): Int = (this[key] as? Number)?.toInt() ?: 0
 
     private fun Map<*, *>.booleanValue(key: String): Boolean = this[key] as? Boolean ?: false
+
+    private fun recoverEvaluationResponse(
+        responseText: String?,
+        model: GeminiModel,
+    ): ContentEvaluationResult? {
+        val text = responseText?.trim().orEmpty()
+        if (text.isEmpty()) {
+            return null
+        }
+
+        val score = extractIntField(text, "score") ?: return null
+        val reason = extractStringField(text, "reason") ?: "평가 응답 일부가 손상되어 기본 사유를 사용했습니다."
+        val recommendedFix = extractStringField(text, "recommendedFix").orEmpty()
+        val passed = extractBooleanField(text, "passed") ?: (score >= contentAnalysisProperties.minNaturalnessScore)
+        val retryCount = extractIntField(text, "retryCount") ?: 0
+
+        return ContentEvaluationResult(
+            score = score,
+            reason = reason,
+            aiLikePatterns = extractStringArrayField(text, "aiLikePatterns"),
+            recommendedFix = recommendedFix,
+            passed = passed,
+            retryCount = retryCount,
+            usedModel = model,
+        )
+    }
+
+    private fun recoverBatchEvaluationResponse(
+        responseText: String?,
+        model: GeminiModel,
+    ): BatchContentEvaluationResult? {
+        val text = responseText?.trim().orEmpty()
+        if (text.isEmpty()) {
+            return null
+        }
+
+        val results =
+            extractBalancedJsonObjects(text)
+                .mapNotNull { objectText ->
+                    recoverBatchEvaluationItem(objectText)
+                }.associateBy { it.contentId }
+
+        return if (results.isEmpty()) {
+            null
+        } else {
+            BatchContentEvaluationResult(results = results, usedModel = model)
+        }
+    }
+
+    private fun recoverBatchEvaluationItem(objectText: String): BatchContentEvaluationItem? {
+        val contentId = extractStringField(objectText, "contentId") ?: return null
+        val score = extractIntField(objectText, "score") ?: return null
+
+        return BatchContentEvaluationItem(
+            contentId = contentId,
+            score = score,
+            reason = extractStringField(objectText, "reason") ?: "평가 응답 일부가 손상되어 기본 사유를 사용했습니다.",
+            aiLikePatterns = extractStringArrayField(objectText, "aiLikePatterns"),
+            recommendedFix = extractStringField(objectText, "recommendedFix").orEmpty(),
+            passed = extractBooleanField(objectText, "passed") ?: (score >= contentAnalysisProperties.minNaturalnessScore),
+            retryCount = extractIntField(objectText, "retryCount") ?: 0,
+        )
+    }
+
+    private fun extractBalancedJsonObjects(text: String): List<String> {
+        val arrayStart =
+            text
+                .indexOf("\"results\"")
+                .takeIf { it >= 0 }
+                ?.let { text.indexOf('[', it) }
+                ?: text.indexOf('[')
+
+        if (arrayStart < 0) {
+            return emptyList()
+        }
+
+        val objects = mutableListOf<String>()
+        var depth = 0
+        var startIndex = -1
+        var inString = false
+        var escaped = false
+
+        text.drop(arrayStart + 1).forEachIndexed { offset, char ->
+            val index = arrayStart + 1 + offset
+            when {
+                escaped -> escaped = false
+                char == '\\' && inString -> escaped = true
+                char == '"' -> inString = !inString
+                inString -> Unit
+                char == '{' -> {
+                    if (depth == 0) {
+                        startIndex = index
+                    }
+                    depth++
+                }
+                char == '}' && depth > 0 -> {
+                    depth--
+                    if (depth == 0 && startIndex >= 0) {
+                        objects.add(text.substring(startIndex, index + 1))
+                        startIndex = -1
+                    }
+                }
+                char == ']' && depth == 0 -> return objects
+            }
+        }
+
+        return objects
+    }
+
+    private fun extractIntField(
+        text: String,
+        field: String,
+    ): Int? =
+        Regex(""""$field"\s*:\s*(-?\d+)""")
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.toIntOrNull()
+
+    private fun extractBooleanField(
+        text: String,
+        field: String,
+    ): Boolean? =
+        Regex(""""$field"\s*:\s*(true|false)""")
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.toBooleanStrictOrNull()
+
+    private fun extractStringField(
+        text: String,
+        field: String,
+    ): String? =
+        Regex(""""$field"\s*:\s*"((?:\\.|[^"\\])*)"""", setOf(RegexOption.DOT_MATCHES_ALL))
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.let(::decodeJsonString)
+            ?.trim()
+
+    private fun extractStringArrayField(
+        text: String,
+        field: String,
+    ): List<String> {
+        val arrayContent =
+            Regex(""""$field"\s*:\s*\[(.*?)]""", setOf(RegexOption.DOT_MATCHES_ALL))
+                .find(text)
+                ?.groupValues
+                ?.get(1)
+                ?: return emptyList()
+
+        return Regex(""""((?:\\.|[^"\\])*)"""", setOf(RegexOption.DOT_MATCHES_ALL))
+            .findAll(arrayContent)
+            .map { decodeJsonString(it.groupValues[1]).trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+    }
+
+    private fun decodeJsonString(value: String): String =
+        runCatching {
+            gson.fromJson("\"$value\"", String::class.java)
+        }.getOrElse {
+            value
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+        }
 
     private data class AutoGeneratedContentDraft(
         val summary: String,

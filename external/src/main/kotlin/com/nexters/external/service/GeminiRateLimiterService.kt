@@ -32,39 +32,44 @@ class GeminiRateLimiterService(
         inputKeywords: List<String>,
         model: GeminiModel,
         content: String,
-    ): GenerateContentResponse? = executeWithRateLimit(model) {
-        geminiClient.requestAutoContentGeneration(inputKeywords, model, content)
-    }
+    ): GenerateContentResponse? =
+        executeWithRateLimit(model) {
+            geminiClient.requestAutoContentGeneration(inputKeywords, model, content)
+        }
 
     fun executeBatchAutoGenerationWithRateLimit(
         inputKeywords: List<String>,
         model: GeminiModel,
         contentItems: List<BatchContentItem>,
-    ): GenerateContentResponse? = executeWithRateLimit(model) {
-        geminiClient.requestBatchAutoContentGeneration(inputKeywords, model, contentItems)
-    }
+    ): GenerateContentResponse? =
+        executeWithRateLimit(model) {
+            geminiClient.requestBatchAutoContentGeneration(inputKeywords, model, contentItems)
+        }
 
     fun executeLegacyKeywordDiscoveryWithRateLimit(
         inputKeywords: List<String>,
         model: GeminiModel,
         content: String,
-    ): GenerateContentResponse? = executeWithRateLimit(model) {
-        geminiClient.requestLegacyKeywordDiscovery(inputKeywords, model, content)
-    }
+    ): GenerateContentResponse? =
+        executeWithRateLimit(model) {
+            geminiClient.requestLegacyKeywordDiscovery(inputKeywords, model, content)
+        }
 
     fun executeAutoEvaluationWithRateLimit(
         model: GeminiModel,
         input: AutoContentEvaluationInput,
-    ): GenerateContentResponse? = executeWithRateLimit(model) {
-        geminiClient.requestAutoContentEvaluation(model, input)
-    }
+    ): GenerateContentResponse? =
+        executeWithRateLimit(model) {
+            geminiClient.requestAutoContentEvaluation(model, input)
+        }
 
     fun executeBatchAutoEvaluationWithRateLimit(
         model: GeminiModel,
         items: List<BatchAutoContentEvaluationInput>,
-    ): GenerateContentResponse? = executeWithRateLimit(model) {
-        geminiClient.requestBatchAutoContentEvaluation(model, items)
-    }
+    ): GenerateContentResponse? =
+        executeWithRateLimit(model) {
+            geminiClient.requestBatchAutoContentEvaluation(model, items)
+        }
 
     private fun executeWithRateLimit(
         model: GeminiModel,

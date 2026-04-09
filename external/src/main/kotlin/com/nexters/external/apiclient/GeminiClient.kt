@@ -320,11 +320,13 @@ class GeminiClient(
         반환 규칙:
         - 반드시 순수 JSON만 반환
         - score: 0-10 정수
-        - reason: 점수를 준 핵심 이유를 한글 1-2문장으로 설명
-        - aiLikePatterns: 어색하거나 AI스럽게 느껴진 표현 패턴 목록
-        - recommendedFix: 다시 생성한다면 어떤 방향으로 고쳐야 하는지 한글 1문장
+        - reason: 점수를 준 핵심 이유를 한글 1문장, 80자 이내로 설명
+        - aiLikePatterns: 어색하거나 AI스럽게 느껴진 표현 패턴 목록, 최대 3개, 각 항목 20자 이내
+        - recommendedFix: 다시 생성한다면 어떤 방향으로 고쳐야 하는지 한글 1문장, 40자 이내
         - passed: score가 7 이상이면 true, 아니면 false
         - retryCount: 입력받은 현재 재시도 횟수를 그대로 반환
+        - 줄바꿈이 들어간 긴 설명 금지
+        - aiLikePatterns가 없으면 빈 배열 [] 반환
 
         형식:
         {"score":7,"reason":"설명","aiLikePatterns":["패턴1"],"recommendedFix":"수정 방향","passed":true,"retryCount":0}
@@ -363,9 +365,14 @@ class GeminiClient(
             반환 규칙:
             - 반드시 순수 JSON만 반환
             - score: 0-10 정수
+            - reason: 한글 1문장, 80자 이내
+            - aiLikePatterns: 최대 3개, 각 항목 20자 이내
+            - recommendedFix: 한글 1문장, 40자 이내
             - passed: score가 7 이상이면 true, 아니면 false
             - retryCount: 각 항목의 입력값을 그대로 반환
             - 모든 항목은 contentId를 유지
+            - 줄바꿈이 들어간 긴 설명 금지
+            - aiLikePatterns가 없으면 빈 배열 [] 반환
 
             형식:
             {"results":[{"contentId":"ID1","score":7,"reason":"설명","aiLikePatterns":["패턴1"],"recommendedFix":"수정 방향","passed":true,"retryCount":0}]}
@@ -383,7 +390,13 @@ class GeminiClient(
         $originalPrompt
 
         [입력 2: 평가 결과(JSON)]
-        {"score":${evaluationResult.score},"reason":"${escapeJson(evaluationResult.reason)}","aiLikePatterns":${toJsonArray(evaluationResult.aiLikePatterns)},"recommendedFix":"${escapeJson(evaluationResult.recommendedFix)}","passed":${evaluationResult.passed},"retryCount":${evaluationResult.retryCount}}
+        {"score":${evaluationResult.score},"reason":"${escapeJson(
+            evaluationResult.reason
+        )}","aiLikePatterns":${toJsonArray(
+            evaluationResult.aiLikePatterns
+        )},"recommendedFix":"${escapeJson(
+            evaluationResult.recommendedFix
+        )}","passed":${evaluationResult.passed},"retryCount":${evaluationResult.retryCount}}
 
         출력 규칙:
         - 일반 텍스트로만 반환
@@ -392,8 +405,7 @@ class GeminiClient(
         - 입력으로 받은 두 정보 외 가정은 최소화
         """.trimIndent()
 
-    private fun toJsonArray(values: List<String>): String =
-        values.joinToString(prefix = "[", postfix = "]") { "\"${escapeJson(it)}\"" }
+    private fun toJsonArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { "\"${escapeJson(it)}\"" }
 
     private fun escapeJson(value: String): String =
         value

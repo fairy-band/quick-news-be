@@ -75,9 +75,10 @@ class ContentAnalysisServiceTest {
         } returns mockResponse("""{"summary":"요약","provocativeHeadlines":["자연스러운 헤드라인"],"matchedKeywords":["kotlin"]}""")
         every {
             rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
-        } returns mockResponse(
-            """{"score":8,"reason":"사람이 다듬은 문장처럼 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0}""",
-        )
+        } returns
+            mockResponse(
+                """{"score":8,"reason":"사람이 다듬은 문장처럼 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0}""",
+            )
 
         val result = service.analyzeAndSave(content)
 
@@ -132,22 +133,25 @@ class ContentAnalysisServiceTest {
 
         every {
             rateLimiterService.executeBatchAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, any())
-        } returns mockResponse(
-            """{"results":[{"contentId":"10","summary":"요약1","provocativeHeadlines":["헤드라인1"],"matchedKeywords":["kotlin"]},{"contentId":"11","summary":"요약2","provocativeHeadlines":["헤드라인2"],"matchedKeywords":["redis"]}]}""",
-        )
+        } returns
+            mockResponse(
+                """{"results":[{"contentId":"10","summary":"요약1","provocativeHeadlines":["헤드라인1"],"matchedKeywords":["kotlin"]},{"contentId":"11","summary":"요약2","provocativeHeadlines":["헤드라인2"],"matchedKeywords":["redis"]}]}""",
+            )
         every {
             rateLimiterService.executeBatchAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
-        } returns mockResponse(
-            """{"results":[{"contentId":"10","score":8,"reason":"좋습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0},{"contentId":"11","score":4,"reason":"표현이 뻔합니다.","aiLikePatterns":["클릭베이트"],"recommendedFix":"핵심 대상을 드러내세요.","passed":false,"retryCount":0}]}""",
-        )
+        } returns
+            mockResponse(
+                """{"results":[{"contentId":"10","score":8,"reason":"좋습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0},{"contentId":"11","score":4,"reason":"표현이 뻔합니다.","aiLikePatterns":["클릭베이트"],"recommendedFix":"핵심 대상을 드러내세요.","passed":false,"retryCount":0}]}""",
+            )
         every {
             rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content2.content)
         } returns mockResponse("""{"summary":"재생성 요약","provocativeHeadlines":["재생성 헤드라인"],"matchedKeywords":["redis"]}""")
         every {
             rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
-        } returns mockResponse(
-            """{"score":8,"reason":"재생성 후 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":1}""",
-        )
+        } returns
+            mockResponse(
+                """{"score":8,"reason":"재생성 후 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":1}""",
+            )
 
         val result = service.analyzeBatchAndSave(listOf(content1, content2))
 
@@ -157,6 +161,66 @@ class ContentAnalysisServiceTest {
         assertEquals(3, savedAttempts.size)
         assertEquals(2, savedSummaries.size)
         assertEquals(2, savedSummaries.count { it.qualityScore == 8 })
+    }
+
+    @Test
+    fun `malformed single evaluation response is recovered from partial json`() {
+        val content = sampleContent(id = 20L)
+
+        every {
+            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content.content)
+        } returns mockResponse("""{"summary":"요약","provocativeHeadlines":["헤드라인"],"matchedKeywords":["kotlin"]}""")
+        every {
+            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+        } returns
+            mockResponse(
+                """{"score":7,"reason":"요약은 자연스럽지만 표현이 조금 상투적입니다.","aiLikePatterns":["필수""",
+            )
+
+        val result = service.analyzeAndSave(content)
+
+        assertEquals(7, result.qualityScore)
+        assertEquals("요약은 자연스럽지만 표현이 조금 상투적입니다.", result.qualityReason)
+        assertTrue(result.passed)
+        assertTrue(result.aiLikePatterns.isEmpty())
+        assertEquals(1, savedAttempts.size)
+        assertTrue(savedAttempts.single().accepted)
+    }
+
+    @Test
+    fun `malformed batch evaluation response recovers complete items and falls back for missing ones`() {
+        val content1 = sampleContent(id = 30L, body = "첫 번째 콘텐츠")
+        val content2 = sampleContent(id = 31L, body = "두 번째 콘텐츠")
+
+        every {
+            rateLimiterService.executeBatchAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, any())
+        } returns
+            mockResponse(
+                """{"results":[{"contentId":"30","summary":"요약1","provocativeHeadlines":["헤드라인1"],"matchedKeywords":["kotlin"]},{"contentId":"31","summary":"요약2","provocativeHeadlines":["헤드라인2"],"matchedKeywords":["redis"]}]}""",
+            )
+        every {
+            rateLimiterService.executeBatchAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+        } returns
+            mockResponse(
+                """{"results":[{"contentId":"30","score":8,"reason":"좋습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0},{"contentId":"31","score":4,"reason":"표현이 뻔합니다.","aiLikePatterns":["필수""",
+            )
+        every {
+            rateLimiterService.executeAutoGenerationWithRateLimit(any(), GeminiModel.TWO_FIVE_FLASH, content2.content)
+        } returns mockResponse("""{"summary":"재생성 요약","provocativeHeadlines":["재생성 헤드라인"],"matchedKeywords":["redis"]}""")
+        every {
+            rateLimiterService.executeAutoEvaluationWithRateLimit(GeminiModel.TWO_FIVE_FLASH, any())
+        } returns
+            mockResponse(
+                """{"score":8,"reason":"재생성 후 자연스럽습니다.","aiLikePatterns":[],"recommendedFix":"유지","passed":true,"retryCount":0}""",
+            )
+
+        val result = service.analyzeBatchAndSave(listOf(content1, content2))
+
+        assertEquals(2, result.size)
+        assertEquals(0, result.getValue("30").retryCount)
+        assertEquals(0, result.getValue("31").retryCount)
+        assertEquals(2, savedAttempts.size)
+        assertEquals(2, savedSummaries.size)
     }
 
     @Test
