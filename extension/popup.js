@@ -45,6 +45,7 @@ async function loadPageInfo() {
       
       document.getElementById('title').value = pageData.title || '';
       document.getElementById('url').value = pageData.url || '';
+      document.getElementById('imageUrl').value = pageData.imageUrl || '';
       document.getElementById('content').value = pageData.content || '';
       
       // 오늘 날짜를 기본값으로 설정
@@ -69,6 +70,9 @@ function extractPageContent() {
   
   // 제목 추출
   const title = document.title || getMetaContent('og:title') || getMetaContent('twitter:title');
+  
+  // 이미지 URL 추출
+  const imageUrl = getMetaContent('og:image') || getMetaContent('twitter:image') || '';
   
   // 본문 추출 - 여러 선택자를 시도하여 가장 적합한 콘텐츠 찾기
   let content = '';
@@ -136,7 +140,8 @@ function extractPageContent() {
   return {
     title: title.trim(),
     content: content,
-    url: window.location.href
+    url: window.location.href,
+    imageUrl: imageUrl.trim()
   };
 }
 
@@ -149,6 +154,7 @@ async function saveContent() {
     const title = document.getElementById('title').value.trim();
     const contentProviderName = document.getElementById('contentProviderName').value.trim();
     const url = document.getElementById('url').value.trim();
+    const imageUrl = document.getElementById('imageUrl').value.trim();
     const content = document.getElementById('content').value.trim();
     const publishedAt = document.getElementById('publishedAt').value;
     
@@ -176,6 +182,20 @@ async function saveContent() {
     
     showStatus('콘텐츠를 저장하는 중...', 'info');
     
+    // API 요청 바디 구성
+    const requestBody = {
+      title: title,
+      content: content,
+      contentProviderName: contentProviderName,
+      originalUrl: url,
+      publishedAt: publishedAt
+    };
+    
+    // 이미지 URL이 있으면 추가
+    if (imageUrl) {
+      requestBody.imageUrl = imageUrl;
+    }
+    
     // API 요청
     const response = await fetch(`${API_URL}/api/newsletters/contents`, {
       method: 'POST',
@@ -183,13 +203,7 @@ async function saveContent() {
         'Content-Type': 'application/json',
         'Access-Token': accessToken
       },
-      body: JSON.stringify({
-        title: title,
-        content: content,
-        contentProviderName: contentProviderName,
-        originalUrl: url,
-        publishedAt: publishedAt
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (!response.ok) {
