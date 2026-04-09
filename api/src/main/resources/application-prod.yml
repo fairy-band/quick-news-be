@@ -6,7 +6,7 @@ spring:
       - gemini.yml
 server:
   forward-headers-strategy: framework
-  url: http://152.69.225.128/api
+  url: http://152.69.225.128
 
 # Notification Configuration
 notification:

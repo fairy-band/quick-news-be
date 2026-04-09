@@ -63,6 +63,7 @@ function showStatus(message, type = 'info') {
   const statusEl = document.getElementById('status');
   statusEl.textContent = message;
   statusEl.className = `status ${type}`;
+  statusEl.style.display = 'block';
   
   if (type === 'success' || type === 'error') {
     setTimeout(() => {
@@ -111,11 +112,22 @@ function extractPageContent() {
     return meta ? meta.content : '';
   };
   
+  // 상대 경로를 절대 경로로 변환
+  const toAbsoluteUrl = (url) => {
+    if (!url) return '';
+    try {
+      return new URL(url, window.location.href).href;
+    } catch (e) {
+      return url;
+    }
+  };
+  
   // 제목 추출
   const title = document.title || getMetaContent('og:title') || getMetaContent('twitter:title');
   
-  // 이미지 URL 추출
-  const imageUrl = getMetaContent('og:image') || getMetaContent('twitter:image') || '';
+  // 이미지 URL 추출 및 절대 경로로 변환
+  const rawImageUrl = getMetaContent('og:image') || getMetaContent('twitter:image') || '';
+  const imageUrl = toAbsoluteUrl(rawImageUrl);
   
   // 본문 추출 - 여러 선택자를 시도하여 가장 적합한 콘텐츠 찾기
   let content = '';
@@ -261,6 +273,9 @@ async function saveContent() {
     
     const result = await response.json();
     showStatus(`콘텐츠가 저장되었습니다 (ID: ${result.id})`, 'success');
+    
+    // 폼 초기화 (선택사항)
+    // document.getElementById('content').value = '';
     
   } catch (error) {
     console.error('Error saving content:', error);
