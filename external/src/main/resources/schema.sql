@@ -202,3 +202,15 @@ CREATE TABLE IF NOT EXISTS gemini_rate_limit
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_model_date ON gemini_rate_limit (model_name, limit_date);
+
+CREATE TABLE IF NOT EXISTS content_provider_requests
+(
+    id                    SERIAL PRIMARY KEY,
+    content_provider_name VARCHAR(255) NOT NULL,
+    channel               VARCHAR(255) NOT NULL,
+    request_category      VARCHAR(20)  NOT NULL,
+    related_to            VARCHAR(255) NOT NULL,
+    reason                TEXT,
+    created_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
