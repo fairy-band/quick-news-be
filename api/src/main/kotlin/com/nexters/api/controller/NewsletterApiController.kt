@@ -5,11 +5,13 @@ import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
 import com.nexters.api.dto.CreateContentApiRequest
 import com.nexters.api.dto.CreateContentApiResponse
+import com.nexters.api.dto.CreateContentProviderRequestApiRequest
 import com.nexters.api.dto.ExposureContentApiResponse
 import com.nexters.api.dto.ExposureContentListApiResponse
 import com.nexters.api.enums.Language
 import com.nexters.api.exception.UnauthorizedException
 import com.nexters.api.util.TokenUtil
+import com.nexters.external.service.ContentProviderRequestService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
@@ -38,6 +40,7 @@ class NewsletterApiController(
     private val dayArchiveResolver: DailyContentArchiveResolver,
     private val exposureContentService: ExposureContentService,
     private val contentService: ContentService,
+    private val contentProviderRequestService: ContentProviderRequestService,
     private val tokenUtil: TokenUtil,
 ) {
     @GetMapping("/contents/{userId}")
@@ -189,5 +192,29 @@ class NewsletterApiController(
                 type = provider.type,
             )
         }
+    }
+
+    @PostMapping("/content-provider-requests")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+        summary = "콘텐츠 제공자 요청",
+        description = "새로운 콘텐츠 제공자 추가를 요청합니다.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "요청 등록 성공"),
+            ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        ],
+    )
+    fun createContentProviderRequest(
+        @RequestBody request: CreateContentProviderRequestApiRequest,
+    ) {
+        contentProviderRequestService.createRequest(
+            contentProviderName = request.contentProviderName,
+            channel = request.channel,
+            requestCategory = request.requestCategory,
+            relatedTo = request.relatedTo,
+            reason = request.reason,
+        )
     }
 }

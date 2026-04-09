@@ -7,6 +7,7 @@ import com.nexters.external.entity.AdminMember
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.repository.AdminMemberRepository
+import com.nexters.external.service.ContentProviderRequestService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
@@ -48,6 +49,9 @@ class NewsletterApiControllerTest {
 
     @MockitoBean
     private lateinit var adminMemberRepository: AdminMemberRepository
+
+    @MockitoBean
+    private lateinit var contentProviderRequestService: ContentProviderRequestService
 
     private lateinit var validToken: String
     private lateinit var adminMember: AdminMember
