@@ -219,17 +219,6 @@ class GeminiClient(
             schema = BATCH_CONTENT_EVALUATION_SCHEMA,
         )
 
-    fun requestPromptRevisionSuggestion(
-        model: GeminiModel,
-        originalPrompt: String,
-        evaluationResult: ContentEvaluationResult,
-    ): GenerateContentResponse? =
-        executeTextRequest(
-            model = model,
-            prompt = buildPromptRevisionSuggestionPrompt(originalPrompt, evaluationResult),
-            maxOutputTokens = 3000,
-        )
-
     private fun executeJsonRequest(
         model: GeminiModel,
         prompt: String,
@@ -400,11 +389,18 @@ class GeminiClient(
     private fun renderPrompt(
         template: String,
         vararg replacements: Pair<String, String>,
-    ): String =
-        replacements
-            .fold(template) { rendered, (key, value) ->
-                rendered.replace("{{$key}}", value)
-            }.trimIndent()
+    ): String = PromptTemplate(template).render(*replacements)
+
+    @JvmInline
+    value class PromptTemplate(
+        val template: String
+    ) {
+        fun render(vararg replacements: Pair<String, String>): String =
+            replacements
+                .fold(template) { rendered, (key, value) ->
+                    rendered.replace("{{$key}}", value)
+                }.trimIndent()
+    }
 
     private fun buildEvaluationResultJson(evaluationResult: ContentEvaluationResult): String =
         """{"score":${evaluationResult.score},"reason":"${escapeJson(
