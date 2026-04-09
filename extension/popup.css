@@ -65,6 +65,7 @@ label {
 input[type="text"],
 input[type="password"],
 input[type="date"],
+select,
 textarea {
   width: 100%;
   padding: 8px 10px;
@@ -77,9 +78,15 @@ textarea {
 input[type="text"]:focus,
 input[type="password"]:focus,
 input[type="date"]:focus,
+select:focus,
 textarea:focus {
   outline: none;
   border-color: #4CAF50;
+}
+
+input[type="checkbox"] {
+  margin-right: 5px;
+  cursor: pointer;
 }
 
 input[readonly],

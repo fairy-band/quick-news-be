@@ -1,11 +1,54 @@
 // API URL 하드코딩
 const API_URL = 'http://152.69.225.128';
 
+// ContentProvider 목록 저장
+let contentProviders = [];
+
 // 설정 로드
 async function loadSettings() {
   const result = await chrome.storage.local.get(['accessToken']);
   if (result.accessToken) {
     document.getElementById('accessToken').value = result.accessToken;
+    // 토큰이 있으면 ContentProvider 목록 로드
+    await loadContentProviders();
+  }
+}
+
+// ContentProvider 목록 로드
+async function loadContentProviders() {
+  try {
+    const accessToken = document.getElementById('accessToken').value.trim();
+    if (!accessToken) {
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/api/newsletters/content-providers`, {
+      method: 'GET',
+      headers: {
+        'Access-Token': accessToken
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load content providers: ${response.status}`);
+    }
+
+    contentProviders = await response.json();
+    
+    const selectEl = document.getElementById('contentProviderSelect');
+    selectEl.innerHTML = '<option value="">-- 선택하세요 --</option>';
+    
+    contentProviders.forEach(provider => {
+      const option = document.createElement('option');
+      option.value = provider.name;
+      option.textContent = `${provider.name} (${provider.type || 'N/A'})`;
+      option.dataset.type = provider.type || '';
+      selectEl.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error loading content providers:', error);
+    const selectEl = document.getElementById('contentProviderSelect');
+    selectEl.innerHTML = '<option value="">로드 실패</option>';
   }
 }
 
@@ -152,7 +195,11 @@ async function saveContent() {
     
     const accessToken = document.getElementById('accessToken').value.trim();
     const title = document.getElementById('title').value.trim();
-    const contentProviderName = document.getElementById('contentProviderName').value.trim();
+    const useCustomProvider = document.getElementById('useCustomProvider').checked;
+    const contentProviderName = useCustomProvider 
+      ? document.getElementById('contentProviderName').value.trim()
+      : document.getElementById('contentProviderSelect').value.trim();
+    const contentProviderType = document.getElementById('contentProviderType').value;
     const url = document.getElementById('url').value.trim();
     const imageUrl = document.getElementById('imageUrl').value.trim();
     const content = document.getElementById('content').value.trim();
@@ -168,7 +215,7 @@ async function saveContent() {
       return;
     }
     if (!contentProviderName) {
-      showStatus('콘텐츠 제공자를 입력하세요', 'error');
+      showStatus('콘텐츠 제공자를 선택하거나 입력하세요', 'error');
       return;
     }
     if (!content) {
@@ -187,6 +234,7 @@ async function saveContent() {
       title: title,
       content: content,
       contentProviderName: contentProviderName,
+      contentProviderType: contentProviderType,
       originalUrl: url,
       publishedAt: publishedAt
     };
@@ -224,6 +272,34 @@ async function saveContent() {
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
   await loadPageInfo();
+  
+  // ContentProvider 선택 변경 시 타입 자동 설정
+  document.getElementById('contentProviderSelect').addEventListener('change', (e) => {
+    const selectedOption = e.target.options[e.target.selectedIndex];
+    const type = selectedOption.dataset.type;
+    if (type) {
+      document.getElementById('contentProviderType').value = type;
+    }
+  });
+  
+  // 커스텀 제공자 체크박스 토글
+  document.getElementById('useCustomProvider').addEventListener('change', (e) => {
+    const customInput = document.getElementById('contentProviderName');
+    const selectEl = document.getElementById('contentProviderSelect');
+    
+    if (e.target.checked) {
+      customInput.style.display = 'block';
+      selectEl.style.display = 'none';
+    } else {
+      customInput.style.display = 'none';
+      selectEl.style.display = 'block';
+    }
+  });
+  
+  // Access Token 변경 시 ContentProvider 목록 다시 로드
+  document.getElementById('accessToken').addEventListener('blur', async () => {
+    await loadContentProviders();
+  });
   
   document.getElementById('loadPageInfo').addEventListener('click', loadPageInfo);
   document.getElementById('saveContent').addEventListener('click', saveContent);

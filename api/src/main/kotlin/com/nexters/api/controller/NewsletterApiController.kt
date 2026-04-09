@@ -1,5 +1,6 @@
 package com.nexters.api.controller
 
+import com.nexters.api.dto.ContentProviderApiResponse
 import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
 import com.nexters.api.dto.CreateContentApiRequest
@@ -146,6 +147,8 @@ class NewsletterApiController(
                 originalUrl = request.originalUrl,
                 publishedAt = request.publishedAt,
                 contentProviderName = request.contentProviderName,
+                imageUrl = request.imageUrl,
+                contentProviderType = request.contentProviderType,
             )
 
         return CreateContentApiResponse(
@@ -155,5 +158,36 @@ class NewsletterApiController(
             originalUrl = content.originalUrl,
             createdAt = content.createdAt,
         )
+    }
+
+    @GetMapping("/content-providers")
+    @Operation(
+        summary = "콘텐츠 제공자 목록 조회",
+        description = "등록된 모든 콘텐츠 제공자 목록을 조회합니다.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "조회 성공"),
+            ApiResponse(responseCode = "401", description = "인증 실패"),
+        ],
+    )
+    fun getContentProviders(
+        @RequestHeader("Access-Token") accessToken: String,
+    ): List<ContentProviderApiResponse> {
+        try {
+            tokenUtil.validateAndGetEmail(accessToken)
+        } catch (e: Exception) {
+            throw UnauthorizedException("Invalid access token: ${e.message}")
+        }
+
+        return contentService.getAllContentProviders().map { provider ->
+            ContentProviderApiResponse(
+                id = provider.id!!,
+                name = provider.name,
+                channel = provider.channel,
+                language = provider.language,
+                type = provider.type,
+            )
+        }
     }
 }

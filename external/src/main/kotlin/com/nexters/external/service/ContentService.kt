@@ -17,6 +17,8 @@ class ContentService(
 ) {
     fun save(content: Content): Content = contentRepository.save(content)
 
+    fun getAllContentProviders(): List<ContentProvider> = contentProviderRepository.findAll()
+
     @Transactional
     fun createContent(
         title: String,
@@ -26,11 +28,12 @@ class ContentService(
         publishedAt: LocalDate,
         newsletterSourceId: String? = null,
         imageUrl: String? = null,
+        contentProviderType: ContentProviderType? = null,
     ): Content {
         val contentProvider =
             contentProviderName.let { name ->
                 val existing = contentProviderRepository.findByNameWithLock(name)
-                existing ?: createContentProvider(name)
+                existing ?: createContentProvider(name, contentProviderType)
             }
 
         val newContent =
@@ -50,13 +53,16 @@ class ContentService(
         return contentRepository.save(newContent)
     }
 
-    private fun createContentProvider(name: String): ContentProvider {
+    private fun createContentProvider(
+        name: String,
+        type: ContentProviderType? = null,
+    ): ContentProvider {
         val newProvider =
             ContentProvider(
                 name = name,
                 channel = name,
                 language = "ko",
-                type = ContentProviderType.USER_PROVIDE_CONTENT,
+                type = type ?: ContentProviderType.USER_PROVIDE_CONTENT,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now(),
             )

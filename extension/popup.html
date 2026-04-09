@@ -23,8 +23,24 @@
     </div>
     
     <div class="form-group">
-      <label for="contentProviderName">콘텐츠 제공자</label>
-      <input type="text" id="contentProviderName" placeholder="예: Kotlin Weekly" />
+      <label for="contentProviderSelect">콘텐츠 제공자</label>
+      <select id="contentProviderSelect">
+        <option value="">로딩 중...</option>
+      </select>
+      <label style="margin-top: 8px;">
+        <input type="checkbox" id="useCustomProvider" />
+        커스텀 제공자 입력
+      </label>
+      <input type="text" id="contentProviderName" placeholder="커스텀 제공자 이름" style="display: none; margin-top: 8px;" />
+    </div>
+    
+    <div class="form-group">
+      <label for="contentProviderType">콘텐츠 타입</label>
+      <select id="contentProviderType">
+        <option value="BLOG">블로그</option>
+        <option value="NEWSLETTER">뉴스레터</option>
+        <option value="USER_PROVIDE_CONTENT">사용자 제공 콘텐츠</option>
+      </select>
     </div>
     
     <div class="form-group">
