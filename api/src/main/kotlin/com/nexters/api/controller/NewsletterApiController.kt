@@ -212,7 +212,7 @@ class NewsletterApiController(
         contentProviderRequestService.createRequest(
             contentProviderName = request.contentProviderName,
             channel = request.channel,
-            requestCategory = request.requestCategory,
+            requestCategory = request.requestCategories.joinToString { "," },
             relatedTo = request.relatedTo,
             reason = request.reason,
         )
