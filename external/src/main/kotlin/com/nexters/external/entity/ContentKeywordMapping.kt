@@ -8,6 +8,8 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.PrePersist
+import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
@@ -23,8 +25,22 @@ class ContentKeywordMapping(
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "keyword_id", nullable = false)
     val keyword: ReservedKeyword,
-    @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    @Column(name = "updated_at", nullable = false)
-    val updatedAt: LocalDateTime = LocalDateTime.now()
-)
+    @Column(name = "created_at", nullable = true)
+    var createdAt: LocalDateTime? = LocalDateTime.now(),
+    @Column(name = "updated_at", nullable = true)
+    var updatedAt: LocalDateTime? = LocalDateTime.now()
+) {
+    @PrePersist
+    fun prePersist() {
+        val now = LocalDateTime.now()
+        if (createdAt == null) {
+            createdAt = now
+        }
+        updatedAt = now
+    }
+
+    @PreUpdate
+    fun preUpdate() {
+        updatedAt = LocalDateTime.now()
+    }
+}

@@ -55,6 +55,36 @@ interface ContentRepository : JpaRepository<Content, Long> {
 
     @Query(
         """
+        SELECT c FROM Content c
+        LEFT JOIN c.contentProvider cp
+        LEFT JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
+        LEFT JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
+        LEFT JOIN catkm.category cat
+        WHERE c.id NOT IN (
+            SELECT DISTINCT s.content.id FROM Summary s
+        )
+        AND LENGTH(c.content) <= $MAX_CONTENT_LENGTH
+        ORDER BY
+            CASE
+                WHEN cp.type = 'BLOG' THEN 0
+                WHEN cp.type = 'NEWSLETTER' THEN 1
+                ELSE 2
+            END,
+            (
+                SELECT COUNT(DISTINCT ec.id)
+                FROM ExposureContent ec
+                JOIN ec.content c2
+                JOIN ContentKeywordMapping ckm2 ON c2.id = ckm2.content.id
+                JOIN CategoryKeywordMapping catkm2 ON ckm2.keyword.id = catkm2.keyword.id
+                WHERE catkm2.category.id = cat.id
+            ) ASC,
+            c.createdAt DESC
+    """
+    )
+    fun findContentsWithoutSummaryOrderedByCategoryBalance(pageable: Pageable): Page<Content>
+
+    @Query(
+        """
         SELECT DISTINCT c FROM Content c
         JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
         JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
