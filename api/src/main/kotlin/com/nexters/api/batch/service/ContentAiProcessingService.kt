@@ -59,9 +59,9 @@ class ContentAiProcessingService(
         try {
             logger.info("Starting unprocessed content AI batch processing")
 
-            // Summary가 없는 Content 조회 (BLOG 우선순위로 정렬됨)
+            // Summary가 없는 Content 조회 (BLOG 우선순위 + 카테고리 균형 고려)
             val pageable = PageRequest.of(0, BATCH_SIZE)
-            val unprocessedContentsPage = contentRepository.findContentsWithoutSummaryOrderedByProviderTypePriority(pageable)
+            val unprocessedContentsPage = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(pageable)
 
             if (unprocessedContentsPage.isEmpty) {
                 logger.info("No unprocessed contents found")
@@ -348,7 +348,7 @@ class ContentAiProcessingService(
 
     private fun getRemainingCount(): Int =
         contentRepository
-            .findContentsWithoutSummaryOrderedByProviderTypePriority(
+            .findContentsWithoutSummaryOrderedByCategoryBalance(
                 PageRequest.of(0, 1)
             ).totalElements
             .toInt()
