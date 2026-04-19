@@ -3,6 +3,7 @@ package com.nexters.admin.controller
 import com.nexters.admin.repository.CategoryKeywordMappingRepository
 import com.nexters.external.entity.CategoryKeywordMapping
 import com.nexters.external.repository.CategoryRepository
+import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
@@ -35,7 +36,7 @@ class RecommendationController(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentRepository: ContentRepository,
     private val userService: UserService,
-    private val contentKeywordMappingRepository: com.nexters.external.repository.ContentKeywordMappingRepository,
+    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
 ) {
     @GetMapping("/exposure-contents/all")
     fun getAllExposureContentsWithPaging(

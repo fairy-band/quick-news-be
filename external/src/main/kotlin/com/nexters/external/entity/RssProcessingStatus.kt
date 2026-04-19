@@ -16,11 +16,11 @@ class RssProcessingStatus(
     val id: Long? = null,
     @Column(name = "newsletter_source_id", unique = true, nullable = false)
     val newsletterSourceId: String,
-    @Column(name = "rss_url", nullable = false)
+    @Column(name = "rss_url", nullable = false, columnDefinition = "TEXT")
     val rssUrl: String,
-    @Column(name = "item_url", unique = true, nullable = false)
+    @Column(name = "item_url", unique = true, nullable = false, columnDefinition = "TEXT")
     val itemUrl: String,
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     val title: String,
     @Column(name = "is_processed", nullable = false)
     var isProcessed: Boolean = false,

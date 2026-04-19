@@ -2,23 +2,30 @@ package com.nexters.api.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.nexters.api.dto.CreateContentApiRequest
+import com.nexters.api.service.NewsletterContentsService
 import com.nexters.api.util.TokenUtil
 import com.nexters.external.entity.AdminMember
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
+import com.nexters.external.entity.DailyContentArchive
+import com.nexters.external.entity.ExposureContent
 import com.nexters.external.repository.AdminMemberRepository
 import com.nexters.external.service.ContentProviderRequestService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
+import com.nexters.external.service.PopularNewsletterSnapshotService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -27,6 +34,7 @@ import java.time.LocalDateTime
 import java.util.Base64
 
 @WebMvcTest(NewsletterApiController::class)
+@Import(NewsletterContentsService::class)
 @ActiveProfiles("test")
 class NewsletterApiControllerTest {
     @Autowired
@@ -40,6 +48,9 @@ class NewsletterApiControllerTest {
 
     @MockitoBean
     private lateinit var exposureContentService: ExposureContentService
+
+    @MockitoBean
+    private lateinit var popularNewsletterSnapshotService: PopularNewsletterSnapshotService
 
     @MockitoBean
     private lateinit var contentService: ContentService
@@ -65,6 +76,165 @@ class NewsletterApiControllerTest {
                 name = "Admin User"
             )
         validToken = Base64.getEncoder().encodeToString("admin@example.com:token".toByteArray())
+    }
+
+    @Test
+    fun `should return featured trending card from snapshot in v1 response`() {
+        val publishedDate = LocalDate.of(2025, 7, 8)
+        val archive =
+            DailyContentArchive(
+                date = publishedDate,
+                user =
+                    DailyContentArchive.UserSnapshot(
+                        id = 1L,
+                        deviceToken = "device-token",
+                        createdAt = LocalDateTime.of(2025, 7, 8, 0, 0),
+                        updatedAt = LocalDateTime.of(2025, 7, 8, 0, 0),
+                    ),
+                exposureContents =
+                    listOf(
+                        ExposureContent(
+                            id = 11L,
+                            content =
+                                Content(
+                                    id = 101L,
+                                    title = "원문 제목",
+                                    content = "원문 본문",
+                                    newsletterName = "안드로이드 위클리",
+                                    originalUrl = "https://example.com/article-1",
+                                    imageUrl = "https://example.com/image-1.png",
+                                    publishedAt = publishedDate,
+                                    contentProvider =
+                                        ContentProvider(
+                                            id = 201L,
+                                            name = "Android Weekly",
+                                            channel = "android-weekly",
+                                            language = "ko",
+                                            type = null,
+                                        ),
+                                ),
+                            provocativeKeyword = "Kotlin",
+                            provocativeHeadline = "후킹 제목",
+                            summaryContent = "요약 내용",
+                        ),
+                    ),
+            )
+        val featuredExposureContent =
+            ExposureContent(
+                id = 99L,
+                content =
+                    Content(
+                        id = 199L,
+                        title = "인기 원문 제목",
+                        content = "인기 원문 본문",
+                        newsletterName = "프론트엔드 위클리",
+                        originalUrl = "https://example.com/featured-article",
+                        imageUrl = "https://example.com/featured-image.png",
+                        publishedAt = publishedDate.minusDays(1),
+                        contentProvider =
+                            ContentProvider(
+                                id = 299L,
+                                name = "Frontend Weekly",
+                                channel = "frontend-weekly",
+                                language = "en",
+                                type = null,
+                            ),
+                    ),
+                provocativeKeyword = "React",
+                provocativeHeadline = "가장 많이 읽힌 글",
+                summaryContent = "인기 글 요약",
+            )
+
+        Mockito
+            .`when`(dayArchiveResolver.resolveTodayContentArchive(1L, publishedDate))
+            .thenReturn(archive)
+        Mockito
+            .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContent())
+            .thenReturn(featuredExposureContent)
+
+        mockMvc
+            .perform(
+                get("/api/newsletters/contents/1")
+                    .param("publishedDate", publishedDate.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.publishedDate").value("2025-07-08"))
+            .andExpect(jsonPath("$.trendingCard.id").value(99L))
+            .andExpect(jsonPath("$.trendingCard.title").value("가장 많이 읽힌 글"))
+            .andExpect(jsonPath("$.trendingCard.topKeyword").value("React"))
+            .andExpect(jsonPath("$.trendingCard.summary").value("인기 글 요약"))
+            .andExpect(jsonPath("$.trendingCard.contentUrl").value("https://example.com/featured-article"))
+            .andExpect(jsonPath("$.trendingCard.imageUrl").value("https://example.com/featured-image.png"))
+            .andExpect(jsonPath("$.trendingCard.newsletterName").value("프론트엔드 위클리"))
+            .andExpect(jsonPath("$.trendingCard.language").value("ENGLISH"))
+            .andExpect(jsonPath("$.cards[0].id").value(11L))
+            .andExpect(jsonPath("$.cards[0].title").value("후킹 제목"))
+            .andExpect(jsonPath("$.cards[0].topKeyword").value("Kotlin"))
+            .andExpect(jsonPath("$.cards[0].summary").value("요약 내용"))
+            .andExpect(jsonPath("$.cards[0].contentUrl").value("https://example.com/article-1"))
+            .andExpect(jsonPath("$.cards[0].imageUrl").value("https://example.com/image-1.png"))
+            .andExpect(jsonPath("$.cards[0].newsletterName").value("안드로이드 위클리"))
+            .andExpect(jsonPath("$.cards[0].language").value("KOREAN"))
+    }
+
+    @Test
+    fun `should fallback featured trending card to first card in v1 response`() {
+        val publishedDate = LocalDate.of(2025, 7, 8)
+        val archive =
+            DailyContentArchive(
+                date = publishedDate,
+                user =
+                    DailyContentArchive.UserSnapshot(
+                        id = 1L,
+                        deviceToken = "device-token",
+                        createdAt = LocalDateTime.of(2025, 7, 8, 0, 0),
+                        updatedAt = LocalDateTime.of(2025, 7, 8, 0, 0),
+                    ),
+                exposureContents =
+                    listOf(
+                        ExposureContent(
+                            id = 11L,
+                            content =
+                                Content(
+                                    id = 101L,
+                                    title = "원문 제목",
+                                    content = "원문 본문",
+                                    newsletterName = "안드로이드 위클리",
+                                    originalUrl = "https://example.com/article-1",
+                                    imageUrl = "https://example.com/image-1.png",
+                                    publishedAt = publishedDate,
+                                    contentProvider =
+                                        ContentProvider(
+                                            id = 201L,
+                                            name = "Android Weekly",
+                                            channel = "android-weekly",
+                                            language = "ko",
+                                            type = null,
+                                        ),
+                                ),
+                            provocativeKeyword = "Kotlin",
+                            provocativeHeadline = "후킹 제목",
+                            summaryContent = "요약 내용",
+                        ),
+                    ),
+            )
+
+        Mockito
+            .`when`(dayArchiveResolver.resolveTodayContentArchive(1L, publishedDate))
+            .thenReturn(archive)
+        Mockito
+            .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContent())
+            .thenReturn(null)
+
+        mockMvc
+            .perform(
+                get("/api/newsletters/contents/1")
+                    .param("publishedDate", publishedDate.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.publishedDate").value("2025-07-08"))
+            .andExpect(jsonPath("$.trendingCard.id").value(11L))
+            .andExpect(jsonPath("$.trendingCard.title").value("후킹 제목"))
+            .andExpect(jsonPath("$.trendingCard.topKeyword").value("Kotlin"))
+            .andExpect(jsonPath("$.cards[0].id").value(11L))
     }
 
     @Test
@@ -99,10 +269,10 @@ class NewsletterApiControllerTest {
             )
 
         // When & Then
-        org.mockito.Mockito
+        Mockito
             .`when`(tokenUtil.validateAndGetEmail(validToken))
             .thenReturn("admin@example.com")
-        org.mockito.Mockito
+        Mockito
             .`when`(
                 contentService.createContent(
                     title = request.title,
@@ -163,7 +333,7 @@ class NewsletterApiControllerTest {
         val invalidToken = "invalid_token"
 
         // When & Then
-        org.mockito.Mockito
+        Mockito
             .`when`(tokenUtil.validateAndGetEmail(invalidToken))
             .thenThrow(IllegalArgumentException("Invalid token"))
 
@@ -210,10 +380,10 @@ class NewsletterApiControllerTest {
             )
 
         // When & Then
-        org.mockito.Mockito
+        Mockito
             .`when`(tokenUtil.validateAndGetEmail(validToken))
             .thenReturn("admin@example.com")
-        org.mockito.Mockito
+        Mockito
             .`when`(
                 contentService.createContent(
                     title = request.title,

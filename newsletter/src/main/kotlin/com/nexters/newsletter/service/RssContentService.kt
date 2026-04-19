@@ -14,6 +14,7 @@ import com.nexters.external.service.RssReaderService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -29,7 +30,8 @@ class RssContentService(
 ) {
     private val logger = LoggerFactory.getLogger(RssContentService::class.java)
 
-    @Transactional
+    // feed의 DB 실패가 다음 feed까지 같은 세션을 오염시키지 않도록, feed 단위로 트랜잭션을 분리하여 처리
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun fetchAndSaveRssFeed(vararg feedUrls: String): Map<String, Int> =
         feedUrls.associateWith { feedUrl ->
             try {
