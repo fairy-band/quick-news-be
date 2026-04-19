@@ -17,6 +17,7 @@ import com.nexters.external.service.PopularNewsletterSnapshotService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.Import
@@ -144,10 +145,10 @@ class NewsletterApiControllerTest {
                 summaryContent = "인기 글 요약",
             )
 
-        org.mockito.Mockito
+        Mockito
             .`when`(dayArchiveResolver.resolveTodayContentArchive(1L, publishedDate))
             .thenReturn(archive)
-        org.mockito.Mockito
+        Mockito
             .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContent())
             .thenReturn(featuredExposureContent)
 
@@ -217,10 +218,10 @@ class NewsletterApiControllerTest {
                     ),
             )
 
-        org.mockito.Mockito
+        Mockito
             .`when`(dayArchiveResolver.resolveTodayContentArchive(1L, publishedDate))
             .thenReturn(archive)
-        org.mockito.Mockito
+        Mockito
             .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContent())
             .thenReturn(null)
 
@@ -268,10 +269,10 @@ class NewsletterApiControllerTest {
             )
 
         // When & Then
-        org.mockito.Mockito
+        Mockito
             .`when`(tokenUtil.validateAndGetEmail(validToken))
             .thenReturn("admin@example.com")
-        org.mockito.Mockito
+        Mockito
             .`when`(
                 contentService.createContent(
                     title = request.title,
@@ -332,7 +333,7 @@ class NewsletterApiControllerTest {
         val invalidToken = "invalid_token"
 
         // When & Then
-        org.mockito.Mockito
+        Mockito
             .`when`(tokenUtil.validateAndGetEmail(invalidToken))
             .thenThrow(IllegalArgumentException("Invalid token"))
 
@@ -379,10 +380,10 @@ class NewsletterApiControllerTest {
             )
 
         // When & Then
-        org.mockito.Mockito
+        Mockito
             .`when`(tokenUtil.validateAndGetEmail(validToken))
             .thenReturn("admin@example.com")
-        org.mockito.Mockito
+        Mockito
             .`when`(
                 contentService.createContent(
                     title = request.title,

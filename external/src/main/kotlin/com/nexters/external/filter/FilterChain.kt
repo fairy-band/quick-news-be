@@ -1,6 +1,7 @@
 package com.nexters.external.filter
 
 import com.nexters.external.entity.Content
+import com.nexters.external.enums.ContentProviderType
 import org.slf4j.LoggerFactory
 
 /**
@@ -65,7 +66,7 @@ class FilterChain(
             filters.add(LengthFilter(minLength, maxLength))
         }
 
-        fun addProviderTypeFilter(vararg types: com.nexters.external.enums.ContentProviderType) =
+        fun addProviderTypeFilter(vararg types: ContentProviderType) =
             apply {
                 filters.add(ProviderTypeFilter(types.toSet()))
             }

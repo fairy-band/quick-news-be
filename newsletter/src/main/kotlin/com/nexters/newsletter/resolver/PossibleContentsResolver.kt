@@ -1,5 +1,6 @@
 package com.nexters.newsletter.resolver
 
+import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.service.CategoryService
@@ -48,7 +49,7 @@ class PossibleContentsResolver(
         userId: Long,
         contentProviders: List<*>,
     ): List<ExposureContent> {
-        val contentProviderIds = contentProviders.mapNotNull { (it as? com.nexters.external.entity.ContentProvider)?.id }
+        val contentProviderIds = contentProviders.mapNotNull { (it as? ContentProvider)?.id }
         return if (contentProviderIds.isNotEmpty()) {
             exposureContentService.getNotExposedExposureContentsByContentProviderIds(userId, contentProviderIds)
         } else {
