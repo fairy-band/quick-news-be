@@ -2,7 +2,6 @@ package com.nexters.api.controller
 
 import com.nexters.api.dto.ContentProviderApiResponse
 import com.nexters.api.dto.ContentViewApiResponse
-import com.nexters.api.dto.ContentViewApiResponse.ContentCardApiResponse
 import com.nexters.api.dto.CreateContentApiRequest
 import com.nexters.api.dto.CreateContentApiResponse
 import com.nexters.api.dto.CreateContentProviderRequestApiRequest
@@ -10,6 +9,7 @@ import com.nexters.api.dto.ExposureContentApiResponse
 import com.nexters.api.dto.ExposureContentListApiResponse
 import com.nexters.api.enums.Language
 import com.nexters.api.exception.UnauthorizedException
+import com.nexters.api.service.NewsletterContentsService
 import com.nexters.api.util.TokenUtil
 import com.nexters.external.service.ContentProviderRequestService
 import com.nexters.external.service.ContentService
@@ -38,6 +38,7 @@ import java.time.LocalDate
 @Tag(name = "Newsletter API", description = "뉴스레터 관련 API")
 class NewsletterApiController(
     private val dayArchiveResolver: DailyContentArchiveResolver,
+    private val newsletterContentsService: NewsletterContentsService,
     private val exposureContentService: ExposureContentService,
     private val contentService: ContentService,
     private val contentProviderRequestService: ContentProviderRequestService,
@@ -47,23 +48,7 @@ class NewsletterApiController(
     fun getNewsletterContents(
         @PathVariable userId: Long,
         publishedDate: LocalDate = LocalDate.now(),
-    ): ContentViewApiResponse =
-        ContentViewApiResponse(
-            publishedDate = publishedDate,
-            cards =
-                dayArchiveResolver.resolveTodayContentArchive(userId, publishedDate).exposureContents.map {
-                    ContentCardApiResponse(
-                        id = it.id!!,
-                        title = it.provocativeHeadline,
-                        topKeyword = it.provocativeKeyword,
-                        summary = it.summaryContent,
-                        contentUrl = it.content.originalUrl,
-                        imageUrl = it.content.imageUrl,
-                        newsletterName = it.content.newsletterName,
-                        language = Language.fromString(it.content.contentProvider?.language),
-                    )
-                },
-        )
+    ): ContentViewApiResponse = newsletterContentsService.getNewsletterContents(userId, publishedDate)
 
     @PostMapping("/contents/{userId}/refresh")
     @ApiResponses(
