@@ -379,25 +379,6 @@ CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_id
 CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_resolution_rank
     ON popular_newsletter_snapshot_items (snapshot_id, resolution_status, rank_order);
 
-UPDATE popular_newsletter_snapshots snapshots
-SET featured_exposure_content_id = (
-    SELECT items.resolved_exposure_content_id
-    FROM popular_newsletter_snapshot_items items
-    WHERE items.snapshot_id = snapshots.id
-      AND items.resolution_status = 'RESOLVED'
-      AND items.resolved_exposure_content_id IS NOT NULL
-    ORDER BY items.rank_order ASC
-    LIMIT 1
-)
-WHERE snapshots.featured_exposure_content_id IS NULL
-  AND EXISTS (
-    SELECT 1
-    FROM popular_newsletter_snapshot_items items
-    WHERE items.snapshot_id = snapshots.id
-      AND items.resolution_status = 'RESOLVED'
-      AND items.resolved_exposure_content_id IS NOT NULL
-);
-
 COMMENT ON TABLE popular_newsletter_snapshots IS '인기 뉴스레터 랭킹 스냅샷 메타데이터';
 
 COMMENT ON TABLE popular_newsletter_snapshot_items IS '인기 뉴스레터 스냅샷 개별 랭킹 아이템';
