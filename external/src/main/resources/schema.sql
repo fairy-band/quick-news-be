@@ -257,3 +257,54 @@ CREATE TABLE IF NOT EXISTS content_provider_requests
     created_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS popular_newsletter_snapshots
+(
+    id                 BIGSERIAL PRIMARY KEY,
+    segment_type       VARCHAR(20) NOT NULL CHECK (segment_type IN ('GLOBAL', 'CATEGORY', 'JOB_GROUP')),
+    segment_key        VARCHAR(255),
+    window_start_date  DATE        NOT NULL,
+    window_end_date    DATE        NOT NULL,
+    generated_at       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    source_event_name  VARCHAR(255) NOT NULL,
+    candidate_limit    INTEGER     NOT NULL,
+    resolved_item_count INTEGER    NOT NULL DEFAULT 0,
+    status             VARCHAR(20) NOT NULL CHECK (status IN ('SUCCESS', 'FAILED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_segment_generated_at
+    ON popular_newsletter_snapshots (segment_type, segment_key, generated_at DESC);
+
+CREATE TABLE IF NOT EXISTS popular_newsletter_snapshot_items
+(
+    id                          BIGSERIAL PRIMARY KEY,
+    snapshot_id                 BIGINT      NOT NULL,
+    rank_order                  INTEGER     NOT NULL,
+    raw_object_id               VARCHAR(1024) NOT NULL,
+    click_count                 BIGINT      NOT NULL,
+    resolved_content_id         BIGINT,
+    resolved_exposure_content_id BIGINT,
+    resolution_status           VARCHAR(20) NOT NULL CHECK (resolution_status IN ('RESOLVED', 'UNRESOLVED')),
+    created_at                  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_popular_newsletter_snapshot_items_snapshot
+        FOREIGN KEY (snapshot_id) REFERENCES popular_newsletter_snapshots (id),
+    CONSTRAINT fk_popular_newsletter_snapshot_items_content
+        FOREIGN KEY (resolved_content_id) REFERENCES contents (id),
+    CONSTRAINT fk_popular_newsletter_snapshot_items_exposure_content
+        FOREIGN KEY (resolved_exposure_content_id) REFERENCES exposure_contents (id),
+    CONSTRAINT uk_popular_newsletter_snapshot_item_snapshot_rank UNIQUE (snapshot_id, rank_order)
+);
+
+ALTER TABLE popular_newsletter_snapshot_items
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE popular_newsletter_snapshot_items
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_id
+    ON popular_newsletter_snapshot_items (snapshot_id);
+
+COMMENT ON TABLE popular_newsletter_snapshots IS '인기 뉴스레터 랭킹 스냅샷 메타데이터';
+
+COMMENT ON TABLE popular_newsletter_snapshot_items IS '인기 뉴스레터 스냅샷 개별 랭킹 아이템';

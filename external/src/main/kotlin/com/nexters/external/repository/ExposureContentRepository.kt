@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository
 interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     fun findByContent(content: Content): ExposureContent?
 
+    fun findByContentId(contentId: Long): ExposureContent?
+
     // 모든 ExposureContent를 페이징으로 조회
     @Query(
         """

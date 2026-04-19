@@ -134,6 +134,18 @@ class GoogleAnalyticsService(
         }
     }
 
+    fun getTopNewsletterClicksForRollingWindow(
+        endDate: LocalDate,
+        lookbackDays: Int = 365,
+        limit: Int = 20,
+    ): List<NewsletterClick> {
+        val windowStartDate = endDate.minusDays(lookbackDays.toLong() - 1)
+        val startDateString = windowStartDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        val endDateString = endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+
+        return getTopNewsletterClicksForPeriod(startDateString, endDateString, limit)
+    }
+
     private fun getYesterdayTotalUsers(yesterdayString: String): Long =
         try {
             logger.info("어제 총 방문자 수 조회 시작: $yesterdayString")
@@ -392,7 +404,8 @@ class GoogleAnalyticsService(
 
     private fun getTopNewsletterClicksForPeriod(
         startDateString: String,
-        endDateString: String
+        endDateString: String,
+        limit: Int = 10,
     ): List<NewsletterClick> =
         try {
             logger.info("Newsletter 클릭 데이터 조회 시작 ($startDateString ~ $endDateString)")
@@ -442,7 +455,7 @@ class GoogleAnalyticsService(
                                     .build()
                             ).setDesc(true)
                             .build()
-                    ).setLimit(10) // 주간 리포트는 TOP 10으로 확장
+                    ).setLimit(limit.toLong())
                     .build()
 
             val response = analyticsClient.runReport(newsletterClickRequest)
