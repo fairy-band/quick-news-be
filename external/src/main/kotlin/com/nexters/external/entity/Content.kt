@@ -23,15 +23,15 @@ class Content(
     val id: Long? = null,
     @Column(nullable = true, name = "newsletter_source_id")
     val newsletterSourceId: String? = null,
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     val title: String,
     @Column(nullable = false, columnDefinition = "TEXT")
     val content: String,
-    @Column(nullable = false, name = "newsletter_name")
+    @Column(nullable = false, name = "newsletter_name", columnDefinition = "TEXT")
     val newsletterName: String,
-    @Column(nullable = false, name = "original_url")
+    @Column(nullable = false, name = "original_url", columnDefinition = "TEXT")
     val originalUrl: String,
-    @Column(nullable = true, name = "image_url")
+    @Column(nullable = true, name = "image_url", columnDefinition = "TEXT")
     val imageUrl: String? = null,
     @Column(nullable = true, name = "published_at")
     val publishedAt: LocalDate,

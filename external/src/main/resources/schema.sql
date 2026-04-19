@@ -52,16 +52,38 @@ CREATE TABLE IF NOT EXISTS contents
 (
     id                   SERIAL PRIMARY KEY,
     newsletter_source_id VARCHAR(255),
-    title                VARCHAR(255) NOT NULL,
+    title                TEXT         NOT NULL,
     content              TEXT         NOT NULL,
-    newsletter_name      VARCHAR(255) NOT NULL,
-    original_url         VARCHAR(255) NOT NULL,
-    image_url            VARCHAR(1024),
+    newsletter_name      TEXT         NOT NULL,
+    original_url         TEXT         NOT NULL,
+    image_url            TEXT,
     published_at         DATE         NOT NULL,
     created_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     content_provider_id  BIGINT
 );
+
+-- Backfill columns for older PostgreSQL databases
+ALTER TABLE contents
+    ADD COLUMN IF NOT EXISTS newsletter_source_id VARCHAR(255);
+
+ALTER TABLE contents
+    ADD COLUMN IF NOT EXISTS image_url VARCHAR(1024);
+
+ALTER TABLE contents
+    ADD COLUMN IF NOT EXISTS content_provider_id BIGINT;
+
+ALTER TABLE contents
+    ALTER COLUMN title TYPE TEXT;
+
+ALTER TABLE contents
+    ALTER COLUMN newsletter_name TYPE TEXT;
+
+ALTER TABLE contents
+    ALTER COLUMN original_url TYPE TEXT;
+
+ALTER TABLE contents
+    ALTER COLUMN image_url TYPE TEXT;
 
 CREATE TABLE IF NOT EXISTS content_generation_attempts
 (
@@ -218,6 +240,39 @@ CREATE TABLE IF NOT EXISTS content_provider
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- RSS processing status table
+CREATE TABLE IF NOT EXISTS rss_processing_status
+(
+    id                   BIGSERIAL PRIMARY KEY,
+    newsletter_source_id VARCHAR(255)  NOT NULL UNIQUE,
+    rss_url              TEXT          NOT NULL,
+    item_url             TEXT          NOT NULL UNIQUE,
+    title                TEXT          NOT NULL,
+    is_processed         BOOLEAN       NOT NULL DEFAULT FALSE,
+    ai_processed         BOOLEAN       NOT NULL DEFAULT FALSE,
+    content_id           BIGINT,
+    processing_error     TEXT,
+    priority             INTEGER       NOT NULL DEFAULT 0,
+    created_at           TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at         TIMESTAMP,
+    ai_processed_at      TIMESTAMP
+);
+
+ALTER TABLE rss_processing_status
+    ALTER COLUMN rss_url TYPE TEXT;
+
+ALTER TABLE rss_processing_status
+    ALTER COLUMN item_url TYPE TEXT;
+
+ALTER TABLE rss_processing_status
+    ALTER COLUMN title TYPE TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_rss_processing_status_rss_url
+    ON rss_processing_status (rss_url);
+
+CREATE INDEX IF NOT EXISTS idx_rss_processing_status_ai_processed_created_at
+    ON rss_processing_status (ai_processed, is_processed, created_at DESC);
 
 -- Content provider category mappings table
 CREATE TABLE IF NOT EXISTS content_provider_category_mappings
