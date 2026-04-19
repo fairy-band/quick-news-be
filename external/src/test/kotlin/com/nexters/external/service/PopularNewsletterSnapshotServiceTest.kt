@@ -3,7 +3,6 @@ package com.nexters.external.service
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.PopularNewsletterSnapshot
-import com.nexters.external.entity.PopularNewsletterSnapshotItem
 import com.nexters.external.enums.PopularNewsletterResolutionStatus
 import com.nexters.external.enums.PopularNewsletterSegmentType
 import com.nexters.external.enums.PopularNewsletterSnapshotStatus
@@ -12,9 +11,12 @@ import com.nexters.external.repository.PopularNewsletterSnapshotItemRepository
 import com.nexters.external.repository.PopularNewsletterSnapshotRepository
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
@@ -34,18 +36,13 @@ class PopularNewsletterSnapshotServiceTest {
         )
 
     @Test
-    fun `findLatestFeaturedExposureContent should fall back to older resolved snapshot`() {
-        val latestSnapshot =
+    fun `findLatestFeaturedExposureContent should return exposure content from latest featured snapshot`() {
+        val latestFeaturedSnapshot =
             createSnapshot(
                 id = 2L,
                 generatedAt = LocalDateTime.of(2026, 4, 18, 7, 30),
                 resolvedItemCount = 0,
-            )
-        val olderSnapshot =
-            createSnapshot(
-                id = 1L,
-                generatedAt = LocalDateTime.of(2026, 4, 17, 7, 30),
-                resolvedItemCount = 1,
+                featuredExposureContentId = 11L,
             )
         val featuredExposureContent =
             ExposureContent(
@@ -65,33 +62,16 @@ class PopularNewsletterSnapshotServiceTest {
                 provocativeHeadline = "headline",
                 summaryContent = "summary",
             )
-        val olderResolvedItem =
-            PopularNewsletterSnapshotItem(
-                id = 21L,
-                snapshot = olderSnapshot,
-                rank = 1,
-                rawObjectId = "11",
-                clickCount = 120L,
-                resolvedContentId = 101L,
-                resolvedExposureContentId = 11L,
-                resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
-            )
 
         Mockito
             .`when`(
-                popularNewsletterSnapshotRepository.findBySegmentTypeAndSegmentKeyAndStatusOrderByGeneratedAtDesc(
+                popularNewsletterSnapshotRepository.findLatestFeaturedBySegmentTypeAndSegmentKeyAndStatus(
                     PopularNewsletterSegmentType.GLOBAL,
                     null,
                     PopularNewsletterSnapshotStatus.SUCCESS,
+                    PageRequest.of(0, 1),
                 ),
-            ).thenReturn(listOf(latestSnapshot, olderSnapshot))
-        Mockito
-            .`when`(
-                popularNewsletterSnapshotItemRepository.findFirstBySnapshotIdAndResolutionStatusOrderByRankAsc(
-                    1L,
-                    PopularNewsletterResolutionStatus.RESOLVED,
-                ),
-            ).thenReturn(olderResolvedItem)
+            ).thenReturn(listOf(latestFeaturedSnapshot))
         Mockito
             .`when`(exposureContentRepository.findById(11L))
             .thenReturn(Optional.of(featuredExposureContent))
@@ -99,22 +79,17 @@ class PopularNewsletterSnapshotServiceTest {
         val result = sut.findLatestFeaturedExposureContent()
 
         assertSame(featuredExposureContent, result)
-        Mockito
-            .verify(popularNewsletterSnapshotItemRepository, Mockito.never())
-            .findFirstBySnapshotIdAndResolutionStatusOrderByRankAsc(
-                2L,
-                PopularNewsletterResolutionStatus.RESOLVED,
-            )
     }
 
     @Test
     fun `findLatestFeaturedExposureContent should return null when there is no resolved snapshot`() {
         Mockito
             .`when`(
-                popularNewsletterSnapshotRepository.findBySegmentTypeAndSegmentKeyAndStatusOrderByGeneratedAtDesc(
+                popularNewsletterSnapshotRepository.findLatestFeaturedBySegmentTypeAndSegmentKeyAndStatus(
                     PopularNewsletterSegmentType.GLOBAL,
                     null,
                     PopularNewsletterSnapshotStatus.SUCCESS,
+                    PageRequest.of(0, 1),
                 ),
             ).thenReturn(emptyList())
 
@@ -123,10 +98,61 @@ class PopularNewsletterSnapshotServiceTest {
         assertNull(result)
     }
 
+    @Test
+    fun `saveSnapshot should persist featured exposure content id from first resolved item`() {
+        var savedSnapshot: PopularNewsletterSnapshot? = null
+
+        Mockito
+            .doAnswer { invocation ->
+                invocation.getArgument<PopularNewsletterSnapshot>(0).also { snapshot ->
+                    savedSnapshot = snapshot
+                }
+            }.`when`(popularNewsletterSnapshotRepository)
+            .save(Mockito.any(PopularNewsletterSnapshot::class.java))
+        Mockito
+            .doAnswer { invocation -> invocation.getArgument(0) }
+            .`when`(popularNewsletterSnapshotItemRepository)
+            .saveAll(Mockito.anyList())
+
+        val result =
+            sut.saveSnapshot(
+                SavePopularNewsletterSnapshotCommand(
+                    segmentType = PopularNewsletterSegmentType.GLOBAL,
+                    windowStartDate = LocalDate.of(2025, 4, 19),
+                    windowEndDate = LocalDate.of(2026, 4, 18),
+                    sourceEventName = "click_newsletter",
+                    candidateLimit = 20,
+                    resolvedItemCount = 1,
+                    status = PopularNewsletterSnapshotStatus.SUCCESS,
+                    items =
+                        listOf(
+                            SavePopularNewsletterSnapshotItemCommand(
+                                rank = 2,
+                                rawObjectId = "unresolved",
+                                clickCount = 90L,
+                                resolutionStatus = PopularNewsletterResolutionStatus.UNRESOLVED,
+                            ),
+                            SavePopularNewsletterSnapshotItemCommand(
+                                rank = 1,
+                                rawObjectId = "11",
+                                clickCount = 120L,
+                                resolvedContentId = 101L,
+                                resolvedExposureContentId = 11L,
+                                resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
+                            ),
+                        ),
+                ),
+            )
+
+        assertEquals(11L, assertNotNull(savedSnapshot).featuredExposureContentId)
+        assertEquals(11L, assertNotNull(result.featuredExposureContentId))
+    }
+
     private fun createSnapshot(
         id: Long,
         generatedAt: LocalDateTime,
         resolvedItemCount: Int,
+        featuredExposureContentId: Long? = null,
     ): PopularNewsletterSnapshot =
         PopularNewsletterSnapshot(
             id = id,
@@ -137,6 +163,7 @@ class PopularNewsletterSnapshotServiceTest {
             sourceEventName = "click_newsletter",
             candidateLimit = 20,
             resolvedItemCount = resolvedItemCount,
+            featuredExposureContentId = featuredExposureContentId,
             status = PopularNewsletterSnapshotStatus.SUCCESS,
         )
 }

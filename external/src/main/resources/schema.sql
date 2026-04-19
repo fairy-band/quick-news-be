@@ -315,20 +315,36 @@ CREATE TABLE IF NOT EXISTS content_provider_requests
 
 CREATE TABLE IF NOT EXISTS popular_newsletter_snapshots
 (
-    id                 BIGSERIAL PRIMARY KEY,
-    segment_type       VARCHAR(20) NOT NULL CHECK (segment_type IN ('GLOBAL', 'CATEGORY', 'JOB_GROUP')),
-    segment_key        VARCHAR(255),
-    window_start_date  DATE        NOT NULL,
-    window_end_date    DATE        NOT NULL,
-    generated_at       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    source_event_name  VARCHAR(255) NOT NULL,
-    candidate_limit    INTEGER     NOT NULL,
-    resolved_item_count INTEGER    NOT NULL DEFAULT 0,
-    status             VARCHAR(20) NOT NULL CHECK (status IN ('SUCCESS', 'FAILED'))
+    id                          BIGSERIAL PRIMARY KEY,
+    segment_type                VARCHAR(20)  NOT NULL CHECK (segment_type IN ('GLOBAL', 'CATEGORY', 'JOB_GROUP')),
+    segment_key                 VARCHAR(255),
+    window_start_date           DATE         NOT NULL,
+    window_end_date             DATE         NOT NULL,
+    generated_at                TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    source_event_name           VARCHAR(255) NOT NULL,
+    candidate_limit             INTEGER      NOT NULL,
+    resolved_item_count         INTEGER      NOT NULL DEFAULT 0,
+    featured_exposure_content_id BIGINT,
+    status                      VARCHAR(20)  NOT NULL CHECK (status IN ('SUCCESS', 'FAILED')),
+    CONSTRAINT fk_popular_newsletter_snapshots_featured_exposure_content
+        FOREIGN KEY (featured_exposure_content_id) REFERENCES exposure_contents (id)
 );
+
+ALTER TABLE popular_newsletter_snapshots
+    ADD COLUMN IF NOT EXISTS featured_exposure_content_id BIGINT;
+
+ALTER TABLE popular_newsletter_snapshots
+    DROP CONSTRAINT IF EXISTS fk_popular_newsletter_snapshots_featured_exposure_content;
+
+ALTER TABLE popular_newsletter_snapshots
+    ADD CONSTRAINT fk_popular_newsletter_snapshots_featured_exposure_content
+        FOREIGN KEY (featured_exposure_content_id) REFERENCES exposure_contents (id);
 
 CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_segment_generated_at
     ON popular_newsletter_snapshots (segment_type, segment_key, generated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_segment_status_generated_at
+    ON popular_newsletter_snapshots (segment_type, status, segment_key, generated_at DESC);
 
 CREATE TABLE IF NOT EXISTS popular_newsletter_snapshot_items
 (
@@ -360,6 +376,34 @@ ALTER TABLE popular_newsletter_snapshot_items
 CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_id
     ON popular_newsletter_snapshot_items (snapshot_id);
 
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_resolution_rank
+    ON popular_newsletter_snapshot_items (snapshot_id, resolution_status, rank_order);
+
+UPDATE popular_newsletter_snapshots snapshots
+SET featured_exposure_content_id = (
+    SELECT items.resolved_exposure_content_id
+    FROM popular_newsletter_snapshot_items items
+    WHERE items.snapshot_id = snapshots.id
+      AND items.resolution_status = 'RESOLVED'
+      AND items.resolved_exposure_content_id IS NOT NULL
+    ORDER BY items.rank_order ASC
+    LIMIT 1
+)
+WHERE snapshots.featured_exposure_content_id IS NULL
+  AND EXISTS (
+    SELECT 1
+    FROM popular_newsletter_snapshot_items items
+    WHERE items.snapshot_id = snapshots.id
+      AND items.resolution_status = 'RESOLVED'
+      AND items.resolved_exposure_content_id IS NOT NULL
+);
+
 COMMENT ON TABLE popular_newsletter_snapshots IS '인기 뉴스레터 랭킹 스냅샷 메타데이터';
 
 COMMENT ON TABLE popular_newsletter_snapshot_items IS '인기 뉴스레터 스냅샷 개별 랭킹 아이템';
+
+CREATE INDEX IF NOT EXISTS idx_contents_original_url
+    ON contents (original_url);
+
+CREATE INDEX IF NOT EXISTS idx_contents_newsletter_source_published_id
+    ON contents (newsletter_source_id, published_at DESC, id DESC);

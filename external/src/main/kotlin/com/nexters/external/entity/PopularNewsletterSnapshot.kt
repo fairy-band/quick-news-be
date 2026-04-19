@@ -24,6 +24,10 @@ import java.time.LocalDateTime
             name = "idx_popular_newsletter_snapshot_segment_generated_at",
             columnList = "segment_type, segment_key, generated_at",
         ),
+        Index(
+            name = "idx_popular_newsletter_snapshot_segment_status_generated_at",
+            columnList = "segment_type, status, segment_key, generated_at",
+        ),
     ],
 )
 class PopularNewsletterSnapshot(
@@ -56,6 +60,9 @@ class PopularNewsletterSnapshot(
     @Column(name = "resolved_item_count", nullable = false)
     @Comment("실제 콘텐츠로 해석된 아이템 수")
     val resolvedItemCount: Int,
+    @Column(name = "featured_exposure_content_id")
+    @Comment("대표로 노출할 exposure content id")
+    val featuredExposureContentId: Long? = null,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Comment("스냅샷 생성 결과 상태")

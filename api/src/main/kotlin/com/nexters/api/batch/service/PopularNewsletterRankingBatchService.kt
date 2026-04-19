@@ -1,9 +1,11 @@
 package com.nexters.api.batch.service
 
 import com.nexters.external.entity.PopularNewsletterSnapshot
+import com.nexters.external.enums.PopularNewsletterResolutionStatus
 import com.nexters.external.enums.PopularNewsletterSegmentType
 import com.nexters.external.enums.PopularNewsletterSnapshotStatus
 import com.nexters.external.service.PopularNewsletterObjectIdResolverService
+import com.nexters.external.service.PopularNewsletterObjectResolution
 import com.nexters.external.service.PopularNewsletterSnapshotService
 import com.nexters.external.service.SavePopularNewsletterSnapshotCommand
 import com.nexters.external.service.SavePopularNewsletterSnapshotItemCommand
@@ -34,9 +36,17 @@ class PopularNewsletterRankingBatchService(
 
         return try {
             val clicks = googleAnalyticsService.getTopNewsletterClicksForRollingWindow(endDate, lookbackDays, limit)
+            val resolutionsByObjectId =
+                popularNewsletterObjectIdResolverService.resolveObjectIds(
+                    clicks.map { click -> click.objectId },
+                )
             val items =
                 clicks.mapIndexed { index, click ->
-                    val resolution = popularNewsletterObjectIdResolverService.resolveObjectId(click.objectId)
+                    val resolution =
+                        resolutionsByObjectId[click.objectId]
+                            ?: PopularNewsletterObjectResolution(
+                                resolutionStatus = PopularNewsletterResolutionStatus.UNRESOLVED,
+                            )
 
                     SavePopularNewsletterSnapshotItemCommand(
                         rank = index + 1,

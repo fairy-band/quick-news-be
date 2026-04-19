@@ -8,6 +8,7 @@ import com.nexters.external.enums.PopularNewsletterSnapshotStatus
 import com.nexters.external.service.PopularNewsletterObjectIdResolverService
 import com.nexters.external.service.PopularNewsletterObjectResolution
 import com.nexters.external.service.PopularNewsletterSnapshotService
+import com.nexters.external.service.SavePopularNewsletterSnapshotCommand
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
@@ -35,7 +36,7 @@ class PopularNewsletterRankingBatchServiceTest {
     @Test
     fun `rebuildGlobalRanking should save success snapshot with resolved and unresolved items`() {
         val endDate = LocalDate.of(2026, 4, 18)
-        var savedCommand: com.nexters.external.service.SavePopularNewsletterSnapshotCommand? = null
+        var savedCommand: SavePopularNewsletterSnapshotCommand? = null
         val savedSnapshot =
             PopularNewsletterSnapshot(
                 id = 100L,
@@ -58,19 +59,19 @@ class PopularNewsletterRankingBatchServiceTest {
                 ),
             )
         Mockito
-            .`when`(popularNewsletterObjectIdResolverService.resolveObjectId("11"))
+            .`when`(popularNewsletterObjectIdResolverService.resolveObjectIds(listOf("11", "unresolved-object")))
             .thenReturn(
-                PopularNewsletterObjectResolution(
-                    resolvedContentId = 101L,
-                    resolvedExposureContentId = 11L,
-                    resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
-                ),
-            )
-        Mockito
-            .`when`(popularNewsletterObjectIdResolverService.resolveObjectId("unresolved-object"))
-            .thenReturn(
-                PopularNewsletterObjectResolution(
-                    resolutionStatus = PopularNewsletterResolutionStatus.UNRESOLVED,
+                mapOf(
+                    "11" to
+                        PopularNewsletterObjectResolution(
+                            resolvedContentId = 101L,
+                            resolvedExposureContentId = 11L,
+                            resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
+                        ),
+                    "unresolved-object" to
+                        PopularNewsletterObjectResolution(
+                            resolutionStatus = PopularNewsletterResolutionStatus.UNRESOLVED,
+                        ),
                 ),
             )
         Mockito
@@ -106,7 +107,7 @@ class PopularNewsletterRankingBatchServiceTest {
     @Test
     fun `rebuildGlobalRanking should save failed snapshot and throw when ga query fails`() {
         val endDate = LocalDate.of(2026, 4, 18)
-        var savedCommand: com.nexters.external.service.SavePopularNewsletterSnapshotCommand? = null
+        var savedCommand: SavePopularNewsletterSnapshotCommand? = null
 
         Mockito
             .`when`(googleAnalyticsService.getTopNewsletterClicksForRollingWindow(endDate, 365, 20))

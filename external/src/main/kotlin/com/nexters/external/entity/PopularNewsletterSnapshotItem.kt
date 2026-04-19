@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
@@ -19,6 +20,12 @@ import java.time.LocalDateTime
 @Comment("인기 뉴스레터 스냅샷 개별 랭킹 아이템")
 @Table(
     name = "popular_newsletter_snapshot_items",
+    indexes = [
+        Index(
+            name = "idx_popular_newsletter_snapshot_items_snapshot_resolution_rank",
+            columnList = "snapshot_id, resolution_status, rank_order",
+        ),
+    ],
     uniqueConstraints = [
         UniqueConstraint(
             name = "uk_popular_newsletter_snapshot_item_snapshot_rank",

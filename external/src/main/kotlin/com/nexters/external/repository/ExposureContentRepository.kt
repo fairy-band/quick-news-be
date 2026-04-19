@@ -15,6 +15,34 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     fun findByContentId(contentId: Long): ExposureContent?
 
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExposureContentLookupRow(
+            e.id,
+            e.content.id
+        )
+        FROM ExposureContent e
+        WHERE e.id IN :exposureContentIds
+    """,
+    )
+    fun findLookupRowsByIds(
+        @Param("exposureContentIds") exposureContentIds: Collection<Long>,
+    ): List<ExposureContentLookupRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExposureContentLookupRow(
+            e.id,
+            e.content.id
+        )
+        FROM ExposureContent e
+        WHERE e.content.id IN :contentIds
+    """,
+    )
+    fun findLookupRowsByContentIds(
+        @Param("contentIds") contentIds: Collection<Long>,
+    ): List<ExposureContentLookupRow>
+
     // 모든 ExposureContent를 페이징으로 조회
     @Query(
         """

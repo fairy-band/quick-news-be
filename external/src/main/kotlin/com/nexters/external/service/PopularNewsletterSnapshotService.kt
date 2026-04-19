@@ -9,6 +9,7 @@ import com.nexters.external.enums.PopularNewsletterSnapshotStatus
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.PopularNewsletterSnapshotItemRepository
 import com.nexters.external.repository.PopularNewsletterSnapshotRepository
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -22,6 +23,15 @@ class PopularNewsletterSnapshotService(
 ) {
     @Transactional
     fun saveSnapshot(command: SavePopularNewsletterSnapshotCommand): PopularNewsletterSnapshot {
+        val featuredExposureContentId =
+            command.items
+                .asSequence()
+                .sortedBy { it.rank }
+                .firstOrNull { item ->
+                    item.resolutionStatus == PopularNewsletterResolutionStatus.RESOLVED &&
+                        item.resolvedExposureContentId != null
+                }?.resolvedExposureContentId
+
         val snapshot =
             popularNewsletterSnapshotRepository.save(
                 PopularNewsletterSnapshot(
@@ -33,6 +43,7 @@ class PopularNewsletterSnapshotService(
                     sourceEventName = command.sourceEventName,
                     candidateLimit = command.candidateLimit,
                     resolvedItemCount = command.resolvedItemCount,
+                    featuredExposureContentId = featuredExposureContentId,
                     status = command.status,
                 ),
             )
@@ -61,31 +72,18 @@ class PopularNewsletterSnapshotService(
         segmentType: PopularNewsletterSegmentType = PopularNewsletterSegmentType.GLOBAL,
         segmentKey: String? = null,
     ): ExposureContent? {
-        val snapshots =
-            popularNewsletterSnapshotRepository.findBySegmentTypeAndSegmentKeyAndStatusOrderByGeneratedAtDesc(
-                segmentType = segmentType,
-                segmentKey = segmentKey,
-                status = PopularNewsletterSnapshotStatus.SUCCESS,
-            )
+        val latestSnapshot =
+            popularNewsletterSnapshotRepository
+                .findLatestFeaturedBySegmentTypeAndSegmentKeyAndStatus(
+                    segmentType = segmentType,
+                    segmentKey = segmentKey,
+                    status = PopularNewsletterSnapshotStatus.SUCCESS,
+                    pageable = PageRequest.of(0, 1),
+                ).firstOrNull()
+                ?: return null
 
-        for (snapshot in snapshots) {
-            if (snapshot.resolvedItemCount <= 0 || snapshot.id == null) {
-                continue
-            }
-
-            val resolvedItem =
-                popularNewsletterSnapshotItemRepository.findFirstBySnapshotIdAndResolutionStatusOrderByRankAsc(
-                    snapshotId = snapshot.id,
-                    resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
-                ) ?: continue
-
-            val exposureContentId = resolvedItem.resolvedExposureContentId ?: continue
-            exposureContentRepository.findById(exposureContentId).orElse(null)?.let { exposureContent ->
-                return exposureContent
-            }
-        }
-
-        return null
+        return latestSnapshot.featuredExposureContentId
+            ?.let { exposureContentId -> exposureContentRepository.findById(exposureContentId).orElse(null) }
     }
 }
 
