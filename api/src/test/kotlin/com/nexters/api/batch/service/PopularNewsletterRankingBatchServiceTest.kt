@@ -14,7 +14,12 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -140,6 +145,94 @@ class PopularNewsletterRankingBatchServiceTest {
         assertEquals(PopularNewsletterSnapshotStatus.FAILED, command.status)
         assertEquals(0, command.resolvedItemCount)
         assertTrue(command.items.isEmpty())
+    }
+
+    @Test
+    fun `rebuildGlobalRanking should serialize concurrent executions with lock`() {
+        val endDate = LocalDate.of(2026, 4, 18)
+        val gaInvocationCount = AtomicInteger(0)
+        val saveInvocationCount = AtomicInteger(0)
+        val firstExecutionStarted = CountDownLatch(1)
+        val allowFirstExecutionToContinue = CountDownLatch(1)
+        val secondExecutionEnteredGa = CountDownLatch(1)
+
+        Mockito
+            .`when`(googleAnalyticsService.getTopNewsletterClicksForRollingWindow(endDate, 365, 20))
+            .thenAnswer {
+                when (gaInvocationCount.incrementAndGet()) {
+                    1 -> {
+                        firstExecutionStarted.countDown()
+                        assertTrue(allowFirstExecutionToContinue.await(5, TimeUnit.SECONDS))
+                        listOf(NewsletterClick(objectId = "11", clickCount = 120L))
+                    }
+
+                    2 -> {
+                        secondExecutionEnteredGa.countDown()
+                        listOf(NewsletterClick(objectId = "11", clickCount = 120L))
+                    }
+
+                    else -> error("Unexpected invocation count")
+                }
+            }
+        Mockito
+            .`when`(popularNewsletterObjectIdResolverService.resolveObjectIds(listOf("11")))
+            .thenReturn(
+                mapOf(
+                    "11" to
+                        PopularNewsletterObjectResolution(
+                            resolvedContentId = 101L,
+                            resolvedExposureContentId = 11L,
+                            resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
+                        ),
+                ),
+            )
+        Mockito
+            .doAnswer { invocation ->
+                val command = invocation.getArgument<SavePopularNewsletterSnapshotCommand>(0)
+                val snapshotId = saveInvocationCount.incrementAndGet().toLong()
+
+                PopularNewsletterSnapshot(
+                    id = snapshotId,
+                    segmentType = command.segmentType,
+                    windowStartDate = command.windowStartDate,
+                    windowEndDate = command.windowEndDate,
+                    generatedAt = LocalDateTime.of(2026, 4, 18, 7, 30).plusMinutes(snapshotId),
+                    sourceEventName = command.sourceEventName,
+                    candidateLimit = command.candidateLimit,
+                    resolvedItemCount = command.resolvedItemCount,
+                    status = command.status,
+                )
+            }.`when`(popularNewsletterSnapshotService)
+            .saveSnapshot(any())
+
+        val executor = Executors.newFixedThreadPool(2)
+
+        try {
+            val firstFuture =
+                executor.submit<PopularNewsletterSnapshot> {
+                    sut.rebuildGlobalRanking(endDate, 365, 20)
+                }
+
+            assertTrue(firstExecutionStarted.await(5, TimeUnit.SECONDS))
+
+            val secondFuture =
+                executor.submit<PopularNewsletterSnapshot> {
+                    sut.rebuildGlobalRanking(endDate, 365, 20)
+                }
+
+            assertFalse(secondExecutionEnteredGa.await(200, TimeUnit.MILLISECONDS))
+
+            allowFirstExecutionToContinue.countDown()
+
+            firstFuture.get(5, TimeUnit.SECONDS)
+            secondFuture.get(5, TimeUnit.SECONDS)
+
+            assertEquals(2, gaInvocationCount.get())
+            assertEquals(2, saveInvocationCount.get())
+            assertTrue(secondExecutionEnteredGa.await(1, TimeUnit.SECONDS))
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
