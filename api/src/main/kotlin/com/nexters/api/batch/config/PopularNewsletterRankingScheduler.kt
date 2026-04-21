@@ -17,7 +17,7 @@ class PopularNewsletterRankingScheduler(
 ) {
     private val logger = LoggerFactory.getLogger(PopularNewsletterRankingScheduler::class.java)
 
-    @Scheduled(cron = "0 30 7 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 30 23 * * SUN", zone = "Asia/Seoul")
     fun rebuildGlobalRankingSnapshot() {
         logger.info("인기 뉴스레터 랭킹 스냅샷 스케줄 실행 시작")
         popularNewsletterRankingBatchService.rebuildGlobalRanking()
