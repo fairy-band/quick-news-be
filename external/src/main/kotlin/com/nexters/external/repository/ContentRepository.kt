@@ -64,6 +64,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
             SELECT DISTINCT s.content.id FROM Summary s
         )
         AND LENGTH(c.content) <= $MAX_CONTENT_LENGTH
+        AND LENGTH(c.content) >= 500
         ORDER BY
             CASE
                 WHEN cp.type = 'BLOG' THEN 0
