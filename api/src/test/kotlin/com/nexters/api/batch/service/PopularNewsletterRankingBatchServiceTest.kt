@@ -12,6 +12,7 @@ import com.nexters.external.service.SavePopularNewsletterSnapshotCommand
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.springframework.integration.support.locks.DefaultLockRegistry
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
@@ -30,12 +31,14 @@ class PopularNewsletterRankingBatchServiceTest {
         Mockito.mock(PopularNewsletterObjectIdResolverService::class.java)
     private val popularNewsletterSnapshotService: PopularNewsletterSnapshotService =
         Mockito.mock(PopularNewsletterSnapshotService::class.java)
+    private val lockRegistry = DefaultLockRegistry()
 
     private val sut =
         PopularNewsletterRankingBatchService(
             googleAnalyticsService = googleAnalyticsService,
             popularNewsletterObjectIdResolverService = popularNewsletterObjectIdResolverService,
             popularNewsletterSnapshotService = popularNewsletterSnapshotService,
+            lockRegistry = lockRegistry,
         )
 
     @Test

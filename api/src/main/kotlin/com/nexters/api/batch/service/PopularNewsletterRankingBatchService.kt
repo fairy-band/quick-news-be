@@ -11,9 +11,9 @@ import com.nexters.external.service.SavePopularNewsletterSnapshotCommand
 import com.nexters.external.service.SavePopularNewsletterSnapshotItemCommand
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.integration.support.locks.LockRegistry
 import org.springframework.stereotype.Service
 import java.time.LocalDate
-import java.util.concurrent.locks.ReentrantLock
 
 @Service
 @ConditionalOnProperty(
@@ -25,15 +25,16 @@ class PopularNewsletterRankingBatchService(
     private val googleAnalyticsService: GoogleAnalyticsService,
     private val popularNewsletterObjectIdResolverService: PopularNewsletterObjectIdResolverService,
     private val popularNewsletterSnapshotService: PopularNewsletterSnapshotService,
+    private val lockRegistry: LockRegistry,
 ) {
     private val logger = LoggerFactory.getLogger(PopularNewsletterRankingBatchService::class.java)
-    private val rebuildLock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
 
     fun rebuildGlobalRanking(
         endDate: LocalDate = LocalDate.now(),
         lookbackDays: Int = 365,
         limit: Int = 20,
     ): PopularNewsletterSnapshot {
+        val rebuildLock = lockRegistry.obtain(POPULAR_NEWSLETTER_RANKING_REBUILD_LOCK_KEY)
         rebuildLock.lock()
         try {
             val windowStartDate = endDate.minusDays(lookbackDays.toLong() - 1)
@@ -108,5 +109,6 @@ class PopularNewsletterRankingBatchService(
 
     companion object {
         const val NEWSLETTER_CLICK_EVENT_NAME: String = "click_newsletter"
+        private const val POPULAR_NEWSLETTER_RANKING_REBUILD_LOCK_KEY: String = "popular-newsletter-ranking-rebuild"
     }
 }
