@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDate
 
 interface ContentRepository : JpaRepository<Content, Long> {
     @Query(
@@ -147,14 +148,64 @@ interface ContentRepository : JpaRepository<Content, Long> {
         pageable: Pageable
     ): Page<Content>
 
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ContentLookupRow(
+            c.id,
+            c.originalUrl,
+            c.newsletterSourceId,
+            c.publishedAt
+        )
+        FROM Content c
+        WHERE c.id IN :contentIds
+    """,
+    )
+    fun findLookupRowsByIds(
+        @Param("contentIds") contentIds: Collection<Long>,
+    ): List<ContentLookupRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ContentLookupRow(
+            c.id,
+            c.originalUrl,
+            c.newsletterSourceId,
+            c.publishedAt
+        )
+        FROM Content c
+        WHERE c.originalUrl IN :originalUrls
+        ORDER BY c.originalUrl ASC, c.publishedAt DESC, c.id DESC
+    """,
+    )
+    fun findLookupRowsByOriginalUrls(
+        @Param("originalUrls") originalUrls: Collection<String>,
+    ): List<ContentLookupRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ContentLookupRow(
+            c.id,
+            c.originalUrl,
+            c.newsletterSourceId,
+            c.publishedAt
+        )
+        FROM Content c
+        WHERE c.newsletterSourceId IN :newsletterSourceIds
+        ORDER BY c.newsletterSourceId ASC, c.publishedAt DESC, c.id DESC
+    """,
+    )
+    fun findLookupRowsByNewsletterSourceIds(
+        @Param("newsletterSourceIds") newsletterSourceIds: Collection<String>,
+    ): List<ContentLookupRow>
+
     // RSS 피드용 메서드들
     fun findByOriginalUrl(originalUrl: String): Content?
 
     fun findByNewsletterName(newsletterName: String): List<Content>
 
     fun findByPublishedAtBetween(
-        startDate: java.time.LocalDate,
-        endDate: java.time.LocalDate
+        startDate: LocalDate,
+        endDate: LocalDate
     ): List<Content>
 
     fun existsByNewsletterSourceId(newsletterSourceId: String): Boolean

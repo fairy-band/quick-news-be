@@ -5,6 +5,7 @@ import java.time.LocalDate
 
 data class ContentViewApiResponse(
     val publishedDate: LocalDate,
+    val trendingCard: ContentCardApiResponse?,
     val cards: List<ContentCardApiResponse>,
 ) {
     data class ContentCardApiResponse(

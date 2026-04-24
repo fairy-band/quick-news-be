@@ -11,6 +11,7 @@ import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ExposureContentService
+import com.nexters.external.service.GeminiRateLimiterService
 import com.nexters.newsletter.service.NewsletterProcessingService
 import com.nexters.newsletter.service.RssContentService
 import org.springframework.data.domain.Page
@@ -36,7 +37,7 @@ class ProcessController(
     private val exposureContentService: ExposureContentService,
     private val rssContentService: RssContentService,
     private val newsletterProcessingService: NewsletterProcessingService,
-    private val rateLimiterService: com.nexters.external.service.GeminiRateLimiterService,
+    private val rateLimiterService: GeminiRateLimiterService,
 ) {
     @GetMapping("/content/{contentId}/keywords")
     fun getContentKeywords(

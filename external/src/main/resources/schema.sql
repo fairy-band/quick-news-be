@@ -52,16 +52,38 @@ CREATE TABLE IF NOT EXISTS contents
 (
     id                   SERIAL PRIMARY KEY,
     newsletter_source_id VARCHAR(255),
-    title                VARCHAR(255) NOT NULL,
+    title                TEXT         NOT NULL,
     content              TEXT         NOT NULL,
-    newsletter_name      VARCHAR(255) NOT NULL,
-    original_url         VARCHAR(255) NOT NULL,
-    image_url            VARCHAR(1024),
+    newsletter_name      TEXT         NOT NULL,
+    original_url         TEXT         NOT NULL,
+    image_url            TEXT,
     published_at         DATE         NOT NULL,
     created_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     content_provider_id  BIGINT
 );
+
+-- Backfill columns for older PostgreSQL databases
+ALTER TABLE contents
+    ADD COLUMN IF NOT EXISTS newsletter_source_id VARCHAR(255);
+
+ALTER TABLE contents
+    ADD COLUMN IF NOT EXISTS image_url VARCHAR(1024);
+
+ALTER TABLE contents
+    ADD COLUMN IF NOT EXISTS content_provider_id BIGINT;
+
+ALTER TABLE contents
+    ALTER COLUMN title TYPE TEXT;
+
+ALTER TABLE contents
+    ALTER COLUMN newsletter_name TYPE TEXT;
+
+ALTER TABLE contents
+    ALTER COLUMN original_url TYPE TEXT;
+
+ALTER TABLE contents
+    ALTER COLUMN image_url TYPE TEXT;
 
 CREATE TABLE IF NOT EXISTS content_generation_attempts
 (
@@ -219,6 +241,39 @@ CREATE TABLE IF NOT EXISTS content_provider
     updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- RSS processing status table
+CREATE TABLE IF NOT EXISTS rss_processing_status
+(
+    id                   BIGSERIAL PRIMARY KEY,
+    newsletter_source_id VARCHAR(255)  NOT NULL UNIQUE,
+    rss_url              TEXT          NOT NULL,
+    item_url             TEXT          NOT NULL UNIQUE,
+    title                TEXT          NOT NULL,
+    is_processed         BOOLEAN       NOT NULL DEFAULT FALSE,
+    ai_processed         BOOLEAN       NOT NULL DEFAULT FALSE,
+    content_id           BIGINT,
+    processing_error     TEXT,
+    priority             INTEGER       NOT NULL DEFAULT 0,
+    created_at           TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at         TIMESTAMP,
+    ai_processed_at      TIMESTAMP
+);
+
+ALTER TABLE rss_processing_status
+    ALTER COLUMN rss_url TYPE TEXT;
+
+ALTER TABLE rss_processing_status
+    ALTER COLUMN item_url TYPE TEXT;
+
+ALTER TABLE rss_processing_status
+    ALTER COLUMN title TYPE TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_rss_processing_status_rss_url
+    ON rss_processing_status (rss_url);
+
+CREATE INDEX IF NOT EXISTS idx_rss_processing_status_ai_processed_created_at
+    ON rss_processing_status (ai_processed, is_processed, created_at DESC);
+
 -- Content provider category mappings table
 CREATE TABLE IF NOT EXISTS content_provider_category_mappings
 (
@@ -257,3 +312,79 @@ CREATE TABLE IF NOT EXISTS content_provider_requests
     created_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS popular_newsletter_snapshots
+(
+    id                          BIGSERIAL PRIMARY KEY,
+    segment_type                VARCHAR(20)  NOT NULL CHECK (segment_type IN ('GLOBAL', 'CATEGORY', 'JOB_GROUP')),
+    segment_key                 VARCHAR(255),
+    window_start_date           DATE         NOT NULL,
+    window_end_date             DATE         NOT NULL,
+    generated_at                TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    source_event_name           VARCHAR(255) NOT NULL,
+    candidate_limit             INTEGER      NOT NULL,
+    resolved_item_count         INTEGER      NOT NULL DEFAULT 0,
+    featured_exposure_content_id BIGINT,
+    status                      VARCHAR(20)  NOT NULL CHECK (status IN ('SUCCESS', 'FAILED')),
+    CONSTRAINT fk_popular_newsletter_snapshots_featured_exposure_content
+        FOREIGN KEY (featured_exposure_content_id) REFERENCES exposure_contents (id)
+);
+
+ALTER TABLE popular_newsletter_snapshots
+    ADD COLUMN IF NOT EXISTS featured_exposure_content_id BIGINT;
+
+ALTER TABLE popular_newsletter_snapshots
+    DROP CONSTRAINT IF EXISTS fk_popular_newsletter_snapshots_featured_exposure_content;
+
+ALTER TABLE popular_newsletter_snapshots
+    ADD CONSTRAINT fk_popular_newsletter_snapshots_featured_exposure_content
+        FOREIGN KEY (featured_exposure_content_id) REFERENCES exposure_contents (id);
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_segment_generated_at
+    ON popular_newsletter_snapshots (segment_type, segment_key, generated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_segment_status_generated_at
+    ON popular_newsletter_snapshots (segment_type, status, segment_key, generated_at DESC);
+
+CREATE TABLE IF NOT EXISTS popular_newsletter_snapshot_items
+(
+    id                          BIGSERIAL PRIMARY KEY,
+    snapshot_id                 BIGINT      NOT NULL,
+    rank_order                  INTEGER     NOT NULL,
+    raw_object_id               VARCHAR(1024) NOT NULL,
+    click_count                 BIGINT      NOT NULL,
+    resolved_content_id         BIGINT,
+    resolved_exposure_content_id BIGINT,
+    resolution_status           VARCHAR(20) NOT NULL CHECK (resolution_status IN ('RESOLVED', 'UNRESOLVED')),
+    created_at                  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_popular_newsletter_snapshot_items_snapshot
+        FOREIGN KEY (snapshot_id) REFERENCES popular_newsletter_snapshots (id),
+    CONSTRAINT fk_popular_newsletter_snapshot_items_content
+        FOREIGN KEY (resolved_content_id) REFERENCES contents (id),
+    CONSTRAINT fk_popular_newsletter_snapshot_items_exposure_content
+        FOREIGN KEY (resolved_exposure_content_id) REFERENCES exposure_contents (id),
+    CONSTRAINT uk_popular_newsletter_snapshot_item_snapshot_rank UNIQUE (snapshot_id, rank_order)
+);
+
+ALTER TABLE popular_newsletter_snapshot_items
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE popular_newsletter_snapshot_items
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_id
+    ON popular_newsletter_snapshot_items (snapshot_id);
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_resolution_rank
+    ON popular_newsletter_snapshot_items (snapshot_id, resolution_status, rank_order);
+
+COMMENT ON TABLE popular_newsletter_snapshots IS '인기 뉴스레터 랭킹 스냅샷 메타데이터';
+
+COMMENT ON TABLE popular_newsletter_snapshot_items IS '인기 뉴스레터 스냅샷 개별 랭킹 아이템';
+
+CREATE INDEX IF NOT EXISTS idx_contents_original_url
+    ON contents (original_url);
+
+CREATE INDEX IF NOT EXISTS idx_contents_newsletter_source_published_id
+    ON contents (newsletter_source_id, published_at DESC, id DESC);
