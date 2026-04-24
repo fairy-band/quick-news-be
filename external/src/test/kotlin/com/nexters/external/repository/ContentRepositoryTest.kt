@@ -118,7 +118,7 @@ class ContentRepositoryTest {
 
         // when: 배치 대상 조회
         val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(pageable)
+        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
 
         // then: category2(노출 1개)의 컨텐츠가 category1(노출 2개)보다 먼저 조회되어야 함
         assertEquals(2, result.content.size)
@@ -134,7 +134,7 @@ class ContentRepositoryTest {
 
         // when
         val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(pageable)
+        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
 
         // then: BLOG가 NEWSLETTER보다 먼저 조회
         assertEquals(2, result.content.size)
@@ -160,7 +160,7 @@ class ContentRepositoryTest {
 
         // when
         val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(pageable)
+        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
 
         // then: Summary가 없는 컨텐츠만 조회
         assertEquals(1, result.content.size)
@@ -187,7 +187,7 @@ class ContentRepositoryTest {
 
         // when
         val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(pageable)
+        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
 
         // then: 최신 컨텐츠가 먼저 조회
         assertEquals(2, result.content.size)

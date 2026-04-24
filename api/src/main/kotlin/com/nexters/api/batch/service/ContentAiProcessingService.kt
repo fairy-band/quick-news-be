@@ -61,11 +61,15 @@ class ContentAiProcessingService(
 
             // Summary가 없는 Content 조회 (BLOG 우선순위 + 카테고리 균형 고려)
             val pageable = PageRequest.of(0, BATCH_SIZE)
-            val unprocessedContentsPage = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(pageable)
+            val unprocessedContentsPage =
+                contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
+                    MAX_CONTENT_LENGTH,
+                    pageable
+                )
 
             if (unprocessedContentsPage.isEmpty) {
-                logger.info("No unprocessed contents found")
-                return ProcessingResult(0, 0, 0)
+                logger.info("No unprocessed contents found in batch size $BATCH_SIZE, trying extended search with MAX_TOTAL_BATCH_LENGTH")
+                return processSingleLargeContent()
             }
 
             val contents = unprocessedContentsPage.content
@@ -76,6 +80,35 @@ class ContentAiProcessingService(
             // 처리 완료 후 플래그 해제
             isProcessing.set(false)
             logger.debug("Batch processing lock released")
+        }
+    }
+
+    /**
+     * 배치에서 콘텐츠를 찾지 못했을 때 MAX_TOTAL_BATCH_LENGTH 길이의 콘텐츠 1개만 처리합니다.
+     */
+    private fun processSingleLargeContent(): ProcessingResult {
+        logger.info("Attempting to process single content with length up to $MAX_TOTAL_BATCH_LENGTH")
+
+        try {
+            // MAX_TOTAL_BATCH_LENGTH로 범위를 넓혀서 콘텐츠 1개 조회
+            val pageable = PageRequest.of(0, 1)
+            val unprocessedContentsPage =
+                contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
+                    MAX_TOTAL_BATCH_LENGTH,
+                    pageable
+                )
+
+            if (unprocessedContentsPage.isEmpty) {
+                logger.info("No unprocessed contents found even with MAX_TOTAL_BATCH_LENGTH")
+                return ProcessingResult(0, 0, 0)
+            }
+
+            val singleContent = unprocessedContentsPage.content.first()
+            logger.info("Processing single content (ID: ${singleContent.id}, length: ${singleContent.content.length})")
+            return processContentsBatch(listOf(singleContent))
+        } catch (e: Exception) {
+            logger.error("Failed to process single large content", e)
+            return ProcessingResult(0, 1, getRemainingCount())
         }
     }
 
@@ -349,6 +382,7 @@ class ContentAiProcessingService(
     private fun getRemainingCount(): Int =
         contentRepository
             .findContentsWithoutSummaryOrderedByCategoryBalance(
+                MAX_CONTENT_LENGTH,
                 PageRequest.of(0, 1)
             ).totalElements
             .toInt()

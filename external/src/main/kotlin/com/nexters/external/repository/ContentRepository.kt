@@ -64,7 +64,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         WHERE c.id NOT IN (
             SELECT DISTINCT s.content.id FROM Summary s
         )
-        AND LENGTH(c.content) <= $MAX_CONTENT_LENGTH
+        AND LENGTH(c.content) <= :maxLength
         AND LENGTH(c.content) >= 500
         ORDER BY
             CASE
@@ -83,7 +83,10 @@ interface ContentRepository : JpaRepository<Content, Long> {
             c.createdAt DESC
     """
     )
-    fun findContentsWithoutSummaryOrderedByCategoryBalance(pageable: Pageable): Page<Content>
+    fun findContentsWithoutSummaryOrderedByCategoryBalance(
+        @Param("maxLength") maxLength: Int,
+        pageable: Pageable
+    ): Page<Content>
 
     @Query(
         """
