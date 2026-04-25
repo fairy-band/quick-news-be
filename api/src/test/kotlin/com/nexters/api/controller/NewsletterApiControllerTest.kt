@@ -1,8 +1,13 @@
 package com.nexters.api.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.benmanes.caffeine.cache.Cache
+import com.nexters.api.config.CacheConfig
 import com.nexters.api.dto.CreateContentApiRequest
 import com.nexters.api.service.NewsletterContentsService
+import com.nexters.api.service.NewsletterExploreService
+import com.nexters.api.util.LocalCache
+import com.nexters.api.util.LocalCacheValue
 import com.nexters.api.util.TokenUtil
 import com.nexters.external.entity.AdminMember
 import com.nexters.external.entity.Content
@@ -10,6 +15,7 @@ import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.repository.AdminMemberRepository
+import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ContentProviderRequestService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
@@ -34,7 +40,12 @@ import java.time.LocalDateTime
 import java.util.Base64
 
 @WebMvcTest(NewsletterApiController::class)
-@Import(NewsletterContentsService::class)
+@Import(
+    NewsletterContentsService::class,
+    NewsletterExploreService::class,
+    CacheConfig::class,
+    LocalCache::class,
+)
 @ActiveProfiles("test")
 class NewsletterApiControllerTest {
     @Autowired
@@ -42,6 +53,9 @@ class NewsletterApiControllerTest {
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var localCache: Cache<String, LocalCacheValue>
 
     @MockitoBean
     private lateinit var dayArchiveResolver: DailyContentArchiveResolver
@@ -69,6 +83,7 @@ class NewsletterApiControllerTest {
 
     @BeforeEach
     fun setUp() {
+        localCache.invalidateAll()
         adminMember =
             AdminMember(
                 id = 1L,
@@ -76,6 +91,59 @@ class NewsletterApiControllerTest {
                 name = "Admin User"
             )
         validToken = Base64.getEncoder().encodeToString("admin@example.com:token".toByteArray())
+    }
+
+    @Test
+    fun `should return explore contents with cursor metadata`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRows(0L, 3))
+            .thenReturn(
+                listOf(
+                    exploreRow(id = 30L, contentId = 130L, language = "ko"),
+                    exploreRow(id = 20L, contentId = 120L, language = "en"),
+                    exploreRow(id = 10L, contentId = 110L, language = "ko"),
+                ),
+            )
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(3L)
+
+        mockMvc
+            .perform(
+                get("/api/newsletters/explore/contents")
+                    .param("size", "2"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.contents.length()").value(2))
+            .andExpect(jsonPath("$.contents[0].id").value(30L))
+            .andExpect(jsonPath("$.contents[0].contentId").value(130L))
+            .andExpect(jsonPath("$.contents[0].language").value("KOREAN"))
+            .andExpect(jsonPath("$.contents[1].id").value(20L))
+            .andExpect(jsonPath("$.contents[1].language").value("ENGLISH"))
+            .andExpect(jsonPath("$.totalCount").value(3L))
+            .andExpect(jsonPath("$.hasMore").value(true))
+            .andExpect(jsonPath("$.nextOffset").value(20L))
+    }
+
+    @Test
+    fun `should return 400 when explore size is out of range`() {
+        mockMvc
+            .perform(
+                get("/api/newsletters/explore/contents")
+                    .param("size", "0"),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("size must be between 1 and 50"))
+    }
+
+    @Test
+    fun `should return 400 when explore lastSeenOffset is negative`() {
+        mockMvc
+            .perform(
+                get("/api/newsletters/explore/contents")
+                    .param("lastSeenOffset", "-1"),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("lastSeenOffset must be greater than or equal to 0"))
     }
 
     @Test
@@ -404,4 +472,23 @@ class NewsletterApiControllerTest {
             .andExpect(jsonPath("$.id").value(2L))
             .andExpect(jsonPath("$.title").value("Test Article"))
     }
+
+    private fun exploreRow(
+        id: Long,
+        contentId: Long,
+        language: String?,
+    ): ExploreContentRow =
+        ExploreContentRow(
+            id = id,
+            contentId = contentId,
+            provocativeKeyword = "Kotlin",
+            provocativeHeadline = "Headline $id",
+            summaryContent = "Summary $id",
+            contentUrl = "https://example.com/articles/$contentId",
+            imageUrl = "https://example.com/images/$contentId.png",
+            newsletterName = "Newsletter $contentId",
+            language = language,
+            createdAt = LocalDateTime.of(2026, 4, 24, 10, 0),
+            updatedAt = LocalDateTime.of(2026, 4, 24, 10, 0),
+        )
 }

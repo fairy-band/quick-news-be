@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.kotlin.stdlib.jdk8)
     implementation(libs.jakarta.activation.api)
     implementation(libs.spring.boot.starter.logging)
+    implementation(libs.caffeine)
     implementation(libs.jsoup)
     implementation(libs.google.analytics.data)
     implementation(libs.google.auth.oauth2)

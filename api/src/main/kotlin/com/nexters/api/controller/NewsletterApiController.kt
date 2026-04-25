@@ -5,22 +5,19 @@ import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.CreateContentApiRequest
 import com.nexters.api.dto.CreateContentApiResponse
 import com.nexters.api.dto.CreateContentProviderRequestApiRequest
-import com.nexters.api.dto.ExposureContentApiResponse
 import com.nexters.api.dto.ExposureContentListApiResponse
-import com.nexters.api.enums.Language
 import com.nexters.api.exception.UnauthorizedException
 import com.nexters.api.service.NewsletterContentsService
+import com.nexters.api.service.NewsletterExploreService
 import com.nexters.api.util.TokenUtil
 import com.nexters.external.service.ContentProviderRequestService
 import com.nexters.external.service.ContentService
-import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -39,7 +36,7 @@ import java.time.LocalDate
 class NewsletterApiController(
     private val dayArchiveResolver: DailyContentArchiveResolver,
     private val newsletterContentsService: NewsletterContentsService,
-    private val exposureContentService: ExposureContentService,
+    private val newsletterExploreService: NewsletterExploreService,
     private val contentService: ContentService,
     private val contentProviderRequestService: ContentProviderRequestService,
     private val tokenUtil: TokenUtil,
@@ -66,44 +63,14 @@ class NewsletterApiController(
     @GetMapping("/explore/contents")
     @Operation(
         summary = "탐색 콘텐츠 조회",
-        description = "노출 콘텐츠 목록을 무한 페이징으로 조회합니다. lastSeenOffset을 사용하여 다음 페이지를 요청할 수 있습니다.",
+        description = "노출 콘텐츠 목록을 id DESC 기준 keyset pagination으로 조회합니다. 다음 페이지는 lastSeenOffset보다 작은 id만 조회하여 이전 페이지와 중복되지 않습니다.",
     )
     fun getExploreContents(
-        @Parameter(description = "마지막으로 본 콘텐츠의 ID (기본값: 0)", example = "0")
+        @Parameter(description = "마지막으로 본 노출 콘텐츠 ID. 다음 페이지 조회 시 이 ID는 제외됩니다. (기본값: 0)", example = "0")
         @RequestParam(defaultValue = "0") lastSeenOffset: Long,
         @Parameter(description = "한 번에 가져올 콘텐츠 개수 (기본값: 20)", example = "20")
         @RequestParam(defaultValue = "20") size: Int,
-    ): ExposureContentListApiResponse {
-        val pageable = PageRequest.of(0, size)
-        val page = exposureContentService.getAllExposureContentsWithPaging(lastSeenOffset, pageable)
-
-        val contents =
-            page.content.map { exposureContent ->
-                ExposureContentApiResponse(
-                    id = exposureContent.id!!,
-                    contentId = exposureContent.content.id!!,
-                    provocativeKeyword = exposureContent.provocativeKeyword,
-                    provocativeHeadline = exposureContent.provocativeHeadline,
-                    summaryContent = exposureContent.summaryContent,
-                    contentUrl = exposureContent.content.originalUrl,
-                    imageUrl = exposureContent.content.imageUrl,
-                    newsletterName = exposureContent.content.newsletterName,
-                    language = Language.fromString(exposureContent.content.contentProvider?.language),
-                    createdAt = exposureContent.createdAt,
-                    updatedAt = exposureContent.updatedAt,
-                )
-            }
-
-        val hasMore = page.content.size == size
-        val nextOffset = if (hasMore && contents.isNotEmpty()) contents.last().id else null
-
-        return ExposureContentListApiResponse(
-            contents = contents,
-            totalCount = exposureContentService.countAllExposureContents(),
-            hasMore = hasMore,
-            nextOffset = nextOffset,
-        )
-    }
+    ): ExposureContentListApiResponse = newsletterExploreService.getExploreContents(lastSeenOffset, size)
 
     @PostMapping("/contents")
     @ResponseStatus(HttpStatus.CREATED)
