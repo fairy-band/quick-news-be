@@ -1,13 +1,10 @@
 package com.nexters.api.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.github.benmanes.caffeine.cache.Cache
-import com.nexters.api.config.CacheConfig
 import com.nexters.api.dto.CreateContentApiRequest
 import com.nexters.api.service.NewsletterContentsService
 import com.nexters.api.service.NewsletterExploreService
 import com.nexters.api.util.LocalCache
-import com.nexters.api.util.LocalCacheValue
 import com.nexters.api.util.TokenUtil
 import com.nexters.external.entity.AdminMember
 import com.nexters.external.entity.Content
@@ -43,8 +40,6 @@ import java.util.Base64
 @Import(
     NewsletterContentsService::class,
     NewsletterExploreService::class,
-    CacheConfig::class,
-    LocalCache::class,
 )
 @ActiveProfiles("test")
 class NewsletterApiControllerTest {
@@ -53,9 +48,6 @@ class NewsletterApiControllerTest {
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
-
-    @Autowired
-    private lateinit var localCache: Cache<String, LocalCacheValue>
 
     @MockitoBean
     private lateinit var dayArchiveResolver: DailyContentArchiveResolver
@@ -83,7 +75,7 @@ class NewsletterApiControllerTest {
 
     @BeforeEach
     fun setUp() {
-        localCache.invalidateAll()
+        deleteExploreCacheKeys()
         adminMember =
             AdminMember(
                 id = 1L,
@@ -132,7 +124,7 @@ class NewsletterApiControllerTest {
                     .param("size", "0"),
             ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.message").value("size must be between 1 and 50"))
+            .andExpect(jsonPath("$.message").value("size must be greater than or equal to 1"))
     }
 
     @Test
@@ -491,4 +483,15 @@ class NewsletterApiControllerTest {
             createdAt = LocalDateTime.of(2026, 4, 24, 10, 0),
             updatedAt = LocalDateTime.of(2026, 4, 24, 10, 0),
         )
+
+    private fun deleteExploreCacheKeys() {
+        LocalCache.delete(TOTAL_COUNT_CACHE_KEY)
+        (1..50).forEach { size ->
+            LocalCache.delete("exposure:contents:page:last-seen-offset:0:size:$size")
+        }
+    }
+
+    private companion object {
+        private const val TOTAL_COUNT_CACHE_KEY = "exposure:contents:total-count"
+    }
 }

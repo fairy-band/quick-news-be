@@ -1,35 +1,59 @@
 package com.nexters.api.util
 
 import com.github.benmanes.caffeine.cache.Cache
-import org.springframework.stereotype.Component
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.github.benmanes.caffeine.cache.Expiry
 import java.time.Duration
 
-@Component
-class LocalCache(
-    cache: Cache<String, LocalCacheValue>,
-) {
-    init {
-        localCache = cache
+object LocalCache {
+    private val localCache: Cache<String, LocalCacheValue> =
+        Caffeine
+            .newBuilder()
+            .initialCapacity(INITIAL_CAPACITY)
+            .maximumSize(MAXIMUM_SIZE)
+            .expireAfter(cacheExpiry())
+            .build()
+
+    fun <T : Any> getOrPut(
+        key: String,
+        ttl: Long,
+        loader: () -> T,
+    ): T =
+        localCache.getOrPut(
+            key = key,
+            ttl = ttl,
+            loader = loader,
+        )
+
+    fun delete(key: String) {
+        localCache.invalidate(key)
     }
 
-    companion object {
-        private lateinit var localCache: Cache<String, LocalCacheValue>
+    private fun cacheExpiry(): Expiry<String, LocalCacheValue> =
+        object : Expiry<String, LocalCacheValue> {
+            override fun expireAfterCreate(
+                key: String,
+                value: LocalCacheValue,
+                currentTime: Long,
+            ): Long = value.ttl.toNanos()
 
-        fun <T : Any> getOrPut(
-            key: String,
-            ttl: Long,
-            loader: () -> T,
-        ): T =
-            if (Companion::localCache.isInitialized) {
-                localCache.getOrPut(
-                    key = key,
-                    ttl = ttl,
-                    loader = loader,
-                )
-            } else {
-                loader()
-            }
-    }
+            override fun expireAfterUpdate(
+                key: String,
+                value: LocalCacheValue,
+                currentTime: Long,
+                currentDuration: Long,
+            ): Long = value.ttl.toNanos()
+
+            override fun expireAfterRead(
+                key: String,
+                value: LocalCacheValue,
+                currentTime: Long,
+                currentDuration: Long,
+            ): Long = currentDuration
+        }
+
+    private const val INITIAL_CAPACITY = 4
+    private const val MAXIMUM_SIZE = 16L
 }
 
 private fun <T : Any> Cache<String, LocalCacheValue>.getOrPut(

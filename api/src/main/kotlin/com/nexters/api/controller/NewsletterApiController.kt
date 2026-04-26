@@ -5,8 +5,12 @@ import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.dto.CreateContentApiRequest
 import com.nexters.api.dto.CreateContentApiResponse
 import com.nexters.api.dto.CreateContentProviderRequestApiRequest
+import com.nexters.api.dto.ExposureContentApiResponse
 import com.nexters.api.dto.ExposureContentListApiResponse
+import com.nexters.api.enums.Language
 import com.nexters.api.exception.UnauthorizedException
+import com.nexters.api.service.ExploreContentResult
+import com.nexters.api.service.ExploreContentsResult
 import com.nexters.api.service.NewsletterContentsService
 import com.nexters.api.service.NewsletterExploreService
 import com.nexters.api.util.TokenUtil
@@ -68,9 +72,12 @@ class NewsletterApiController(
     fun getExploreContents(
         @Parameter(description = "마지막으로 본 노출 콘텐츠 ID. 다음 페이지 조회 시 이 ID는 제외됩니다. (기본값: 0)", example = "0")
         @RequestParam(defaultValue = "0") lastSeenOffset: Long,
-        @Parameter(description = "한 번에 가져올 콘텐츠 개수 (기본값: 20)", example = "20")
+        @Parameter(description = "한 번에 가져올 콘텐츠 개수. 1 이상 값만 허용합니다. (기본값: 20)", example = "20")
         @RequestParam(defaultValue = "20") size: Int,
-    ): ExposureContentListApiResponse = newsletterExploreService.getExploreContents(lastSeenOffset, size)
+    ): ExposureContentListApiResponse =
+        newsletterExploreService
+            .getExploreContents(lastSeenOffset, size)
+            .toApiResponse()
 
     @PostMapping("/contents")
     @ResponseStatus(HttpStatus.CREATED)
@@ -170,3 +177,26 @@ class NewsletterApiController(
         )
     }
 }
+
+private fun ExploreContentsResult.toApiResponse(): ExposureContentListApiResponse =
+    ExposureContentListApiResponse(
+        contents = contents.map { it.toApiResponse() },
+        totalCount = totalCount,
+        hasMore = hasMore,
+        nextOffset = nextOffset,
+    )
+
+private fun ExploreContentResult.toApiResponse(): ExposureContentApiResponse =
+    ExposureContentApiResponse(
+        id = id,
+        contentId = contentId,
+        provocativeKeyword = provocativeKeyword,
+        provocativeHeadline = provocativeHeadline,
+        summaryContent = summaryContent,
+        contentUrl = contentUrl,
+        imageUrl = imageUrl,
+        newsletterName = newsletterName,
+        language = Language.fromString(language),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )

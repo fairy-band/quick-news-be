@@ -1,9 +1,6 @@
 package com.nexters.api.service
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.nexters.api.config.CacheConfig
 import com.nexters.api.util.LocalCache
-import com.nexters.api.util.LocalCacheValue
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ExposureContentService
 import org.assertj.core.api.Assertions.assertThat
@@ -14,15 +11,12 @@ import java.time.LocalDateTime
 
 class NewsletterExploreServiceTest {
     private lateinit var exposureContentService: ExposureContentService
-    private lateinit var localCache: Cache<String, LocalCacheValue>
     private lateinit var sut: NewsletterExploreService
 
     @BeforeEach
     fun setUp() {
+        deleteExploreCacheKeys()
         exposureContentService = Mockito.mock(ExposureContentService::class.java)
-        localCache = CacheConfig().caffeineLocalCache()
-        localCache.invalidateAll()
-        LocalCache(localCache)
         sut =
             NewsletterExploreService(
                 exposureContentService = exposureContentService,
@@ -51,11 +45,6 @@ class NewsletterExploreServiceTest {
         assertThat(first.hasMore).isFalse()
         assertThat(first.nextOffset).isNull()
         assertThat(first.totalCount).isEqualTo(2L)
-        assertThat(localCache.asMap().keys)
-            .contains(
-                "exposure:contents:page:last-seen-offset:0:size:2",
-                "exposure:contents:total-count",
-            )
         Mockito
             .verify(exposureContentService, Mockito.times(1))
             .getExploreContentRows(0L, 3)
@@ -108,8 +97,6 @@ class NewsletterExploreServiceTest {
 
         assertThat(first.contents.map { it.id }).containsExactly(10L)
         assertThat(second.contents.map { it.id }).containsExactly(10L)
-        assertThat(localCache.asMap().keys)
-            .doesNotContain("exposure:contents:page:last-seen-offset:20:size:2")
         Mockito
             .verify(exposureContentService, Mockito.times(2))
             .getExploreContentRows(20L, 3)
@@ -152,4 +139,15 @@ class NewsletterExploreServiceTest {
             createdAt = LocalDateTime.of(2026, 4, 24, 10, 0),
             updatedAt = LocalDateTime.of(2026, 4, 24, 10, 0),
         )
+
+    private fun deleteExploreCacheKeys() {
+        LocalCache.delete(TOTAL_COUNT_CACHE_KEY)
+        (1..50).forEach { size ->
+            LocalCache.delete("exposure:contents:page:last-seen-offset:0:size:$size")
+        }
+    }
+
+    private companion object {
+        private const val TOTAL_COUNT_CACHE_KEY = "exposure:contents:total-count"
+    }
 }
