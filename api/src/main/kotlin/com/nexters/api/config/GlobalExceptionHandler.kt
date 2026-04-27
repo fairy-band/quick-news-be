@@ -29,6 +29,12 @@ class GlobalExceptionHandler {
             .status(HttpStatus.NOT_FOUND)
             .body(ApiResponse(success = false, message = ex.message ?: "Resource not found"))
 
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse(success = false, message = ex.message ?: "Invalid request"))
+
     @ExceptionHandler(RefreshNotAvailableException::class)
     fun handleRefreshNotAvailableException(ex: RefreshNotAvailableException): ResponseEntity<ApiResponse<Nothing>> =
         ResponseEntity

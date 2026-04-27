@@ -88,6 +88,56 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        ORDER BY e.id DESC
+    """,
+    )
+    fun findExploreRows(pageable: Pageable): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE e.id < :lastSeenOffset
+        ORDER BY e.id DESC
+    """,
+    )
+    fun findExploreRowsAfter(
+        @Param("lastSeenOffset") lastSeenOffset: Long,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
         SELECT c FROM Content c
         WHERE c.id IN (
             SELECT DISTINCT e.content.id FROM ExposureContent e

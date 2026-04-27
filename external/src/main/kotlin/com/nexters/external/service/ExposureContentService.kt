@@ -4,10 +4,12 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.ContentKeywordMappingRepository
+import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -108,6 +110,19 @@ class ExposureContentService(
         lastSeenOffset: Long,
         pageable: Pageable
     ): Page<ExposureContent> = exposureContentRepository.findAllWithOffset(lastSeenOffset, pageable)
+
+    @Transactional(readOnly = true)
+    fun getExploreContentRows(
+        lastSeenOffset: Long,
+        limit: Int,
+    ): List<ExploreContentRow> {
+        val pageable = PageRequest.of(0, limit)
+        return if (lastSeenOffset == 0L) {
+            exposureContentRepository.findExploreRows(pageable)
+        } else {
+            exposureContentRepository.findExploreRowsAfter(lastSeenOffset, pageable)
+        }
+    }
 
     fun getAllExposureContentsPaged(pageable: Pageable): Page<ExposureContent> = exposureContentRepository.findAllPaged(pageable)
 

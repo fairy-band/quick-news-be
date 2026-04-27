@@ -93,6 +93,9 @@ rome = { group = "com.rometools", name = "rome", version = "2.1.0" }
 # Micrometer
 micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
 
+# Cache
+caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine" }
+
 # MongoDB
 mongodb-driver-sync = { group = "org.mongodb", name = "mongodb-driver-sync", version.ref = "mongodb" }
 
