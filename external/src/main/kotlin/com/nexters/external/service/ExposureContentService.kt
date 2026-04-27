@@ -131,8 +131,10 @@ class ExposureContentService(
     ): List<ExploreContentRow> {
         val pageable = PageRequest.of(0, limit)
         if (lastSeenOffset == 0L) return exposureContentRepository.findExploreRowsSortedByPublishedAt(pageable)
-        val lastSeen = exposureContentRepository.findById(lastSeenOffset)
-            .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
+        val lastSeen =
+            exposureContentRepository
+                .findById(lastSeenOffset)
+                .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
         return exposureContentRepository.findExploreRowsSortedByPublishedAtAfter(
             lastSeen.content.publishedAt,
             lastSeenOffset,
