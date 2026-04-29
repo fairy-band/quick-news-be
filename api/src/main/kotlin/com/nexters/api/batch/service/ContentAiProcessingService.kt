@@ -1,6 +1,7 @@
 package com.nexters.api.batch.service
 
 import com.google.gson.JsonSyntaxException
+import com.nexters.api.service.ExploreContentsCache
 import com.nexters.external.constants.ContentConstants.MAX_CONTENT_LENGTH
 import com.nexters.external.constants.ContentConstants.MAX_TOTAL_BATCH_LENGTH
 import com.nexters.external.entity.Content
@@ -235,6 +236,8 @@ class ContentAiProcessingService(
             }
         }
 
+        evictExploreContentsCacheIfChanged(processedCount)
+
         return BatchProcessingMetrics(processedCount, errorCount)
     }
 
@@ -291,9 +294,16 @@ class ContentAiProcessingService(
         }
 
         val result = ProcessingResult(processedCount, errorCount, getRemainingCount())
+        evictExploreContentsCacheIfChanged(processedCount)
         logger.info("Fallback completed. Processed: $processedCount, Errors: $errorCount, Remaining: ${result.remainingCount}")
 
         return result
+    }
+
+    private fun evictExploreContentsCacheIfChanged(processedCount: Int) {
+        if (processedCount > 0) {
+            ExploreContentsCache.evict()
+        }
     }
 
     data class ProcessingResult(

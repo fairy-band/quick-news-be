@@ -29,6 +29,16 @@ object LocalCache {
         localCache.invalidate(key)
     }
 
+    fun deleteByPrefix(prefix: String) {
+        val keys =
+            localCache
+                .asMap()
+                .keys
+                .filter { it.startsWith(prefix) }
+
+        localCache.invalidateAll(keys)
+    }
+
     private fun cacheExpiry(): Expiry<String, LocalCacheValue> =
         object : Expiry<String, LocalCacheValue> {
             override fun expireAfterCreate(
