@@ -1,6 +1,5 @@
 package com.nexters.api.service
 
-import com.nexters.api.util.LocalCache
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ExposureContentService
 import org.springframework.stereotype.Service
@@ -36,18 +35,12 @@ class NewsletterExploreService(
         }
 
     private fun findCachedFirstExploreContentPage(size: Int): ExploreContentPageResult =
-        LocalCache.getOrPut(
-            key = buildExploreContentPageCacheKey(FIRST_PAGE_OFFSET, size),
-            ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
-        ) {
+        ExploreContentsCache.getFirstPage(size) {
             loadExploreContentPage(FIRST_PAGE_OFFSET, size)
         }
 
     private fun countExposureContents(): Long =
-        LocalCache.getOrPut(
-            key = TOTAL_COUNT_CACHE_KEY,
-            ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
-        ) {
+        ExploreContentsCache.getTotalCount {
             exposureContentService.countAllExposureContents()
         }
 
@@ -99,13 +92,5 @@ class NewsletterExploreService(
     companion object {
         private const val MIN_PAGE_SIZE = 1
         private const val FIRST_PAGE_OFFSET = 0L
-        private const val EXPOSURE_CONTENTS_CACHE_TTL_MINUTES = 6 * 60L
-        private const val CACHE_KEY_PREFIX = "exposure:contents"
-        private const val TOTAL_COUNT_CACHE_KEY = "$CACHE_KEY_PREFIX:total-count"
-
-        private fun buildExploreContentPageCacheKey(
-            lastSeenOffset: Long,
-            size: Int,
-        ): String = "$CACHE_KEY_PREFIX:page:last-seen-offset:$lastSeenOffset:size:$size"
     }
 }

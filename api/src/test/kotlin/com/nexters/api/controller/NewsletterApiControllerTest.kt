@@ -2,9 +2,9 @@ package com.nexters.api.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.nexters.api.dto.CreateContentApiRequest
+import com.nexters.api.service.ExploreContentsCache
 import com.nexters.api.service.NewsletterContentsService
 import com.nexters.api.service.NewsletterExploreService
-import com.nexters.api.util.LocalCache
 import com.nexters.api.util.TokenUtil
 import com.nexters.external.entity.AdminMember
 import com.nexters.external.entity.Content
@@ -485,13 +485,6 @@ class NewsletterApiControllerTest {
         )
 
     private fun deleteExploreCacheKeys() {
-        LocalCache.delete(TOTAL_COUNT_CACHE_KEY)
-        (1..50).forEach { size ->
-            LocalCache.delete("exposure:contents:page:last-seen-offset:0:size:$size")
-        }
-    }
-
-    private companion object {
-        private const val TOTAL_COUNT_CACHE_KEY = "exposure:contents:total-count"
+        ExploreContentsCache.evict()
     }
 }
