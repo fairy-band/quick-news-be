@@ -1,7 +1,6 @@
 package com.nexters.api.batch.service
 
 import com.nexters.api.batch.dto.EmailMessage
-import com.nexters.api.service.ExploreContentsCache
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.newsletter.service.NewsletterProcessingService
@@ -37,10 +36,7 @@ class MailProcessor(
     }
 
     fun processNewsletterSource(newsletterSourceId: String) {
-        val exposureContents = newsletterProcessingService.processNewsletter(newsletterSourceId)
-        if (exposureContents.isNotEmpty()) {
-            ExploreContentsCache.evict()
-        }
+        newsletterProcessingService.processNewsletter(newsletterSourceId)
     }
 
     private fun convertToNewsletterSource(emailMessage: EmailMessage): NewsletterSource {
