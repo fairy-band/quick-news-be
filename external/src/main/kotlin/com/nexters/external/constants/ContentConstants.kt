@@ -9,5 +9,5 @@ object ContentConstants {
     /**
      * 배치 전체 최대 길이
      */
-    const val MAX_TOTAL_BATCH_LENGTH = 500_000
+    const val MAX_TOTAL_BATCH_LENGTH = 1_500_000
 }
