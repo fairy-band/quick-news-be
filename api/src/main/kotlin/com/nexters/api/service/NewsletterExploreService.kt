@@ -1,5 +1,6 @@
 package com.nexters.api.service
 
+import com.nexters.api.enums.ExploreSortType
 import com.nexters.api.util.LocalCache
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ExposureContentService
@@ -12,10 +13,11 @@ class NewsletterExploreService(
     fun getExploreContents(
         lastSeenOffset: Long,
         size: Int,
+        sortType: ExploreSortType = ExploreSortType.REGISTERED,
     ): ExploreContentsResult {
         validateRequest(lastSeenOffset, size)
 
-        val page = findExploreContentPage(lastSeenOffset, size)
+        val page = findExploreContentPage(lastSeenOffset, size, sortType)
         val totalCount = countExposureContents()
 
         return ExploreContentsResult(
@@ -29,10 +31,17 @@ class NewsletterExploreService(
     private fun findExploreContentPage(
         lastSeenOffset: Long,
         size: Int,
+        sortType: ExploreSortType,
     ): ExploreContentPageResult =
-        when (lastSeenOffset) {
-            FIRST_PAGE_OFFSET -> findCachedFirstExploreContentPage(size)
-            else -> loadExploreContentPage(lastSeenOffset, size)
+        when (sortType) {
+            ExploreSortType.REGISTERED ->
+                when (lastSeenOffset) {
+                    FIRST_PAGE_OFFSET -> findCachedFirstExploreContentPage(size)
+                    else -> loadPage(lastSeenOffset, size, exposureContentService::getExploreContentRows)
+                }
+            // PUBLISHED 정렬은 첫 페이지도 캐싱하지 않는다.
+            // 최신 콘텐츠가 수시로 추가되고, 발행일 기준 정렬을 선택한 사용자에게 오래된 글을 보여주면 의미가 없어지기 때문.
+            ExploreSortType.PUBLISHED -> loadPage(lastSeenOffset, size, exposureContentService::getExploreContentRowsSortedByPublishedAt)
         }
 
     private fun findCachedFirstExploreContentPage(size: Int): ExploreContentPageResult =
@@ -40,7 +49,7 @@ class NewsletterExploreService(
             key = buildExploreContentPageCacheKey(FIRST_PAGE_OFFSET, size),
             ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
         ) {
-            loadExploreContentPage(FIRST_PAGE_OFFSET, size)
+            loadPage(FIRST_PAGE_OFFSET, size, exposureContentService::getExploreContentRows)
         }
 
     private fun countExposureContents(): Long =
@@ -51,17 +60,14 @@ class NewsletterExploreService(
             exposureContentService.countAllExposureContents()
         }
 
-    private fun loadExploreContentPage(
+    private fun loadPage(
         lastSeenOffset: Long,
         size: Int,
+        fetch: (Long, Int) -> List<ExploreContentRow>,
     ): ExploreContentPageResult {
-        val rows = exposureContentService.getExploreContentRows(lastSeenOffset, size + 1)
-        val contents =
-            rows
-                .take(size)
-                .map { it.toResult() }
+        val rows = fetch(lastSeenOffset, size + 1)
+        val contents = rows.take(size).map { it.toResult() }
         val hasMore = rows.size > size
-
         return ExploreContentPageResult(
             contents = contents,
             hasMore = hasMore,

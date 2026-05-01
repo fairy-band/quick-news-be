@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import java.time.LocalDate
 
 @Repository
 interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
@@ -133,6 +134,58 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     )
     fun findExploreRowsAfter(
         @Param("lastSeenOffset") lastSeenOffset: Long,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        ORDER BY c.publishedAt DESC, e.id DESC
+    """,
+    )
+    fun findExploreRowsSortedByPublishedAt(pageable: Pageable): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE c.publishedAt < :lastSeenPublishedAt
+           OR (c.publishedAt = :lastSeenPublishedAt AND e.id < :lastSeenId)
+        ORDER BY c.publishedAt DESC, e.id DESC
+    """,
+    )
+    fun findExploreRowsSortedByPublishedAtAfter(
+        @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
+        @Param("lastSeenId") lastSeenId: Long,
         pageable: Pageable,
     ): List<ExploreContentRow>
 

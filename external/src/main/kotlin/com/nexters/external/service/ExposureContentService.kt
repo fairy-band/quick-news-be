@@ -124,6 +124,24 @@ class ExposureContentService(
         }
     }
 
+    @Transactional(readOnly = true)
+    fun getExploreContentRowsSortedByPublishedAt(
+        lastSeenOffset: Long,
+        limit: Int,
+    ): List<ExploreContentRow> {
+        val pageable = PageRequest.of(0, limit)
+        if (lastSeenOffset == 0L) return exposureContentRepository.findExploreRowsSortedByPublishedAt(pageable)
+        val lastSeen =
+            exposureContentRepository
+                .findById(lastSeenOffset)
+                .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
+        return exposureContentRepository.findExploreRowsSortedByPublishedAtAfter(
+            lastSeen.content.publishedAt,
+            lastSeenOffset,
+            pageable,
+        )
+    }
+
     fun getAllExposureContentsPaged(pageable: Pageable): Page<ExposureContent> = exposureContentRepository.findAllPaged(pageable)
 
     fun getExposureContentsByKeywordPaged(
