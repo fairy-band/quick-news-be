@@ -1,6 +1,7 @@
 package com.nexters.api.dto
 
 import com.nexters.api.enums.Language
+import com.nexters.external.enums.ContentProviderType
 import java.time.LocalDate
 
 data class ContentViewApiResponse(
@@ -17,5 +18,6 @@ data class ContentViewApiResponse(
         val imageUrl: String? = null,
         val newsletterName: String,
         val language: Language,
+        val cardType: ContentProviderType,
     )
 }
