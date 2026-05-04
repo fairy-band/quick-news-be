@@ -1,5 +1,6 @@
 package com.nexters.api.service
 
+import com.nexters.api.util.LocalCache
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ExposureContentService
 import org.assertj.core.api.Assertions.assertThat
@@ -136,7 +137,7 @@ class NewsletterExploreServiceTest {
             .thenReturn(3L)
 
         val cached = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
-        ExploreContentsCache.evict()
+        deleteExploreCacheKeys()
         val reloaded = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
 
         assertThat(cached.contents.map { it.id }).containsExactly(20L, 10L)
@@ -167,6 +168,10 @@ class NewsletterExploreServiceTest {
         )
 
     private fun deleteExploreCacheKeys() {
-        ExploreContentsCache.evict()
+        LocalCache.deleteByPrefix(EXPLORE_CACHE_KEY_PREFIX)
+    }
+
+    private companion object {
+        private const val EXPLORE_CACHE_KEY_PREFIX = "exposure:contents:"
     }
 }

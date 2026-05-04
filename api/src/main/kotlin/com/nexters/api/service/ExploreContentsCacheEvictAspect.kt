@@ -1,8 +1,8 @@
 package com.nexters.api.service
 
+import com.nexters.api.util.LocalCache
 import org.aspectj.lang.annotation.AfterReturning
 import org.aspectj.lang.annotation.Aspect
-import org.aspectj.lang.annotation.Pointcut
 import org.springframework.stereotype.Component
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
@@ -10,27 +10,22 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Aspect
 @Component
 class ExploreContentsCacheEvictAspect {
-    @Pointcut(
-        "execution(* com.nexters.external.service.ExposureContentService.createExposureContentFromSummary(..)) || " +
-            "execution(* com.nexters.external.service.ExposureContentService.setActiveSummaryAsExposureContent(..)) || " +
-            "execution(* com.nexters.external.service.ExposureContentService.updateExposureContent(..)) || " +
-            "execution(* com.nexters.external.service.ExposureContentService.deleteExposureContent(..)) || " +
-            "execution(* com.nexters.external.service.ExposureContentService.createOrUpdateExposureContent(..))",
-    )
-    fun exposureContentChange() = Unit
-
-    @AfterReturning("exposureContentChange()")
+    @AfterReturning("@annotation(com.nexters.external.annotation.ExposureContentChanged)")
     fun evictAfterSuccessfulExposureContentChange() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(
                 object : TransactionSynchronization {
                     override fun afterCommit() {
-                        ExploreContentsCache.evict()
+                        LocalCache.deleteByPrefix(EXPLORE_CONTENTS_CACHE_KEY_PREFIX)
                     }
                 },
             )
         } else {
-            ExploreContentsCache.evict()
+            LocalCache.deleteByPrefix(EXPLORE_CONTENTS_CACHE_KEY_PREFIX)
         }
+    }
+
+    companion object {
+        private const val EXPLORE_CONTENTS_CACHE_KEY_PREFIX = "exposure:contents:"
     }
 }
