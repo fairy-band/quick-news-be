@@ -1,5 +1,6 @@
 package com.nexters.external.service
 
+import com.nexters.external.annotation.ExposureContentChanged
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.Summary
@@ -23,6 +24,7 @@ class ExposureContentService(
 ) {
     private val logger = LoggerFactory.getLogger(ExposureContentService::class.java)
 
+    @ExposureContentChanged
     @Transactional
     fun createExposureContentFromSummary(summaryId: Long): ExposureContent {
         val summary =
@@ -56,6 +58,7 @@ class ExposureContentService(
         return exposureContentRepository.save(exposureContent)
     }
 
+    @ExposureContentChanged
     @Transactional
     fun setActiveSummaryAsExposureContent(summaryId: Long): ExposureContent {
         val summary =
@@ -140,6 +143,7 @@ class ExposureContentService(
 
     fun getExposureContentByContent(content: Content): ExposureContent? = exposureContentRepository.findByContent(content)
 
+    @ExposureContentChanged
     @Transactional
     fun updateExposureContent(
         id: Long,
@@ -165,6 +169,7 @@ class ExposureContentService(
         return exposureContentRepository.save(updatedContent)
     }
 
+    @ExposureContentChanged
     @Transactional
     fun deleteExposureContent(id: Long) {
         if (exposureContentRepository.existsById(id)) {
@@ -174,6 +179,7 @@ class ExposureContentService(
         }
     }
 
+    @ExposureContentChanged
     @Transactional
     fun createOrUpdateExposureContent(
         content: Content,

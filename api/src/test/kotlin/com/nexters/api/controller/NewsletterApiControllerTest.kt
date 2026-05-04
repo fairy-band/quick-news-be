@@ -485,13 +485,10 @@ class NewsletterApiControllerTest {
         )
 
     private fun deleteExploreCacheKeys() {
-        LocalCache.delete(TOTAL_COUNT_CACHE_KEY)
-        (1..50).forEach { size ->
-            LocalCache.delete("exposure:contents:page:last-seen-offset:0:size:$size")
-        }
+        LocalCache.deleteByPrefix(EXPLORE_CACHE_KEY_PREFIX)
     }
 
     private companion object {
-        private const val TOTAL_COUNT_CACHE_KEY = "exposure:contents:total-count"
+        private const val EXPLORE_CACHE_KEY_PREFIX = "exposure:contents:"
     }
 }

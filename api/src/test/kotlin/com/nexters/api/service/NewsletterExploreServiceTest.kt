@@ -125,6 +125,33 @@ class NewsletterExploreServiceTest {
         assertThat(firstPage.contents.map { it.id }).doesNotContainAnyElementsOf(secondPage.contents.map { it.id })
     }
 
+    @Test
+    fun `evict should clear cached first page and total count`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRows(0L, 3))
+            .thenReturn(listOf(exploreRow(id = 20L), exploreRow(id = 10L)))
+            .thenReturn(listOf(exploreRow(id = 30L), exploreRow(id = 20L)))
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(2L)
+            .thenReturn(3L)
+
+        val cached = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
+        deleteExploreCacheKeys()
+        val reloaded = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
+
+        assertThat(cached.contents.map { it.id }).containsExactly(20L, 10L)
+        assertThat(cached.totalCount).isEqualTo(2L)
+        assertThat(reloaded.contents.map { it.id }).containsExactly(30L, 20L)
+        assertThat(reloaded.totalCount).isEqualTo(3L)
+        Mockito
+            .verify(exposureContentService, Mockito.times(2))
+            .getExploreContentRows(0L, 3)
+        Mockito
+            .verify(exposureContentService, Mockito.times(2))
+            .countAllExposureContents()
+    }
+
     private fun exploreRow(id: Long): ExploreContentRow =
         ExploreContentRow(
             id = id,
@@ -141,13 +168,10 @@ class NewsletterExploreServiceTest {
         )
 
     private fun deleteExploreCacheKeys() {
-        LocalCache.delete(TOTAL_COUNT_CACHE_KEY)
-        (1..50).forEach { size ->
-            LocalCache.delete("exposure:contents:page:last-seen-offset:0:size:$size")
-        }
+        LocalCache.deleteByPrefix(EXPLORE_CACHE_KEY_PREFIX)
     }
 
     private companion object {
-        private const val TOTAL_COUNT_CACHE_KEY = "exposure:contents:total-count"
+        private const val EXPLORE_CACHE_KEY_PREFIX = "exposure:contents:"
     }
 }

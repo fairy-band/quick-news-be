@@ -37,7 +37,7 @@ class NewsletterExploreService(
 
     private fun findCachedFirstExploreContentPage(size: Int): ExploreContentPageResult =
         LocalCache.getOrPut(
-            key = buildExploreContentPageCacheKey(FIRST_PAGE_OFFSET, size),
+            key = buildExploreContentPageCacheKey(size),
             ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
         ) {
             loadExploreContentPage(FIRST_PAGE_OFFSET, size)
@@ -47,9 +47,8 @@ class NewsletterExploreService(
         LocalCache.getOrPut(
             key = TOTAL_COUNT_CACHE_KEY,
             ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
-        ) {
-            exposureContentService.countAllExposureContents()
-        }
+            loader = exposureContentService::countAllExposureContents,
+        )
 
     private fun loadExploreContentPage(
         lastSeenOffset: Long,
@@ -102,10 +101,9 @@ class NewsletterExploreService(
         private const val EXPOSURE_CONTENTS_CACHE_TTL_MINUTES = 6 * 60L
         private const val CACHE_KEY_PREFIX = "exposure:contents"
         private const val TOTAL_COUNT_CACHE_KEY = "$CACHE_KEY_PREFIX:total-count"
+        private const val PAGE_CACHE_KEY_PREFIX = "$CACHE_KEY_PREFIX:page:"
 
-        private fun buildExploreContentPageCacheKey(
-            lastSeenOffset: Long,
-            size: Int,
-        ): String = "$CACHE_KEY_PREFIX:page:last-seen-offset:$lastSeenOffset:size:$size"
+        private fun buildExploreContentPageCacheKey(size: Int): String =
+            "${PAGE_CACHE_KEY_PREFIX}last-seen-offset:$FIRST_PAGE_OFFSET:size:$size"
     }
 }
