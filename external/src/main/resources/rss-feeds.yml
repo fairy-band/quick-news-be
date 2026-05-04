@@ -54,8 +54,8 @@ rss:
     - http://feeds.feedburner.com/CSS-Weekly?format=xml
     - https://vuejsdevelopers.com/feed.xml
     - http://react.statuscode.com/rss
-    - http://frontendfoc.us/rss
-    - http://javascriptweekly.com/rss
+    - https://cprss.s3.amazonaws.com/frontendfoc.us.xml
+    - https://cprss.s3.amazonaws.com/javascriptweekly.com.xml
 
     # 개발 도구/언어 공식 블로그
     - https://devblogs.microsoft.com/typescript/feed/
