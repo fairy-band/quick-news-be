@@ -82,8 +82,26 @@ echo ""
 # 5. 느린 API 요청 (3초 이상)
 echo "🐌 느린 API 요청 (3초 이상)"
 echo "------------------------------------------"
-awk -F'rt=' '{if (NF>1) {rt=$2; sub(/ .*/, "", rt); if (rt+0 >= 3.0) print}}' "$LOG_FILE" | \
-awk '{printf "%.3f초 - %s %s [%s]\n", $(NF-3), $6, $7, $4}' | sort -rn | head -20
+awk '
+{
+    # rt= 값 추출
+    if (match($0, /rt=([0-9.]+)/, arr)) {
+        rt = arr[1];
+        if (rt >= 3.0) {
+            # 요청 메서드와 URL 추출
+            if (match($0, /"([A-Z]+) ([^ ]+)/, req)) {
+                method = req[1];
+                url = req[2];
+            }
+            # 타임스탬프 추출
+            if (match($0, /\[([^\]]+)\]/, ts)) {
+                timestamp = ts[1];
+            }
+            printf "%.3f초 - \"%s %s\" [%s]\n", rt, method, url, timestamp;
+        }
+    }
+}
+' "$LOG_FILE" | sort -rn | head -20
 echo ""
 
 # 6. 업스트림 응답 시간 통계 (upstream_response_time)
