@@ -39,8 +39,7 @@ echo ""
 # 4. 응답 시간 통계 (request_time)
 echo "⏱️  API 응답 시간 통계"
 echo "------------------------------------------"
-awk -F'rt=' '{if (NF>1) print $2}' "$LOG_FILE" | awk '{print $1}' | \
-awk '
+grep -o 'rt=[0-9.]*' "$LOG_FILE" | cut -d= -f2 | sort -n | awk '
 BEGIN {
     count=0; sum=0; max=0; min=999999;
 }
@@ -50,29 +49,36 @@ BEGIN {
         sum+=$1;
         if ($1 > max) max=$1;
         if ($1 < min) min=$1;
-        times[count]=$1;
+        
+        # 배열에 저장 (중앙값 계산용)
+        values[count] = $1;
     }
 }
 END {
     if (count > 0) {
         avg=sum/count;
-        # 정렬하여 중앙값 계산
-        asort(times);
+        
+        # 중앙값 (이미 정렬됨)
+        mid = int(count/2);
         if (count % 2 == 1) {
-            median = times[int(count/2)+1];
+            median = values[mid+1];
         } else {
-            median = (times[count/2] + times[count/2+1]) / 2;
+            median = (values[mid] + values[mid+1]) / 2;
         }
+        
+        # 백분위수
         p95_idx = int(count * 0.95);
+        if (p95_idx < 1) p95_idx = 1;
         p99_idx = int(count * 0.99);
+        if (p99_idx < 1) p99_idx = 1;
 
         printf "요청 수: %d\n", count;
         printf "평균 응답 시간: %.3f초\n", avg;
         printf "최소 응답 시간: %.3f초\n", min;
         printf "최대 응답 시간: %.3f초\n", max;
         printf "중앙값: %.3f초\n", median;
-        printf "95 백분위수: %.3f초\n", times[p95_idx];
-        printf "99 백분위수: %.3f초\n", times[p99_idx];
+        printf "95 백분위수: %.3f초\n", values[p95_idx];
+        printf "99 백분위수: %.3f초\n", values[p99_idx];
     } else {
         print "응답 시간 데이터가 없습니다.";
     }
@@ -82,33 +88,48 @@ echo ""
 # 5. 느린 API 요청 (3초 이상)
 echo "🐌 느린 API 요청 (3초 이상)"
 echo "------------------------------------------"
-awk '
+grep 'rt=[0-9.]*' "$LOG_FILE" | awk '
 {
     # rt= 값 추출
-    if (match($0, /rt=([0-9.]+)/, arr)) {
-        rt = arr[1];
-        if (rt >= 3.0) {
-            # 요청 메서드와 URL 추출
-            if (match($0, /"([A-Z]+) ([^ ]+)/, req)) {
-                method = req[1];
-                url = req[2];
+    for (i=1; i<=NF; i++) {
+        if ($i ~ /^rt=/) {
+            split($i, arr, "=");
+            rt = arr[2];
+            if (rt >= 3.0) {
+                # 요청 라인 추출 (따옴표 사이)
+                request = "";
+                in_quote = 0;
+                for (j=1; j<=NF; j++) {
+                    if ($j ~ /^"/ && $j !~ /"$/) {
+                        in_quote = 1;
+                        request = substr($j, 2);
+                    } else if (in_quote && $j ~ /"$/) {
+                        request = request " " substr($j, 1, length($j)-1);
+                        break;
+                    } else if (in_quote) {
+                        request = request " " $j;
+                    } else if ($j ~ /^".*"$/) {
+                        request = substr($j, 2, length($j)-2);
+                        break;
+                    }
+                }
+                
+                # 타임스탬프 추출
+                timestamp = $4;
+                gsub(/\[/, "", timestamp);
+                
+                printf "%.3f초 - \"%s\" [%s]\n", rt, request, timestamp;
             }
-            # 타임스탬프 추출
-            if (match($0, /\[([^\]]+)\]/, ts)) {
-                timestamp = ts[1];
-            }
-            printf "%.3f초 - \"%s %s\" [%s]\n", rt, method, url, timestamp;
         }
     }
 }
-' "$LOG_FILE" | sort -rn | head -20
+' | sort -rn | head -20
 echo ""
 
 # 6. 업스트림 응답 시간 통계 (upstream_response_time)
 echo "🔄 업스트림(백엔드) 응답 시간 통계"
 echo "------------------------------------------"
-awk -F'urt=' '{if (NF>1) print $2}' "$LOG_FILE" | awk '{gsub(/"/, "", $1); print $1}' | \
-awk '
+grep -o 'urt="[0-9.]*"' "$LOG_FILE" | cut -d'"' -f2 | awk '
 BEGIN {
     count=0; sum=0; max=0; min=999999;
 }
