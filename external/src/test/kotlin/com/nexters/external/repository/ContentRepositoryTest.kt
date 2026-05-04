@@ -209,7 +209,6 @@ class ContentRepositoryTest {
                 originalUrl = "https://test.com/$title",
                 publishedAt = LocalDate.now(),
                 contentProvider = provider,
-                reservedKeywords = setOf(keyword),
                 createdAt = createdAt,
                 updatedAt = createdAt
             )

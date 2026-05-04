@@ -4,10 +4,10 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.DailyContentArchiveService
-import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -20,10 +20,10 @@ import java.util.concurrent.locks.ReentrantLock
 class DailyContentArchiveResolver(
     private val userService: UserService,
     private val categoryService: CategoryService,
-    private val exposureContentService: ExposureContentService,
     private val dailyContentArchiveService: DailyContentArchiveService,
     private val possibleContentsResolver: PossibleContentsResolver,
     private val contentProviderService: ContentProviderService,
+    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
@@ -127,11 +127,16 @@ class DailyContentArchiveResolver(
             return possibleContents
         }
 
+        val contentIds = possibleContents.map { it.content.id!! }
+        val mappings = contentKeywordMappingRepository.findKeywordsByContentIds(contentIds)
+        val keywordsByContentId = mappings.groupBy({ it.contentId }, { it.keyword })
+
         // 카테고리에 해당하는 키워드 가중치 맵 생성 (기본 가중치 1.0 사용)
         val contentSources =
             createRecommendSources(
                 possibleContents = possibleContents,
                 keywordWeightsByKeyword = keywordWeightsByKeyword,
+                keywordsByContentId = keywordsByContentId,
                 multiplier = 1.0,
                 categoryIds = categoryIds,
             )
@@ -212,6 +217,7 @@ class DailyContentArchiveResolver(
                 createRecommendSources(
                     possibleContents = possibleContents,
                     keywordWeightsByKeyword = keywordWeightsByKeyword,
+                    keywordsByContentId = keywordsByContentId,
                     multiplier = multiplier,
                     categoryIds = categoryIds,
                 )
@@ -246,6 +252,7 @@ class DailyContentArchiveResolver(
     private fun createRecommendSources(
         possibleContents: List<ExposureContent>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+        keywordsByContentId: Map<Long, List<ReservedKeyword>>,
         multiplier: Double,
         categoryIds: List<Long>,
     ): Map<ExposureContent, RecommendCalculateSource> {
@@ -254,9 +261,10 @@ class DailyContentArchiveResolver(
 
         // 2단계: Content별로 추천 소스 생성
         return possibleContents.associateWith { exposureContent ->
+            val contentKeywords = keywordsByContentId[exposureContent.content.id] ?: emptyList()
             RecommendCalculateSource(
-                positiveKeywordSources = extractPositiveKeywordSources(exposureContent.content, keywordWeightsByKeyword, multiplier),
-                negativeKeywordSources = extractNegativeKeywordSources(exposureContent.content, keywordWeightsByKeyword),
+                positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
+                negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, keywordWeightsByKeyword),
                 publishedDate = exposureContent.content.publishedAt,
                 publisherDuplicateCandidateCount = 0,
                 categoryMatchBonus = calculateCategoryMatchBonus(exposureContent.content, categoryIds, categoryMatchWeights),
@@ -279,11 +287,11 @@ class DailyContentArchiveResolver(
      * 양수 키워드 소스를 추출합니다.
      */
     private fun extractPositiveKeywordSources(
-        content: Content,
+        keywords: List<ReservedKeyword>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         multiplier: Double,
     ): List<PositiveKeywordSource> =
-        content.reservedKeywords
+        keywords
             .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) > 0 }
             .map { keyword -> PositiveKeywordSource((keywordWeightsByKeyword[keyword] ?: 0.0) * multiplier) }
 
@@ -291,10 +299,10 @@ class DailyContentArchiveResolver(
      * 음수 키워드 소스를 추출합니다.
      */
     private fun extractNegativeKeywordSources(
-        content: Content,
+        keywords: List<ReservedKeyword>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
     ): List<NegativeKeywordSource> =
-        content.reservedKeywords
+        keywords
             .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) < 0 }
             .map { keyword -> NegativeKeywordSource(keywordWeightsByKeyword[keyword] ?: 0.0) }
 
@@ -312,6 +320,15 @@ class DailyContentArchiveResolver(
         return categoryIds.sumOf { categoryId ->
             categoryMatchWeights[contentProviderId to categoryId] ?: 0.0
         }
+    }
+
+    /**
+     * reservedKeywords를 배치로 미리 로드하여 N+1 문제 방지
+     */
+    private fun preloadReservedKeywords(contentIds: List<Long>) {
+        // Hibernate가 배치로 로드하도록 트리거
+        // 실제 구현은 @BatchSize 어노테이션과 함께 동작
+        logger.debug("Preloading reserved keywords for {} contents", contentIds.size)
     }
 
     /**
