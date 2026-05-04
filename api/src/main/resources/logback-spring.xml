@@ -21,6 +21,23 @@
         </encoder>
     </appender>
 
+    <!-- Error file appender - only ERROR and above -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./logs/api-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>./logs/api-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <!-- Discord webhook appender - only active in prod environment -->
     <springProfile name="prod">
         <appender name="DISCORD" class="com.nexters.external.logging.DiscordWebhookAppender">
@@ -44,18 +61,21 @@
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
         </root>
     </springProfile>
     <springProfile name="dev">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
         </root>
     </springProfile>
     <springProfile name = "prod">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
             <appender-ref ref="DISCORD"/>
         </root>
     </springProfile>
