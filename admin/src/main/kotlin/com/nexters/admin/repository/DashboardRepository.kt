@@ -23,7 +23,6 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         """
         SELECT DISTINCT c FROM Content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
         """,
     )
     override fun findAll(): List<Content>
@@ -43,7 +42,6 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         """
         SELECT DISTINCT c FROM Content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         """,
     )
@@ -106,7 +104,6 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         """
         SELECT DISTINCT c FROM Content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
         ORDER BY c.createdAt DESC
         """,
     )
@@ -119,7 +116,6 @@ interface DashboardContentRepository : JpaRepository<Content, Long> {
         """
         SELECT DISTINCT c FROM Content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
         WHERE c.createdAt BETWEEN :startDate AND :endDate
         ORDER BY c.createdAt DESC
         """,

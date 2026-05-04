@@ -258,7 +258,6 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         SELECT DISTINCT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
         JOIN ContentKeywordMapping ckm ON c = ckm.content
         LEFT JOIN UserExposedContentMapping uecm ON c.id = uecm.contentId AND uecm.userId = :userId
         WHERE uecm.contentId IS NULL
@@ -275,7 +274,6 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         SELECT DISTINCT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN FETCH c.reservedKeywords
         LEFT JOIN UserExposedContentMapping uecm ON c.id = uecm.contentId AND uecm.userId = :userId
         WHERE uecm.contentId IS NULL
         AND c.contentProvider.id IN :contentProviderIds

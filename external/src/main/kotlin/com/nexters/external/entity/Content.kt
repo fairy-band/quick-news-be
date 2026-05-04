@@ -8,8 +8,6 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.JoinTable
-import jakarta.persistence.ManyToMany
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import java.time.LocalDate
@@ -42,12 +40,5 @@ class Content(
     @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false, name = "updated_at")
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "content_keyword_mappings",
-        joinColumns = [JoinColumn(name = "content_id")],
-        inverseJoinColumns = [JoinColumn(name = "keyword_id")]
-    )
-    val reservedKeywords: Set<ReservedKeyword> = emptySet()
+    val updatedAt: LocalDateTime = LocalDateTime.now()
 )
