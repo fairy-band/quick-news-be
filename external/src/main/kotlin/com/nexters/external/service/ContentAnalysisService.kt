@@ -2,7 +2,6 @@ package com.nexters.external.service
 
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.config.AiGeminiContentAnalysisProperties
 import com.nexters.external.dto.AutoContentEvaluationInput
 import com.nexters.external.dto.BatchAutoContentEvaluationInput
@@ -15,22 +14,17 @@ import com.nexters.external.dto.ContentAnalysisResult
 import com.nexters.external.dto.ContentEvaluationResult
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.Content
-import com.nexters.external.entity.ContentGenerationAttempt
-import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
 import com.nexters.external.enums.ContentGenerationMode
 import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.CandidateKeywordRepository
-import com.nexters.external.repository.ContentGenerationAttemptRepository
-import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 @Service
 class ContentAnalysisService(
@@ -38,8 +32,7 @@ class ContentAnalysisService(
     private val summaryRepository: SummaryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val candidateKeywordRepository: CandidateKeywordRepository,
-    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
-    private val contentGenerationAttemptRepository: ContentGenerationAttemptRepository,
+    private val persister: ContentAnalysisPersister,
     private val contentAnalysisProperties: AiGeminiContentAnalysisProperties,
     private val gson: Gson = Gson(),
 ) {
@@ -50,25 +43,14 @@ class ContentAnalysisService(
         inputKeywords: List<String> = emptyList(),
     ): ContentAnalysisResult = resolveSinglePipeline(content, inputKeywords).last().toFinalResult()
 
-    @Transactional
     fun analyzeAndSave(contentEntity: Content): ContentAnalysisResult {
         val attempts = resolveSinglePipeline(contentEntity.content, getReservedKeywordNames())
-        val savedAttempts = persistAttempts(contentEntity, attempts, ContentGenerationMode.SINGLE)
-        val acceptedResult = attempts.last().toFinalResult()
-
-        saveGeneratedSummary(
+        return persister.persist(
             content = contentEntity,
-            result = acceptedResult,
-            generationAttempt = savedAttempts.last(),
+            attempts = attempts,
+            generationMode = ContentGenerationMode.SINGLE,
             skipWhenSummaryExists = false,
         )
-
-        assignKeywordsToContent(
-            contentEntity,
-            reservedKeywordRepository.findByNameIn(acceptedResult.matchedKeywords),
-        )
-
-        return acceptedResult
     }
 
     fun analyzeBatchAndSave(contentEntities: List<Content>): Map<String, ContentAnalysisResult> {
@@ -89,21 +71,13 @@ class ContentAnalysisService(
             }
 
             try {
-                val savedAttempts = persistAttempts(content, attempts, ContentGenerationMode.BATCH)
-                val acceptedResult = attempts.last().toFinalResult()
-
-                saveGeneratedSummary(
-                    content = content,
-                    result = acceptedResult,
-                    generationAttempt = savedAttempts.last(),
-                    skipWhenSummaryExists = true,
-                )
-
-                assignKeywordsToContent(
-                    content,
-                    reservedKeywordRepository.findByNameIn(acceptedResult.matchedKeywords),
-                )
-
+                val acceptedResult =
+                    persister.persist(
+                        content = content,
+                        attempts = attempts,
+                        generationMode = ContentGenerationMode.BATCH,
+                        skipWhenSummaryExists = true,
+                    )
                 resultMap[contentId] = acceptedResult
                 logger.info("Successfully saved analysis result for content ID: $contentId")
             } catch (e: Exception) {
@@ -112,29 +86,6 @@ class ContentAnalysisService(
         }
 
         return resultMap
-    }
-
-    @Transactional
-    fun assignKeywordsToContent(
-        content: Content,
-        matchedKeywords: List<ReservedKeyword>,
-    ) {
-        matchedKeywords.forEach { keyword ->
-            val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(content, keyword)
-            if (existingMapping == null) {
-                val mapping =
-                    ContentKeywordMapping(
-                        content = content,
-                        keyword = keyword,
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now(),
-                    )
-                contentKeywordMappingRepository.save(mapping)
-                logger.debug("Assigned keyword '${keyword.name}' to content ID: ${content.id}")
-            } else {
-                logger.debug("Keyword '${keyword.name}' already assigned to content ID: ${content.id}")
-            }
-        }
     }
 
     @Transactional
@@ -339,76 +290,6 @@ class ContentAnalysisService(
         )
     }
 
-    private fun persistAttempts(
-        content: Content,
-        attempts: List<ContentAnalysisAttempt>,
-        generationMode: ContentGenerationMode,
-    ): List<ContentGenerationAttempt> =
-        attempts.mapIndexed { index, attempt ->
-            contentGenerationAttemptRepository.save(
-                ContentGenerationAttempt(
-                    content = content,
-                    generationMode = generationMode,
-                    attemptNumber = index + 1,
-                    model = buildModelLabel(attempt),
-                    promptVersion = GeminiClient.AUTO_GENERATION_PROMPT_VERSION,
-                    generatedSummary = attempt.summary,
-                    generatedHeadlines = gson.toJson(attempt.provocativeHeadlines),
-                    matchedKeywords = gson.toJson(attempt.matchedKeywords),
-                    qualityScore = attempt.evaluation.score,
-                    qualityReason = attempt.evaluation.reason,
-                    aiLikePatterns = gson.toJson(attempt.evaluation.aiLikePatterns),
-                    recommendedFix = attempt.evaluation.recommendedFix,
-                    passed = attempt.evaluation.passed,
-                    accepted = index == attempts.lastIndex,
-                    retryCount = attempt.evaluation.retryCount,
-                ),
-            )
-        }
-
-    private fun saveGeneratedSummary(
-        content: Content,
-        result: ContentAnalysisResult,
-        generationAttempt: ContentGenerationAttempt,
-        skipWhenSummaryExists: Boolean,
-    ) {
-        val existingSummaries = summaryRepository.findByContent(content)
-        if (skipWhenSummaryExists && existingSummaries.isNotEmpty()) {
-            logger.warn("Summary already exists for content ID: ${content.id}. Skipping save.")
-            return
-        }
-
-        if (result.summary.isEmpty()) {
-            logger.warn("Not saving empty summary for content ID: ${content.id}")
-            return
-        }
-
-        summaryRepository.save(
-            Summary(
-                content = content,
-                title = result.provocativeHeadlines.firstOrNull() ?: content.title,
-                summarizedContent = result.summary,
-                generationAttempt = generationAttempt,
-                qualityScore = result.qualityScore,
-                qualityReason = result.qualityReason,
-                retryCount = result.retryCount,
-                model = result.usedModel?.modelName ?: generationAttempt.model,
-            ),
-        )
-    }
-
-    private fun buildModelLabel(attempt: ContentAnalysisAttempt): String {
-        val evaluationModel = attempt.evaluation.usedModel?.modelName
-        val generationModel = attempt.generationModel?.modelName
-
-        return when {
-            generationModel != null && evaluationModel != null -> "$generationModel -> $evaluationModel"
-            generationModel != null -> generationModel
-            evaluationModel != null -> evaluationModel
-            else -> "unknown"
-        }
-    }
-
     private fun parseAutoGenerationResponse(responseText: String?): AutoGeneratedContentDraft? =
         try {
             val jsonResponse = gson.fromJson(responseText, Map::class.java)
@@ -522,20 +403,6 @@ class ContentAnalysisService(
             logger.error("Unexpected error parsing batch evaluation response: $responseText", e)
             null
         }
-
-    private fun ContentAnalysisAttempt.toFinalResult(): ContentAnalysisResult =
-        ContentAnalysisResult(
-            summary = summary,
-            provocativeHeadlines = provocativeHeadlines,
-            matchedKeywords = matchedKeywords,
-            qualityScore = evaluation.score,
-            qualityReason = evaluation.reason,
-            aiLikePatterns = evaluation.aiLikePatterns,
-            recommendedFix = evaluation.recommendedFix,
-            passed = evaluation.passed,
-            retryCount = evaluation.retryCount,
-            usedModel = generationModel ?: evaluation.usedModel,
-        )
 
     private fun ContentEvaluationResult.normalized(retryCount: Int): ContentEvaluationResult {
         val normalizedScore = score.coerceIn(0, 10)
@@ -792,13 +659,5 @@ class ContentAnalysisService(
     private data class GeneratedDraftWithModel(
         val draft: AutoGeneratedContentDraft,
         val model: GeminiModel,
-    )
-
-    private data class ContentAnalysisAttempt(
-        val summary: String,
-        val provocativeHeadlines: List<String>,
-        val matchedKeywords: List<String>,
-        val evaluation: ContentEvaluationResult,
-        val generationModel: GeminiModel?,
     )
 }

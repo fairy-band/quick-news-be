@@ -30,6 +30,7 @@ class ContentAnalysisServiceTest {
     private val contentKeywordMappingRepository = mockk<ContentKeywordMappingRepository>(relaxed = true)
     private val contentGenerationAttemptRepository = mockk<ContentGenerationAttemptRepository>()
 
+    private lateinit var persister: ContentAnalysisPersister
     private lateinit var service: ContentAnalysisService
 
     private val savedAttempts = mutableListOf<ContentGenerationAttempt>()
@@ -50,14 +51,20 @@ class ContentAnalysisServiceTest {
             firstArg<ContentGenerationAttempt>().also(savedAttempts::add)
         }
 
+        persister =
+            ContentAnalysisPersister(
+                summaryRepository = summaryRepository,
+                reservedKeywordRepository = reservedKeywordRepository,
+                contentKeywordMappingRepository = contentKeywordMappingRepository,
+                contentGenerationAttemptRepository = contentGenerationAttemptRepository,
+            )
         service =
             ContentAnalysisService(
                 rateLimiterService = rateLimiterService,
                 summaryRepository = summaryRepository,
                 reservedKeywordRepository = reservedKeywordRepository,
                 candidateKeywordRepository = candidateKeywordRepository,
-                contentKeywordMappingRepository = contentKeywordMappingRepository,
-                contentGenerationAttemptRepository = contentGenerationAttemptRepository,
+                persister = persister,
                 contentAnalysisProperties =
                     AiGeminiContentAnalysisProperties().apply {
                         minNaturalnessScore = 7
