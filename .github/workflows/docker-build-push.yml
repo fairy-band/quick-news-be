@@ -125,13 +125,18 @@ jobs:
           echo "Deploying firebase-service-account.json..."
           scp -i private_key.pem -v firebase-service-account.json ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
+          # Copy nginx log analysis scripts
+          echo "Deploying nginx log analysis scripts..."
+          scp -i private_key.pem -v deploy/analyze-nginx-logs.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+          scp -i private_key.pem -v deploy/monitor-nginx-realtime.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+
           # Finally copy deploy.sh
           echo "Deploying deploy.sh..."
           scp -i private_key.pem -v deploy/deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
-          # Make deploy.sh executable
-          echo "Making deploy.sh executable..."
-          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/deploy.sh"
+          # Make scripts executable
+          echo "Making scripts executable..."
+          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "chmod +x ~/deploy/deploy.sh ~/deploy/analyze-nginx-logs.sh ~/deploy/monitor-nginx-realtime.sh"
 
       - name: Execute deployment script
         run: |
