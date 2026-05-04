@@ -13,19 +13,6 @@ class NewsletterSourceService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun save(newsletter: NewsletterSource): NewsletterSource {
-        // 중복 체크
-        val isDuplicate =
-            newsletterSourceRepository.existsBySenderEmailAndSubjectAndReceivedDate(
-                newsletter.senderEmail,
-                newsletter.subject ?: "",
-                newsletter.receivedDate
-            )
-
-        if (isDuplicate) {
-            logger.warn("Duplicate newsletter found: ${newsletter.subject} from ${newsletter.senderEmail}")
-            throw IllegalArgumentException("Duplicate newsletter already exists")
-        }
-
         logger.info("Saving newsletter source: ${newsletter.subject}")
         return newsletterSourceRepository.save(newsletter)
     }

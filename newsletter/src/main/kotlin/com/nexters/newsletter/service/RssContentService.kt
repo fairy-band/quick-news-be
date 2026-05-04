@@ -132,16 +132,32 @@ class RssContentService(
         feedTitle: String,
         item: RssItem
     ) {
-        val newsletterSource = createNewsletterSource(feedUrl, feedTitle, item)
-        val savedSource = newsletterSourceService.save(newsletterSource)
+        try {
+            val newsletterSource = createNewsletterSource(feedUrl, feedTitle, item)
+            val savedSource = newsletterSourceService.save(newsletterSource)
 
-        val content = createContentFromNewsletterSource(savedSource, item)
-        contentService.save(content)
+            val content = createContentFromNewsletterSource(savedSource, item)
+            contentService.save(content)
 
-        val processingStatus = createProcessingStatus(feedUrl, feedTitle, item, savedSource.id!!)
-        rssProcessingStatusRepository.save(processingStatus)
+            val processingStatus = createProcessingStatus(feedUrl, feedTitle, item, savedSource.id!!)
+            rssProcessingStatusRepository.save(processingStatus)
 
-        logger.debug("Saved RSS item: ${item.title}")
+            logger.debug("Saved RSS item: ${item.title}")
+        } catch (e: IllegalArgumentException) {
+            // 중복 뉴스레터는 조용히 스킵 (이미 isItemAlreadyProcessed에서 대부분 걸러지지만,
+            // 타이밍 이슈나 다른 중복 체크 로직에서 걸릴 수 있음)
+            logger.debug("Skipping duplicate item: ${item.title} - ${e.message}")
+        } catch (e: Exception) {
+            // DB unique 제약조건 위반 등의 중복 에러도 처리
+            if (e.message?.contains("duplicate", ignoreCase = true) == true ||
+                e.message?.contains("unique", ignoreCase = true) == true ||
+                e.message?.contains("constraint", ignoreCase = true) == true
+            ) {
+                logger.debug("Skipping duplicate item (DB constraint): ${item.title}")
+            } else {
+                throw e
+            }
+        }
     }
 
     private fun createNewsletterSource(
