@@ -3,6 +3,7 @@ package com.nexters.api.service
 import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.enums.Language
 import com.nexters.external.entity.ExposureContent
+import com.nexters.external.enums.ContentProviderType
 import com.nexters.external.service.PopularNewsletterSnapshotService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.springframework.stereotype.Service
@@ -45,5 +46,6 @@ class NewsletterContentsService(
             imageUrl = this.content.imageUrl,
             newsletterName = this.content.newsletterName,
             language = Language.fromString(this.content.contentProvider?.language),
+            cardType = this.content.contentProvider?.type ?: ContentProviderType.UNKNOWN
         )
 }
