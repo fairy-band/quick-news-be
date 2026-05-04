@@ -42,7 +42,11 @@ class RssReaderService(
         val connection =
             URI(finalUrl).toURL().openConnection().apply {
                 setRequestProperty("User-Agent", config.userAgent)
-                setRequestProperty("Accept", "*/*")
+                setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml, */*")
+                setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                setRequestProperty("Accept-Encoding", "gzip, deflate, br")
+                setRequestProperty("Cache-Control", "no-cache")
+                setRequestProperty("Connection", "keep-alive")
                 connectTimeout = config.connectTimeout
                 readTimeout = config.readTimeout
             }
