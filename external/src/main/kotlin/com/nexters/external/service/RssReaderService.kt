@@ -9,6 +9,7 @@ import com.rometools.rome.io.XmlReader
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
+import java.net.HttpURLConnection
 import java.net.URI
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -35,8 +36,11 @@ class RssReaderService(
     private fun parseFeed(feedUrl: String): RssFeed {
         logger.debug("Fetching RSS feed from: $feedUrl")
 
+        val finalUrl = followRedirects(feedUrl)
+        logger.debug("Final URL after redirects: $finalUrl")
+
         val connection =
-            URI(feedUrl).toURL().openConnection().apply {
+            URI(finalUrl).toURL().openConnection().apply {
                 setRequestProperty("User-Agent", config.userAgent)
                 setRequestProperty("Accept", "*/*")
                 connectTimeout = config.connectTimeout
@@ -90,6 +94,48 @@ class RssReaderService(
 
         logger.error("All $maxRetries attempts failed", lastException)
         return null
+    }
+
+    private fun followRedirects(
+        url: String,
+        maxRedirects: Int = 5
+    ): String {
+        var currentUrl = url
+        var redirectCount = 0
+
+        while (redirectCount < maxRedirects) {
+            val connection =
+                URI(currentUrl).toURL().openConnection() as? HttpURLConnection
+                    ?: return currentUrl
+
+            connection.apply {
+                instanceFollowRedirects = false
+                setRequestProperty("User-Agent", config.userAgent)
+                connectTimeout = config.connectTimeout
+                readTimeout = config.readTimeout
+            }
+
+            val responseCode = connection.responseCode
+
+            if (responseCode in 300..399) {
+                val location = connection.getHeaderField("Location")
+                if (location.isNullOrBlank()) {
+                    logger.warn("Redirect response without Location header")
+                    return currentUrl
+                }
+
+                currentUrl = location
+                redirectCount++
+                logger.debug("Following redirect to: $currentUrl")
+            } else {
+                return currentUrl
+            }
+
+            connection.disconnect()
+        }
+
+        logger.warn("Max redirects ($maxRedirects) reached for URL: $url")
+        return currentUrl
     }
 }
 
