@@ -44,13 +44,13 @@ class DailyContentArchiveResolver(
         userId: Long,
         date: LocalDate = LocalDate.now(),
     ): DailyContentArchive {
+        // cache hit 인 경우 락 진입 없이 lock-free 로 반환
+        dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return it }
+
         lock.lock()
         try {
-            val contentArchive = dailyContentArchiveService.findByDateAndUserId(userId, date)
-
-            if (contentArchive != null) {
-                return contentArchive
-            }
+            // 락 대기 중 다른 스레드가 채워 넣었을 수 있으므로 한 번 더 확인
+            dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return it }
 
             val user = userService.getUserById(userId)
             val userCategories = user.categories.map { it.id!! }
@@ -131,6 +131,9 @@ class DailyContentArchiveResolver(
         val mappings = contentKeywordMappingRepository.findKeywordsByContentIds(contentIds)
         val keywordsByContentId = mappings.groupBy({ it.contentId }, { it.keyword })
 
+        // multiplier 루프 동안 동일 입력으로 반복 호출되는 DB 쿼리를 1회로 줄임
+        val categoryMatchWeights = getCategoryMatchWeights(possibleContents, categoryIds)
+
         // 카테고리에 해당하는 키워드 가중치 맵 생성 (기본 가중치 1.0 사용)
         val contentSources =
             createRecommendSources(
@@ -139,6 +142,7 @@ class DailyContentArchiveResolver(
                 keywordsByContentId = keywordsByContentId,
                 multiplier = 1.0,
                 categoryIds = categoryIds,
+                categoryMatchWeights = categoryMatchWeights,
             )
 
         val sortedSources: SortedMap<ExposureContent, RecommendCalculateSource> =
@@ -205,7 +209,8 @@ class DailyContentArchiveResolver(
         }
 
         // 3단계: 부족하면 가중치를 2배, 3배, 4배로 늘려가며 추가 컨텐츠 찾기
-        val selectedContents = positiveScoreContents.toMutableList()
+        // 순서 보존 + O(1) contains 위해 LinkedHashSet 사용 (multiplier 루프에서 중복 추가 방지)
+        val selectedContents = LinkedHashSet<ExposureContent>(positiveScoreContents)
         val multipliers = listOf(2.0, 3.0, 4.0)
 
         for (multiplier in multipliers) {
@@ -220,6 +225,7 @@ class DailyContentArchiveResolver(
                     keywordsByContentId = keywordsByContentId,
                     multiplier = multiplier,
                     categoryIds = categoryIds,
+                    categoryMatchWeights = categoryMatchWeights,
                 )
 
             // 재계산된 결과로 정렬하고 기존에 선택되지 않은 positive score 컨텐츠들 필터링
@@ -235,8 +241,8 @@ class DailyContentArchiveResolver(
 
             val amplifiedContents =
                 amplifiedSortedSources.entries
-                    .filter { (exposureContent, source) -> !selectedContents.contains(exposureContent) }
-                    .filter { (exposureContent, source) -> calculator.calculate(source).recommendScore > 0 }
+                    .filter { (exposureContent, _) -> exposureContent !in selectedContents }
+                    .filter { (_, source) -> calculator.calculate(source).recommendScore > 0 }
                     .map { it.key }
 
             val additionalNeeded = MAX_CONTENT_SIZE - selectedContents.size
@@ -255,12 +261,9 @@ class DailyContentArchiveResolver(
         keywordsByContentId: Map<Long, List<ReservedKeyword>>,
         multiplier: Double,
         categoryIds: List<Long>,
-    ): Map<ExposureContent, RecommendCalculateSource> {
-        // 1단계: ContentProvider-Category 매핑 가중치 조회
-        val categoryMatchWeights = getCategoryMatchWeights(possibleContents, categoryIds)
-
-        // 2단계: Content별로 추천 소스 생성
-        return possibleContents.associateWith { exposureContent ->
+        categoryMatchWeights: Map<Pair<Long, Long>, Double>,
+    ): Map<ExposureContent, RecommendCalculateSource> =
+        possibleContents.associateWith { exposureContent ->
             val contentKeywords = keywordsByContentId[exposureContent.content.id] ?: emptyList()
             RecommendCalculateSource(
                 positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
@@ -270,7 +273,6 @@ class DailyContentArchiveResolver(
                 categoryMatchBonus = calculateCategoryMatchBonus(exposureContent.content, categoryIds, categoryMatchWeights),
             )
         }
-    }
 
     /**
      * ContentProvider-Category 매핑 가중치를 조회합니다.

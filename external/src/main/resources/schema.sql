@@ -388,3 +388,8 @@ CREATE INDEX IF NOT EXISTS idx_contents_original_url
 
 CREATE INDEX IF NOT EXISTS idx_contents_newsletter_source_published_id
     ON contents (newsletter_source_id, published_at DESC, id DESC);
+
+-- resolveTodayContentArchive 의 findNotExposedByContentProviderIds 용
+-- contents.content_provider_id IN (...) 필터가 풀스캔되는 것을 방지
+CREATE INDEX IF NOT EXISTS idx_contents_content_provider_id
+    ON contents (content_provider_id);

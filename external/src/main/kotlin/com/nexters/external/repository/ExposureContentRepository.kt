@@ -255,13 +255,19 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
-        SELECT DISTINCT e FROM ExposureContent e
+        SELECT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider
-        JOIN ContentKeywordMapping ckm ON c = ckm.content
-        LEFT JOIN UserExposedContentMapping uecm ON c.id = uecm.contentId AND uecm.userId = :userId
-        WHERE uecm.contentId IS NULL
-        AND ckm.keyword.id IN :reservedKeywordIds
+        WHERE EXISTS (
+            SELECT 1 FROM ContentKeywordMapping ckm
+            WHERE ckm.content = c
+            AND ckm.keyword.id IN :reservedKeywordIds
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM UserExposedContentMapping uecm
+            WHERE uecm.contentId = c.id
+            AND uecm.userId = :userId
+        )
     """
     )
     fun findNotExposedByReservedKeywordIds(
@@ -271,12 +277,15 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
-        SELECT DISTINCT e FROM ExposureContent e
+        SELECT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider
-        LEFT JOIN UserExposedContentMapping uecm ON c.id = uecm.contentId AND uecm.userId = :userId
-        WHERE uecm.contentId IS NULL
-        AND c.contentProvider.id IN :contentProviderIds
+        WHERE c.contentProvider.id IN :contentProviderIds
+        AND NOT EXISTS (
+            SELECT 1 FROM UserExposedContentMapping uecm
+            WHERE uecm.contentId = c.id
+            AND uecm.userId = :userId
+        )
     """
     )
     fun findNotExposedByContentProviderIds(
