@@ -13,7 +13,7 @@ class NewsletterExploreService(
     fun getExploreContents(
         lastSeenOffset: Long,
         size: Int,
-        sortType: ExploreSortType = ExploreSortType.REGISTERED,
+        sortType: ExploreSortType,
     ): ExploreContentsResult {
         validateRequest(lastSeenOffset, size)
 
@@ -32,24 +32,29 @@ class NewsletterExploreService(
         lastSeenOffset: Long,
         size: Int,
         sortType: ExploreSortType,
-    ): ExploreContentPageResult =
-        when (sortType) {
-            ExploreSortType.REGISTERED ->
-                when (lastSeenOffset) {
-                    FIRST_PAGE_OFFSET -> findCachedFirstExploreContentPage(size)
-                    else -> loadPage(lastSeenOffset, size, exposureContentService::getExploreContentRows)
-                }
-            // PUBLISHED 정렬은 첫 페이지도 캐싱하지 않는다.
-            // 최신 콘텐츠가 수시로 추가되고, 발행일 기준 정렬을 선택한 사용자에게 오래된 글을 보여주면 의미가 없어지기 때문.
-            ExploreSortType.PUBLISHED -> loadPage(lastSeenOffset, size, exposureContentService::getExploreContentRowsSortedByPublishedAt)
+    ): ExploreContentPageResult {
+        val fetcher =
+            when (sortType) {
+                ExploreSortType.REGISTERED -> exposureContentService::getExploreContentRows
+                ExploreSortType.PUBLISHED -> exposureContentService::getExploreContentRowsSortedByPublishedAt
+            }
+        return if (lastSeenOffset == FIRST_PAGE_OFFSET) {
+            findCachedFirstExploreContentPage(sortType, size, fetcher)
+        } else {
+            loadPage(lastSeenOffset, size, fetcher)
         }
+    }
 
-    private fun findCachedFirstExploreContentPage(size: Int): ExploreContentPageResult =
+    private fun findCachedFirstExploreContentPage(
+        sortType: ExploreSortType,
+        size: Int,
+        fetch: (Long, Int) -> List<ExploreContentRow>,
+    ): ExploreContentPageResult =
         LocalCache.getOrPut(
-            key = buildExploreContentPageCacheKey(size),
+            key = buildExploreContentPageCacheKey(sortType, size),
             ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
         ) {
-            loadPage(FIRST_PAGE_OFFSET, size, exposureContentService::getExploreContentRows)
+            loadPage(FIRST_PAGE_OFFSET, size, fetch)
         }
 
     private fun countExposureContents(): Long =
@@ -109,7 +114,9 @@ class NewsletterExploreService(
         private const val TOTAL_COUNT_CACHE_KEY = "$CACHE_KEY_PREFIX:total-count"
         private const val PAGE_CACHE_KEY_PREFIX = "$CACHE_KEY_PREFIX:page:"
 
-        private fun buildExploreContentPageCacheKey(size: Int): String =
-            "${PAGE_CACHE_KEY_PREFIX}last-seen-offset:$FIRST_PAGE_OFFSET:size:$size"
+        private fun buildExploreContentPageCacheKey(
+            sortType: ExploreSortType,
+            size: Int
+        ): String = "${PAGE_CACHE_KEY_PREFIX}sort:${sortType.name}:size:$size"
     }
 }

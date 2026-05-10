@@ -1,5 +1,6 @@
 package com.nexters.api.service
 
+import com.nexters.api.enums.ExploreSortType
 import com.nexters.api.util.LocalCache
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ExposureContentService
@@ -37,8 +38,8 @@ class NewsletterExploreServiceTest {
             .`when`(exposureContentService.countAllExposureContents())
             .thenReturn(2L)
 
-        val first = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
-        val second = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
+        val first = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
+        val second = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
 
         assertThat(first).isEqualTo(second)
         assertThat(first.contents).hasSize(2)
@@ -65,8 +66,8 @@ class NewsletterExploreServiceTest {
             .`when`(exposureContentService.countAllExposureContents())
             .thenReturn(3L)
 
-        val first = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
-        val second = sut.getExploreContents(lastSeenOffset = 20L, size = 2)
+        val first = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
+        val second = sut.getExploreContents(lastSeenOffset = 20L, size = 2, sortType = ExploreSortType.REGISTERED)
 
         assertThat(first.hasMore).isTrue()
         assertThat(first.nextOffset).isEqualTo(20L)
@@ -92,8 +93,8 @@ class NewsletterExploreServiceTest {
             .`when`(exposureContentService.countAllExposureContents())
             .thenReturn(3L)
 
-        val first = sut.getExploreContents(lastSeenOffset = 20L, size = 2)
-        val second = sut.getExploreContents(lastSeenOffset = 20L, size = 2)
+        val first = sut.getExploreContents(lastSeenOffset = 20L, size = 2, sortType = ExploreSortType.REGISTERED)
+        val second = sut.getExploreContents(lastSeenOffset = 20L, size = 2, sortType = ExploreSortType.REGISTERED)
 
         assertThat(first.contents.map { it.id }).containsExactly(10L)
         assertThat(second.contents.map { it.id }).containsExactly(10L)
@@ -117,12 +118,81 @@ class NewsletterExploreServiceTest {
             .`when`(exposureContentService.countAllExposureContents())
             .thenReturn(4L)
 
-        val firstPage = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
-        val secondPage = sut.getExploreContents(lastSeenOffset = firstPage.nextOffset!!, size = 2)
+        val firstPage = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
+        val secondPage = sut.getExploreContents(lastSeenOffset = firstPage.nextOffset!!, size = 2, sortType = ExploreSortType.REGISTERED)
 
         assertThat(firstPage.contents.map { it.id }).containsExactly(50L, 40L)
         assertThat(secondPage.contents.map { it.id }).containsExactly(30L, 20L)
         assertThat(firstPage.contents.map { it.id }).doesNotContainAnyElementsOf(secondPage.contents.map { it.id })
+    }
+
+    @Test
+    fun `PUBLISHED sort first page should reuse cached page`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRowsSortedByPublishedAt(0L, 3))
+            .thenReturn(listOf(exploreRow(id = 20L), exploreRow(id = 10L)))
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(2L)
+
+        val first = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.PUBLISHED)
+        val second = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.PUBLISHED)
+
+        assertThat(first).isEqualTo(second)
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRowsSortedByPublishedAt(0L, 3)
+    }
+
+    @Test
+    fun `REGISTERED and PUBLISHED sort should not share cache`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRows(0L, 3))
+            .thenReturn(listOf(exploreRow(id = 10L), exploreRow(id = 5L)))
+        Mockito
+            .`when`(exposureContentService.getExploreContentRowsSortedByPublishedAt(0L, 3))
+            .thenReturn(listOf(exploreRow(id = 20L), exploreRow(id = 10L)))
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(2L)
+
+        val registered = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
+        val published = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.PUBLISHED)
+
+        assertThat(registered.contents.map { it.id }).containsExactly(10L, 5L)
+        assertThat(published.contents.map { it.id }).containsExactly(20L, 10L)
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRows(0L, 3)
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRowsSortedByPublishedAt(0L, 3)
+    }
+
+    @Test
+    fun `PUBLISHED sort next page should use publishedAt fetcher not registered fetcher`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRowsSortedByPublishedAt(0L, 3))
+            .thenReturn(listOf(exploreRow(id = 30L), exploreRow(id = 20L), exploreRow(id = 10L)))
+        Mockito
+            .`when`(exposureContentService.getExploreContentRowsSortedByPublishedAt(20L, 3))
+            .thenReturn(listOf(exploreRow(id = 10L)))
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(3L)
+
+        val first = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.PUBLISHED)
+        val second = sut.getExploreContents(lastSeenOffset = first.nextOffset!!, size = 2, sortType = ExploreSortType.PUBLISHED)
+
+        assertThat(first.hasMore).isTrue()
+        assertThat(second.contents.map { it.id }).containsExactly(10L)
+        assertThat(second.hasMore).isFalse()
+        Mockito
+            .verify(exposureContentService, Mockito.never())
+            .getExploreContentRows(Mockito.anyLong(), Mockito.anyInt())
+        Mockito
+            .verify(exposureContentService, Mockito.times(2))
+            .getExploreContentRowsSortedByPublishedAt(Mockito.anyLong(), Mockito.eq(3))
     }
 
     @Test
@@ -136,9 +206,9 @@ class NewsletterExploreServiceTest {
             .thenReturn(2L)
             .thenReturn(3L)
 
-        val cached = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
+        val cached = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
         deleteExploreCacheKeys()
-        val reloaded = sut.getExploreContents(lastSeenOffset = 0L, size = 2)
+        val reloaded = sut.getExploreContents(lastSeenOffset = 0L, size = 2, sortType = ExploreSortType.REGISTERED)
 
         assertThat(cached.contents.map { it.id }).containsExactly(20L, 10L)
         assertThat(cached.totalCount).isEqualTo(2L)

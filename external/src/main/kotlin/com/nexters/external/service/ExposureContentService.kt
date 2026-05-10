@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.JpaSort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -119,7 +121,7 @@ class ExposureContentService(
         lastSeenOffset: Long,
         limit: Int,
     ): List<ExploreContentRow> {
-        val pageable = PageRequest.of(0, limit)
+        val pageable = PageRequest.of(0, limit, REGISTERED_SORT)
         return if (lastSeenOffset == 0L) {
             exposureContentRepository.findExploreRows(pageable)
         } else {
@@ -132,13 +134,13 @@ class ExposureContentService(
         lastSeenOffset: Long,
         limit: Int,
     ): List<ExploreContentRow> {
-        val pageable = PageRequest.of(0, limit)
-        if (lastSeenOffset == 0L) return exposureContentRepository.findExploreRowsSortedByPublishedAt(pageable)
+        val pageable = PageRequest.of(0, limit, PUBLISHED_SORT)
+        if (lastSeenOffset == 0L) return exposureContentRepository.findExploreRows(pageable)
         val lastSeen =
             exposureContentRepository
                 .findById(lastSeenOffset)
                 .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
-        return exposureContentRepository.findExploreRowsSortedByPublishedAtAfter(
+        return exposureContentRepository.findExploreRowsAfterByPublishedAt(
             lastSeen.content.publishedAt,
             lastSeenOffset,
             pageable,
@@ -249,4 +251,12 @@ class ExposureContentService(
     ): List<ExposureContent> = exposureContentRepository.findNotExposedByContentProviderIds(userId, contentProviderIds)
 
     fun countAllExposureContents(): Long = exposureContentRepository.count()
+
+    companion object {
+        private val REGISTERED_SORT: Sort = JpaSort.unsafe(Sort.Direction.DESC, "e.id")
+        private val PUBLISHED_SORT: Sort =
+            JpaSort
+                .unsafe(Sort.Direction.DESC, "c.publishedAt")
+                .and(JpaSort.unsafe(Sort.Direction.DESC, "e.id"))
+    }
 }

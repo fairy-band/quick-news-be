@@ -69,21 +69,22 @@ class NewsletterApiController(
     @GetMapping("/explore/contents")
     @Operation(
         summary = "탐색 콘텐츠 조회",
-        description =
-            "노출 콘텐츠 목록을 keyset cursor pagination으로 조회합니다. " +
-                "sort 없음(기본): 등록 ID 내림차순. sort=published: 발행일(published_at) 내림차순, 동일 발행일은 ID 내림차순. " +
-                "다음 페이지 조회 시 응답의 nextOffset을 lastSeenOffset에 전달합니다.",
+        description = """
+            노출 콘텐츠 목록을 keyset cursor pagination으로 조회합니다.
+            sort 없음(기본): 등록 ID 내림차순. sort=published: 발행일(published_at) 내림차순, 동일 발행일은 ID 내림차순.
+            다음 페이지 조회 시 응답의 nextOffset을 lastSeenOffset에 전달합니다.
+        """,
     )
     fun getExploreContents(
         @Parameter(description = "이전 페이지 응답의 nextOffset 값. 첫 페이지는 0(기본값).", example = "0")
         @RequestParam(defaultValue = "0") lastSeenOffset: Long,
         @Parameter(description = "한 번에 가져올 콘텐츠 개수. 1 이상 값만 허용합니다. (기본값: 20)", example = "20")
         @RequestParam(defaultValue = "20") size: Int,
-        @Parameter(description = "정렬 기준 (published: 발행일 최신순)", example = "published")
-        @RequestParam(required = false) sort: String?,
+        @Parameter(description = "정렬 기준 (PUBLISHED: 발행일 최신순)", example = "PUBLISHED")
+        @RequestParam(required = false) sort: ExploreSortType?,
     ): ExposureContentListApiResponse =
         newsletterExploreService
-            .getExploreContents(lastSeenOffset, size, ExploreSortType.from(sort))
+            .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED)
             .toApiResponse()
 
     @PostMapping("/contents")
