@@ -60,8 +60,9 @@ class NewsletterApiController(
     )
     fun refreshContents(
         @PathVariable userId: Long,
-    ) {
+    ): ContentViewApiResponse {
         dayArchiveResolver.refreshTodayArchives(userId)
+        return newsletterContentsService.getNewsletterContents(userId)
     }
 
     @GetMapping("/explore/contents")
