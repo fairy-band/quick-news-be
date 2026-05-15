@@ -154,12 +154,10 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
         WHERE c.publishedAt < :lastSeenPublishedAt
-           OR (c.publishedAt = :lastSeenPublishedAt AND e.id < :lastSeenId)
     """,
     )
     fun findExploreRowsAfterByPublishedAt(
         @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
-        @Param("lastSeenId") lastSeenId: Long,
         pageable: Pageable,
     ): List<ExploreContentRow>
 

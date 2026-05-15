@@ -142,7 +142,6 @@ class ExposureContentService(
                 .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
         return exposureContentRepository.findExploreRowsAfterByPublishedAt(
             lastSeen.content.publishedAt,
-            lastSeenOffset,
             pageable,
         )
     }
