@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.JpaSort
 import java.time.LocalDate
 
 @DataJpaTest
@@ -38,11 +40,12 @@ class ExposureContentRepositoryTest {
         entityManager.flush()
         entityManager.clear()
 
-        val rows = repository.findExploreRows(PageRequest.of(0, 2))
+        val byIdDesc = JpaSort.unsafe(Sort.Direction.DESC, "e.id")
+        val rows = repository.findExploreRows(PageRequest.of(0, 2, byIdDesc))
         val rowsAfterNewest =
             repository.findExploreRowsAfter(
                 lastSeenOffset = secondExposureContent.id!!,
-                pageable = PageRequest.of(0, 2),
+                pageable = PageRequest.of(0, 2, byIdDesc),
             )
 
         assertThat(rows).hasSize(2)

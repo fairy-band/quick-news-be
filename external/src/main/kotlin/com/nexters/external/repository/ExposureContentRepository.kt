@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import java.time.LocalDate
 
 @Repository
 interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
@@ -104,7 +105,6 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         FROM ExposureContent e
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
-        ORDER BY e.id DESC
     """,
     )
     fun findExploreRows(pageable: Pageable): List<ExploreContentRow>
@@ -128,11 +128,36 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
         WHERE e.id < :lastSeenOffset
-        ORDER BY e.id DESC
     """,
     )
     fun findExploreRowsAfter(
         @Param("lastSeenOffset") lastSeenOffset: Long,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE c.publishedAt < :lastSeenPublishedAt
+    """,
+    )
+    fun findExploreRowsAfterByPublishedAt(
+        @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
         pageable: Pageable,
     ): List<ExploreContentRow>
 
