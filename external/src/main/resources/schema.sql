@@ -108,8 +108,8 @@ CREATE TABLE IF NOT EXISTS content_generation_attempts
     CONSTRAINT fk_content_generation_attempt_content FOREIGN KEY (content_id) REFERENCES contents (id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_content_generation_attempt_content_id
-    ON content_generation_attempts (content_id);
+CREATE INDEX IF NOT EXISTS idx_content_generation_attempt_content_created
+    ON content_generation_attempts (content_id, created_at DESC);
 
 -- Summaries table
 CREATE TABLE IF NOT EXISTS summaries
@@ -141,6 +141,10 @@ ALTER TABLE summaries
 
 ALTER TABLE summaries
     ADD COLUMN IF NOT EXISTS retry_count INTEGER;
+
+-- findByContent, findContentIdsWithSummary, NOT IN (SELECT s.content.id FROM Summary) 서브쿼리
+CREATE INDEX IF NOT EXISTS idx_summaries_content_id
+    ON summaries (content_id);
 
 -- Category-Keyword mappings table
 CREATE TABLE IF NOT EXISTS category_keyword_mappings
@@ -226,8 +230,7 @@ CREATE TABLE IF NOT EXISTS fcm_tokens
     updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_device_token ON fcm_tokens (device_token);
-CREATE INDEX IF NOT EXISTS idx_fcm_token ON fcm_tokens (fcm_token);
+-- device_token, fcm_token은 UNIQUE 제약 조건이 이미 암묵적 인덱스를 생성하므로 별도 인덱스 불필요
 
 -- Content providers table
 CREATE TABLE IF NOT EXISTS content_provider
@@ -373,8 +376,7 @@ ALTER TABLE popular_newsletter_snapshot_items
 ALTER TABLE popular_newsletter_snapshot_items
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
-CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_id
-    ON popular_newsletter_snapshot_items (snapshot_id);
+-- idx_..._snapshot_resolution_rank가 snapshot_id 선두로 커버하므로 snapshot_id 단독 인덱스 불필요
 
 CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_resolution_rank
     ON popular_newsletter_snapshot_items (snapshot_id, resolution_status, rank_order);
@@ -393,3 +395,12 @@ CREATE INDEX IF NOT EXISTS idx_contents_newsletter_source_published_id
 -- contents.content_provider_id IN (...) 필터가 풀스캔되는 것을 방지
 CREATE INDEX IF NOT EXISTS idx_contents_content_provider_id
     ON contents (content_provider_id);
+
+-- findByNewsletterName, findContentsWithoutSummaryByNewsletterName 등 newsletter_name 필터 쿼리
+CREATE INDEX IF NOT EXISTS idx_contents_newsletter_name
+    ON contents (newsletter_name);
+
+-- findByUserIdAndDate, findDeletedByUserIdAndDate 쿼리 지원
+-- HOT: deleted 컬럼을 인덱스에서 제외하여 deleted UPDATE 시 HOT 유지
+CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_user_created
+    ON user_exposed_contents_mapping (user_id, created_at);
