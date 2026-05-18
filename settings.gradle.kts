@@ -14,5 +14,4 @@ dependencyResolutionManagement {
 
 include("api")
 include("external")
-include("admin")
 include("newsletter")
