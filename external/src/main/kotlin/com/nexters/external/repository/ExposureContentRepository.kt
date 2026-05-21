@@ -280,14 +280,11 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
-        SELECT e FROM ExposureContent e
+        SELECT DISTINCT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider
-        WHERE EXISTS (
-            SELECT 1 FROM ContentKeywordMapping ckm
-            WHERE ckm.content = c
-            AND ckm.keyword.id IN :reservedKeywordIds
-        )
+        JOIN ContentKeywordMapping ckm ON ckm.content = c
+        WHERE ckm.keyword.id IN :reservedKeywordIds
         AND NOT EXISTS (
             SELECT 1 FROM UserExposedContentMapping uecm
             WHERE uecm.contentId = c.id

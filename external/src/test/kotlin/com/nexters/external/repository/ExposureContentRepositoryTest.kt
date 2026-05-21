@@ -3,6 +3,10 @@ package com.nexters.external.repository
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
+import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.entity.ContentKeywordMapping
+import com.nexters.external.entity.UserExposedContentMapping
+import com.nexters.external.entity.User
 import com.nexters.external.enums.ContentProviderType
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -57,6 +61,53 @@ class ExposureContentRepositoryTest {
         assertThat(rows[0].newsletterName).isEqualTo(secondContent.newsletterName)
         assertThat(rows[0].language).isEqualTo("ko")
         assertThat(rowsAfterNewest.map { it.id }).containsExactly(firstExposureContent.id)
+    }
+
+    @Test
+    fun `findNotExposedByReservedKeywordIds should return non-exposed exposure contents that match given keywords`() {
+        // Given
+        val provider = entityManager.persist(
+            ContentProvider(
+                name = "Kotlin Weekly",
+                channel = "kotlin-weekly",
+                language = "ko",
+                type = ContentProviderType.NEWSLETTER,
+            ),
+        )
+        val keyword1 = entityManager.persist(ReservedKeyword(name = "Kotlin"))
+        val keyword2 = entityManager.persist(ReservedKeyword(name = "Java"))
+        val keyword3 = entityManager.persist(ReservedKeyword(name = "Spring"))
+
+        val content1 = entityManager.persist(content(provider = provider, title = "First"))
+        val content2 = entityManager.persist(content(provider = provider, title = "Second"))
+        val content3 = entityManager.persist(content(provider = provider, title = "Third"))
+
+        entityManager.persist(ContentKeywordMapping(content = content1, keyword = keyword1))
+        entityManager.persist(ContentKeywordMapping(content = content2, keyword = keyword2))
+        entityManager.persist(ContentKeywordMapping(content = content3, keyword = keyword3))
+
+        val exp1 = entityManager.persist(exposureContent(content1, "Kotlin headline"))
+        val exp2 = entityManager.persist(exposureContent(content2, "Java headline"))
+        val exp3 = entityManager.persist(exposureContent(content3, "Spring headline"))
+
+        // Create a User to satisfy foreign key constraints
+        val user = entityManager.persist(User(deviceToken = "test-device-token"))
+
+        // Expose content1 to user
+        entityManager.persist(UserExposedContentMapping(userId = user.id!!, contentId = content1.id!!))
+
+        entityManager.flush()
+        entityManager.clear()
+
+        // When
+        val result = repository.findNotExposedByReservedKeywordIds(
+            userId = user.id!!,
+            reservedKeywordIds = listOf(keyword1.id!!, keyword2.id!!, keyword3.id!!)
+        )
+
+        // Then
+        // Should only contain exp2 and exp3 (since exp1 is already exposed)
+        assertThat(result.map { it.id }).containsExactlyInAnyOrder(exp2.id, exp3.id)
     }
 
     private fun content(
