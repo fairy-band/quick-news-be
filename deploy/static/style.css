@@ -1016,3 +1016,52 @@ body {
   .walkthroughs-section { padding: 3rem 1rem 4rem; }
   .modal-actions { flex-direction: column; }
 }
+
+/* Add support for standard markdown tags mapped to original styling */
+.layer-content pre {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.layer-content pre code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-code);
+  white-space: pre;
+}
+.layer-content blockquote {
+  background: rgba(108,99,255,0.06);
+  border-left: 3px solid var(--accent-1);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.85rem 1.1rem;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+.layer-content ul, .layer-content ol {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+.layer-content li {
+  margin-bottom: 0.25rem;
+}
+.layer-content p code {
+  background: rgba(255,255,255,0.1);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+.layer-content strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+

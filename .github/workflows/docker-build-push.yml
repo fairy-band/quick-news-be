@@ -96,10 +96,11 @@ jobs:
           echo "${{ secrets.GABIA_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
 
-      - name: Create deploy directory and set permissions
+      - name: Create deploy directory and fix permissions
         run: |
           echo "Creating deploy directory..."
-          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy && chmod 755 ~/deploy"
+          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "sudo chown -R \$(whoami):\$(whoami) ~/deploy || true"
+          ssh -i private_key.pem ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "mkdir -p ~/deploy/static && chmod -R 755 ~/deploy"
 
       - name: Create .env file from secret
         run: |

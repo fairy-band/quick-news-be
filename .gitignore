@@ -41,3 +41,6 @@ bin/
 # AI
 CLAUDE.md
 .serena
+
+# Scripts
+migration_script/
