@@ -122,6 +122,10 @@ jobs:
           echo "Deploying nginx.conf..."
           scp -i private_key.pem -v deploy/nginx.conf ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
 
+          # Copy static files
+          echo "Deploying static files..."
+          scp -r -i private_key.pem -v deploy/static ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
+
           # Copy .env file
           echo "Deploying .env file..."
           scp -i private_key.pem -v .env ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:~/deploy/
