@@ -32,6 +32,17 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
+        SELECT e
+        FROM ExposureContent e
+        WHERE e.provocativeHeadline IN :headlines
+    """
+    )
+    fun findByProvocativeHeadlineIn(
+        @Param("headlines") headlines: Collection<String>,
+    ): List<ExposureContent>
+
+    @Query(
+        """
         SELECT new com.nexters.external.repository.ExposureContentLookupRow(
             e.id,
             e.content.id

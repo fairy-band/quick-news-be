@@ -34,6 +34,7 @@ class PopularNewsletterObjectIdResolverService(
         resolveByContentId(numericIdByRawObjectId, resolvedByRawObjectId)
         resolveByOriginalUrl(uniqueRawObjectIds, resolvedByRawObjectId)
         resolveByNewsletterSourceId(uniqueRawObjectIds, resolvedByRawObjectId)
+        resolveByTitle(uniqueRawObjectIds, resolvedByRawObjectId)
 
         return uniqueRawObjectIds.associateWith { rawObjectId ->
             resolvedByRawObjectId[rawObjectId] ?: unresolvedResolution()
@@ -142,6 +143,25 @@ class PopularNewsletterObjectIdResolverService(
         unresolvedRawObjectIds.forEach { rawObjectId ->
             preferredContentByNewsletterSourceId[rawObjectId]?.let { content ->
                 resolvedByRawObjectId[rawObjectId] = toResolution(content.id, exposureLookupByContentId[content.id]?.id)
+            }
+        }
+    }
+
+    private fun resolveByTitle(
+        rawObjectIds: List<String>,
+        resolvedByRawObjectId: MutableMap<String, PopularNewsletterObjectResolution>,
+    ) {
+        val unresolvedRawObjectIds = rawObjectIds.filterNot { resolvedByRawObjectId.containsKey(it) }
+        if (unresolvedRawObjectIds.isEmpty()) {
+            return
+        }
+
+        val matches = exposureContentRepository.findByProvocativeHeadlineIn(unresolvedRawObjectIds.toSet())
+        val matchMap = matches.associateBy { it.provocativeHeadline }
+
+        unresolvedRawObjectIds.forEach { rawObjectId ->
+            matchMap[rawObjectId]?.let { exposureContent ->
+                resolvedByRawObjectId[rawObjectId] = toResolution(exposureContent.content.id!!, exposureContent.id)
             }
         }
     }

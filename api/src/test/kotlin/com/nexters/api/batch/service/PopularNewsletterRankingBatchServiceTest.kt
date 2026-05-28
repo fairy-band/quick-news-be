@@ -96,7 +96,7 @@ class PopularNewsletterRankingBatchServiceTest {
         val command = assertNotNull(savedCommand)
         assertEquals(PopularNewsletterSegmentType.GLOBAL, command.segmentType)
         assertEquals(LocalDate.of(2025, 4, 19), command.windowStartDate)
-        assertEquals(endDate, command.windowEndDate)
+        assertEquals(LocalDate.of(2026, 4, 19), command.windowEndDate)
         assertEquals(PopularNewsletterRankingBatchService.NEWSLETTER_CLICK_EVENT_NAME, command.sourceEventName)
         assertEquals(20, command.candidateLimit)
         assertEquals(1, command.resolvedItemCount)

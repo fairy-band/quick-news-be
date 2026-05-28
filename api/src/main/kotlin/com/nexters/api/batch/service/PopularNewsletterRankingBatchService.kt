@@ -41,6 +41,7 @@ class PopularNewsletterRankingBatchService(
 
             return try {
                 val clicks = googleAnalyticsService.getTopNewsletterClicksForRollingWindow(endDate, lookbackDays, limit)
+                    .filterNot { it.objectId.startsWith("Preview Title") }
                 val resolutionsByObjectId =
                     popularNewsletterObjectIdResolverService.resolveObjectIds(
                         clicks.map { click -> click.objectId },
