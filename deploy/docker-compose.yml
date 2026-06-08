@@ -4,8 +4,8 @@ services:
     image: ahj0/fairy-band:api
     container_name: newsletter-api
     restart: always
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
@@ -25,10 +25,11 @@ services:
       DISCORD_USER_REGISTRATION_WEBHOOK_URL: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL}
       BATCH_ENABLED: ${BATCH_ENABLED:-false}
     volumes:
+      - /usr/share/zoneinfo/Asia/Seoul:/etc/localtime:ro
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - ./logs/api:/app/logs
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/api/explore/contents || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -43,10 +44,13 @@ services:
     user: "0:0"  # root 권한으로 실행
     ports:
       - "80:80"
+    environment:
+      TZ: Asia/Seoul
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./static:/usr/share/nginx/html/walkthroughs:ro
       - ./logs/nginx:/var/log/nginx
+      - /usr/share/zoneinfo/Asia/Seoul:/etc/localtime:ro
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:80/health" ]
       interval: 30s
