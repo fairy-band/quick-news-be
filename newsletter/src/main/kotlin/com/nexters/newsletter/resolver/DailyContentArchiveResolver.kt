@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
-import java.util.SortedMap
 import java.util.concurrent.locks.ReentrantLock
 
 @Service
@@ -100,13 +99,19 @@ class DailyContentArchiveResolver(
         categoryIds: List<Long>,
     ): List<ExposureContent> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
-        val possibleContents = possibleContentsResolver.resolvePossibleContentsByCategoryIds(userId, categoryIds)
+        val candidatePool = possibleContentsResolver.resolveCandidatePoolByCategoryIds(userId, categoryIds)
+        val possibleContents = candidatePool.candidates.map { it.candidate }
+        val candidateSignalsByExposureContentId =
+            candidatePool.candidates.associate { poolItem ->
+                poolItem.candidate.exposureContentId to poolItem.signals
+            }
         val keywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
 
         // TODO: entity 의존성 없는 구조로 변경 필요
         return resolveTodayContents(
             userId = userId,
             possibleContents = possibleContents,
+            candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
             keywordWeightsByKeyword = keywordWeights,
             categoryIds = categoryIds,
         )
@@ -115,6 +120,7 @@ class DailyContentArchiveResolver(
     private fun resolveTodayContents(
         userId: Long,
         possibleContents: List<ExposureContentRecommendationCandidateRow>,
+        candidateSignalsByExposureContentId: Map<Long, List<CandidateSourceSignal>>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         categoryIds: List<Long>,
     ): List<ExposureContent> {
@@ -140,6 +146,7 @@ class DailyContentArchiveResolver(
         val contentSources =
             createRecommendSources(
                 possibleContents = possibleContents,
+                candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
                 keywordWeightsByKeyword = keywordWeightsByKeyword,
                 keywordsByContentId = keywordsByContentId,
                 multiplier = 1.0,
@@ -147,22 +154,13 @@ class DailyContentArchiveResolver(
                 categoryMatchWeights = categoryMatchWeights,
             )
 
-        val sortedSources: SortedMap<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
-            contentSources.toSortedMap { a, b ->
-                calculator
-                    .calculate(contentSources[b]!!)
-                    .recommendScore
-                    .compareTo(
-                        calculator.calculate(contentSources[a]!!).recommendScore,
-                    )
-            }
+        val scoredCandidates = scoreCandidates(contentSources)
 
         // 1단계: recommendScore > 0인 컨텐츠들 필터링
         val positiveScoreContents =
-            sortedSources.entries
-                .filter { (_, source) ->
-                    calculator.calculate(source).recommendScore > 0
-                }.map { it.key }
+            scoredCandidates
+                .filter { it.recommendScore > 0 }
+                .map { it.candidate }
 
         // 2단계: 선택된 컨텐츠 내에서 발행처 다양성 조정
         if (positiveScoreContents.size >= MAX_CONTENT_SIZE) {
@@ -185,9 +183,12 @@ class DailyContentArchiveResolver(
 
                         candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
 
-                        candidate to calculator.calculate(adjustedSource).recommendScore
-                    }.sortedByDescending { it.second }
-                    .map { it.first }
+                        ScoredCandidate(
+                            candidate = candidate,
+                            recommendScore = calculator.calculate(adjustedSource).recommendScore,
+                        )
+                    }.sortedWith(SCORED_CANDIDATE_COMPARATOR)
+                    .map { it.candidate }
 
             // 발행처당 최대 N-1개로 제한
             val selectedPublisherCounts = mutableMapOf<String, Int>()
@@ -220,6 +221,7 @@ class DailyContentArchiveResolver(
             val amplifiedRecommendSources =
                 createRecommendSources(
                     possibleContents = possibleContents,
+                    candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
                     keywordWeightsByKeyword = keywordWeightsByKeyword,
                     keywordsByContentId = keywordsByContentId,
                     multiplier = multiplier,
@@ -228,21 +230,11 @@ class DailyContentArchiveResolver(
                 )
 
             // 재계산된 결과로 정렬하고 기존에 선택되지 않은 positive score 컨텐츠들 필터링
-            val amplifiedSortedSources: SortedMap<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
-                amplifiedRecommendSources.toSortedMap { a, b ->
-                    calculator
-                        .calculate(amplifiedRecommendSources[b]!!)
-                        .recommendScore
-                        .compareTo(
-                            calculator.calculate(amplifiedRecommendSources[a]!!).recommendScore,
-                        )
-                }
-
             val amplifiedContents =
-                amplifiedSortedSources.entries
-                    .filter { (candidate, _) -> candidate !in selectedContents }
-                    .filter { (_, source) -> calculator.calculate(source).recommendScore > 0 }
-                    .map { it.key }
+                scoreCandidates(amplifiedRecommendSources)
+                    .filter { it.candidate !in selectedContents }
+                    .filter { it.recommendScore > 0 }
+                    .map { it.candidate }
 
             val additionalNeeded = MAX_CONTENT_SIZE - selectedContents.size
             selectedContents.addAll(amplifiedContents.take(additionalNeeded))
@@ -256,6 +248,7 @@ class DailyContentArchiveResolver(
      */
     private fun createRecommendSources(
         possibleContents: List<ExposureContentRecommendationCandidateRow>,
+        candidateSignalsByExposureContentId: Map<Long, List<CandidateSourceSignal>>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         keywordsByContentId: Map<Long, List<ReservedKeyword>>,
         multiplier: Double,
@@ -271,6 +264,7 @@ class DailyContentArchiveResolver(
                 newsletterName = candidate.newsletterName,
                 contentProviderName = candidate.contentProviderName,
                 keywordNames = contentKeywords.map { it.name },
+                candidateSignals = candidateSignalsByExposureContentId[candidate.exposureContentId] ?: emptyList(),
                 positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
                 negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, keywordWeightsByKeyword),
                 publishedDate = candidate.publishedAt,
@@ -339,6 +333,17 @@ class DailyContentArchiveResolver(
         }
     }
 
+    private fun scoreCandidates(
+        contentSources: Map<ExposureContentRecommendationCandidateRow, RecommendCalculateSource>,
+    ): List<ScoredCandidate> =
+        contentSources
+            .map { (candidate, source) ->
+                ScoredCandidate(
+                    candidate = candidate,
+                    recommendScore = calculator.calculate(source).recommendScore,
+                )
+            }.sortedWith(SCORED_CANDIDATE_COMPARATOR)
+
     private fun fetchExposureContents(candidates: List<ExposureContentRecommendationCandidateRow>): List<ExposureContent> =
         exposureContentService.getExposureContentsByIdsPreservingOrder(
             candidates.map { it.exposureContentId },
@@ -372,8 +377,17 @@ class DailyContentArchiveResolver(
         private val logger = LoggerFactory.getLogger(DailyContentArchiveResolver::class.java)
         private const val MAX_CONTENT_SIZE = 6
         private const val ARBITRARY_USER_ID = 1L // 임시로 사용되는 유저 ID
+        private val SCORED_CANDIDATE_COMPARATOR =
+            compareByDescending<ScoredCandidate> { it.recommendScore }
+                .thenByDescending { it.candidate.publishedAt }
+                .thenByDescending { it.candidate.exposureContentId }
     }
 }
+
+private data class ScoredCandidate(
+    val candidate: ExposureContentRecommendationCandidateRow,
+    val recommendScore: Double,
+)
 
 class RefreshNotAvailableException(
     message: String

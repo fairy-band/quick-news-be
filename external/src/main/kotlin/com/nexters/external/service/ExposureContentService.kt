@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.JpaSort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -251,6 +252,19 @@ class ExposureContentService(
     ): List<ExposureContentRecommendationCandidateRow> =
         exposureContentRepository.findNotExposedRecommendationCandidatesByReservedKeywordIds(userId, reservedKeywordIds)
 
+    fun getNotExposedRecommendationCandidatesByReservedKeywordIds(
+        userId: Long,
+        reservedKeywordIds: List<Long>,
+        publishedFrom: LocalDate,
+        limit: Int,
+    ): List<ExposureContentRecommendationCandidateRow> =
+        exposureContentRepository.findNotExposedRecommendationCandidatesByReservedKeywordIds(
+            userId = userId,
+            reservedKeywordIds = reservedKeywordIds,
+            publishedFrom = publishedFrom,
+            pageable = PageRequest.of(0, limit),
+        )
+
     fun getNotExposedExposureContentsByContentProviderIds(
         userId: Long,
         contentProviderIds: List<Long>
@@ -261,6 +275,19 @@ class ExposureContentService(
         contentProviderIds: List<Long>
     ): List<ExposureContentRecommendationCandidateRow> =
         exposureContentRepository.findNotExposedRecommendationCandidatesByContentProviderIds(userId, contentProviderIds)
+
+    fun getNotExposedRecommendationCandidatesByContentProviderIds(
+        userId: Long,
+        contentProviderIds: List<Long>,
+        publishedFrom: LocalDate,
+        limit: Int,
+    ): List<ExposureContentRecommendationCandidateRow> =
+        exposureContentRepository.findNotExposedRecommendationCandidatesByContentProviderIds(
+            userId = userId,
+            contentProviderIds = contentProviderIds,
+            publishedFrom = publishedFrom,
+            pageable = PageRequest.of(0, limit),
+        )
 
     fun getExposureContentsByIdsPreservingOrder(exposureContentIds: List<Long>): List<ExposureContent> {
         if (exposureContentIds.isEmpty()) {

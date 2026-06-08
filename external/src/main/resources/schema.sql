@@ -85,6 +85,12 @@ ALTER TABLE contents
 ALTER TABLE contents
     ALTER COLUMN image_url TYPE TEXT;
 
+CREATE INDEX IF NOT EXISTS idx_contents_published_at_id
+    ON contents (published_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_contents_provider_published_at_id
+    ON contents (content_provider_id, published_at DESC, id DESC);
+
 CREATE TABLE IF NOT EXISTS content_generation_attempts
 (
     id                BIGSERIAL PRIMARY KEY,

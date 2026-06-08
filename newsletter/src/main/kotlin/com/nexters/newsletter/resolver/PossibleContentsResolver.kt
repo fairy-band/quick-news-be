@@ -1,62 +1,139 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.entity.ContentProvider
-import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
-import com.nexters.external.service.CategoryService
-import com.nexters.external.service.ExposureContentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 
 @Service
 class PossibleContentsResolver(
-    private val categoryService: CategoryService,
-    private val exposureContentService: ExposureContentService,
+    candidateSources: List<CandidateSource>,
 ) {
+    private val candidateSources = candidateSources.sortedBy { it.order }
+
     fun resolvePossibleContentsByCategoryIds(
         userId: Long,
         categoryIds: List<Long>,
-    ): List<ExposureContentRecommendationCandidateRow> {
-        val keywords = categoryService.getKeywordsByCategoryIds(categoryIds)
-        val contentsByKeywords = resolvePossibleContentsByKeywords(userId, keywords)
+    ): List<ExposureContentRecommendationCandidateRow> =
+        resolveCandidatePoolByCategoryIds(userId, categoryIds)
+            .candidates
+            .map { it.candidate }
 
-        val contentProviders = categoryService.getContentProvidersByCategoryIds(categoryIds)
-        val contentsByProviders = resolvePossibleContentsByProviders(userId, contentProviders)
+    fun resolveCandidatePoolByCategoryIds(
+        userId: Long,
+        categoryIds: List<Long>,
+    ): CandidatePool {
+        if (categoryIds.isEmpty() || candidateSources.isEmpty()) {
+            return CandidatePool(emptyList(), CandidateRecencyWindow.DAYS_30)
+        }
 
-        val allContents = (contentsByKeywords + contentsByProviders).distinctBy { it.exposureContentId }
+        val mergedCandidates = linkedMapOf<Long, CandidatePoolItem>()
+        var expandedWindow = CandidateRecencyWindow.DAYS_30
+        val today = LocalDate.now()
+
+        for (window in RECENCY_WINDOWS) {
+            expandedWindow = window
+            fetchWindowCandidates(
+                userId = userId,
+                categoryIds = categoryIds,
+                window = window,
+                today = today,
+            ).forEach { seed ->
+                mergedCandidates.merge(seed)
+            }
+
+            if (mergedCandidates.size >= TARGET_POOL_SIZE) {
+                break
+            }
+        }
+
+        val candidates =
+            mergedCandidates
+                .values
+                .sortedWith(CANDIDATE_POOL_COMPARATOR)
+                .take(MAX_POOL_SIZE)
 
         logger.debug(
-            "가능한 콘텐츠 조회 완료. userId: {}, 키워드 수: {}, ContentProvider 수: {}, 총 콘텐츠 수: {}",
+            "가능한 콘텐츠 풀 생성 완료. userId: {}, categoryIds: {}, sourceCount: {}, window: {}, candidates: {}",
             userId,
-            keywords.size,
-            contentProviders.size,
-            allContents.size,
+            categoryIds,
+            candidateSources.size,
+            expandedWindow,
+            candidates.size,
         )
 
-        return allContents
+        return CandidatePool(
+            candidates = candidates,
+            expandedWindow = expandedWindow,
+        )
     }
 
-    private fun resolvePossibleContentsByKeywords(
+    private fun fetchWindowCandidates(
         userId: Long,
-        reservedKeywords: List<ReservedKeyword>,
-    ): List<ExposureContentRecommendationCandidateRow> {
-        val reservedKeywordIds = reservedKeywords.map { it.id!! }
-        return exposureContentService.getNotExposedRecommendationCandidatesByReservedKeywordIds(userId, reservedKeywordIds)
-    }
+        categoryIds: List<Long>,
+        window: CandidateRecencyWindow,
+        today: LocalDate,
+    ): List<CandidateSeed> {
+        val publishedFrom = window.publishedFrom(today)
 
-    private fun resolvePossibleContentsByProviders(
-        userId: Long,
-        contentProviders: List<*>,
-    ): List<ExposureContentRecommendationCandidateRow> {
-        val contentProviderIds = contentProviders.mapNotNull { (it as? ContentProvider)?.id }
-        return if (contentProviderIds.isNotEmpty()) {
-            exposureContentService.getNotExposedRecommendationCandidatesByContentProviderIds(userId, contentProviderIds)
-        } else {
-            emptyList()
+        return candidateSources.flatMap { source ->
+            source.fetch(
+                CandidateSourceRequest(
+                    userId = userId,
+                    categoryIds = categoryIds,
+                    publishedFrom = publishedFrom,
+                    limit = source.defaultLimit * window.limitMultiplier,
+                    window = window,
+                ),
+            )
         }
     }
 
+    private fun MutableMap<Long, CandidatePoolItem>.merge(seed: CandidateSeed) {
+        val exposureContentId = seed.candidate.exposureContentId
+        val existing = this[exposureContentId]
+
+        this[exposureContentId] =
+            if (existing == null) {
+                CandidatePoolItem(
+                    candidate = seed.candidate,
+                    signals = deduplicateSignals(seed.signals),
+                )
+            } else {
+                existing.copy(
+                    signals = deduplicateSignals(existing.signals + seed.signals),
+                )
+            }
+    }
+
+    private fun deduplicateSignals(signals: List<CandidateSourceSignal>): List<CandidateSourceSignal> =
+        signals
+            .groupBy { it.source }
+            .mapNotNull { (_, sourceSignals) ->
+                sourceSignals.maxWithOrNull(
+                    compareBy<CandidateSourceSignal> { it.confidence }
+                        .thenBy { it.score },
+                )
+            }.sortedWith(
+                compareByDescending<CandidateSourceSignal> { it.confidence }
+                    .thenByDescending { it.score },
+            )
+
     companion object {
         private val logger = LoggerFactory.getLogger(PossibleContentsResolver::class.java)
+        private val RECENCY_WINDOWS =
+            listOf(
+                CandidateRecencyWindow.DAYS_30,
+                CandidateRecencyWindow.DAYS_90,
+                CandidateRecencyWindow.DAYS_365,
+                CandidateRecencyWindow.ALL,
+            )
+        private const val TARGET_POOL_SIZE = 120
+        private const val MAX_POOL_SIZE = 200
+        private val CANDIDATE_POOL_COMPARATOR =
+            compareByDescending<CandidatePoolItem> { it.candidate.publishedAt }
+                .thenByDescending { it.signals.sumOf { signal -> signal.confidence } }
+                .thenByDescending { it.signals.sumOf { signal -> signal.score } }
+                .thenByDescending { it.candidate.exposureContentId }
     }
 }

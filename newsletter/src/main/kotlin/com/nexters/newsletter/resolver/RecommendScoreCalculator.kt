@@ -42,6 +42,7 @@ data class RecommendCalculateSource(
     val newsletterName: String = "",
     val contentProviderName: String? = null,
     val keywordNames: List<String> = emptyList(),
+    val candidateSignals: List<CandidateSourceSignal> = emptyList(),
     val positiveKeywordSources: List<PositiveKeywordSource>,
     val negativeKeywordSources: List<NegativeKeywordSource>,
     val publishedDate: LocalDate,
