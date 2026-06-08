@@ -7,13 +7,16 @@ import com.nexters.external.entity.DeviceType
 import com.nexters.external.entity.FcmToken
 import com.nexters.external.repository.FcmTokenRepository
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional
 class PushNotificationService(
-    private val fcmTokenRepository: FcmTokenRepository
+    private val fcmTokenRepository: FcmTokenRepository,
+    @param:Value("\${firebase.enabled:false}")
+    private val firebaseEnabled: Boolean,
 ) {
     private val logger = LoggerFactory.getLogger(PushNotificationService::class.java)
 
@@ -44,8 +47,13 @@ class PushNotificationService(
         title: String,
         body: String,
         data: Map<String, String> = emptyMap()
-    ): Boolean =
-        try {
+    ): Boolean {
+        if (!firebaseEnabled) {
+            logger.info("Firebase is disabled. Skipping FCM notification send.")
+            return false
+        }
+
+        return try {
             val notification =
                 Notification
                     .builder()
@@ -78,6 +86,7 @@ class PushNotificationService(
             }
             false
         }
+    }
 
     /**
      * FCM 토큰 등록/갱신

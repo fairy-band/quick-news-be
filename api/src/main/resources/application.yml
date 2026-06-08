@@ -56,8 +56,9 @@ ai:
 
 # Firebase Configuration
 firebase:
-  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:firebase-service-account.json}
-  project-id: ${FIREBASE_PROJECT_ID:news-letter-da24c}
+  enabled: ${FIREBASE_ENABLED:false}
+  service-account-key-path: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:}
+  project-id: ${FIREBASE_PROJECT_ID:}
 
 # RSS Configuration
 rss:

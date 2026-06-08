@@ -5,14 +5,18 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
 import java.io.File
 import java.io.FileInputStream
 import javax.annotation.PostConstruct
 
 @Configuration
-@Profile("prod")
+@ConditionalOnProperty(
+    name = ["firebase.enabled"],
+    havingValue = "true",
+    matchIfMissing = false,
+)
 class FirebaseConfig {
     private val logger = LoggerFactory.getLogger(FirebaseConfig::class.java)
 
