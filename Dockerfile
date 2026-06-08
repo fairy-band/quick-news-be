@@ -1,5 +1,5 @@
 # Build stage
-FROM gradle:8.5-jdk21 AS build
+FROM gradle:9.5.1-jdk25-alpine AS build
 WORKDIR /app
 
 # Copy gradle files
@@ -23,7 +23,7 @@ WORKDIR /app/api/build/libs
 RUN java -Djarmode=layertools -jar *.jar extract
 
 # Runtime stage for API
-FROM azul/zulu-openjdk-alpine:21-jre AS api
+FROM azul/zulu-openjdk-alpine:25-jre AS api
 WORKDIR /app
 
 # Copy layers in order for optimal caching
