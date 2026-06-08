@@ -5,6 +5,7 @@ build/
 
 # IntelliJ IDEA
 .idea/
+.vscode/
 *.iml
 *.iws
 out/
@@ -41,6 +42,8 @@ bin/
 # AI
 CLAUDE.md
 .serena
+scratch/
+og_preview/
 
 # Scripts
 migration_script/
