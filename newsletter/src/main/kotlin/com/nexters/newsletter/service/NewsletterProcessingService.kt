@@ -10,6 +10,7 @@ import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.NewsletterSourceService
+import com.nexters.external.service.RepresentativeImageUrlExtractorService
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParserFactory
 import org.slf4j.LoggerFactory
@@ -24,6 +25,7 @@ class NewsletterProcessingService(
     private val contentProviderService: ContentProviderService,
     private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
+    private val representativeImageUrlExtractorService: RepresentativeImageUrlExtractorService,
 ) {
     private val logger = LoggerFactory.getLogger(NewsletterProcessingService::class.java)
     private val mailParserFactory = MailParserFactory()
@@ -80,7 +82,11 @@ class NewsletterProcessingService(
 
             val parsedContents =
                 try {
-                    parser.parse(newsletterSource.content)
+                    parser.parse(
+                        content = newsletterSource.content,
+                        subject = newsletterSource.subject,
+                        htmlContent = newsletterSource.htmlContent,
+                    )
                 } catch (e: Exception) {
                     logger.error("Failed to parse newsletter content", e)
                     throw IllegalStateException("Failed to parse newsletter content: ${e.message}")
@@ -112,6 +118,7 @@ class NewsletterProcessingService(
         return parsedContents.map { mailContent ->
             // Extract original URL from RSS header if available, otherwise use parsed link
             val originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: mailContent.link
+            val imageUrl = mailContent.imageUrl ?: representativeImageUrlExtractorService.extractFromPage(originalUrl)
 
             val content =
                 Content(
@@ -120,6 +127,7 @@ class NewsletterProcessingService(
                     content = mailContent.content,
                     newsletterName = newsletterSource.sender,
                     originalUrl = originalUrl,
+                    imageUrl = imageUrl,
                     publishedAt = newsletterSource.receivedDate.toLocalDate(),
                     contentProvider = contentProvider,
                     createdAt = LocalDateTime.now(),

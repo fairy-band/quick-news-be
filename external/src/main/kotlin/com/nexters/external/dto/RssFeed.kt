@@ -18,7 +18,8 @@ data class RssItem(
     val publishedDate: LocalDateTime?,
     val author: String?,
     val categories: List<String>,
-    val content: String?
+    val content: String?,
+    val imageUrl: String? = null,
 )
 
 fun RssItem.toContentText(): String =

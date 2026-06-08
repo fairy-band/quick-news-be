@@ -10,6 +10,7 @@ import com.nexters.external.repository.RssProcessingStatusRepository
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.NewsletterSourceService
+import com.nexters.external.service.RepresentativeImageUrlExtractorService
 import com.nexters.external.service.RssReaderService
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
@@ -26,6 +27,7 @@ class RssContentService(
     private val newsletterSourceService: NewsletterSourceService,
     private val contentService: ContentService,
     private val contentProviderService: ContentProviderService,
+    private val representativeImageUrlExtractorService: RepresentativeImageUrlExtractorService,
     private val rssProcessingStatusRepository: RssProcessingStatusRepository,
 ) {
     private val logger = LoggerFactory.getLogger(RssContentService::class.java)
@@ -187,6 +189,7 @@ class RssContentService(
         item: RssItem
     ): Content {
         val contentProvider = resolveContentProvider(newsletterSource.sender)
+        val imageUrl = item.imageUrl ?: representativeImageUrlExtractorService.extractFromPage(item.link)
 
         return Content(
             newsletterSourceId = newsletterSource.id,
@@ -194,6 +197,7 @@ class RssContentService(
             content = newsletterSource.content,
             newsletterName = newsletterSource.sender,
             originalUrl = item.link,
+            imageUrl = imageUrl,
             publishedAt = newsletterSource.receivedDate.toLocalDate(),
             contentProvider = contentProvider,
             createdAt = LocalDateTime.now(),
