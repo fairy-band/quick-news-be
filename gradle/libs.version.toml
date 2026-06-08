@@ -4,26 +4,18 @@ kotlin = "2.2.0"
 java = "21"
 
 # Spring versions
-spring-boot = "3.5.3"
+spring-boot = "4.0.6"
 spring-dependency-management = "1.1.7"
-spring-integration = "6.2.0"
 kotlin-coroutines = "1.8.0"
 
 # Library versions
-jackson = "2.17.0"
-jakarta-activation = "2.1.2"
 junit = "5.10.0"
 google-genai = "1.0.0"
 gson = "2.10.1"
 jsoup = "1.17.2"
 mockk = "1.13.8"
-micrometer = "1.13.2"
-mongodb = "5.3.0"
-springdoc-openapi = "2.8.9"
+springdoc-openapi = "3.0.3"
 rest-assured = "5.4.0"
-postgresql = "42.7.2"
-h2 = "2.2.224"
-thymeleaf = "3.1.2.RELEASE"
 firebase-admin = "9.2.0"
 resilience4j = "2.1.0"
 google-analytics-data = "0.50.0"
@@ -44,16 +36,19 @@ spring-boot-starter-logging = { group = "org.springframework.boot", name = "spri
 spring-boot-starter-integration = { group = "org.springframework.boot", name = "spring-boot-starter-integration" }
 spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
 spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator" }
-spring-boot-starter-aop = { group = "org.springframework.boot", name = "spring-boot-starter-aop" }
+spring-boot-starter-aspectj = { group = "org.springframework.boot", name = "spring-boot-starter-aspectj" }
 spring-boot-starter-data-mongodb = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb" }
-spring-boot-starter-thymeleaf = { group = "org.springframework.boot", name = "spring-boot-starter-thymeleaf" }
+spring-boot-jackson2 = { group = "org.springframework.boot", name = "spring-boot-jackson2" }
 spring-boot-starter-security = { group = "org.springframework.boot", name = "spring-boot-starter-security" }
 spring-boot-starter-oauth2-client = { group = "org.springframework.boot", name = "spring-boot-starter-oauth2-client" }
+spring-boot-starter-data-jpa-test = { group = "org.springframework.boot", name = "spring-boot-starter-data-jpa-test" }
+spring-boot-starter-data-mongodb-test = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb-test" }
+spring-boot-starter-webmvc-test = { group = "org.springframework.boot", name = "spring-boot-starter-webmvc-test" }
 
 # Spring Integration
-spring-integration-core = { group = "org.springframework.integration", name = "spring-integration-core", version.ref = "spring-integration" }
-spring-integration-mail = { group = "org.springframework.integration", name = "spring-integration-mail", version.ref = "spring-integration" }
-spring-integration-http = { group = "org.springframework.integration", name = "spring-integration-http", version.ref = "spring-integration" }
+spring-integration-core = { group = "org.springframework.integration", name = "spring-integration-core" }
+spring-integration-mail = { group = "org.springframework.integration", name = "spring-integration-mail" }
+spring-integration-http = { group = "org.springframework.integration", name = "spring-integration-http" }
 
 # Kotlin
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
@@ -62,10 +57,10 @@ kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coro
 kotlin-coroutines-reactor = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-reactor", version.ref = "kotlin-coroutines" }
 
 # Jackson
-jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
+jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin" }
 
 # Jakarta
-jakarta-activation-api = { group = "jakarta.activation", name = "jakarta.activation-api", version.ref = "jakarta-activation" }
+jakarta-activation-api = { group = "jakarta.activation", name = "jakarta.activation-api" }
 
 # Google  AI
 google-genai = { group = "com.google.genai", name = "google-genai", version.ref = "google-genai" }
@@ -91,17 +86,17 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 rome = { group = "com.rometools", name = "rome", version = "2.1.0" }
 
 # Micrometer
-micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
+micrometer-core = { group = "io.micrometer", name = "micrometer-core" }
 
 # Cache
 caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine" }
 
 # MongoDB
-mongodb-driver-sync = { group = "org.mongodb", name = "mongodb-driver-sync", version.ref = "mongodb" }
+mongodb-driver-sync = { group = "org.mongodb", name = "mongodb-driver-sync" }
 
 # Database
-postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
-h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
+postgresql = { group = "org.postgresql", name = "postgresql" }
+h2 = { group = "com.h2database", name = "h2" }
 
 # Springdoc OpenAPI (Swagger)
 springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
@@ -113,7 +108,7 @@ spring-integration-test = { group = "org.springframework.integration", name = "s
 kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
-de-flapdoodle-embed-mongo-spring = { group = "de.flapdoodle.embed", name = "de.flapdoodle.embed.mongo.spring30x", version = "4.11.0" }
+de-flapdoodle-embed-mongo-spring = { group = "de.flapdoodle.embed", name = "de.flapdoodle.embed.mongo.spring4x", version = "4.33.0" }
 rest-assured = { group = "io.rest-assured", name = "rest-assured", version.ref = "rest-assured" }
 rest-assured-kotlin = { group = "io.rest-assured", name = "kotlin-extensions", version.ref = "rest-assured" }
 
@@ -145,7 +140,7 @@ spring-boot-batch = [
     "kotlin-coroutines-core",
     "kotlin-coroutines-reactor",
     "spring-boot-starter-actuator",
-    "spring-boot-starter-aop",
+    "spring-boot-starter-aspectj",
 ]
 
 # Test bundle

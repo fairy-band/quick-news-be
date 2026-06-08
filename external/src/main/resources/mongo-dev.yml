@@ -1,7 +1,8 @@
 spring:
+  mongodb:
+    uri: ${SPRING_MONGODB_URI:mongodb://newsletter:newsletter123@localhost:27017/newsletter?authSource=newsletter}
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://newsletter:newsletter123@localhost:27017/newsletter?authSource=newsletter}
       auto-index-creation: true
   config:
     import:

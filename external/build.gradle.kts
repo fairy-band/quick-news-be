@@ -11,7 +11,7 @@ apply(plugin = "org.jetbrains.kotlin.plugin.jpa")
 dependencies {
     implementation(libs.kotlin.stdlib.jdk8)
     implementation(libs.spring.boot.starter)
-    implementation(libs.spring.boot.starter.aop)
+    implementation(libs.spring.boot.starter.aspectj)
     implementation(libs.spring.web)
 
     // Google Cloud Vertex AI
@@ -31,6 +31,8 @@ dependencies {
     implementation(libs.firebase.admin)
 
     testImplementation(libs.bundles.testing)
+    testImplementation(libs.spring.boot.starter.data.jpa.test)
+    testImplementation(libs.spring.boot.starter.data.mongodb.test)
     testImplementation(libs.de.flapdoodle.embed.mongo.spring)
     testRuntimeOnly(libs.junit.platform.launcher)
 

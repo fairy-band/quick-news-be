@@ -3,6 +3,9 @@ spring:
     active: dev
   application:
     name: api
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   config:
     import:
       - gemini.yml

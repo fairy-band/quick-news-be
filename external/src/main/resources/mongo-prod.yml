@@ -1,7 +1,8 @@
 spring:
+  mongodb:
+    uri: ${SPRING_MONGODB_URI}
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI}
       auto-index-creation: false
   config:
     import:

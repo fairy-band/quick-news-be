@@ -12,7 +12,7 @@ dependencies {
     api(project(":external"))
     implementation(libs.kotlin.stdlib.jdk8)
     implementation(libs.spring.boot.starter)
-    implementation(libs.spring.boot.starter.aop)
+    implementation(libs.spring.boot.starter.aspectj)
 
     testImplementation(libs.bundles.testing)
     testRuntimeOnly(libs.junit.platform.launcher)

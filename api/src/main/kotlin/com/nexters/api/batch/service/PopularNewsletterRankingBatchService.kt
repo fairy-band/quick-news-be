@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.integration.support.locks.LockRegistry
 import org.springframework.stereotype.Service
 import java.time.LocalDate
+import java.util.concurrent.locks.Lock
 
 @Service
 @ConditionalOnProperty(
@@ -25,7 +26,7 @@ class PopularNewsletterRankingBatchService(
     private val googleAnalyticsService: GoogleAnalyticsService,
     private val popularNewsletterObjectIdResolverService: PopularNewsletterObjectIdResolverService,
     private val popularNewsletterSnapshotService: PopularNewsletterSnapshotService,
-    private val lockRegistry: LockRegistry,
+    private val lockRegistry: LockRegistry<Lock>,
 ) {
     private val logger = LoggerFactory.getLogger(PopularNewsletterRankingBatchService::class.java)
 
