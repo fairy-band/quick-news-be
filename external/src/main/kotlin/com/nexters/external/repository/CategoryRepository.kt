@@ -10,21 +10,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface CategoryRepository : JpaRepository<Category, Long> {
-    fun findByName(name: String): Category?
-
     fun findByNameIn(names: List<String>): List<Category>
-
-    @Query(
-        """
-        SELECT rk
-        FROM ReservedKeyword rk
-        JOIN CategoryKeywordMapping ckm ON rk.id = ckm.keyword.id
-        WHERE ckm.category.id = :categoryId
-        ORDER BY ckm.weight DESC
-        LIMIT 6
-    """,
-    )
-    fun findTop6KeywordsByCategoryId(categoryId: Long): List<ReservedKeyword>
 
     @Query(
         """
@@ -47,9 +33,6 @@ interface CategoryRepository : JpaRepository<Category, Long> {
     """,
     )
     fun findCategoryKeywordMappingByCategoryIds(categoryIds: List<Long>): List<CategoryKeywordMapping>
-
-    @Suppress("ktlint")
-    fun findByUsers_Id(userId: Long): List<Category>
 
     @Query(
         """

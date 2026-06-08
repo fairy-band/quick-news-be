@@ -1,6 +1,7 @@
 package com.nexters.external.service
 
 import com.nexters.external.entity.Category
+import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.CategoryRepository
 import org.springframework.stereotype.Service
@@ -9,16 +10,6 @@ import org.springframework.stereotype.Service
 class CategoryService(
     private val categoryRepository: CategoryRepository,
 ) {
-    fun getTodayKeywordsByCategoryId(categoryId: Long): List<ReservedKeyword> {
-        val category =
-            categoryRepository.findById(categoryId).orElseThrow {
-                IllegalArgumentException("Category with id $categoryId not found")
-            }
-
-        // TODO: 가중치 이후 키워드 정제 로직 추가
-        return categoryRepository.findTop6KeywordsByCategoryId(categoryId)
-    }
-
     fun getKeywordsByCategoryIds(categoryIds: List<Long>): List<ReservedKeyword> = categoryRepository.findKeywordsByCategoryIds(categoryIds)
 
     fun getKeywordWeightsByCategoryIds(categoryIds: List<Long>): Map<ReservedKeyword, Double> =
@@ -28,14 +19,8 @@ class CategoryService(
             }
         }
 
-    fun getContentProvidersByCategoryIds(categoryIds: List<Long>) = categoryRepository.findContentProvidersByCategoryIds(categoryIds)
-
-    fun getCategoryById(categoryId: Long): Category =
-        categoryRepository.findById(categoryId).orElseThrow {
-            IllegalArgumentException("Category with id $categoryId not found")
-        }
+    fun getContentProvidersByCategoryIds(categoryIds: List<Long>): List<ContentProvider> =
+        categoryRepository.findContentProvidersByCategoryIds(categoryIds)
 
     fun getAllCategories(): List<Category> = categoryRepository.findAll()
-
-    fun getCategoriesByUserId(userId: Long): List<Category> = categoryRepository.findByUsers_Id(userId)
 }
