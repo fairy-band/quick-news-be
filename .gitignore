@@ -48,3 +48,4 @@ og_preview/
 # Scripts
 migration_script/
 walkthrough-data/
+deploy/fail2ban/
