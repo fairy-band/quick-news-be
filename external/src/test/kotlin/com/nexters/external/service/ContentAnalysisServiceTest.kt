@@ -9,9 +9,10 @@ import com.nexters.external.entity.Summary
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.CandidateKeywordRepository
 import com.nexters.external.repository.ContentGenerationAttemptRepository
-import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.keyword.ContentKeywordAssignmentResult
+import com.nexters.external.service.keyword.ContentKeywordAutomationService
 import io.mockk.every
 import io.mockk.mockk
 import java.time.LocalDate
@@ -27,8 +28,8 @@ class ContentAnalysisServiceTest {
     private val summaryRepository = mockk<SummaryRepository>()
     private val reservedKeywordRepository = mockk<ReservedKeywordRepository>()
     private val candidateKeywordRepository = mockk<CandidateKeywordRepository>(relaxed = true)
-    private val contentKeywordMappingRepository = mockk<ContentKeywordMappingRepository>(relaxed = true)
     private val contentGenerationAttemptRepository = mockk<ContentGenerationAttemptRepository>()
+    private val contentKeywordAutomationService = mockk<ContentKeywordAutomationService>()
 
     private lateinit var persister: ContentAnalysisPersister
     private lateinit var service: ContentAnalysisService
@@ -50,13 +51,19 @@ class ContentAnalysisServiceTest {
         every { contentGenerationAttemptRepository.save(any()) } answers {
             firstArg<ContentGenerationAttempt>().also(savedAttempts::add)
         }
+        every { contentKeywordAutomationService.assignKeywords(any(), any()) } returns
+            ContentKeywordAssignmentResult(
+                automaticKeywordCount = 0,
+                aiFallbackKeywordCount = 0,
+                acceptedKeywordCount = 0,
+                usedAiFallback = false,
+            )
 
         persister =
             ContentAnalysisPersister(
                 summaryRepository = summaryRepository,
-                reservedKeywordRepository = reservedKeywordRepository,
-                contentKeywordMappingRepository = contentKeywordMappingRepository,
                 contentGenerationAttemptRepository = contentGenerationAttemptRepository,
+                contentKeywordAutomationService = contentKeywordAutomationService,
             )
         service =
             ContentAnalysisService(

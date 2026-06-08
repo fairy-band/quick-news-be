@@ -5,25 +5,20 @@ import com.nexters.external.apiclient.GeminiClient
 import com.nexters.external.dto.ContentAnalysisResult
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentGenerationAttempt
-import com.nexters.external.entity.ContentKeywordMapping
-import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.Summary
 import com.nexters.external.enums.ContentGenerationMode
 import com.nexters.external.repository.ContentGenerationAttemptRepository
-import com.nexters.external.repository.ContentKeywordMappingRepository
-import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.keyword.ContentKeywordAutomationService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 @Service
 class ContentAnalysisPersister(
     private val summaryRepository: SummaryRepository,
-    private val reservedKeywordRepository: ReservedKeywordRepository,
-    private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val contentGenerationAttemptRepository: ContentGenerationAttemptRepository,
+    private val contentKeywordAutomationService: ContentKeywordAutomationService,
     private val gson: Gson = Gson(),
 ) {
     private val logger = LoggerFactory.getLogger(ContentAnalysisPersister::class.java)
@@ -45,15 +40,19 @@ class ContentAnalysisPersister(
             skipWhenSummaryExists = skipWhenSummaryExists,
         )
 
-        val matchedReservedKeywords = reservedKeywordRepository.findByNameIn(acceptedResult.matchedKeywords)
-        if (acceptedResult.matchedKeywords.isNotEmpty() && matchedReservedKeywords.isEmpty()) {
-            logger.warn(
-                "All matched keywords missing from reserved vocab. content={}, matched={}",
-                content.id,
-                acceptedResult.matchedKeywords,
+        val keywordAssignment =
+            contentKeywordAutomationService.assignKeywords(
+                content = content,
+                aiMatchedKeywordNames = acceptedResult.matchedKeywords,
             )
-        }
-        assignKeywordsToContent(content, matchedReservedKeywords)
+        logger.debug(
+            "Assigned content keywords. content={}, automatic={}, aiFallback={}, accepted={}, usedAiFallback={}",
+            content.id,
+            keywordAssignment.automaticKeywordCount,
+            keywordAssignment.aiFallbackKeywordCount,
+            keywordAssignment.acceptedKeywordCount,
+            keywordAssignment.usedAiFallback,
+        )
 
         return acceptedResult
     }
@@ -122,27 +121,5 @@ class ContentAnalysisPersister(
                 model = result.usedModel?.modelName ?: generationAttempt.model,
             ),
         )
-    }
-
-    private fun assignKeywordsToContent(
-        content: Content,
-        matchedKeywords: List<ReservedKeyword>,
-    ) {
-        matchedKeywords.forEach { keyword ->
-            val existingMapping = contentKeywordMappingRepository.findByContentAndKeyword(content, keyword)
-            if (existingMapping == null) {
-                val mapping =
-                    ContentKeywordMapping(
-                        content = content,
-                        keyword = keyword,
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now(),
-                    )
-                contentKeywordMappingRepository.save(mapping)
-                logger.debug("Assigned keyword '${keyword.name}' to content ID: ${content.id}")
-            } else {
-                logger.debug("Keyword '${keyword.name}' already assigned to content ID: ${content.id}")
-            }
-        }
     }
 }

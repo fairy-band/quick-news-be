@@ -187,6 +187,56 @@ CREATE INDEX IF NOT EXISTS content_keyword_mapping_keyword_id
 CREATE INDEX IF NOT EXISTS idx_content_keyword_mappings_keyword_content
     ON content_keyword_mappings (keyword_id, content_id);
 
+-- Keyword aliases for deterministic keyword matching. Reference integrity is handled by the application.
+CREATE TABLE IF NOT EXISTS keyword_aliases
+(
+    id               BIGSERIAL PRIMARY KEY,
+    keyword_id       BIGINT           NOT NULL,
+    alias            TEXT             NOT NULL,
+    normalized_alias TEXT             NOT NULL,
+    match_type       VARCHAR(20)      NOT NULL DEFAULT 'PHRASE',
+    weight           DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    target_fields    VARCHAR(255)     NOT NULL DEFAULT 'TITLE,CONTENT,URL,SOURCE',
+    case_sensitive   BOOLEAN          NOT NULL DEFAULT FALSE,
+    enabled          BOOLEAN          NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (keyword_id, normalized_alias, match_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_keyword_aliases_keyword_enabled
+    ON keyword_aliases (keyword_id, enabled);
+
+CREATE INDEX IF NOT EXISTS idx_keyword_aliases_enabled_match_type
+    ON keyword_aliases (enabled, match_type);
+
+-- Keyword match provenance and scoring. This table intentionally has no foreign keys.
+CREATE TABLE IF NOT EXISTS content_keyword_match_scores
+(
+    id           BIGSERIAL PRIMARY KEY,
+    content_id   BIGINT           NOT NULL,
+    keyword_id   BIGINT           NOT NULL,
+    score        DOUBLE PRECISION NOT NULL,
+    confidence   DOUBLE PRECISION NOT NULL,
+    source       VARCHAR(30)      NOT NULL,
+    match_type   VARCHAR(20)      NOT NULL,
+    matched_text TEXT,
+    reason       TEXT             NOT NULL,
+    accepted     BOOLEAN          NOT NULL DEFAULT FALSE,
+    created_at   TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (content_id, keyword_id, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_keyword_match_scores_content
+    ON content_keyword_match_scores (content_id);
+
+CREATE INDEX IF NOT EXISTS idx_content_keyword_match_scores_keyword
+    ON content_keyword_match_scores (keyword_id);
+
+CREATE INDEX IF NOT EXISTS idx_content_keyword_match_scores_accepted
+    ON content_keyword_match_scores (accepted, confidence DESC);
+
 -- Newsletter sources table
 CREATE TABLE IF NOT EXISTS newsletter_sources
 (
