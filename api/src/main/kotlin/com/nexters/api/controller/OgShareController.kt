@@ -52,6 +52,7 @@ class OgShareController(
         val headers = HttpHeaders()
         headers.contentType = MediaType.IMAGE_PNG
         headers.contentLength = imageBytes.size.toLong()
+        headers.setCacheControl("public, max-age=86400")
 
         return ResponseEntity
             .ok()

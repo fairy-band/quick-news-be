@@ -39,7 +39,7 @@ class OgImageService {
         g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
 
-        val accentColor = Color.decode(textColor)
+        val accentColor = decodeColorOrDefault(textColor)
 
         // 1. Draw gradient background
         drawGradientBackground(g2d, accentColor)
@@ -65,6 +65,18 @@ class OgImageService {
         val outputStream = ByteArrayOutputStream()
         ImageIO.write(image, "PNG", outputStream)
         return outputStream.toByteArray()
+    }
+
+    private fun decodeColorOrDefault(textColor: String): Color {
+        val color = textColor.trim()
+        val normalizedColor =
+            when {
+                color.startsWith("#") || color.startsWith("0x", ignoreCase = true) -> color
+                else -> "#$color"
+            }
+
+        return runCatching { Color.decode(normalizedColor) }
+            .getOrDefault(Color(0xDC, 0xFF, 0x64))
     }
 
     /**
