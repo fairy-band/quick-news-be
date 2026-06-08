@@ -184,6 +184,9 @@ CREATE TABLE IF NOT EXISTS content_keyword_mappings
 CREATE INDEX IF NOT EXISTS content_keyword_mapping_keyword_id
     ON content_keyword_mappings (keyword_id);
 
+CREATE INDEX IF NOT EXISTS idx_content_keyword_mappings_keyword_content
+    ON content_keyword_mappings (keyword_id, content_id);
+
 -- Newsletter sources table
 CREATE TABLE IF NOT EXISTS newsletter_sources
 (
@@ -211,9 +214,16 @@ CREATE INDEX IF NOT EXISTS idx_exposure_content_content_id ON exposure_contents 
 CREATE TABLE IF NOT EXISTS user_exposed_contents_mapping
 (
     user_id    bigint  not null,
-    content_id integer not null,
-    created_at timestamp default CURRENT_TIMESTAMP
+    content_id bigint  not null,
+    created_at timestamp default CURRENT_TIMESTAMP,
+    deleted    boolean not null default false
 );
+
+ALTER TABLE user_exposed_contents_mapping
+    ALTER COLUMN content_id TYPE BIGINT;
+
+ALTER TABLE user_exposed_contents_mapping
+    ADD COLUMN IF NOT EXISTS deleted BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS user_exposed_contents_user_id_content_id_index
     ON user_exposed_contents_mapping (user_id, content_id);

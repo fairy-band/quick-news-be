@@ -84,6 +84,7 @@ class ExposureContentRepositoryTest {
 
         entityManager.persist(ContentKeywordMapping(content = content1, keyword = keyword1))
         entityManager.persist(ContentKeywordMapping(content = content2, keyword = keyword2))
+        entityManager.persist(ContentKeywordMapping(content = content2, keyword = keyword1))
         entityManager.persist(ContentKeywordMapping(content = content3, keyword = keyword3))
 
         val exp1 = entityManager.persist(exposureContent(content1, "Kotlin headline"))
