@@ -1,6 +1,5 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -10,14 +9,6 @@ class PossibleContentsResolver(
     candidateSources: List<CandidateSource>,
 ) {
     private val candidateSources = candidateSources.sortedBy { it.order }
-
-    fun resolvePossibleContentsByCategoryIds(
-        userId: Long,
-        categoryIds: List<Long>,
-    ): List<ExposureContentRecommendationCandidateRow> =
-        resolveCandidatePoolByCategoryIds(userId, categoryIds)
-            .candidates
-            .map { it.candidate }
 
     fun resolveCandidatePoolByCategoryIds(
         userId: Long,

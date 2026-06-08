@@ -241,17 +241,6 @@ class ExposureContentService(
         }
     }
 
-    fun getNotExposedExposureContentsByReservedKeywordIds(
-        userId: Long,
-        reservedKeywordIds: List<Long>
-    ): List<ExposureContent> = exposureContentRepository.findNotExposedByReservedKeywordIds(userId, reservedKeywordIds)
-
-    fun getNotExposedRecommendationCandidatesByReservedKeywordIds(
-        userId: Long,
-        reservedKeywordIds: List<Long>
-    ): List<ExposureContentRecommendationCandidateRow> =
-        exposureContentRepository.findNotExposedRecommendationCandidatesByReservedKeywordIds(userId, reservedKeywordIds)
-
     fun getNotExposedRecommendationCandidatesByReservedKeywordIds(
         userId: Long,
         reservedKeywordIds: List<Long>,
@@ -264,17 +253,6 @@ class ExposureContentService(
             publishedFrom = publishedFrom,
             pageable = PageRequest.of(0, limit),
         )
-
-    fun getNotExposedExposureContentsByContentProviderIds(
-        userId: Long,
-        contentProviderIds: List<Long>
-    ): List<ExposureContent> = exposureContentRepository.findNotExposedByContentProviderIds(userId, contentProviderIds)
-
-    fun getNotExposedRecommendationCandidatesByContentProviderIds(
-        userId: Long,
-        contentProviderIds: List<Long>
-    ): List<ExposureContentRecommendationCandidateRow> =
-        exposureContentRepository.findNotExposedRecommendationCandidatesByContentProviderIds(userId, contentProviderIds)
 
     fun getNotExposedRecommendationCandidatesByContentProviderIds(
         userId: Long,
