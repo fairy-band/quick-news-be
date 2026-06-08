@@ -13,10 +13,16 @@ interface CandidateSource {
 
 data class CandidateSourceRequest(
     val userId: Long,
-    val categoryIds: List<Long>,
+    val context: CandidateSourceContext,
     val publishedFrom: LocalDate,
     val limit: Int,
     val window: CandidateRecencyWindow,
+)
+
+data class CandidateSourceContext(
+    val categoryIds: List<Long>,
+    val reservedKeywordIds: List<Long>,
+    val contentProviderIds: List<Long>,
 )
 
 data class CandidateSeed(

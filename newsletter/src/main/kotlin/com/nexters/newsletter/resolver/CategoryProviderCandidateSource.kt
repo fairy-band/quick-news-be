@@ -1,13 +1,10 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.entity.ContentProvider
-import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ExposureContentService
 import org.springframework.stereotype.Component
 
 @Component
 class CategoryProviderCandidateSource(
-    private val categoryService: CategoryService,
     private val exposureContentService: ExposureContentService,
 ) : CandidateSource {
     override val name: String = "category_provider"
@@ -15,10 +12,7 @@ class CategoryProviderCandidateSource(
     override val defaultLimit: Int = 60
 
     override fun fetch(request: CandidateSourceRequest): List<CandidateSeed> {
-        val contentProviderIds =
-            categoryService
-                .getContentProvidersByCategoryIds(request.categoryIds)
-                .mapNotNull { (it as? ContentProvider)?.id }
+        val contentProviderIds = request.context.contentProviderIds
 
         if (contentProviderIds.isEmpty()) {
             return emptyList()

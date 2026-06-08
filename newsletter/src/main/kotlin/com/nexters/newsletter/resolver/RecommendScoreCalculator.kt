@@ -6,6 +6,7 @@ class RecommendScoreCalculator(
     private val rules: List<RecommendationRule> =
         listOf(
             KeywordAffinityRule(),
+            CandidateSourceSignalRule(),
             RerankingBonusRule(),
             FreshnessRule(),
             DuplicatePublisherPenaltyRule(),

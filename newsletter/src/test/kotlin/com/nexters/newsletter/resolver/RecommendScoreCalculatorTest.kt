@@ -1,6 +1,7 @@
 package com.nexters.newsletter.resolver
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 
@@ -94,6 +95,41 @@ class RecommendScoreCalculatorTest {
                 "freshness",
                 "duplicate_publisher_penalty",
             )
+    }
+
+    @Test
+    fun `calculate should add candidate source signal bonus`() {
+        val calculator =
+            RecommendScoreCalculator(
+                rules = listOf(CandidateSourceSignalRule()),
+            )
+        val source =
+            RecommendCalculateSource(
+                candidateSignals =
+                    listOf(
+                        CandidateSourceSignal(
+                            source = "category_keyword",
+                            score = 1.0,
+                            confidence = 0.75,
+                            reason = "matched category keywords",
+                        ),
+                        CandidateSourceSignal(
+                            source = "category_provider",
+                            score = 0.7,
+                            confidence = 0.55,
+                            reason = "matched category providers",
+                        ),
+                    ),
+                positiveKeywordSources = emptyList(),
+                negativeKeywordSources = emptyList(),
+                publishedDate = LocalDate.of(2026, 6, 8),
+                publisherDuplicateCandidateCount = 0,
+            )
+
+        val result = calculator.calculate(source)
+
+        assertThat(result.recommendScore).isCloseTo(37.7, within(0.0001))
+        assertThat(result.ruleResults.single().ruleName).isEqualTo("candidate_source_signal")
     }
 
     @Test

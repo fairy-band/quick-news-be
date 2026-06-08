@@ -1,6 +1,12 @@
 package com.nexters.newsletter.resolver
 
+import com.nexters.external.entity.ContentProvider
+import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import com.nexters.external.service.CategoryService
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
@@ -21,7 +27,7 @@ class PossibleContentsResolverTest {
                 confidence = 0.55,
                 result = sharedCandidate,
             )
-        val resolver = PossibleContentsResolver(listOf(keywordSource, providerSource))
+        val resolver = resolver(listOf(keywordSource, providerSource))
 
         val pool = resolver.resolveCandidatePoolByCategoryIds(userId = 1L, categoryIds = listOf(1L))
         val sourceNames =
@@ -50,7 +56,7 @@ class PossibleContentsResolverTest {
                     )
                 }
             }
-        val resolver = PossibleContentsResolver(listOf(source))
+        val resolver = resolver(listOf(source))
 
         val pool = resolver.resolveCandidatePoolByCategoryIds(userId = 1L, categoryIds = listOf(1L))
 
@@ -69,7 +75,7 @@ class PossibleContentsResolverTest {
             ) {
                 emptyList()
             }
-        val resolver = PossibleContentsResolver(listOf(source))
+        val resolver = resolver(listOf(source))
 
         resolver.resolveCandidatePoolByCategoryIds(userId = 1L, categoryIds = listOf(1L))
 
@@ -82,6 +88,56 @@ class PossibleContentsResolverTest {
                 CandidateRecencyWindow.DAYS_365,
                 CandidateRecencyWindow.ALL,
             )
+    }
+
+    @Test
+    fun `resolveCandidatePoolByCategoryIds should prepare source context once while expanding windows`() {
+        val categoryService =
+            categoryService(
+                keywords = listOf(ReservedKeyword(id = 10L, name = "Kotlin")),
+                providers =
+                    listOf(
+                        ContentProvider(
+                            id = 20L,
+                            name = "Provider",
+                            channel = "email",
+                            language = "ko",
+                            type = null,
+                        ),
+                    ),
+            )
+        val source =
+            RecordingCandidateSource(
+                sourceName = "empty_source",
+                sourceOrder = 1,
+                sourceDefaultLimit = 10,
+            ) {
+                emptyList()
+            }
+        val resolver = resolver(listOf(source), categoryService)
+
+        resolver.resolveCandidatePoolByCategoryIds(userId = 1L, categoryIds = listOf(1L))
+
+        assertThat(source.requests).hasSize(4)
+        assertThat(source.requests.map { it.context.reservedKeywordIds }).containsOnly(listOf(10L))
+        assertThat(source.requests.map { it.context.contentProviderIds }).containsOnly(listOf(20L))
+        verify(exactly = 1) { categoryService.getKeywordsByCategoryIds(listOf(1L)) }
+        verify(exactly = 1) { categoryService.getContentProvidersByCategoryIds(listOf(1L)) }
+    }
+
+    private fun resolver(
+        sources: List<CandidateSource>,
+        categoryService: CategoryService = categoryService(),
+    ): PossibleContentsResolver = PossibleContentsResolver(sources, categoryService)
+
+    private fun categoryService(
+        keywords: List<ReservedKeyword> = emptyList(),
+        providers: List<ContentProvider> = emptyList(),
+    ): CategoryService {
+        val categoryService = mockk<CategoryService>()
+        every { categoryService.getKeywordsByCategoryIds(any()) } returns keywords
+        every { categoryService.getContentProvidersByCategoryIds(any()) } returns providers
+        return categoryService
     }
 
     private fun fakeSource(

@@ -50,6 +50,48 @@ class KeywordAffinityRule : RecommendationRule {
     }
 }
 
+class CandidateSourceSignalRule : RecommendationRule {
+    override val name: String = "candidate_source_signal"
+
+    override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
+        if (source.candidateSignals.isEmpty()) {
+            return emptyList()
+        }
+
+        val sourceCount =
+            source.candidateSignals
+                .map { it.source }
+                .distinct()
+                .size
+        val sourceQualityBonus =
+            source.candidateSignals.sumOf { signal ->
+                signal.score * signal.confidence * SOURCE_QUALITY_WEIGHT
+            }
+        val consensusBonus = (sourceCount - 1).coerceAtLeast(0) * CONSENSUS_BONUS_PER_ADDITIONAL_SOURCE
+        val score = sourceQualityBonus + consensusBonus
+
+        if (score == 0.0) {
+            return emptyList()
+        }
+
+        return listOf(
+            RecommendationRuleResult(
+                ruleName = name,
+                score = score,
+                reason =
+                    "sourceCount=$sourceCount, sourceQualityBonus=$sourceQualityBonus, " +
+                        "consensusBonus=$consensusBonus",
+                type = RecommendationRuleType.BONUS,
+            ),
+        )
+    }
+
+    companion object {
+        private const val SOURCE_QUALITY_WEIGHT = 20.0
+        private const val CONSENSUS_BONUS_PER_ADDITIONAL_SOURCE = 15.0
+    }
+}
+
 class RerankingBonusRule(
     private val todayProvider: () -> LocalDate = { LocalDate.now() },
 ) : RecommendationRule {

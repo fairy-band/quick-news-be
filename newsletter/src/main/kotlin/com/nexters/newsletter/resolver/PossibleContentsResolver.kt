@@ -1,5 +1,6 @@
 package com.nexters.newsletter.resolver
 
+import com.nexters.external.service.CategoryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -7,6 +8,7 @@ import java.time.LocalDate
 @Service
 class PossibleContentsResolver(
     candidateSources: List<CandidateSource>,
+    private val categoryService: CategoryService,
 ) {
     private val candidateSources = candidateSources.sortedBy { it.order }
 
@@ -21,12 +23,13 @@ class PossibleContentsResolver(
         val mergedCandidates = linkedMapOf<Long, CandidatePoolItem>()
         var expandedWindow = CandidateRecencyWindow.DAYS_30
         val today = LocalDate.now()
+        val context = createCandidateSourceContext(categoryIds)
 
         for (window in RECENCY_WINDOWS) {
             expandedWindow = window
             fetchWindowCandidates(
                 userId = userId,
-                categoryIds = categoryIds,
+                context = context,
                 window = window,
                 today = today,
             ).forEach { seed ->
@@ -61,7 +64,7 @@ class PossibleContentsResolver(
 
     private fun fetchWindowCandidates(
         userId: Long,
-        categoryIds: List<Long>,
+        context: CandidateSourceContext,
         window: CandidateRecencyWindow,
         today: LocalDate,
     ): List<CandidateSeed> {
@@ -71,7 +74,7 @@ class PossibleContentsResolver(
             source.fetch(
                 CandidateSourceRequest(
                     userId = userId,
-                    categoryIds = categoryIds,
+                    context = context,
                     publishedFrom = publishedFrom,
                     limit = source.defaultLimit * window.limitMultiplier,
                     window = window,
@@ -79,6 +82,21 @@ class PossibleContentsResolver(
             )
         }
     }
+
+    private fun createCandidateSourceContext(categoryIds: List<Long>): CandidateSourceContext =
+        CandidateSourceContext(
+            categoryIds = categoryIds,
+            reservedKeywordIds =
+                categoryService
+                    .getKeywordsByCategoryIds(categoryIds)
+                    .mapNotNull { it.id }
+                    .distinct(),
+            contentProviderIds =
+                categoryService
+                    .getContentProvidersByCategoryIds(categoryIds)
+                    .mapNotNull { it.id }
+                    .distinct(),
+        )
 
     private fun MutableMap<Long, CandidatePoolItem>.merge(seed: CandidateSeed) {
         val exposureContentId = seed.candidate.exposureContentId

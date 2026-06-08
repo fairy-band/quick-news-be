@@ -1,12 +1,10 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ExposureContentService
 import org.springframework.stereotype.Component
 
 @Component
 class CategoryKeywordCandidateSource(
-    private val categoryService: CategoryService,
     private val exposureContentService: ExposureContentService,
 ) : CandidateSource {
     override val name: String = "category_keyword"
@@ -14,10 +12,7 @@ class CategoryKeywordCandidateSource(
     override val defaultLimit: Int = 100
 
     override fun fetch(request: CandidateSourceRequest): List<CandidateSeed> {
-        val reservedKeywordIds =
-            categoryService
-                .getKeywordsByCategoryIds(request.categoryIds)
-                .mapNotNull { it.id }
+        val reservedKeywordIds = request.context.reservedKeywordIds
 
         if (reservedKeywordIds.isEmpty()) {
             return emptyList()
