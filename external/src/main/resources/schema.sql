@@ -264,6 +264,9 @@ CREATE TABLE IF NOT EXISTS exposure_contents
 
 CREATE INDEX IF NOT EXISTS idx_exposure_content_content_id ON exposure_contents (content_id);
 
+CREATE INDEX IF NOT EXISTS idx_exposure_contents_content_id_id
+    ON exposure_contents (content_id, id DESC);
+
 CREATE TABLE IF NOT EXISTS user_exposed_contents_mapping
 (
     user_id    bigint  not null,
@@ -351,6 +354,9 @@ CREATE TABLE IF NOT EXISTS content_provider_category_mappings
     updated_at          TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (content_provider_id, category_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_content_provider_category_mappings_category_provider
+    ON content_provider_category_mappings (category_id, content_provider_id);
 
 
 -- Gemini rate limit table

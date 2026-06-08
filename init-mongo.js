@@ -50,5 +50,6 @@ db.newsletter_sources.createIndex({ senderEmail: 1 });
 db.newsletter_sources.createIndex({ receivedDate: -1 });
 db.newsletter_sources.createIndex({ subject: 'text' });
 db.newsletter_sources.createIndex({ senderEmail: 1, subject: 1, receivedDate: 1 }, { unique: true });
+db.daily_content_archive.createIndex({ 'user._id': 1, date: 1 }, { name: 'user_date_idx', unique: true });
 
 print('Newsletter database initialized successfully');

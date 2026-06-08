@@ -1,11 +1,12 @@
 package com.nexters.external.config
 
+import com.zaxxer.hikari.HikariDataSource
+import jakarta.persistence.EntityManagerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ClassPathResource
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
-import org.springframework.jdbc.datasource.DriverManagerDataSource
 import org.springframework.jdbc.datasource.init.DataSourceInitializer
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator
 import org.springframework.orm.jpa.JpaTransactionManager
@@ -32,13 +33,43 @@ class DatabaseConfig {
     @Value("\${spring.datasource.driver-class-name}")
     private lateinit var driverClassName: String
 
+    @Value("\${spring.datasource.hikari.maximum-pool-size:10}")
+    private var maximumPoolSize: Int = 10
+
+    @Value("\${spring.datasource.hikari.minimum-idle:2}")
+    private var minimumIdle: Int = 2
+
+    @Value("\${spring.datasource.hikari.connection-timeout:30000}")
+    private var connectionTimeout: Long = 30_000
+
+    @Value("\${spring.datasource.hikari.idle-timeout:600000}")
+    private var idleTimeout: Long = 600_000
+
+    @Value("\${spring.datasource.hikari.max-lifetime:1800000}")
+    private var maxLifetime: Long = 1_800_000
+
+    @Value("\${spring.datasource.hikari.pool-name:newsletter-hikari}")
+    private lateinit var poolName: String
+
+    @Value("\${spring.jpa.show-sql:false}")
+    private var showSql: Boolean = false
+
+    @Value("\${spring.jpa.properties.hibernate.format_sql:false}")
+    private var formatSql: Boolean = false
+
     @Bean
     fun dataSource(): DataSource {
-        val dataSource = DriverManagerDataSource()
-        dataSource.setDriverClassName(driverClassName)
-        dataSource.url = url
+        val dataSource = HikariDataSource()
+        dataSource.driverClassName = driverClassName
+        dataSource.jdbcUrl = url
         dataSource.username = username
         dataSource.password = password
+        dataSource.maximumPoolSize = maximumPoolSize
+        dataSource.minimumIdle = minimumIdle
+        dataSource.connectionTimeout = connectionTimeout
+        dataSource.idleTimeout = idleTimeout
+        dataSource.maxLifetime = maxLifetime
+        dataSource.poolName = poolName
         return dataSource
     }
 
@@ -55,9 +86,9 @@ class DatabaseConfig {
     }
 
     @Bean
-    fun entityManagerFactory(): LocalContainerEntityManagerFactoryBean {
+    fun entityManagerFactory(dataSource: DataSource): LocalContainerEntityManagerFactoryBean {
         val em = LocalContainerEntityManagerFactoryBean()
-        em.dataSource = dataSource()
+        em.dataSource = dataSource
         em.setPackagesToScan("com.nexters.external.entity")
 
         val vendorAdapter = HibernateJpaVendorAdapter()
@@ -66,8 +97,8 @@ class DatabaseConfig {
         val properties = Properties()
         properties["hibernate.hbm2ddl.auto"] = "none" // Using custom init schema instead
         properties["hibernate.dialect"] = "org.hibernate.dialect.PostgreSQLDialect"
-        properties["hibernate.show_sql"] = "true"
-        properties["hibernate.format_sql"] = "true"
+        properties["hibernate.show_sql"] = showSql.toString()
+        properties["hibernate.format_sql"] = formatSql.toString()
 
         em.setJpaProperties(properties)
 
@@ -75,9 +106,9 @@ class DatabaseConfig {
     }
 
     @Bean
-    fun transactionManager(): PlatformTransactionManager {
+    fun transactionManager(entityManagerFactory: EntityManagerFactory): PlatformTransactionManager {
         val transactionManager = JpaTransactionManager()
-        transactionManager.entityManagerFactory = entityManagerFactory().`object`
+        transactionManager.entityManagerFactory = entityManagerFactory
         return transactionManager
     }
 }

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 
 @Service
@@ -22,7 +23,7 @@ class DailyContentArchiveResolver(
     private val recommendationCandidateSelector: RecommendationCandidateSelector,
     private val exposureContentService: ExposureContentService,
 ) {
-    private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
+    private val archiveLocks = ConcurrentHashMap<ArchiveLockKey, ReferenceCountedLock>()
 
     @Transactional
     fun resolveTodayContentArchive(
@@ -32,10 +33,9 @@ class DailyContentArchiveResolver(
         // cache hit 인 경우 락 진입 없이 lock-free 로 반환
         dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return it }
 
-        lock.lock()
-        try {
+        return withArchiveLock(userId, date) {
             // 락 대기 중 다른 스레드가 채워 넣었을 수 있으므로 한 번 더 확인
-            dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return it }
+            dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return@withArchiveLock it }
 
             val user = userService.getUserById(userId)
             val userCategories = user.categories.map { it.id!! }
@@ -53,9 +53,7 @@ class DailyContentArchiveResolver(
                     exposureContents = contents,
                 )
 
-            return dailyContentArchiveService.saveWithHistory(dailyContentArchive)
-        } finally {
-            lock.unlock()
+            dailyContentArchiveService.saveWithHistory(dailyContentArchive)
         }
     }
 
@@ -64,17 +62,41 @@ class DailyContentArchiveResolver(
         userId: Long,
         date: LocalDate = LocalDate.now()
     ) {
-        lock.lock()
-        try {
-            val archive = dailyContentArchiveService.findByDateAndUserId(userId, date) ?: return
+        withArchiveLock(userId, date) {
+            val archive = dailyContentArchiveService.findByDateAndUserId(userId, date) ?: return@withArchiveLock
 
             if (!dailyContentArchiveService.isRefreshAvailable(userId, date)) {
                 throw RefreshNotAvailableException("이미 새로고침을 사용했습니다. 하루에 한 번만 가능합니다.")
             }
 
             dailyContentArchiveService.deleteByDateAndUserId(userId, date)
+        }
+    }
+
+    private fun <T> withArchiveLock(
+        userId: Long,
+        date: LocalDate,
+        action: () -> T,
+    ): T {
+        val key = ArchiveLockKey(userId, date)
+        val lockRef =
+            archiveLocks.compute(key) { _, existing ->
+                (existing ?: ReferenceCountedLock()).also { it.referenceCount++ }
+            }!!
+
+        lockRef.lock.lock()
+        try {
+            return action()
         } finally {
-            lock.unlock()
+            lockRef.lock.unlock()
+            archiveLocks.computeIfPresent(key) { _, existing ->
+                existing.referenceCount--
+                if (existing.referenceCount == 0) {
+                    null
+                } else {
+                    existing
+                }
+            }
         }
     }
 
@@ -130,6 +152,16 @@ class DailyContentArchiveResolver(
         private const val MAX_CONTENT_SIZE = 6
     }
 }
+
+private data class ArchiveLockKey(
+    val userId: Long,
+    val date: LocalDate,
+)
+
+private class ReferenceCountedLock(
+    val lock: ReentrantLock = ReentrantLock(),
+    var referenceCount: Int = 0,
+)
 
 class RefreshNotAvailableException(
     message: String
