@@ -28,7 +28,6 @@ class DailyContentArchiveResolver(
     private val exposureContentService: ExposureContentService,
 ) {
     private val calculator = RecommendScoreCalculator()
-    private val rerankingBonusCalculator = RerankingBonusCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
 
     fun resolveTodayCategoryContents(categoryId: Long): List<ExposureContent> =
@@ -265,33 +264,20 @@ class DailyContentArchiveResolver(
     ): Map<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
         possibleContents.associateWith { candidate ->
             val contentKeywords = keywordsByContentId[candidate.contentId] ?: emptyList()
-            val rerankingBonus = calculateRerankingBonus(candidate, contentKeywords)
             RecommendCalculateSource(
-                positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
-                negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, keywordWeightsByKeyword),
-                publishedDate = candidate.publishedAt,
-                publisherDuplicateCandidateCount = 0,
-                categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, categoryIds, categoryMatchWeights),
-                rerankingBonus = rerankingBonus.bonus,
-                rerankingRuleResults = rerankingBonus.ruleResults,
-            )
-        }
-
-    private fun calculateRerankingBonus(
-        candidate: ExposureContentRecommendationCandidateRow,
-        contentKeywords: List<ReservedKeyword>,
-    ): RerankingBonusResult =
-        rerankingBonusCalculator.calculateDetails(
-            RerankingBonusSource(
                 title = candidate.title,
                 provocativeHeadline = candidate.provocativeHeadline,
                 summaryContent = candidate.summaryContent,
                 newsletterName = candidate.newsletterName,
                 contentProviderName = candidate.contentProviderName,
                 keywordNames = contentKeywords.map { it.name },
+                positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
+                negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, keywordWeightsByKeyword),
                 publishedDate = candidate.publishedAt,
-            ),
-        )
+                publisherDuplicateCandidateCount = 0,
+                categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, categoryIds, categoryMatchWeights),
+            )
+        }
 
     /**
      * ContentProvider-Category 매핑 가중치를 조회합니다.

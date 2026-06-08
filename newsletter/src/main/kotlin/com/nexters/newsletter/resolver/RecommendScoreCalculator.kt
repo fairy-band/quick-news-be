@@ -13,14 +13,14 @@ class RecommendScoreCalculator(
     private val finalScoreFloorRule: RecommendationRule = FinalScoreFloorRule(),
 ) {
     fun calculate(source: RecommendCalculateSource): RecommendCalculateResult {
-        val ruleResults = rules.map { rule -> rule.evaluate(source) }
+        val ruleResults = rules.flatMap { rule -> rule.evaluate(source) }
         val rawScore = ruleResults.sumOf { it.score }
         val recommendScore = maxOf(rawScore, 0.0)
         val finalRuleResults =
             if (recommendScore == rawScore) {
                 ruleResults
             } else {
-                ruleResults + finalScoreFloorRule.evaluate(source).copy(score = -rawScore)
+                ruleResults + finalScoreFloorRule.evaluate(source).map { it.copy(score = -rawScore) }
             }
 
         return RecommendCalculateResult(
@@ -36,13 +36,17 @@ data class RecommendCalculateResult(
 )
 
 data class RecommendCalculateSource(
+    val title: String = "",
+    val provocativeHeadline: String = "",
+    val summaryContent: String = "",
+    val newsletterName: String = "",
+    val contentProviderName: String? = null,
+    val keywordNames: List<String> = emptyList(),
     val positiveKeywordSources: List<PositiveKeywordSource>,
     val negativeKeywordSources: List<NegativeKeywordSource>,
     val publishedDate: LocalDate,
     val publisherDuplicateCandidateCount: Int,
     val categoryMatchBonus: Double = 0.0,
-    val rerankingBonus: Double = 0.0,
-    val rerankingRuleResults: List<RecommendationRuleResult> = emptyList(),
 )
 
 interface KeywordSource {

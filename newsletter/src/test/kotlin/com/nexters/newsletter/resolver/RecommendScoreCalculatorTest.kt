@@ -8,20 +8,44 @@ class RecommendScoreCalculatorTest {
     private val calculator = RecommendScoreCalculator()
 
     @Test
-    fun `calculate should add reranking bonus separately from keyword score`() {
-        val baseline =
+    fun `calculate should add composite reranking signal bonuses`() {
+        val today = LocalDate.of(2026, 6, 8)
+        val calculator =
+            RecommendScoreCalculator(
+                rules =
+                    listOf(
+                        KeywordAffinityRule(),
+                        RerankingBonusRule { today },
+                        FreshnessRule { today },
+                        DuplicatePublisherPenaltyRule(),
+                    ),
+            )
+        val source =
             RecommendCalculateSource(
+                title = "OpenAI launches a new Agents SDK for MCP platforms",
+                provocativeHeadline = "AI agents get a new platform API",
+                summaryContent = "The release introduces a framework for building LLM applications.",
+                newsletterName = "Web Tools Weekly",
+                contentProviderName = "Web Tools Weekly",
+                keywordNames = listOf("AI", "LLM", "Platform"),
                 positiveKeywordSources = listOf(PositiveKeywordSource(100.0)),
                 negativeKeywordSources = emptyList(),
-                publishedDate = LocalDate.now(),
+                publishedDate = today,
                 publisherDuplicateCandidateCount = 0,
                 categoryMatchBonus = 0.0,
-                rerankingBonus = 0.0,
             )
-        val boosted = baseline.copy(rerankingBonus = 50.0)
 
-        assertThat(calculator.calculate(boosted).recommendScore)
-            .isEqualTo(calculator.calculate(baseline).recommendScore + 50.0)
+        val result = calculator.calculate(source)
+
+        assertThat(result.recommendScore).isGreaterThanOrEqualTo(280.0)
+        assertThat(result.ruleResults.map { it.ruleName })
+            .contains(
+                "new_technology_signal",
+                "ai_llm_signal",
+                "platform_signal",
+                "signal_synergy",
+                "reranking_recency",
+            )
     }
 
     @Test
@@ -32,13 +56,19 @@ class RecommendScoreCalculatorTest {
                 rules =
                     listOf(
                         KeywordAffinityRule(),
-                        RerankingBonusRule(),
+                        RerankingBonusRule { today },
                         FreshnessRule { today },
                         DuplicatePublisherPenaltyRule(),
                     ),
             )
         val source =
             RecommendCalculateSource(
+                title = "OpenAI launches a new Agents SDK for MCP platforms",
+                provocativeHeadline = "AI agents get a new platform API",
+                summaryContent = "The release introduces a framework for building LLM applications.",
+                newsletterName = "Web Tools Weekly",
+                contentProviderName = "Web Tools Weekly",
+                keywordNames = listOf("AI", "LLM", "Platform"),
                 positiveKeywordSources =
                     listOf(
                         PositiveKeywordSource(weight = 2.0, keywordName = "Kotlin"),
@@ -48,25 +78,19 @@ class RecommendScoreCalculatorTest {
                 publishedDate = today.minusDays(1),
                 publisherDuplicateCandidateCount = 0,
                 categoryMatchBonus = 10.0,
-                rerankingBonus = 5.0,
-                rerankingRuleResults =
-                    listOf(
-                        RecommendationRuleResult(
-                            ruleName = "ai_llm_signal",
-                            score = 5.0,
-                            reason = "matched=true",
-                            type = RecommendationRuleType.BONUS,
-                        ),
-                    ),
             )
 
         val result = calculator.calculate(source)
 
-        assertThat(result.recommendScore).isEqualTo(9.0)
+        assertThat(result.recommendScore).isEqualTo(194.0)
         assertThat(result.ruleResults.map { it.ruleName })
             .containsExactly(
                 "keyword_affinity",
-                "reranking_bonus",
+                "new_technology_signal",
+                "ai_llm_signal",
+                "platform_signal",
+                "signal_synergy",
+                "reranking_recency",
                 "freshness",
                 "duplicate_publisher_penalty",
             )
@@ -80,7 +104,7 @@ class RecommendScoreCalculatorTest {
                 rules =
                     listOf(
                         KeywordAffinityRule(),
-                        RerankingBonusRule(),
+                        RerankingBonusRule { today },
                         FreshnessRule { today },
                         DuplicatePublisherPenaltyRule(),
                     ),
