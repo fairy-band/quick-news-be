@@ -187,9 +187,6 @@ CREATE TABLE IF NOT EXISTS content_keyword_mappings
     UNIQUE (content_id, keyword_id)
 );
 
-CREATE INDEX IF NOT EXISTS content_keyword_mapping_keyword_id
-    ON content_keyword_mappings (keyword_id);
-
 CREATE INDEX IF NOT EXISTS idx_content_keyword_mappings_keyword_content
     ON content_keyword_mappings (keyword_id, content_id);
 
