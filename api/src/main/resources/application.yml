@@ -80,6 +80,13 @@ google:
 batch:
   enabled: ${BATCH_ENABLED:false}
 
+# Notification Scheduler Configuration
+notification:
+  scheduler:
+    weekly:
+      cron: ${USER_NOTIFICATION_WEEKLY_CRON:0 0 8 * * MON}
+      zone: ${USER_NOTIFICATION_WEEKLY_ZONE:Asia/Seoul}
+
 # Logging
 logging:
   level:

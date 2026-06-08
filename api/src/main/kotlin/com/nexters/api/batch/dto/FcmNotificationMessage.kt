@@ -5,7 +5,7 @@ import java.util.UUID
 data class FcmNotificationMessage(
     val user: FcmUser,
     val title: String,
-    val notificationType: NotificationType = NotificationType.DAILY,
+    val notificationType: NotificationType = NotificationType.WEEKLY,
     val timestamp: Long = System.currentTimeMillis(),
 )
 
@@ -15,7 +15,7 @@ data class FcmUser(
 )
 
 enum class NotificationType {
-    DAILY, // 일일 정기 알림
+    WEEKLY, // 주간 정기 알림
     MANUAL, // 수동 알림
 }
 
@@ -29,6 +29,6 @@ data class FcmNotificationResult(
 data class BatchFcmRequest(
     val users: List<FcmUser>,
     val title: String,
-    val notificationType: NotificationType = NotificationType.DAILY,
+    val notificationType: NotificationType = NotificationType.WEEKLY,
     val requestId: String = UUID.randomUUID().toString(),
 )

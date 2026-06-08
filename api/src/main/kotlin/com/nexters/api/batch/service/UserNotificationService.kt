@@ -19,16 +19,19 @@ import org.springframework.stereotype.Service
     havingValue = "true",
     matchIfMissing = false
 )
-class DailyNotificationService(
+class UserNotificationService(
     private val fcmBatchTriggerChannel: MessageChannel,
     private val fcmInputChannel: MessageChannel,
     private val fcmTokenRepository: FcmTokenRepository,
 ) {
-    private val logger = LoggerFactory.getLogger(DailyNotificationService::class.java)
+    private val logger = LoggerFactory.getLogger(UserNotificationService::class.java)
 
-    @Scheduled(cron = "0 0 8 * * *")
-    fun sendDailyNotification() {
-        logger.info("일일 FCM 알림 전송 시작")
+    @Scheduled(
+        cron = "\${notification.scheduler.weekly.cron:0 0 8 * * MON}",
+        zone = "\${notification.scheduler.weekly.zone:Asia/Seoul}",
+    )
+    fun sendWeeklyNotification() {
+        logger.info("주간 FCM 알림 전송 시작")
 
         try {
             val users =
@@ -43,19 +46,19 @@ class DailyNotificationService(
                 BatchFcmRequest(
                     users = users,
                     title = ALARM_TITLE,
-                    notificationType = NotificationType.DAILY,
+                    notificationType = NotificationType.WEEKLY,
                 )
 
             fcmBatchTriggerChannel.send(
                 MessageBuilder
                     .withPayload(batchRequest)
-                    .setHeader("source", "scheduled_daily")
+                    .setHeader("source", "scheduled_weekly")
                     .build(),
             )
 
-            logger.info("일일 FCM 알림 배치 요청 전송 완료")
+            logger.info("주간 FCM 알림 배치 요청 전송 완료")
         } catch (e: Exception) {
-            logger.error("일일 FCM 알림 전송 중 오류 발생", e)
+            logger.error("주간 FCM 알림 전송 중 오류 발생", e)
         }
     }
 

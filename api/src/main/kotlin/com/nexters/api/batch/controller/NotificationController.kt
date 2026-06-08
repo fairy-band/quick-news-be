@@ -1,7 +1,7 @@
 package com.nexters.api.batch.controller
 
 import com.nexters.api.batch.config.AlarmIntegrationConfig.Companion.ALARM_TITLE
-import com.nexters.api.batch.service.DailyNotificationService
+import com.nexters.api.batch.service.UserNotificationService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
     matchIfMissing = false
 )
 class NotificationController(
-    private val dailyNotificationService: DailyNotificationService
+    private val userNotificationService: UserNotificationService,
 ) {
     @PostMapping("/send-single/manual")
     fun sendSingleManualNotification(
@@ -25,7 +25,7 @@ class NotificationController(
         @RequestParam(required = true) deviceToken: String,
         @RequestParam(defaultValue = ALARM_TITLE) title: String,
     ): ResponseEntity<Map<String, Any>> {
-        dailyNotificationService.sendSingleManualNotification(fcmToken, deviceToken, title)
+        userNotificationService.sendSingleManualNotification(fcmToken, deviceToken, title)
         return ResponseEntity.ok(
             mapOf(
                 "status" to "success",
