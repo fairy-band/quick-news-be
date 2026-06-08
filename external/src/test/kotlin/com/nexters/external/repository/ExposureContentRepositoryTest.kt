@@ -119,6 +119,9 @@ class ExposureContentRepositoryTest {
         assertThat(candidates.map { it.exposureContentId }).containsExactlyInAnyOrder(exp2.id, exp3.id)
         assertThat(candidates.map { it.contentId }).containsExactlyInAnyOrder(content2.id, content3.id)
         assertThat(candidates.map { it.contentProviderName }).containsOnly(provider.name)
+        assertThat(candidates.map { it.title }).containsExactlyInAnyOrder(content2.title, content3.title)
+        assertThat(candidates.map { it.provocativeHeadline }).containsExactlyInAnyOrder(exp2.provocativeHeadline, exp3.provocativeHeadline)
+        assertThat(candidates.map { it.summaryContent }).containsExactlyInAnyOrder(exp2.summaryContent, exp3.summaryContent)
     }
 
     private fun content(

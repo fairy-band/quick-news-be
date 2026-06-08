@@ -28,6 +28,7 @@ class DailyContentArchiveResolver(
     private val exposureContentService: ExposureContentService,
 ) {
     private val calculator = RecommendScoreCalculator()
+    private val rerankingBonusCalculator = RerankingBonusCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
 
     fun resolveTodayCategoryContents(categoryId: Long): List<ExposureContent> =
@@ -180,10 +181,12 @@ class DailyContentArchiveResolver(
 
                         val adjustedSource =
                             RecommendCalculateSource(
-                                source.positiveKeywordSources,
-                                source.negativeKeywordSources,
-                                source.publishedDate,
-                                publisherDuplicateCandidateCount
+                                positiveKeywordSources = source.positiveKeywordSources,
+                                negativeKeywordSources = source.negativeKeywordSources,
+                                publishedDate = source.publishedDate,
+                                publisherDuplicateCandidateCount = publisherDuplicateCandidateCount,
+                                categoryMatchBonus = source.categoryMatchBonus,
+                                rerankingBonus = source.rerankingBonus,
                             )
 
                         candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
@@ -273,8 +276,25 @@ class DailyContentArchiveResolver(
                 publishedDate = candidate.publishedAt,
                 publisherDuplicateCandidateCount = 0,
                 categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, categoryIds, categoryMatchWeights),
+                rerankingBonus = calculateRerankingBonus(candidate, contentKeywords),
             )
         }
+
+    private fun calculateRerankingBonus(
+        candidate: ExposureContentRecommendationCandidateRow,
+        contentKeywords: List<ReservedKeyword>,
+    ): Double =
+        rerankingBonusCalculator.calculate(
+            RerankingBonusSource(
+                title = candidate.title,
+                provocativeHeadline = candidate.provocativeHeadline,
+                summaryContent = candidate.summaryContent,
+                newsletterName = candidate.newsletterName,
+                contentProviderName = candidate.contentProviderName,
+                keywordNames = contentKeywords.map { it.name },
+                publishedDate = candidate.publishedAt,
+            ),
+        )
 
     /**
      * ContentProvider-Category 매핑 가중치를 조회합니다.

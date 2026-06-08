@@ -320,7 +320,10 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
             cp.id,
             cp.name,
             c.newsletterName,
-            c.publishedAt
+            c.publishedAt,
+            c.title,
+            e.provocativeHeadline,
+            e.summaryContent
         )
         FROM ExposureContent e
         JOIN e.content c
@@ -369,7 +372,10 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
             cp.id,
             cp.name,
             c.newsletterName,
-            c.publishedAt
+            c.publishedAt,
+            c.title,
+            e.provocativeHeadline,
+            e.summaryContent
         )
         FROM ExposureContent e
         JOIN e.content c

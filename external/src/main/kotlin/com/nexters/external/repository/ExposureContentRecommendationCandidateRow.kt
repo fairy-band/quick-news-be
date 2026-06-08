@@ -9,4 +9,7 @@ data class ExposureContentRecommendationCandidateRow(
     val contentProviderName: String?,
     val newsletterName: String,
     val publishedAt: LocalDate,
+    val title: String,
+    val provocativeHeadline: String,
+    val summaryContent: String,
 )
