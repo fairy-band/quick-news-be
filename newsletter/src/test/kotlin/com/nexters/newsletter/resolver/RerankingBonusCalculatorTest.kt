@@ -26,6 +26,31 @@ class RerankingBonusCalculatorTest {
     }
 
     @Test
+    fun `calculateDetails should expose reranking signal rules`() {
+        val source =
+            RerankingBonusSource(
+                title = "OpenAI launches a new Agents SDK for MCP platforms",
+                provocativeHeadline = "AI agents get a new platform API",
+                summaryContent = "The release introduces a framework for building LLM applications.",
+                newsletterName = "Web Tools Weekly",
+                contentProviderName = "Web Tools Weekly",
+                keywordNames = listOf("AI", "LLM", "Platform"),
+                publishedDate = LocalDate.now(),
+            )
+        val result = calculator.calculateDetails(source)
+
+        assertThat(result.bonus).isEqualTo(calculator.calculate(source))
+        assertThat(result.ruleResults.map { it.ruleName })
+            .contains(
+                "new_technology_signal",
+                "ai_llm_signal",
+                "platform_signal",
+                "signal_synergy",
+                "reranking_recency",
+            )
+    }
+
+    @Test
     fun `calculate should decay recency bonus for stale generic content`() {
         val staleGenericBonus =
             calculator.calculate(

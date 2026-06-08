@@ -4,7 +4,9 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 class RerankingBonusCalculator {
-    fun calculate(source: RerankingBonusSource): Double {
+    fun calculate(source: RerankingBonusSource): Double = calculateDetails(source).bonus
+
+    fun calculateDetails(source: RerankingBonusSource): RerankingBonusResult {
         val signalText =
             buildString {
                 append(source.title).append(' ')
@@ -20,8 +22,44 @@ class RerankingBonusCalculator {
         val platformBonus = if (PLATFORM_PATTERNS.any { it.containsMatchIn(signalText) }) PLATFORM_BONUS else 0.0
         val synergyBonus = calculateSynergyBonus(newTechnologyBonus, aiLlmBonus, platformBonus)
         val recencyBonus = calculateRecencyBonus(source.publishedDate)
+        val ruleResults =
+            listOf(
+                RecommendationRuleResult(
+                    ruleName = "new_technology_signal",
+                    score = newTechnologyBonus,
+                    reason = "matched=${newTechnologyBonus > 0}",
+                    type = RecommendationRuleType.BONUS,
+                ),
+                RecommendationRuleResult(
+                    ruleName = "ai_llm_signal",
+                    score = aiLlmBonus,
+                    reason = "matched=${aiLlmBonus > 0}",
+                    type = RecommendationRuleType.BONUS,
+                ),
+                RecommendationRuleResult(
+                    ruleName = "platform_signal",
+                    score = platformBonus,
+                    reason = "matched=${platformBonus > 0}",
+                    type = RecommendationRuleType.BONUS,
+                ),
+                RecommendationRuleResult(
+                    ruleName = "signal_synergy",
+                    score = synergyBonus,
+                    reason = "newTechnology=${newTechnologyBonus > 0}, aiLlm=${aiLlmBonus > 0}, platform=${platformBonus > 0}",
+                    type = RecommendationRuleType.BONUS,
+                ),
+                RecommendationRuleResult(
+                    ruleName = "reranking_recency",
+                    score = recencyBonus,
+                    reason = "publishedDate=${source.publishedDate}",
+                    type = RecommendationRuleType.BONUS,
+                ),
+            ).filter { it.score != 0.0 }
 
-        return newTechnologyBonus + aiLlmBonus + platformBonus + synergyBonus + recencyBonus
+        return RerankingBonusResult(
+            bonus = ruleResults.sumOf { it.score },
+            ruleResults = ruleResults,
+        )
     }
 
     private fun calculateSynergyBonus(
@@ -114,4 +152,9 @@ data class RerankingBonusSource(
     val contentProviderName: String?,
     val keywordNames: List<String>,
     val publishedDate: LocalDate,
+)
+
+data class RerankingBonusResult(
+    val bonus: Double,
+    val ruleResults: List<RecommendationRuleResult>,
 )

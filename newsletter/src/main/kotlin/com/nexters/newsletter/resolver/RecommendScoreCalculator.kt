@@ -1,43 +1,38 @@
 package com.nexters.newsletter.resolver
 
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
-class RecommendScoreCalculator {
+class RecommendScoreCalculator(
+    private val rules: List<RecommendationRule> =
+        listOf(
+            KeywordAffinityRule(),
+            RerankingBonusRule(),
+            FreshnessRule(),
+            DuplicatePublisherPenaltyRule(),
+        ),
+    private val finalScoreFloorRule: RecommendationRule = FinalScoreFloorRule(),
+) {
     fun calculate(source: RecommendCalculateSource): RecommendCalculateResult {
-        // 양수 가중치의 곱 계산
-        val positiveWeight =
-            source.positiveKeywordSources.fold(1.0) { acc, keyword ->
-                acc * keyword.weight
+        val ruleResults = rules.map { rule -> rule.evaluate(source) }
+        val rawScore = ruleResults.sumOf { it.score }
+        val recommendScore = maxOf(rawScore, 0.0)
+        val finalRuleResults =
+            if (recommendScore == rawScore) {
+                ruleResults
+            } else {
+                ruleResults + finalScoreFloorRule.evaluate(source).copy(score = -rawScore)
             }
 
-        // 음수 가중치의 곱 계산
-        val negativeWeight =
-            source.negativeKeywordSources.fold(1.0) { acc, keyword ->
-                acc * keyword.weight * -1 // 음수이므로 -1을 곱함
-            }
-
-        // 최종 가중치 = 양수 가중치의 곱 + 음수 가중치의 합 + 카테고리 매칭 보너스 + 리랭킹 보너스 - 중복 발행처 패널티 점수
-        // 음수 가중치가 너무 크면 0으로 만들기 위해 max 사용
-        val keywordScore = maxOf(positiveWeight - negativeWeight + source.categoryMatchBonus, 0.0)
-
-        val today = LocalDate.now()
-        val daysDifference = ChronoUnit.DAYS.between(source.publishedDate, today)
-        val freshScore = -daysDifference * 10 // 달수, 연수를 포함한 총 날짜차이를 음수로 계산
-
-        val duplicatePenalty = source.publisherDuplicateCandidateCount * DUPLICATE_PUBLISHER_PENALTY
-        val lastScore = maxOf(keywordScore + source.rerankingBonus + freshScore - duplicatePenalty, 0.0)
-
-        return RecommendCalculateResult(lastScore)
-    }
-
-    companion object {
-        private const val DUPLICATE_PUBLISHER_PENALTY = 50.0
+        return RecommendCalculateResult(
+            recommendScore = recommendScore,
+            ruleResults = finalRuleResults,
+        )
     }
 }
 
 data class RecommendCalculateResult(
     val recommendScore: Double,
+    val ruleResults: List<RecommendationRuleResult> = emptyList(),
 )
 
 data class RecommendCalculateSource(
@@ -47,12 +42,20 @@ data class RecommendCalculateSource(
     val publisherDuplicateCandidateCount: Int,
     val categoryMatchBonus: Double = 0.0,
     val rerankingBonus: Double = 0.0,
+    val rerankingRuleResults: List<RecommendationRuleResult> = emptyList(),
 )
+
+interface KeywordSource {
+    val weight: Double
+    val keywordName: String?
+}
 
 data class PositiveKeywordSource(
-    val weight: Double,
-)
+    override val weight: Double,
+    override val keywordName: String? = null,
+) : KeywordSource
 
 data class NegativeKeywordSource(
-    val weight: Double,
-)
+    override val weight: Double,
+    override val keywordName: String? = null,
+) : KeywordSource

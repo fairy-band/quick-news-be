@@ -180,13 +180,8 @@ class DailyContentArchiveResolver(
                         val publisherDuplicateCandidateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
 
                         val adjustedSource =
-                            RecommendCalculateSource(
-                                positiveKeywordSources = source.positiveKeywordSources,
-                                negativeKeywordSources = source.negativeKeywordSources,
-                                publishedDate = source.publishedDate,
+                            source.copy(
                                 publisherDuplicateCandidateCount = publisherDuplicateCandidateCount,
-                                categoryMatchBonus = source.categoryMatchBonus,
-                                rerankingBonus = source.rerankingBonus,
                             )
 
                         candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
@@ -270,21 +265,23 @@ class DailyContentArchiveResolver(
     ): Map<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
         possibleContents.associateWith { candidate ->
             val contentKeywords = keywordsByContentId[candidate.contentId] ?: emptyList()
+            val rerankingBonus = calculateRerankingBonus(candidate, contentKeywords)
             RecommendCalculateSource(
                 positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
                 negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, keywordWeightsByKeyword),
                 publishedDate = candidate.publishedAt,
                 publisherDuplicateCandidateCount = 0,
                 categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, categoryIds, categoryMatchWeights),
-                rerankingBonus = calculateRerankingBonus(candidate, contentKeywords),
+                rerankingBonus = rerankingBonus.bonus,
+                rerankingRuleResults = rerankingBonus.ruleResults,
             )
         }
 
     private fun calculateRerankingBonus(
         candidate: ExposureContentRecommendationCandidateRow,
         contentKeywords: List<ReservedKeyword>,
-    ): Double =
-        rerankingBonusCalculator.calculate(
+    ): RerankingBonusResult =
+        rerankingBonusCalculator.calculateDetails(
             RerankingBonusSource(
                 title = candidate.title,
                 provocativeHeadline = candidate.provocativeHeadline,
@@ -317,7 +314,12 @@ class DailyContentArchiveResolver(
     ): List<PositiveKeywordSource> =
         keywords
             .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) > 0 }
-            .map { keyword -> PositiveKeywordSource((keywordWeightsByKeyword[keyword] ?: 0.0) * multiplier) }
+            .map { keyword ->
+                PositiveKeywordSource(
+                    weight = (keywordWeightsByKeyword[keyword] ?: 0.0) * multiplier,
+                    keywordName = keyword.name,
+                )
+            }
 
     /**
      * 음수 키워드 소스를 추출합니다.
@@ -328,7 +330,12 @@ class DailyContentArchiveResolver(
     ): List<NegativeKeywordSource> =
         keywords
             .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) < 0 }
-            .map { keyword -> NegativeKeywordSource(keywordWeightsByKeyword[keyword] ?: 0.0) }
+            .map { keyword ->
+                NegativeKeywordSource(
+                    weight = keywordWeightsByKeyword[keyword] ?: 0.0,
+                    keywordName = keyword.name,
+                )
+            }
 
     /**
      * 카테고리 매칭 보너스를 계산합니다.
