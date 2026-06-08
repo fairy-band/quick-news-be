@@ -314,6 +314,37 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
+        SELECT new com.nexters.external.repository.ExposureContentRecommendationCandidateRow(
+            e.id,
+            c.id,
+            cp.id,
+            cp.name,
+            c.newsletterName,
+            c.publishedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE e.id IN (
+            SELECT DISTINCT e2.id
+            FROM ExposureContent e2, ContentKeywordMapping ckm
+            WHERE ckm.content = e2.content
+            AND ckm.keyword.id IN :reservedKeywordIds
+            AND NOT EXISTS (
+                SELECT 1 FROM UserExposedContentMapping uecm
+                WHERE uecm.contentId = e2.content.id
+                AND uecm.userId = :userId
+            )
+        )
+    """
+    )
+    fun findNotExposedRecommendationCandidatesByReservedKeywordIds(
+        @Param("userId") userId: Long,
+        @Param("reservedKeywordIds") reservedKeywordIds: List<Long>
+    ): List<ExposureContentRecommendationCandidateRow>
+
+    @Query(
+        """
         SELECT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider
@@ -328,6 +359,44 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     fun findNotExposedByContentProviderIds(
         @Param("userId") userId: Long,
         @Param("contentProviderIds") contentProviderIds: List<Long>
+    ): List<ExposureContent>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExposureContentRecommendationCandidateRow(
+            e.id,
+            c.id,
+            cp.id,
+            cp.name,
+            c.newsletterName,
+            c.publishedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE cp.id IN :contentProviderIds
+        AND NOT EXISTS (
+            SELECT 1 FROM UserExposedContentMapping uecm
+            WHERE uecm.contentId = c.id
+            AND uecm.userId = :userId
+        )
+    """
+    )
+    fun findNotExposedRecommendationCandidatesByContentProviderIds(
+        @Param("userId") userId: Long,
+        @Param("contentProviderIds") contentProviderIds: List<Long>
+    ): List<ExposureContentRecommendationCandidateRow>
+
+    @Query(
+        """
+        SELECT e FROM ExposureContent e
+        JOIN FETCH e.content c
+        LEFT JOIN FETCH c.contentProvider
+        WHERE e.id IN :exposureContentIds
+    """
+    )
+    fun findByIdsWithContent(
+        @Param("exposureContentIds") exposureContentIds: List<Long>,
     ): List<ExposureContent>
 
     /**

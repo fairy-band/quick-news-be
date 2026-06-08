@@ -12,6 +12,8 @@ import java.time.LocalDateTime
 interface RssProcessingStatusRepository : JpaRepository<RssProcessingStatus, Long> {
     fun findByItemUrl(itemUrl: String): RssProcessingStatus?
 
+    fun existsByItemUrl(itemUrl: String): Boolean
+
     fun findByNewsletterSourceId(newsletterSourceId: String): RssProcessingStatus?
 
     fun findByAiProcessedFalseAndIsProcessedTrue(pageable: Pageable): Page<RssProcessingStatus>

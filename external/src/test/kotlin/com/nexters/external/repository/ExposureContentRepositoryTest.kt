@@ -1,12 +1,12 @@
 package com.nexters.external.repository
 
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.ContentKeywordMapping
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
-import com.nexters.external.entity.ContentKeywordMapping
-import com.nexters.external.entity.UserExposedContentMapping
 import com.nexters.external.entity.User
+import com.nexters.external.entity.UserExposedContentMapping
 import com.nexters.external.enums.ContentProviderType
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -66,14 +66,15 @@ class ExposureContentRepositoryTest {
     @Test
     fun `findNotExposedByReservedKeywordIds should return non-exposed exposure contents that match given keywords`() {
         // Given
-        val provider = entityManager.persist(
-            ContentProvider(
-                name = "Kotlin Weekly",
-                channel = "kotlin-weekly",
-                language = "ko",
-                type = ContentProviderType.NEWSLETTER,
-            ),
-        )
+        val provider =
+            entityManager.persist(
+                ContentProvider(
+                    name = "Kotlin Weekly",
+                    channel = "kotlin-weekly",
+                    language = "ko",
+                    type = ContentProviderType.NEWSLETTER,
+                ),
+            )
         val keyword1 = entityManager.persist(ReservedKeyword(name = "Kotlin"))
         val keyword2 = entityManager.persist(ReservedKeyword(name = "Java"))
         val keyword3 = entityManager.persist(ReservedKeyword(name = "Spring"))
@@ -101,14 +102,23 @@ class ExposureContentRepositoryTest {
         entityManager.clear()
 
         // When
-        val result = repository.findNotExposedByReservedKeywordIds(
-            userId = user.id!!,
-            reservedKeywordIds = listOf(keyword1.id!!, keyword2.id!!, keyword3.id!!)
-        )
+        val result =
+            repository.findNotExposedByReservedKeywordIds(
+                userId = user.id!!,
+                reservedKeywordIds = listOf(keyword1.id!!, keyword2.id!!, keyword3.id!!)
+            )
+        val candidates =
+            repository.findNotExposedRecommendationCandidatesByReservedKeywordIds(
+                userId = user.id!!,
+                reservedKeywordIds = listOf(keyword1.id!!, keyword2.id!!, keyword3.id!!)
+            )
 
         // Then
         // Should only contain exp2 and exp3 (since exp1 is already exposed)
         assertThat(result.map { it.id }).containsExactlyInAnyOrder(exp2.id, exp3.id)
+        assertThat(candidates.map { it.exposureContentId }).containsExactlyInAnyOrder(exp2.id, exp3.id)
+        assertThat(candidates.map { it.contentId }).containsExactlyInAnyOrder(content2.id, content3.id)
+        assertThat(candidates.map { it.contentProviderName }).containsOnly(provider.name)
     }
 
     private fun content(

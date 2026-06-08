@@ -6,6 +6,7 @@ import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExploreContentRow
+import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
 import org.slf4j.LoggerFactory
@@ -244,10 +245,35 @@ class ExposureContentService(
         reservedKeywordIds: List<Long>
     ): List<ExposureContent> = exposureContentRepository.findNotExposedByReservedKeywordIds(userId, reservedKeywordIds)
 
+    fun getNotExposedRecommendationCandidatesByReservedKeywordIds(
+        userId: Long,
+        reservedKeywordIds: List<Long>
+    ): List<ExposureContentRecommendationCandidateRow> =
+        exposureContentRepository.findNotExposedRecommendationCandidatesByReservedKeywordIds(userId, reservedKeywordIds)
+
     fun getNotExposedExposureContentsByContentProviderIds(
         userId: Long,
         contentProviderIds: List<Long>
     ): List<ExposureContent> = exposureContentRepository.findNotExposedByContentProviderIds(userId, contentProviderIds)
+
+    fun getNotExposedRecommendationCandidatesByContentProviderIds(
+        userId: Long,
+        contentProviderIds: List<Long>
+    ): List<ExposureContentRecommendationCandidateRow> =
+        exposureContentRepository.findNotExposedRecommendationCandidatesByContentProviderIds(userId, contentProviderIds)
+
+    fun getExposureContentsByIdsPreservingOrder(exposureContentIds: List<Long>): List<ExposureContent> {
+        if (exposureContentIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val exposureContentsById =
+            exposureContentRepository
+                .findByIdsWithContent(exposureContentIds)
+                .associateBy { it.id!! }
+
+        return exposureContentIds.mapNotNull { exposureContentsById[it] }
+    }
 
     fun countAllExposureContents(): Long = exposureContentRepository.count()
 

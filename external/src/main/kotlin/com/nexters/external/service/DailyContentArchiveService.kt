@@ -20,14 +20,15 @@ class DailyContentArchiveService(
 
     @Transactional
     fun saveWithHistory(dailyContentArchive: DailyContentArchive): DailyContentArchive {
-        dailyContentArchive.exposureContents.forEach {
-            userExposedContentMappingRepository.save(
+        val mappings =
+            dailyContentArchive.exposureContents.map {
                 UserExposedContentMapping(
                     userId = dailyContentArchive.user.id,
                     contentId = it.content.id!!,
-                ),
-            )
-        }
+                )
+            }
+
+        userExposedContentMappingRepository.saveAll(mappings)
 
         return dailyContentArchiveRepository.save(dailyContentArchive)
     }
@@ -37,9 +38,11 @@ class DailyContentArchiveService(
         userId: Long,
         date: LocalDate,
     ) {
-        val mappings = userExposedContentMappingRepository.findByUserIdAndDate(userId, date.atStartOfDay())
-        mappings.forEach { it.deleted = true }
-        userExposedContentMappingRepository.saveAll(mappings)
+        userExposedContentMappingRepository.markActiveAsDeletedByUserIdAndCreatedAtRange(
+            userId = userId,
+            startAt = date.atStartOfDay(),
+            endAt = date.plusDays(1).atStartOfDay(),
+        )
 
         dailyContentArchiveRepository.deleteByDateAndUserId(date, userId)
     }
@@ -47,5 +50,10 @@ class DailyContentArchiveService(
     fun isRefreshAvailable(
         userId: Long,
         date: LocalDate
-    ): Boolean = userExposedContentMappingRepository.findDeletedByUserIdAndDate(userId, date).isEmpty()
+    ): Boolean =
+        !userExposedContentMappingRepository.existsDeletedByUserIdAndCreatedAtRange(
+            userId = userId,
+            startAt = date.atStartOfDay(),
+            endAt = date.plusDays(1).atStartOfDay(),
+        )
 }

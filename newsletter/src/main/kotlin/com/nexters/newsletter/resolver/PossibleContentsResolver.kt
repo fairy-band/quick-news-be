@@ -1,8 +1,8 @@
 package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.ContentProvider
-import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ExposureContentService
 import org.slf4j.LoggerFactory
@@ -16,15 +16,14 @@ class PossibleContentsResolver(
     fun resolvePossibleContentsByCategoryIds(
         userId: Long,
         categoryIds: List<Long>,
-    ): List<ExposureContent> {
+    ): List<ExposureContentRecommendationCandidateRow> {
         val keywords = categoryService.getKeywordsByCategoryIds(categoryIds)
         val contentsByKeywords = resolvePossibleContentsByKeywords(userId, keywords)
 
         val contentProviders = categoryService.getContentProvidersByCategoryIds(categoryIds)
         val contentsByProviders = resolvePossibleContentsByProviders(userId, contentProviders)
 
-        // 중복 제거를 위해 Set으로 병합
-        val allContents = (contentsByKeywords + contentsByProviders).toSet().toList()
+        val allContents = (contentsByKeywords + contentsByProviders).distinctBy { it.exposureContentId }
 
         logger.debug(
             "가능한 콘텐츠 조회 완료. userId: {}, 키워드 수: {}, ContentProvider 수: {}, 총 콘텐츠 수: {}",
@@ -40,18 +39,18 @@ class PossibleContentsResolver(
     private fun resolvePossibleContentsByKeywords(
         userId: Long,
         reservedKeywords: List<ReservedKeyword>,
-    ): List<ExposureContent> {
+    ): List<ExposureContentRecommendationCandidateRow> {
         val reservedKeywordIds = reservedKeywords.map { it.id!! }
-        return exposureContentService.getNotExposedExposureContentsByReservedKeywordIds(userId, reservedKeywordIds)
+        return exposureContentService.getNotExposedRecommendationCandidatesByReservedKeywordIds(userId, reservedKeywordIds)
     }
 
     private fun resolvePossibleContentsByProviders(
         userId: Long,
         contentProviders: List<*>,
-    ): List<ExposureContent> {
+    ): List<ExposureContentRecommendationCandidateRow> {
         val contentProviderIds = contentProviders.mapNotNull { (it as? ContentProvider)?.id }
         return if (contentProviderIds.isNotEmpty()) {
-            exposureContentService.getNotExposedExposureContentsByContentProviderIds(userId, contentProviderIds)
+            exposureContentService.getNotExposedRecommendationCandidatesByContentProviderIds(userId, contentProviderIds)
         } else {
             emptyList()
         }

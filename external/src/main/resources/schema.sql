@@ -410,7 +410,7 @@ CREATE INDEX IF NOT EXISTS idx_contents_content_provider_id
 CREATE INDEX IF NOT EXISTS idx_contents_newsletter_name
     ON contents (newsletter_name);
 
--- findByUserIdAndDate, findDeletedByUserIdAndDate 쿼리 지원
+-- 노출 이력의 날짜 범위 조회/삭제 쿼리 지원
 -- HOT: deleted 컬럼을 인덱스에서 제외하여 deleted UPDATE 시 HOT 유지
 CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_user_created
     ON user_exposed_contents_mapping (user_id, created_at);

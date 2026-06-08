@@ -125,7 +125,7 @@ class RssContentService(
             }
     }
 
-    private fun isItemAlreadyProcessed(itemUrl: String): Boolean = rssProcessingStatusRepository.findByItemUrl(itemUrl) != null
+    private fun isItemAlreadyProcessed(itemUrl: String): Boolean = rssProcessingStatusRepository.existsByItemUrl(itemUrl)
 
     private fun saveRssItem(
         feedUrl: String,

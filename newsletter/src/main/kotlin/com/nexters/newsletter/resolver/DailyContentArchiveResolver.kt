@@ -1,13 +1,14 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.entity.Content
 import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordMappingRepository
+import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.DailyContentArchiveService
+import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.UserService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -24,6 +25,7 @@ class DailyContentArchiveResolver(
     private val possibleContentsResolver: PossibleContentsResolver,
     private val contentProviderService: ContentProviderService,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
+    private val exposureContentService: ExposureContentService,
 ) {
     private val calculator = RecommendScoreCalculator()
     private val lock = ReentrantLock() // instance가 늘어나면 락 구현체 변경 필요, 분산 락으로 전환
@@ -112,7 +114,7 @@ class DailyContentArchiveResolver(
 
     private fun resolveTodayContents(
         userId: Long,
-        possibleContents: List<ExposureContent>,
+        possibleContents: List<ExposureContentRecommendationCandidateRow>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         categoryIds: List<Long>,
     ): List<ExposureContent> {
@@ -124,10 +126,10 @@ class DailyContentArchiveResolver(
                 possibleContents.size,
                 MAX_CONTENT_SIZE,
             )
-            return possibleContents
+            return fetchExposureContents(possibleContents)
         }
 
-        val contentIds = possibleContents.map { it.content.id!! }
+        val contentIds = possibleContents.map { it.contentId }
         val mappings = contentKeywordMappingRepository.findKeywordsByContentIds(contentIds)
         val keywordsByContentId = mappings.groupBy({ it.contentId }, { it.keyword })
 
@@ -145,7 +147,7 @@ class DailyContentArchiveResolver(
                 categoryMatchWeights = categoryMatchWeights,
             )
 
-        val sortedSources: SortedMap<ExposureContent, RecommendCalculateSource> =
+        val sortedSources: SortedMap<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
             contentSources.toSortedMap { a, b ->
                 calculator
                     .calculate(contentSources[b]!!)
@@ -158,7 +160,7 @@ class DailyContentArchiveResolver(
         // 1단계: recommendScore > 0인 컨텐츠들 필터링
         val positiveScoreContents =
             sortedSources.entries
-                .filter { (exposureContent, source) ->
+                .filter { (_, source) ->
                     calculator.calculate(source).recommendScore > 0
                 }.map { it.key }
 
@@ -171,9 +173,9 @@ class DailyContentArchiveResolver(
                 positiveScoreContents
                     // 상위 컨텐츠 후보(N*N배)를 대상으로 발행처별 선택 횟수 계산
                     .take(MAX_CONTENT_SIZE * MAX_CONTENT_SIZE)
-                    .map { exposureContent ->
-                        val source = contentSources[exposureContent]!!
-                        val publisherId = exposureContent.content.contentProvider?.name ?: exposureContent.content.newsletterName
+                    .map { candidate ->
+                        val source = contentSources[candidate]!!
+                        val publisherId = candidate.publisherName
                         val publisherDuplicateCandidateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
 
                         val adjustedSource =
@@ -186,7 +188,7 @@ class DailyContentArchiveResolver(
 
                         candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
 
-                        exposureContent to calculator.calculate(adjustedSource).recommendScore
+                        candidate to calculator.calculate(adjustedSource).recommendScore
                     }.sortedByDescending { it.second }
                     .map { it.first }
 
@@ -194,8 +196,8 @@ class DailyContentArchiveResolver(
             val selectedPublisherCounts = mutableMapOf<String, Int>()
             val diversifiedContents =
                 scoredContents
-                    .filter { exposureContent ->
-                        val publisherId = exposureContent.content.contentProvider?.name ?: exposureContent.content.newsletterName
+                    .filter { candidate ->
+                        val publisherId = candidate.publisherName
                         val count = selectedPublisherCounts.getOrDefault(publisherId, 0)
                         if (count < maxPerPublisher) {
                             selectedPublisherCounts[publisherId] = count + 1
@@ -205,12 +207,12 @@ class DailyContentArchiveResolver(
                         }
                     }.take(MAX_CONTENT_SIZE)
 
-            return diversifiedContents
+            return fetchExposureContents(diversifiedContents)
         }
 
         // 3단계: 부족하면 가중치를 2배, 3배, 4배로 늘려가며 추가 컨텐츠 찾기
         // 순서 보존 + O(1) contains 위해 LinkedHashSet 사용 (multiplier 루프에서 중복 추가 방지)
-        val selectedContents = LinkedHashSet<ExposureContent>(positiveScoreContents)
+        val selectedContents = LinkedHashSet<ExposureContentRecommendationCandidateRow>(positiveScoreContents)
         val multipliers = listOf(2.0, 3.0, 4.0)
 
         for (multiplier in multipliers) {
@@ -229,7 +231,7 @@ class DailyContentArchiveResolver(
                 )
 
             // 재계산된 결과로 정렬하고 기존에 선택되지 않은 positive score 컨텐츠들 필터링
-            val amplifiedSortedSources: SortedMap<ExposureContent, RecommendCalculateSource> =
+            val amplifiedSortedSources: SortedMap<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
                 amplifiedRecommendSources.toSortedMap { a, b ->
                     calculator
                         .calculate(amplifiedRecommendSources[b]!!)
@@ -241,7 +243,7 @@ class DailyContentArchiveResolver(
 
             val amplifiedContents =
                 amplifiedSortedSources.entries
-                    .filter { (exposureContent, _) -> exposureContent !in selectedContents }
+                    .filter { (candidate, _) -> candidate !in selectedContents }
                     .filter { (_, source) -> calculator.calculate(source).recommendScore > 0 }
                     .map { it.key }
 
@@ -249,28 +251,28 @@ class DailyContentArchiveResolver(
             selectedContents.addAll(amplifiedContents.take(additionalNeeded))
         }
 
-        return selectedContents.take(MAX_CONTENT_SIZE)
+        return fetchExposureContents(selectedContents.take(MAX_CONTENT_SIZE))
     }
 
     /**
      * 가중치를 적용해서 추천 계산을 위한 소스를 생성합니다.
      */
     private fun createRecommendSources(
-        possibleContents: List<ExposureContent>,
+        possibleContents: List<ExposureContentRecommendationCandidateRow>,
         keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
         keywordsByContentId: Map<Long, List<ReservedKeyword>>,
         multiplier: Double,
         categoryIds: List<Long>,
         categoryMatchWeights: Map<Pair<Long, Long>, Double>,
-    ): Map<ExposureContent, RecommendCalculateSource> =
-        possibleContents.associateWith { exposureContent ->
-            val contentKeywords = keywordsByContentId[exposureContent.content.id] ?: emptyList()
+    ): Map<ExposureContentRecommendationCandidateRow, RecommendCalculateSource> =
+        possibleContents.associateWith { candidate ->
+            val contentKeywords = keywordsByContentId[candidate.contentId] ?: emptyList()
             RecommendCalculateSource(
                 positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, keywordWeightsByKeyword, multiplier),
                 negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, keywordWeightsByKeyword),
-                publishedDate = exposureContent.content.publishedAt,
+                publishedDate = candidate.publishedAt,
                 publisherDuplicateCandidateCount = 0,
-                categoryMatchBonus = calculateCategoryMatchBonus(exposureContent.content, categoryIds, categoryMatchWeights),
+                categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, categoryIds, categoryMatchWeights),
             )
         }
 
@@ -278,10 +280,10 @@ class DailyContentArchiveResolver(
      * ContentProvider-Category 매핑 가중치를 조회합니다.
      */
     private fun getCategoryMatchWeights(
-        possibleContents: List<ExposureContent>,
+        possibleContents: List<ExposureContentRecommendationCandidateRow>,
         categoryIds: List<Long>,
     ): Map<Pair<Long, Long>, Double> {
-        val contentProviderIds = possibleContents.mapNotNull { it.content.contentProvider?.id }.distinct()
+        val contentProviderIds = possibleContents.mapNotNull { it.contentProviderId }.distinct()
         return contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds)
     }
 
@@ -313,16 +315,24 @@ class DailyContentArchiveResolver(
      * 여러 카테고리에 매핑된 경우 가중치를 합산합니다.
      */
     private fun calculateCategoryMatchBonus(
-        content: Content,
+        contentProviderId: Long?,
         categoryIds: List<Long>,
         categoryMatchWeights: Map<Pair<Long, Long>, Double>,
     ): Double {
-        val contentProviderId = content.contentProvider?.id ?: return 0.0
+        contentProviderId ?: return 0.0
 
         return categoryIds.sumOf { categoryId ->
             categoryMatchWeights[contentProviderId to categoryId] ?: 0.0
         }
     }
+
+    private fun fetchExposureContents(candidates: List<ExposureContentRecommendationCandidateRow>): List<ExposureContent> =
+        exposureContentService.getExposureContentsByIdsPreservingOrder(
+            candidates.map { it.exposureContentId },
+        )
+
+    private val ExposureContentRecommendationCandidateRow.publisherName: String
+        get() = contentProviderName ?: newsletterName
 
     /**
      * reservedKeywords를 배치로 미리 로드하여 N+1 문제 방지

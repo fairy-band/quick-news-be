@@ -13,10 +13,8 @@ class WalkthroughCategoryMapping(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-
     @Column(name = "walkthrough_id", nullable = false)
     val walkthroughId: Long,
-
     @Column(name = "category_id", nullable = false)
     val categoryId: Long,
 )
