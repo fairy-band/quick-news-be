@@ -291,7 +291,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
-        SELECT DISTINCT new com.nexters.external.repository.ExposureContentRecommendationCandidateRow(
+        SELECT new com.nexters.external.repository.ExposureContentRecommendationCandidateRow(
             e.id,
             c.id,
             cp.id,
@@ -305,9 +305,12 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         FROM ExposureContent e
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
-        JOIN ContentKeywordMapping ckm ON ckm.content = c
-        WHERE ckm.keyword.id IN :reservedKeywordIds
-        AND c.publishedAt >= :publishedFrom
+        WHERE c.publishedAt >= :publishedFrom
+        AND EXISTS (
+            SELECT 1 FROM ContentKeywordMapping ckm
+            WHERE ckm.content = c
+            AND ckm.keyword.id IN :reservedKeywordIds
+        )
         AND NOT EXISTS (
             SELECT 1 FROM UserExposedContentMapping uecm
             WHERE uecm.contentId = c.id
