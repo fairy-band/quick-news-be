@@ -1,5 +1,6 @@
 package com.nexters.external.dto
 
+import org.jsoup.Jsoup
 import java.time.LocalDateTime
 
 data class RssFeed(
@@ -23,35 +24,40 @@ data class RssItem(
 )
 
 fun RssItem.toContentText(): String =
-    buildString {
-        description?.let {
-            val cleanDescription = it.cleanHtml()
-            if (cleanDescription.isNotBlank()) {
-                append("$cleanDescription\n\n")
-            }
-        }
-        content?.let {
-            val cleanContent = it.cleanHtml()
-            if (cleanContent.isNotBlank()) {
-                append("$cleanContent\n\n")
-            }
-        }
-        author?.let { append("Author: $it\n") }
-        if (categories.isNotEmpty()) {
-            append("Categories: ${categories.joinToString(", ")}\n")
-        }
-    }.trim()
+    buildList {
+        description
+            ?.cleanHtml()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { add(it) }
 
-private fun String.cleanHtml(): String =
-    this
-        .replace(Regex("<[^>]+>"), " ")
-        .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&apos;", "'")
+        content
+            ?.cleanHtml()
+            ?.takeIf { it.isNotBlank() }
+            ?.takeIf { it !in this }
+            ?.let { add(it) }
+
+        author
+            ?.cleanHtml()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { add("Author: $it") }
+
+        categories
+            .map { it.cleanHtml() }
+            .filter { it.isNotBlank() }
+            .takeIf { it.isNotEmpty() }
+            ?.let {
+                add("Categories: ${it.joinToString(", ")}")
+            }
+    }.joinToString("\n\n").trim()
+
+private fun String.cleanHtml(): String {
+    if (isBlank()) {
+        return ""
+    }
+
+    return Jsoup
+        .parse(this)
+        .text()
         .replace(Regex("\\s+"), " ")
-        .replace(Regex("\n{3,}"), "\n\n")
         .trim()
+}

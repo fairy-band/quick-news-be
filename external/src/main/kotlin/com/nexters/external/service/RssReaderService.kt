@@ -76,15 +76,36 @@ class RssReaderService(
             publishedDate = entry.publishedDate?.toLocalDateTime(),
             author = entry.author,
             categories = entry.categories?.map { it.name } ?: emptyList(),
-            content = entry.contents?.firstOrNull()?.value,
+            content = entry.extractContent(),
             imageUrl = entry.extractImageUrl(),
         )
+
+    private fun SyndEntry.extractContent(): String? {
+        val contentCandidates =
+            buildList {
+                contents
+                    ?.mapNotNull { content -> content.value?.trim() }
+                    ?.filter { content -> content.isNotBlank() }
+                    ?.let { addAll(it) }
+
+                foreignMarkup
+                    ?.asSequence()
+                    ?.flatMap { element -> element.flatten() }
+                    ?.filter { element -> element.isContentEncodedElement() }
+                    ?.map { element -> element.value.trim() }
+                    ?.filter { content -> content.isNotBlank() }
+                    ?.toList()
+                    ?.let { addAll(it) }
+            }
+
+        return contentCandidates.maxByOrNull { it.length }
+    }
 
     private fun SyndEntry.extractImageUrl(): String? =
         extractMediaImageUrl()
             ?: extractEnclosureImageUrl()
             ?: representativeImageUrlExtractorService.extractFromHtml(description?.value, link.orEmpty())
-            ?: representativeImageUrlExtractorService.extractFromHtml(contents?.firstOrNull()?.value, link.orEmpty())
+            ?: representativeImageUrlExtractorService.extractFromHtml(extractContent(), link.orEmpty())
 
     private fun SyndEntry.extractMediaImageUrl(): String? =
         foreignMarkup
@@ -108,6 +129,14 @@ class RssReaderService(
         val imageType = getAttributeValue("type")?.startsWith("image/", ignoreCase = true) ?: true
 
         return mediaNamespace && imageElement && imageType
+    }
+
+    private fun Element.isContentEncodedElement(): Boolean {
+        val contentNamespace =
+            namespacePrefix.equals("content", ignoreCase = true) ||
+                namespaceURI.contains("purl.org/rss/1.0/modules/content", ignoreCase = true)
+
+        return contentNamespace && name.equals("encoded", ignoreCase = true)
     }
 
     private fun SyndEntry.extractEnclosureImageUrl(): String? =
