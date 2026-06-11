@@ -161,17 +161,7 @@ class NewsletterProcessingService(
         return groupedContents
     }
 
-    private fun resolveNewsletterName(newsletterSource: NewsletterSource): String =
-        newsletterSource.providerNameFromHint()
-            ?: newsletterSource.sender.takeIf { sender -> sender.isNotBlank() }
-            ?: newsletterSource.senderEmail
-
-    private fun NewsletterSource.providerNameFromHint(): String? {
-        val haystack = "${senderEmail.normalizedEmail()}\n${sender.lowercase()}"
-        return PROVIDER_NAME_HINTS.entries.firstOrNull { (hint, _) -> haystack.contains(hint) }?.value
-    }
-
-    private fun String.normalizedEmail(): String = trim().lowercase()
+    private fun resolveNewsletterName(newsletterSource: NewsletterSource): String = NewsletterProviderNameResolver.resolve(newsletterSource)
 
     private fun resolveContentProvider(newsletterName: String): ContentProvider? =
         try {
@@ -209,42 +199,5 @@ class NewsletterProcessingService(
 
     companion object {
         private const val MAX_CONTENT_LENGTH = 10_000 // 콘텐츠당 최대 길이 (약 20K-30K 토큰)
-
-        private val PROVIDER_NAME_HINTS =
-            linkedMapOf(
-                "jsw@peterc.org" to "JavaScript Weekly",
-                "javascript weekly" to "JavaScript Weekly",
-                "newsletter@libhunt.com" to "Java Weekly",
-                "java weekly" to "Java Weekly",
-                "kotlinweekly.net" to "Kotlin Weekly",
-                "kotlin weekly" to "Kotlin Weekly",
-                "news@hada.io" to "GeekNews Weekly",
-                "noreply@maeil-mail.kr" to "Maeil Mail",
-                "kofearticle@substack.com" to "Korean FE Article",
-                "dan@tldrnewsletter.com" to "TLDR",
-                "eugen@baeldung.com" to "Baeldung",
-                "yozm_help@wishket.com" to "Yozm",
-                "tyler@ui.dev" to "Bytes",
-                "submissions@webtoolsweekly.com" to "Web Tools Weekly",
-                "submissions@vscode.email" to "VS Code Email",
-                "pragmaticengineer@substack.com" to "The Pragmatic Engineer",
-                "pragmaticengineer+deepdives@substack.com" to "The Pragmatic Engineer",
-                "thepracticalstack461@substack.com" to "The Practical Stack",
-                "thecodercafe+concepts@substack.com" to "The Coder Cafe",
-                "architectureweekly@substack.com" to "Architecture Weekly",
-                "fatbobman@substack.com" to "Fatbobman's Swift Weekly",
-                "jacobbartlett@substack.com" to "Jacob's Tech Tavern",
-                "react@cooperpress.com" to "React Status",
-                "frontend@cooperpress.com" to "Frontend Focus",
-                "node@cooperpress.com" to "Node Weekly",
-                "postgres@cooperpress.com" to "Postgres Weekly",
-                "peter@golangweekly.com" to "Go Weekly",
-                "rahul@pythonweekly.com" to "Python Weekly",
-                "contact@androidweekly.net" to "Android Weekly",
-                "itworld@techlibrary.co.kr" to "ITWorld Korea",
-                "css-weekly@beehiiv.com" to "CSS Weekly",
-                "swiftwithvincent.com" to "Swift with Vincent",
-                "ilbuntok.com" to "일분톡",
-            )
     }
 }
