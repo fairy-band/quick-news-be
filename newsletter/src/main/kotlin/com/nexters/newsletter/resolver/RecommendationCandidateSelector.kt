@@ -2,6 +2,7 @@ package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
@@ -22,7 +23,20 @@ class RecommendationCandidateSelector(
                 keywordWeightsByKeyword = request.keywordWeightsByKeyword,
                 categoryIds = request.categoryIds,
             )
-        val sourcesByCandidate = scoringSourceFactory.createSources(context, multiplier = 1.0)
+        val filteredContext = context.filterByCategoryFit()
+        if (filteredContext.candidates.isEmpty()) {
+            return emptyList()
+        }
+        if (filteredContext.candidates.size < context.candidates.size) {
+            logger.debug(
+                "카테고리 적합도 필터 적용. categoryIds: {}, before: {}, after: {}",
+                request.categoryIds,
+                context.candidates.size,
+                filteredContext.candidates.size,
+            )
+        }
+
+        val sourcesByCandidate = scoringSourceFactory.createSources(filteredContext, multiplier = 1.0)
         val scoredCandidates = ranker.rank(sourcesByCandidate)
         val positiveScoreCandidates =
             scoredCandidates
@@ -44,7 +58,7 @@ class RecommendationCandidateSelector(
                 break
             }
 
-            val amplifiedSourcesByCandidate = scoringSourceFactory.createSources(context, multiplier)
+            val amplifiedSourcesByCandidate = scoringSourceFactory.createSources(filteredContext, multiplier)
             val amplifiedCandidates =
                 ranker
                     .rank(amplifiedSourcesByCandidate)
@@ -59,8 +73,98 @@ class RecommendationCandidateSelector(
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(RecommendationCandidateSelector::class.java)
         private val FALLBACK_MULTIPLIERS = listOf(2.0, 3.0, 4.0)
+        private const val DOMINANT_CATEGORY_RATIO = 1.5
+        private const val DOMINANT_CATEGORY_GAP = 8.0
     }
+
+    private fun CandidateScoringSourceContext.filterByCategoryFit(): CandidateScoringSourceContext {
+        val requestedCategoryIds = categoryIds.toSet()
+        if (requestedCategoryIds.isEmpty() || candidates.isEmpty()) {
+            return this
+        }
+
+        return copy(
+            candidates =
+                candidates.filter { candidate ->
+                    hasCategoryFit(candidate, requestedCategoryIds)
+                },
+        )
+    }
+
+    private fun CandidateScoringSourceContext.hasCategoryFit(
+        candidate: ExposureContentRecommendationCandidateRow,
+        requestedCategoryIds: Set<Long>,
+    ): Boolean {
+        val categoryScores = mutableMapOf<Long, CategoryFitScore>()
+
+        keywordsByContentId[candidate.contentId]
+            .orEmpty()
+            .mapNotNull { it.id }
+            .forEach { keywordId ->
+                keywordCategoryWeightsByKeywordId[keywordId]
+                    .orEmpty()
+                    .filter { it.weight > 0.0 }
+                    .forEach { categoryWeight ->
+                        categoryScores.addKeywordScore(categoryWeight.categoryId, categoryWeight.weight)
+                    }
+            }
+
+        candidate.contentProviderId?.let { contentProviderId ->
+            contentProviderCategoryWeightsByProviderId[contentProviderId]
+                .orEmpty()
+                .filter { it.weight > 0.0 }
+                .forEach { categoryWeight ->
+                    categoryScores.addProviderScore(categoryWeight.categoryId, categoryWeight.weight)
+                }
+        }
+
+        if (categoryScores.isEmpty()) {
+            return true
+        }
+
+        val requestedScore =
+            categoryScores
+                .filterKeys { it in requestedCategoryIds }
+                .values
+                .sumOf { it.total }
+        val strongestOtherScore =
+            categoryScores
+                .filterKeys { it !in requestedCategoryIds }
+                .values
+                .maxOfOrNull { it.total } ?: 0.0
+
+        if (requestedScore <= 0.0) {
+            return false
+        }
+
+        return strongestOtherScore < requestedScore * DOMINANT_CATEGORY_RATIO ||
+            strongestOtherScore - requestedScore < DOMINANT_CATEGORY_GAP
+    }
+
+    private fun MutableMap<Long, CategoryFitScore>.addKeywordScore(
+        categoryId: Long,
+        weight: Double,
+    ) {
+        val current = this[categoryId] ?: CategoryFitScore()
+        this[categoryId] = current.copy(keywordScore = current.keywordScore + weight)
+    }
+
+    private fun MutableMap<Long, CategoryFitScore>.addProviderScore(
+        categoryId: Long,
+        weight: Double,
+    ) {
+        val current = this[categoryId] ?: CategoryFitScore()
+        this[categoryId] = current.copy(providerScore = current.providerScore + weight)
+    }
+}
+
+private data class CategoryFitScore(
+    val keywordScore: Double = 0.0,
+    val providerScore: Double = 0.0,
+) {
+    val total: Double = keywordScore + providerScore
 }
 
 data class RecommendationCandidateSelectionRequest(

@@ -15,6 +15,19 @@ interface ContentProviderCategoryMappingRepository : JpaRepository<ContentProvid
         JOIN FETCH cpcm.contentProvider cp
         JOIN FETCH cpcm.category c
         WHERE cp.id IN (:contentProviderIds)
+    """
+    )
+    fun findByContentProviderIdIn(
+        @Param("contentProviderIds") contentProviderIds: List<Long>,
+    ): List<ContentProviderCategoryMapping>
+
+    @Query(
+        """
+        SELECT cpcm
+        FROM ContentProviderCategoryMapping cpcm
+        JOIN FETCH cpcm.contentProvider cp
+        JOIN FETCH cpcm.category c
+        WHERE cp.id IN (:contentProviderIds)
         AND c.id IN (:categoryIds)
     """
     )

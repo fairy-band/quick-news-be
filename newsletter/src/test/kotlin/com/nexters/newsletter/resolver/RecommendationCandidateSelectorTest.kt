@@ -1,5 +1,6 @@
 package com.nexters.newsletter.resolver
 
+import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import io.mockk.every
 import io.mockk.mockk
@@ -54,14 +55,79 @@ class RecommendationCandidateSelectorTest {
         verify(exactly = 1) { scoringSourceFactory.createSources(context, 2.0) }
     }
 
+    @Test
+    fun `select should filter candidates dominated by another category`() {
+        val backendCandidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
+        val frontendCandidate = candidate(exposureContentId = 2L, contentProviderId = 200L)
+        val backendKeyword = ReservedKeyword(id = 10L, name = "API")
+        val frontendKeyword = ReservedKeyword(id = 20L, name = "React")
+        val context =
+            context(listOf(backendCandidate, frontendCandidate)).copy(
+                categoryIds = listOf(1L),
+                keywordsByContentId =
+                    mapOf(
+                        backendCandidate.contentId to listOf(backendKeyword),
+                        frontendCandidate.contentId to listOf(backendKeyword, frontendKeyword),
+                    ),
+                keywordCategoryWeightsByKeywordId =
+                    mapOf(
+                        10L to listOf(CategoryWeight(categoryId = 1L, weight = 4.0)),
+                        20L to listOf(CategoryWeight(categoryId = 2L, weight = 4.0)),
+                    ),
+                contentProviderCategoryWeightsByProviderId =
+                    mapOf(
+                        100L to listOf(CategoryWeight(categoryId = 1L, weight = 25.0)),
+                        200L to listOf(CategoryWeight(categoryId = 2L, weight = 25.0)),
+                    ),
+            )
+        val filteredSources = sourcesByCandidate("filtered", backendCandidate)
+
+        every { scoringSourceFactory.createContext(any(), any(), any(), any()) } returns context
+        every {
+            scoringSourceFactory.createSources(
+                match { it.candidates == listOf(backendCandidate) },
+                1.0,
+            )
+        } returns filteredSources
+        every { ranker.rank(filteredSources) } returns listOf(ScoredRecommendationCandidate(backendCandidate, 10.0))
+        every {
+            publisherDiversityPolicy.apply(
+                candidates = listOf(backendCandidate),
+                sourcesByCandidate = filteredSources,
+                limit = 1,
+            )
+        } returns listOf(backendCandidate)
+
+        val result =
+            selector.select(
+                RecommendationCandidateSelectionRequest(
+                    candidates = listOf(backendCandidate, frontendCandidate),
+                    candidateSignalsByExposureContentId = emptyMap(),
+                    keywordWeightsByKeyword = emptyMap(),
+                    categoryIds = listOf(1L),
+                    limit = 1,
+                ),
+            )
+
+        assertThat(result).containsExactly(backendCandidate)
+        verify(exactly = 1) {
+            scoringSourceFactory.createSources(
+                match { it.candidates == listOf(backendCandidate) },
+                1.0,
+            )
+        }
+    }
+
     private fun context(candidates: List<ExposureContentRecommendationCandidateRow>): CandidateScoringSourceContext =
         CandidateScoringSourceContext(
             candidates = candidates,
             candidateSignalsByExposureContentId = emptyMap(),
-            keywordWeightsByKeyword = emptyMap(),
+            keywordWeightsByKeywordId = emptyMap(),
             keywordsByContentId = emptyMap(),
             categoryIds = listOf(10L),
             categoryMatchWeights = emptyMap(),
+            keywordCategoryWeightsByKeywordId = emptyMap(),
+            contentProviderCategoryWeightsByProviderId = emptyMap(),
         )
 
     private fun sourcesByCandidate(
@@ -78,11 +144,14 @@ class RecommendationCandidateSelectorTest {
             )
         }
 
-    private fun candidate(exposureContentId: Long): ExposureContentRecommendationCandidateRow =
+    private fun candidate(
+        exposureContentId: Long,
+        contentProviderId: Long = exposureContentId * 100,
+    ): ExposureContentRecommendationCandidateRow =
         ExposureContentRecommendationCandidateRow(
             exposureContentId = exposureContentId,
             contentId = exposureContentId * 10,
-            contentProviderId = exposureContentId * 100,
+            contentProviderId = contentProviderId,
             contentProviderName = "Provider $exposureContentId",
             newsletterName = "Newsletter $exposureContentId",
             publishedAt = LocalDate.of(2026, 6, 9),

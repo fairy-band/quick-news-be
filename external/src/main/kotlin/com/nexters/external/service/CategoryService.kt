@@ -19,6 +19,18 @@ class CategoryService(
             }
         }
 
+    fun getKeywordCategoryWeightsByKeywordIds(keywordIds: List<Long>): Map<Pair<Long, Long>, Double> {
+        if (keywordIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return categoryRepository.findCategoryKeywordMappingByKeywordIds(keywordIds).associate { mapping ->
+            val keywordId = mapping.keyword.id ?: throw IllegalStateException("Keyword ID cannot be null")
+            val categoryId = mapping.category.id ?: throw IllegalStateException("Category ID cannot be null")
+            keywordId to categoryId to mapping.weight
+        }
+    }
+
     fun getContentProvidersByCategoryIds(categoryIds: List<Long>): List<ContentProvider> =
         categoryRepository.findContentProvidersByCategoryIds(categoryIds)
 

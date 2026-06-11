@@ -36,6 +36,17 @@ interface CategoryRepository : JpaRepository<Category, Long> {
 
     @Query(
         """
+        SELECT ckm
+        FROM CategoryKeywordMapping ckm
+        JOIN FETCH ckm.category c
+        JOIN FETCH ckm.keyword k
+        WHERE k.id IN (:keywordIds)
+    """,
+    )
+    fun findCategoryKeywordMappingByKeywordIds(keywordIds: List<Long>): List<CategoryKeywordMapping>
+
+    @Query(
+        """
         SELECT DISTINCT cpcm.contentProvider
         FROM ContentProviderCategoryMapping cpcm
         WHERE cpcm.category.id IN (:categoryIds)

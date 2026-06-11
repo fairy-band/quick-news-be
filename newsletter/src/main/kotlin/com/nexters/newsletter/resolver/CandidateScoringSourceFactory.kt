@@ -3,6 +3,7 @@ package com.nexters.newsletter.resolver
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentProviderService
 import org.springframework.stereotype.Component
 
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component
 class CandidateScoringSourceFactory(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val contentProviderService: ContentProviderService,
+    private val categoryService: CategoryService,
 ) {
     fun createContext(
         candidates: List<ExposureContentRecommendationCandidateRow>,
@@ -21,10 +23,12 @@ class CandidateScoringSourceFactory(
             return CandidateScoringSourceContext(
                 candidates = emptyList(),
                 candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
-                keywordWeightsByKeyword = keywordWeightsByKeyword,
+                keywordWeightsByKeywordId = keywordWeightsByKeyword.toKeywordIdMap(),
                 keywordsByContentId = emptyMap(),
                 categoryIds = categoryIds,
                 categoryMatchWeights = emptyMap(),
+                keywordCategoryWeightsByKeywordId = emptyMap(),
+                contentProviderCategoryWeightsByProviderId = emptyMap(),
             )
         }
 
@@ -34,15 +38,31 @@ class CandidateScoringSourceFactory(
                 .findKeywordsByContentIds(contentIds)
                 .groupBy({ it.contentId }, { it.keyword })
         val contentProviderIds = candidates.mapNotNull { it.contentProviderId }.distinct()
-        val categoryMatchWeights = contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds)
+        val allCategoryMatchWeights = contentProviderService.getAllCategoryMatchWeights(contentProviderIds)
+        val categoryIdSet = categoryIds.toSet()
+        val categoryMatchWeights =
+            allCategoryMatchWeights.filterKeys { (_, categoryId) ->
+                categoryId in categoryIdSet
+            }
+        val keywordIds =
+            keywordsByContentId
+                .values
+                .flatten()
+                .mapNotNull { it.id }
+                .distinct()
 
         return CandidateScoringSourceContext(
             candidates = candidates,
             candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
-            keywordWeightsByKeyword = keywordWeightsByKeyword,
+            keywordWeightsByKeywordId = keywordWeightsByKeyword.toKeywordIdMap(),
             keywordsByContentId = keywordsByContentId,
             categoryIds = categoryIds,
             categoryMatchWeights = categoryMatchWeights,
+            keywordCategoryWeightsByKeywordId =
+                categoryService
+                    .getKeywordCategoryWeightsByKeywordIds(keywordIds)
+                    .toCategoryWeightsByFirstId(),
+            contentProviderCategoryWeightsByProviderId = allCategoryMatchWeights.toCategoryWeightsByFirstId(),
         )
     }
 
@@ -60,8 +80,8 @@ class CandidateScoringSourceFactory(
                 contentProviderName = candidate.contentProviderName,
                 keywordNames = contentKeywords.map { it.name },
                 candidateSignals = context.candidateSignalsByExposureContentId[candidate.exposureContentId] ?: emptyList(),
-                positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, context.keywordWeightsByKeyword, multiplier),
-                negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, context.keywordWeightsByKeyword),
+                positiveKeywordSources = extractPositiveKeywordSources(contentKeywords, context.keywordWeightsByKeywordId, multiplier),
+                negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, context.keywordWeightsByKeywordId),
                 publishedDate = candidate.publishedAt,
                 publisherDuplicateCandidateCount = 0,
                 categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, context),
@@ -70,27 +90,27 @@ class CandidateScoringSourceFactory(
 
     private fun extractPositiveKeywordSources(
         keywords: List<ReservedKeyword>,
-        keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+        keywordWeightsByKeywordId: Map<Long, Double>,
         multiplier: Double,
     ): List<PositiveKeywordSource> =
         keywords
-            .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) > 0 }
+            .filter { keyword -> (keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0) > 0 }
             .map { keyword ->
                 PositiveKeywordSource(
-                    weight = (keywordWeightsByKeyword[keyword] ?: 0.0) * multiplier,
+                    weight = (keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0) * multiplier,
                     keywordName = keyword.name,
                 )
             }
 
     private fun extractNegativeKeywordSources(
         keywords: List<ReservedKeyword>,
-        keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+        keywordWeightsByKeywordId: Map<Long, Double>,
     ): List<NegativeKeywordSource> =
         keywords
-            .filter { keyword -> (keywordWeightsByKeyword[keyword] ?: 0.0) < 0 }
+            .filter { keyword -> (keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0) < 0 }
             .map { keyword ->
                 NegativeKeywordSource(
-                    weight = keywordWeightsByKeyword[keyword] ?: 0.0,
+                    weight = keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0,
                     keywordName = keyword.name,
                 )
             }
@@ -105,13 +125,31 @@ class CandidateScoringSourceFactory(
             context.categoryMatchWeights[contentProviderId to categoryId] ?: 0.0
         }
     }
+
+    private fun Map<ReservedKeyword, Double>.toKeywordIdMap(): Map<Long, Double> =
+        mapNotNull { (keyword, weight) ->
+            keyword.id?.let { it to weight }
+        }.toMap()
+
+    private fun Map<Pair<Long, Long>, Double>.toCategoryWeightsByFirstId(): Map<Long, List<CategoryWeight>> =
+        entries.groupBy(
+            keySelector = { (key, _) -> key.first },
+            valueTransform = { (key, weight) -> CategoryWeight(categoryId = key.second, weight = weight) },
+        )
 }
 
 data class CandidateScoringSourceContext(
     val candidates: List<ExposureContentRecommendationCandidateRow>,
     val candidateSignalsByExposureContentId: Map<Long, List<CandidateSourceSignal>>,
-    val keywordWeightsByKeyword: Map<ReservedKeyword, Double>,
+    val keywordWeightsByKeywordId: Map<Long, Double>,
     val keywordsByContentId: Map<Long, List<ReservedKeyword>>,
     val categoryIds: List<Long>,
     val categoryMatchWeights: Map<Pair<Long, Long>, Double>,
+    val keywordCategoryWeightsByKeywordId: Map<Long, List<CategoryWeight>>,
+    val contentProviderCategoryWeightsByProviderId: Map<Long, List<CategoryWeight>>,
+)
+
+data class CategoryWeight(
+    val categoryId: Long,
+    val weight: Double,
 )

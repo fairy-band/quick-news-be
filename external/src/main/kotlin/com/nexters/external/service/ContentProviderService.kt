@@ -39,4 +39,17 @@ class ContentProviderService(
                 key to mapping.weight
             }
     }
+
+    fun getAllCategoryMatchWeights(contentProviderIds: List<Long>): Map<Pair<Long, Long>, Double> {
+        if (contentProviderIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return contentProviderCategoryMappingRepository
+            .findByContentProviderIdIn(contentProviderIds)
+            .associate { mapping ->
+                val key = mapping.contentProvider.id!! to mapping.category.id!!
+                key to mapping.weight
+            }
+    }
 }

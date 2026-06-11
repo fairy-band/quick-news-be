@@ -4,6 +4,7 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentKeywordProjection
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentProviderService
 import io.mockk.every
 import io.mockk.mockk
@@ -15,17 +16,21 @@ import java.time.LocalDate
 class CandidateScoringSourceFactoryTest {
     private val contentKeywordMappingRepository = mockk<ContentKeywordMappingRepository>()
     private val contentProviderService = mockk<ContentProviderService>()
+    private val categoryService = mockk<CategoryService>()
     private val factory =
         CandidateScoringSourceFactory(
             contentKeywordMappingRepository = contentKeywordMappingRepository,
             contentProviderService = contentProviderService,
+            categoryService = categoryService,
         )
 
     @Test
-    fun `createSources should build scoring sources from preloaded keyword and category features`() {
+    fun `createSources should build scoring sources from id based keyword and category features`() {
         val candidate = candidate(exposureContentId = 1L, contentId = 100L, contentProviderId = 200L)
         val positiveKeyword = ReservedKeyword(id = 1L, name = "AI")
         val negativeKeyword = ReservedKeyword(id = 2L, name = "Legacy")
+        val contentPositiveKeyword = ReservedKeyword(id = 1L, name = "AI")
+        val contentNegativeKeyword = ReservedKeyword(id = 2L, name = "Legacy")
         val signals =
             listOf(
                 CandidateSourceSignal(
@@ -38,10 +43,19 @@ class CandidateScoringSourceFactoryTest {
 
         every { contentKeywordMappingRepository.findKeywordsByContentIds(listOf(candidate.contentId)) } returns
             listOf(
-                contentKeywordProjection(candidate.contentId, positiveKeyword),
-                contentKeywordProjection(candidate.contentId, negativeKeyword),
+                contentKeywordProjection(candidate.contentId, contentPositiveKeyword),
+                contentKeywordProjection(candidate.contentId, contentNegativeKeyword),
             )
-        every { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) } returns mapOf((200L to 10L) to 7.0)
+        every { contentProviderService.getAllCategoryMatchWeights(listOf(200L)) } returns
+            mapOf(
+                (200L to 10L) to 7.0,
+                (200L to 11L) to 3.0,
+            )
+        every { categoryService.getKeywordCategoryWeightsByKeywordIds(listOf(1L, 2L)) } returns
+            mapOf(
+                (1L to 10L) to 2.0,
+                (2L to 11L) to 4.0,
+            )
 
         val context =
             factory.createContext(
@@ -57,8 +71,19 @@ class CandidateScoringSourceFactoryTest {
         assertThat(source.positiveKeywordSources).containsExactly(PositiveKeywordSource(weight = 4.0, keywordName = "AI"))
         assertThat(source.negativeKeywordSources).containsExactly(NegativeKeywordSource(weight = -3.0, keywordName = "Legacy"))
         assertThat(source.categoryMatchBonus).isEqualTo(7.0)
+        assertThat(context.keywordCategoryWeightsByKeywordId)
+            .containsEntry(1L, listOf(CategoryWeight(categoryId = 10L, weight = 2.0)))
+        assertThat(context.contentProviderCategoryWeightsByProviderId)
+            .containsEntry(
+                200L,
+                listOf(
+                    CategoryWeight(categoryId = 10L, weight = 7.0),
+                    CategoryWeight(categoryId = 11L, weight = 3.0),
+                ),
+            )
         verify(exactly = 1) { contentKeywordMappingRepository.findKeywordsByContentIds(listOf(candidate.contentId)) }
-        verify(exactly = 1) { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) }
+        verify(exactly = 1) { contentProviderService.getAllCategoryMatchWeights(listOf(200L)) }
+        verify(exactly = 1) { categoryService.getKeywordCategoryWeightsByKeywordIds(listOf(1L, 2L)) }
     }
 
     private fun contentKeywordProjection(
