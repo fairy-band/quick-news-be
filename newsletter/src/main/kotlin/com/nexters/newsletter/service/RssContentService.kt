@@ -188,14 +188,15 @@ class RssContentService(
         newsletterSource: NewsletterSource,
         item: RssItem
     ): Content {
-        val contentProvider = resolveContentProvider(newsletterSource.sender)
+        val newsletterName = NewsletterProviderNameResolver.resolve(newsletterSource)
+        val contentProvider = resolveContentProvider(newsletterName)
         val imageUrl = item.imageUrl ?: representativeImageUrlExtractorService.extractFromPage(item.link)
 
         return Content(
             newsletterSourceId = newsletterSource.id,
             title = newsletterSource.subject ?: "Untitled",
             content = newsletterSource.content,
-            newsletterName = newsletterSource.sender,
+            newsletterName = newsletterName,
             originalUrl = item.link,
             imageUrl = imageUrl,
             publishedAt = newsletterSource.receivedDate.toLocalDate(),
