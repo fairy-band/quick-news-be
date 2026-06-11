@@ -22,7 +22,7 @@ class NewsletterSourceService(
             newsletters.filter { newsletter ->
                 !newsletterSourceRepository.existsBySenderEmailAndSubjectAndReceivedDate(
                     newsletter.senderEmail,
-                    newsletter.subject ?: "",
+                    newsletter.subject,
                     newsletter.receivedDate
                 )
             }
@@ -39,6 +39,17 @@ class NewsletterSourceService(
     ): List<NewsletterSource> = newsletterSourceRepository.findByReceivedDateBetween(startDate, endDate)
 
     fun findBySender(senderEmail: String): List<NewsletterSource> = newsletterSourceRepository.findBySenderEmail(senderEmail)
+
+    fun findBySenderEmailAndSubjectAndReceivedDate(
+        senderEmail: String,
+        subject: String?,
+        receivedDate: LocalDateTime,
+    ): NewsletterSource? =
+        newsletterSourceRepository.findBySenderEmailAndSubjectAndReceivedDate(
+            senderEmail = senderEmail,
+            subject = subject,
+            receivedDate = receivedDate,
+        )
 
     fun searchBySubject(keyword: String): List<NewsletterSource> = newsletterSourceRepository.findBySubjectContaining(keyword)
 

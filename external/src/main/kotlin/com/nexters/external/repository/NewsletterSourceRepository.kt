@@ -18,9 +18,15 @@ interface NewsletterSourceRepository : MongoRepository<NewsletterSource, String>
 
     fun existsBySenderEmailAndSubjectAndReceivedDate(
         senderEmail: String,
-        subject: String,
+        subject: String?,
         receivedDate: LocalDateTime
     ): Boolean
+
+    fun findBySenderEmailAndSubjectAndReceivedDate(
+        senderEmail: String,
+        subject: String?,
+        receivedDate: LocalDateTime
+    ): NewsletterSource?
 
     fun findBySender(sender: String): List<NewsletterSource>
 

@@ -32,7 +32,7 @@ class ContentService(
     ): Content {
         val contentProvider =
             contentProviderName.let { name ->
-                val existing = contentProviderRepository.findByNameWithLock(name)
+                val existing = contentProviderRepository.findFirstByNameOrderByIdAsc(name)
                 existing ?: createContentProvider(name, contentProviderType)
             }
 

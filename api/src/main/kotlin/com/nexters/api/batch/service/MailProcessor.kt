@@ -3,12 +3,13 @@ package com.nexters.api.batch.service
 import com.nexters.api.batch.dto.EmailMessage
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.service.NewsletterSourceService
+import com.nexters.newsletter.parser.MailParserFactory
 import com.nexters.newsletter.service.NewsletterProcessingService
+import jakarta.mail.internet.MimeUtility
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
-import java.time.ZoneId
 
 data class MailProcessingResult(
     val success: Boolean,
@@ -28,8 +29,60 @@ class MailProcessor(
     private val newsletterSourceService: NewsletterSourceService,
     private val newsletterProcessingService: NewsletterProcessingService,
 ) {
+    private val mailParserFactory = MailParserFactory()
+
+    fun shouldProcess(emailMessage: EmailMessage): Boolean {
+        val senderInfo = parseSenderInfo(emailMessage.from.firstOrNull() ?: "Unknown")
+        val parser = mailParserFactory.findProcessableParser(senderInfo.second, emailMessage.subject)
+        if (parser == null) {
+            logger.info(
+                "Skipping unsupported newsletter mail. senderEmail={}, subject={}",
+                senderInfo.second,
+                emailMessage.subject,
+            )
+            return false
+        }
+
+        val newsletterSource = convertToNewsletterSource(emailMessage)
+        val existingNewsletter =
+            newsletterSourceService.findBySenderEmailAndSubjectAndReceivedDate(
+                senderEmail = newsletterSource.senderEmail,
+                subject = newsletterSource.subject,
+                receivedDate = newsletterSource.receivedDate,
+            )
+        if (existingNewsletter != null) {
+            logger.info(
+                "Skipping duplicate newsletter source. id={}, senderEmail={}, subject={}, receivedDate={}",
+                existingNewsletter.id,
+                newsletterSource.senderEmail,
+                newsletterSource.subject,
+                newsletterSource.receivedDate,
+            )
+            return false
+        }
+
+        return true
+    }
+
     fun saveNewsletterSource(emailMessage: EmailMessage): NewsletterSource {
         val newsletterSource = convertToNewsletterSource(emailMessage)
+        val existingNewsletter =
+            newsletterSourceService.findBySenderEmailAndSubjectAndReceivedDate(
+                senderEmail = newsletterSource.senderEmail,
+                subject = newsletterSource.subject,
+                receivedDate = newsletterSource.receivedDate,
+            )
+        if (existingNewsletter != null) {
+            logger.info(
+                "Skipping duplicate newsletter source. id={}, senderEmail={}, subject={}, receivedDate={}",
+                existingNewsletter.id,
+                newsletterSource.senderEmail,
+                newsletterSource.subject,
+                newsletterSource.receivedDate,
+            )
+            throw IllegalStateException("Duplicate newsletter source: ${existingNewsletter.id}")
+        }
+
         val savedNewsletter = newsletterSourceService.save(newsletterSource)
         logger.info("Newsletter saved successfully with ID: ${savedNewsletter.id}")
         return savedNewsletter
@@ -52,21 +105,28 @@ class MailProcessor(
             contentType = emailMessage.contentType ?: "text/plain",
             htmlContent = emailMessage.htmlContent, // HTML 콘텐츠 할당
             receivedDate =
-                emailMessage.sentDate?.atZone(ZoneId.systemDefault())?.toLocalDateTime()
+                emailMessage.receivedDate
+                    ?: emailMessage.sentDate
                     ?: LocalDateTime.now(),
-            headers = emptyMap(), // EmailMessage에 headers 필드가 없음
+            headers = emailMessage.headers,
         )
     }
 
     private fun parseSenderInfo(sender: String): Pair<String, String> {
-        val emailMatch = emailRegex.find(sender)
+        val decodedSender = runCatching { MimeUtility.decodeText(sender) }.getOrDefault(sender)
+        val emailMatch = emailRegex.find(decodedSender) ?: emailRegex.find(sender)
 
         return if (emailMatch != null) {
             val email = emailMatch.groupValues[1]
-            val name = sender.substringBefore("<").trim()
+            val name =
+                decodedSender
+                    .substringBefore("<")
+                    .trim()
+                    .trim('"')
+                    .ifBlank { email }
             name to email
         } else {
-            sender to sender
+            decodedSender to decodedSender
         }
     }
 

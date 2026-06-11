@@ -1,6 +1,7 @@
 package com.nexters.api.batch.dto
 
 import jakarta.mail.BodyPart
+import jakarta.mail.Header
 import jakarta.mail.Multipart
 import jakarta.mail.Part
 import jakarta.mail.internet.MimeMessage
@@ -63,7 +64,8 @@ sealed class EmailMessage(
     // 구조화된 content
     val textContent: String?,
     val htmlContent: String?,
-    val attachments: List<AttachmentInfo>
+    val attachments: List<AttachmentInfo>,
+    val headers: Map<String, String>,
 ) {
     data class StringContent(
         private val emailFrom: List<String>,
@@ -75,6 +77,7 @@ sealed class EmailMessage(
         private val emailTextContent: String?,
         private val emailHtmlContent: String?,
         private val emailAttachments: List<AttachmentInfo>,
+        private val emailHeaders: Map<String, String>,
         val content: String
     ) : EmailMessage(
             emailFrom,
@@ -85,7 +88,8 @@ sealed class EmailMessage(
             emailExtractedContent,
             emailTextContent,
             emailHtmlContent,
-            emailAttachments
+            emailAttachments,
+            emailHeaders,
         )
 
     data class MultipartContent(
@@ -97,7 +101,8 @@ sealed class EmailMessage(
         private val emailExtractedContent: String,
         private val emailTextContent: String?,
         private val emailHtmlContent: String?,
-        private val emailAttachments: List<AttachmentInfo>
+        private val emailAttachments: List<AttachmentInfo>,
+        private val emailHeaders: Map<String, String>,
     ) : EmailMessage(
             emailFrom,
             emailSubject,
@@ -107,7 +112,8 @@ sealed class EmailMessage(
             emailExtractedContent,
             emailTextContent,
             emailHtmlContent,
-            emailAttachments
+            emailAttachments,
+            emailHeaders,
         )
 
     /**
@@ -130,6 +136,7 @@ sealed class EmailMessage(
         private val emailTextContent: String?,
         private val emailHtmlContent: String?,
         private val emailAttachments: List<AttachmentInfo>,
+        private val emailHeaders: Map<String, String>,
         val content: InputStream
     ) : EmailMessage(
             emailFrom,
@@ -140,7 +147,8 @@ sealed class EmailMessage(
             emailExtractedContent,
             emailTextContent,
             emailHtmlContent,
-            emailAttachments
+            emailAttachments,
+            emailHeaders,
         )
 
     data class UnknownContent(
@@ -153,6 +161,7 @@ sealed class EmailMessage(
         private val emailTextContent: String?,
         private val emailHtmlContent: String?,
         private val emailAttachments: List<AttachmentInfo>,
+        private val emailHeaders: Map<String, String>,
         val content: Any?,
         val contentClassName: String?
     ) : EmailMessage(
@@ -164,7 +173,8 @@ sealed class EmailMessage(
             emailExtractedContent,
             emailTextContent,
             emailHtmlContent,
-            emailAttachments
+            emailAttachments,
+            emailHeaders,
         )
 
     companion object {
@@ -185,6 +195,7 @@ sealed class EmailMessage(
                     ?.atZone(ZoneId.systemDefault())
                     ?.toLocalDateTime()
             val contentType = mimeMessage.contentType
+            val headers = extractHeaders(mimeMessage)
 
             return try {
                 // MimeMessage를 독립적으로 복사하여 세션과 분리
@@ -209,6 +220,7 @@ sealed class EmailMessage(
                             textContent,
                             htmlContent,
                             emptyList(),
+                            headers,
                             content
                         )
                     }
@@ -229,13 +241,13 @@ sealed class EmailMessage(
                             extractedContent,
                             extractedContentResult.textContent,
                             extractedContentResult.htmlContent,
-                            extractedContentResult.attachments
+                            extractedContentResult.attachments,
+                            headers,
                         )
                     }
                     is InputStream -> {
-                        val extractedContent = extractInputStreamContent(content, contentType)
-                        // InputStream을 바이트 배열로 읽고 새로운 InputStream 생성
                         val bytes = content.readBytes()
+                        val extractedContent = extractInputStreamContent(bytes.inputStream(), contentType)
                         val newInputStream = bytes.inputStream()
                         StreamContent(
                             from,
@@ -247,6 +259,7 @@ sealed class EmailMessage(
                             extractedContent,
                             null,
                             emptyList(),
+                            headers,
                             newInputStream
                         )
                     }
@@ -264,6 +277,7 @@ sealed class EmailMessage(
                             null,
                             null,
                             emptyList(),
+                            headers,
                             content,
                             content?.javaClass?.simpleName
                         )
@@ -283,10 +297,21 @@ sealed class EmailMessage(
                     null,
                     null,
                     emptyList(),
+                    headers,
                     null,
                     "ContentExtractionFailed"
                 )
             }
+        }
+
+        private fun extractHeaders(mimeMessage: MimeMessage): Map<String, String> {
+            val headers = mutableMapOf<String, String>()
+            val allHeaders = mimeMessage.allHeaders
+            while (allHeaders.hasMoreElements()) {
+                val header = allHeaders.nextElement() as Header
+                headers[header.name] = decodeText(header.value, null)
+            }
+            return headers
         }
 
         private fun extractInputStreamContent(

@@ -204,6 +204,8 @@ interface ContentRepository : JpaRepository<Content, Long> {
     // RSS 피드용 메서드들
     fun findByOriginalUrl(originalUrl: String): Content?
 
+    fun existsByOriginalUrl(originalUrl: String): Boolean
+
     fun findByNewsletterName(newsletterName: String): List<Content>
 
     fun findByPublishedAtBetween(

@@ -100,9 +100,6 @@ class MailIntegrationConfig(
             handle<EmailMessage> { payload, headers ->
                 try {
                     logger.info("메일 전처리: ${payload.subject}")
-                    // 여기서 필요한 전처리 로직 수행 (필터링, 검증 등)
-
-                    // 메일 저장 채널로 전달
                     payload
                 } catch (e: Exception) {
                     logger.error("메일 전처리 중 오류 발생: ${payload.subject}", e)
@@ -116,6 +113,10 @@ class MailIntegrationConfig(
                             .build(),
                     )
                 }
+            }
+
+            filter<EmailMessage> { payload ->
+                mailProcessor.shouldProcess(payload)
             }
 
             // 메일 저장 채널로 라우팅
