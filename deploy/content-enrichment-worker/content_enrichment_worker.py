@@ -64,7 +64,9 @@ TITLE_STOP_WORDS = {
 }
 PROVIDER_HINTS = (
     ("news@hada.io", "GeekNews"),
+    ("news@hada.io", "GeekNews Weekly"),
     ("news.hada.io", "GeekNews"),
+    ("news.hada.io", "GeekNews Weekly"),
     ("awesome ios weekly", "Awesome iOS Weekly"),
     ("jacobbartlett@substack.com", "Jacob's Tech Tavern"),
     ("jacob's tech tavern", "Jacob's Tech Tavern"),
@@ -98,7 +100,7 @@ class Settings:
     def from_env(cls) -> "Settings":
         mongodb_uri = required_env("MONGODB_URI")
         database_name = os.getenv("MONGODB_DATABASE") or database_from_uri(mongodb_uri) or "newsletter"
-        allowed_names = string_set(os.getenv("ENRICHMENT_ALLOWED_NEWSLETTER_NAMES", "GeekNews"))
+        allowed_names = string_set(os.getenv("ENRICHMENT_ALLOWED_NEWSLETTER_NAMES", "GeekNews,GeekNews Weekly"))
         if not allowed_names:
             raise ValueError("ENRICHMENT_ALLOWED_NEWSLETTER_NAMES must not be empty")
 

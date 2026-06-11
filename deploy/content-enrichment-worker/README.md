@@ -15,7 +15,7 @@ Postgres `contents`.
 ```text
 MONGODB_URI=...
 MONGODB_DATABASE=newsletter
-ENRICHMENT_ALLOWED_NEWSLETTER_NAMES=GeekNews
+ENRICHMENT_ALLOWED_NEWSLETTER_NAMES=GeekNews,GeekNews Weekly
 ENRICHMENT_LIMIT=5
 ENRICHMENT_INTERVAL_SECONDS=3600
 ENRICHMENT_LOOKBACK_DAYS=90
@@ -27,8 +27,9 @@ ENRICHMENT_RUN_ONCE=true
 CONTENT_ENRICHMENT_CRON_SCHEDULE="17 * * * *"
 ```
 
-`ENRICHMENT_ALLOWED_NEWSLETTER_NAMES` defaults to `GeekNews` because it has the
-most reliable URL structure among the currently reviewed publishers.
+`ENRICHMENT_ALLOWED_NEWSLETTER_NAMES` defaults to `GeekNews,GeekNews Weekly`
+because `news.hada.io` has the most reliable URL structure among the currently
+reviewed publishers.
 
 ## Production Run
 
