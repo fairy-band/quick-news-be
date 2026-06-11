@@ -15,6 +15,7 @@ Postgres `contents`.
 ```text
 MONGODB_URI=...
 MONGODB_DATABASE=newsletter
+POSTGRES_DSN=...
 ENRICHMENT_ALLOWED_NEWSLETTER_NAMES=GeekNews,GeekNews Weekly
 ENRICHMENT_LIMIT=5
 ENRICHMENT_INTERVAL_SECONDS=3600
@@ -22,6 +23,8 @@ ENRICHMENT_LOOKBACK_DAYS=90
 ENRICHMENT_STALE_DAYS=30
 ENRICHMENT_MAX_ITEMS_PER_SOURCE=20
 ENRICHMENT_CONCURRENCY=1
+ENRICHMENT_UPDATE_POSTGRES=false
+ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH=700
 ENRICHMENT_DRY_RUN=false
 ENRICHMENT_RUN_ONCE=true
 CONTENT_ENRICHMENT_CRON_SCHEDULE="17 * * * *"
@@ -30,6 +33,11 @@ CONTENT_ENRICHMENT_CRON_SCHEDULE="17 * * * *"
 `ENRICHMENT_ALLOWED_NEWSLETTER_NAMES` defaults to `GeekNews,GeekNews Weekly`
 because `news.hada.io` has the most reliable URL structure among the currently
 reviewed publishers.
+
+When `ENRICHMENT_UPDATE_POSTGRES=true`, the worker also updates matching
+Postgres `contents` rows by `newsletter_source_id` and `original_url`, but only
+when the current content is shorter than `ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH`
+and the enriched content is longer.
 
 ## Production Run
 
@@ -48,7 +56,9 @@ The default schedule is hourly at minute 17. Override it with
 ```bash
 pip install -r deploy/content-enrichment-worker/requirements.txt
 MONGODB_URI='mongodb://user:password@host:27017/newsletter?authSource=newsletter' \
+POSTGRES_DSN='postgresql://user:password@host:5432/newsletter' \
 ENRICHMENT_DRY_RUN=true \
+ENRICHMENT_UPDATE_POSTGRES=false \
 ENRICHMENT_RUN_ONCE=true \
 python deploy/content-enrichment-worker/content_enrichment_worker.py
 ```

@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 import aiohttp
+import asyncpg
 import trafilatura
 from bs4 import BeautifulSoup
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -95,6 +96,9 @@ class Settings:
     request_timeout_seconds: int
     dry_run: bool
     run_once: bool
+    postgres_dsn: str | None
+    update_postgres: bool
+    postgres_max_existing_content_length: int
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -120,6 +124,9 @@ class Settings:
             request_timeout_seconds=int(os.getenv("ENRICHMENT_REQUEST_TIMEOUT_SECONDS", "8")),
             dry_run=boolean_env("ENRICHMENT_DRY_RUN", False),
             run_once=boolean_env("ENRICHMENT_RUN_ONCE", False),
+            postgres_dsn=os.getenv("POSTGRES_DSN"),
+            update_postgres=boolean_env("ENRICHMENT_UPDATE_POSTGRES", False),
+            postgres_max_existing_content_length=int(os.getenv("ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH", "700")),
         )
 
 
@@ -138,26 +145,38 @@ async def main() -> None:
     settings = Settings.from_env()
     client = AsyncIOMotorClient(settings.mongodb_uri)
     collection = client[settings.database_name][settings.collection_name]
+    postgres_pool = await create_postgres_pool(settings)
 
     LOGGER.info(
-        "Starting content enrichment worker. database=%s collection=%s allowed=%s dryRun=%s",
+        "Starting content enrichment worker. database=%s collection=%s allowed=%s dryRun=%s updatePostgres=%s",
         settings.database_name,
         settings.collection_name,
         sorted(settings.allowed_newsletter_names),
         settings.dry_run,
+        settings.update_postgres,
     )
 
     try:
         while True:
-            await run_once(collection, settings)
+            await run_once(collection, settings, postgres_pool)
             if settings.run_once:
                 break
             await asyncio.sleep(settings.interval_seconds)
     finally:
+        if postgres_pool:
+            await postgres_pool.close()
         client.close()
 
 
-async def run_once(collection: Any, settings: Settings) -> None:
+async def create_postgres_pool(settings: Settings) -> asyncpg.Pool | None:
+    if not settings.update_postgres:
+        return None
+    if not settings.postgres_dsn:
+        raise ValueError("POSTGRES_DSN is required when ENRICHMENT_UPDATE_POSTGRES=true")
+    return await asyncpg.create_pool(dsn=settings.postgres_dsn, min_size=1, max_size=1)
+
+
+async def run_once(collection: Any, settings: Settings, postgres_pool: asyncpg.Pool | None) -> None:
     candidates = await find_candidate_sources(collection, settings)
     LOGGER.info("Found %s source candidates", len(candidates))
     if not candidates:
@@ -167,7 +186,7 @@ async def run_once(collection: Any, settings: Settings) -> None:
     connector = aiohttp.TCPConnector(limit=settings.concurrency)
     async with aiohttp.ClientSession(timeout=timeout, connector=connector, headers={"User-Agent": USER_AGENT}) as session:
         for source in candidates:
-            await enrich_source(collection, session, source, settings)
+            await enrich_source(collection, session, source, settings, postgres_pool)
 
 
 async def find_candidate_sources(collection: Any, settings: Settings) -> list[dict[str, Any]]:
@@ -196,6 +215,17 @@ async def find_candidate_sources(collection: Any, settings: Settings) -> list[di
 
 def provider_query(allowed_newsletter_names: set[str]) -> list[dict[str, Any]]:
     conditions: list[dict[str, Any]] = []
+    for provider_name in allowed_newsletter_names:
+        regex = {"$regex": re.escape(provider_name), "$options": "i"}
+        conditions.extend(
+            [
+                {"senderEmail": regex},
+                {"sender": regex},
+                {"headers.RSS-Feed-URL": regex},
+                {"headers.RSS-Item-URL": regex},
+            ]
+        )
+
     for hint, provider_name in PROVIDER_HINTS:
         if provider_name not in allowed_newsletter_names:
             continue
@@ -212,7 +242,13 @@ def provider_query(allowed_newsletter_names: set[str]) -> list[dict[str, Any]]:
     return conditions or [{"_id": {"$exists": False}}]
 
 
-async def enrich_source(collection: Any, session: aiohttp.ClientSession, source: dict[str, Any], settings: Settings) -> None:
+async def enrich_source(
+    collection: Any,
+    session: aiohttp.ClientSession,
+    source: dict[str, Any],
+    settings: Settings,
+    postgres_pool: asyncpg.Pool | None,
+) -> None:
     source_id = source.get("_id")
     existing_items = source.get("enrichment", {}).get("webPage", {}).get("items", [])
     existing_by_url = {
@@ -229,6 +265,7 @@ async def enrich_source(collection: Any, session: aiohttp.ClientSession, source:
 
     if not candidates:
         await update_source(collection, source, existing_items, aggregate_status(existing_items), settings, "no-new-url-candidates")
+        await sync_postgres_contents(postgres_pool, source, existing_items, settings)
         LOGGER.info("No new URL candidates. sourceId=%s", source_id)
         return
 
@@ -239,20 +276,25 @@ async def enrich_source(collection: Any, session: aiohttp.ClientSession, source:
     status = aggregate_status(merged_items)
 
     await update_source(collection, source, merged_items, status, settings)
+    updated_contents = await sync_postgres_contents(postgres_pool, source, merged_items, settings)
     LOGGER.info(
-        "Processed source. sourceId=%s candidates=%s success=%s skipped=%s failed=%s",
+        "Processed source. sourceId=%s candidates=%s success=%s skipped=%s failed=%s postgresUpdated=%s",
         source_id,
         len(candidates),
         sum(1 for item in new_items if item["status"] == "success"),
         sum(1 for item in new_items if item["status"] == "skipped"),
         sum(1 for item in new_items if item["status"] == "failed"),
+        updated_contents,
     )
 
 
 def extract_link_candidates(source: dict[str, Any]) -> list[LinkCandidate]:
     html = source.get("htmlContent") or ""
     text = source.get("content") or ""
+    headers = source.get("headers") or {}
     links: list[LinkCandidate] = []
+
+    append_candidate(links, clean_url(headers.get("RSS-Item-URL", "")), source.get("subject"))
 
     if html:
         soup = BeautifulSoup(html, "lxml")
@@ -268,6 +310,54 @@ def extract_link_candidates(source: dict[str, Any]) -> list[LinkCandidate]:
     for link in links:
         deduped.setdefault(link.normalized_url, link)
     return list(deduped.values())
+
+
+async def sync_postgres_contents(
+    postgres_pool: asyncpg.Pool | None,
+    source: dict[str, Any],
+    items: list[dict[str, Any]],
+    settings: Settings,
+) -> int:
+    if not postgres_pool:
+        return 0
+
+    source_id = str(source.get("_id", ""))
+    if not source_id:
+        return 0
+
+    if settings.dry_run:
+        LOGGER.info("Dry-run postgres update skipped. sourceId=%s items=%s", source_id, len(items))
+        return 0
+
+    updated_count = 0
+    async with postgres_pool.acquire() as connection:
+        for item in items:
+            content = item.get("content")
+            url = item.get("url")
+            if item.get("status") != "success" or not content or not url:
+                continue
+
+            result = await connection.execute(
+                """
+                UPDATE contents
+                SET
+                    content = $1,
+                    image_url = COALESCE(NULLIF(image_url, ''), $2),
+                    updated_at = NOW()
+                WHERE newsletter_source_id = $3
+                  AND original_url = $4
+                  AND length(content) <= $5
+                  AND length(content) < length($1)
+                """,
+                content,
+                item.get("imageUrl"),
+                source_id,
+                url,
+                settings.postgres_max_existing_content_length,
+            )
+            updated_count += int(result.rsplit(" ", 1)[-1])
+
+    return updated_count
 
 
 def append_candidate(links: list[LinkCandidate], url: str, title: str | None) -> None:
