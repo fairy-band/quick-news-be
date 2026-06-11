@@ -6,7 +6,7 @@ echo "🧹 Docker 이미지 정리..."
 docker image prune -f
 
 echo "📥 최신 서비스 이미지 pull 중..."
-docker compose pull api nginx
+docker compose pull api nginx content-enrichment-worker
 
 echo "🛑 기존 서비스 중지..."
 docker compose down
@@ -20,7 +20,10 @@ sleep 15
 echo "🔍 nginx 컨테이너 로그 확인..."
 docker logs newsletter-nginx --tail 10
 
+echo "🔍 content enrichment worker 로그 확인..."
+docker logs newsletter-content-enrichment-worker --tail 20
+
 echo "🔍 서비스 상태 확인..."
-docker compose ps api nginx
+docker compose ps api nginx content-enrichment-worker
 
 echo "✅ 배포 완료!"

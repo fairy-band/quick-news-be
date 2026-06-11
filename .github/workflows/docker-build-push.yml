@@ -24,7 +24,7 @@ jobs:
         id: changes
         run: |
           echo "java_changed=$(git diff --name-only HEAD~1 HEAD | grep -E '\.(java|kt|gradle|yml)$' | grep -v 'docker-compose.yml\|\.github' | wc -l)" >> $GITHUB_OUTPUT
-          echo "config_changed=$(git diff --name-only HEAD~1 HEAD | grep -E '(docker-compose\.yml|nginx\.conf|deploy\.sh)$' | wc -l)" >> $GITHUB_OUTPUT
+          echo "config_changed=$(git diff --name-only HEAD~1 HEAD | grep -E '(docker-compose\.yml|nginx\.conf|deploy\.sh|content-enrichment-worker/)' | wc -l)" >> $GITHUB_OUTPUT
 
       - name: Set up JDK 25
         if: steps.changes.outputs.java_changed > 0
@@ -56,6 +56,16 @@ jobs:
           tags: |
             ahj0/fairy-band:api
             ahj0/fairy-band:api-${{ github.sha }}
+          platforms: linux/amd64
+
+      - name: Build and push content enrichment worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./deploy/content-enrichment-worker
+          push: true
+          tags: |
+            ahj0/fairy-band:content-enrichment-worker
+            ahj0/fairy-band:content-enrichment-worker-${{ github.sha }}
           platforms: linux/amd64
 
       - name: Discord notification for build
