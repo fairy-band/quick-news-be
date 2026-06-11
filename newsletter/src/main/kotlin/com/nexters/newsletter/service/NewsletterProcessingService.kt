@@ -14,6 +14,7 @@ import com.nexters.external.service.RepresentativeImageUrlExtractorService
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParserFactory
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -26,6 +27,7 @@ class NewsletterProcessingService(
     private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
     private val representativeImageUrlExtractorService: RepresentativeImageUrlExtractorService,
+    private val newsletterContentGroupingServiceProvider: ObjectProvider<NewsletterContentGroupingService>,
 ) {
     private val logger = LoggerFactory.getLogger(NewsletterProcessingService::class.java)
     private val mailParserFactory = MailParserFactory()
@@ -75,7 +77,7 @@ class NewsletterProcessingService(
             val newsletterSource = newsletterSourceService.findById(newsletterSourceId)!!
 
             val parser =
-                mailParserFactory.findParser(newsletterSource.senderEmail)
+                mailParserFactory.findProcessableParser(newsletterSource.senderEmail, newsletterSource.subject)
                     ?: return listOf() // 파서가 없는 경우 처리하지 않는다.
 
             logger.info("Starting complete newsletter processing for source ID: $newsletterSourceId")
@@ -97,9 +99,10 @@ class NewsletterProcessingService(
             }
 
             val createdContents = parseContents(newsletterSource, parsedContents)
+            val contentsForProcessing = groupContentsForProcessing(newsletterSourceId, createdContents)
 
             logger.info("End complete newsletter processing for source ID: $newsletterSourceId")
-            return createdContents.map { processExistingContent(it) }
+            return contentsForProcessing.map { processExistingContent(it) }
         } catch (e: Exception) {
             logger.error("Failed to process newsletter source ID: $newsletterSourceId", e)
         }
@@ -113,7 +116,8 @@ class NewsletterProcessingService(
     ): List<Content> {
         logger.info("Creating ${parsedContents.size} contents from parsed data")
 
-        val contentProvider = resolveContentProvider(newsletterSource.sender)
+        val newsletterName = resolveNewsletterName(newsletterSource)
+        val contentProvider = resolveContentProvider(newsletterName)
 
         return parsedContents.map { mailContent ->
             // Extract original URL from RSS header if available, otherwise use parsed link
@@ -125,7 +129,7 @@ class NewsletterProcessingService(
                     newsletterSourceId = newsletterSource.id,
                     title = mailContent.title,
                     content = mailContent.content,
-                    newsletterName = newsletterSource.sender,
+                    newsletterName = newsletterName,
                     originalUrl = originalUrl,
                     imageUrl = imageUrl,
                     publishedAt = newsletterSource.receivedDate.toLocalDate(),
@@ -139,6 +143,35 @@ class NewsletterProcessingService(
             savedContent
         }
     }
+
+    private fun groupContentsForProcessing(
+        newsletterSourceId: String,
+        createdContents: List<Content>,
+    ): List<Content> {
+        val groupingService = newsletterContentGroupingServiceProvider.getIfAvailable() ?: return createdContents
+        val groupedContents = groupingService.groupNewsletterSource(newsletterSourceId)
+
+        logger.info(
+            "Grouped newsletter source contents. sourceId={}, created={}, remainingForProcessing={}",
+            newsletterSourceId,
+            createdContents.size,
+            groupedContents.size,
+        )
+
+        return groupedContents
+    }
+
+    private fun resolveNewsletterName(newsletterSource: NewsletterSource): String =
+        newsletterSource.providerNameFromHint()
+            ?: newsletterSource.sender.takeIf { sender -> sender.isNotBlank() }
+            ?: newsletterSource.senderEmail
+
+    private fun NewsletterSource.providerNameFromHint(): String? {
+        val haystack = "${senderEmail.normalizedEmail()}\n${sender.lowercase()}"
+        return PROVIDER_NAME_HINTS.entries.firstOrNull { (hint, _) -> haystack.contains(hint) }?.value
+    }
+
+    private fun String.normalizedEmail(): String = trim().lowercase()
 
     private fun resolveContentProvider(newsletterName: String): ContentProvider? =
         try {
@@ -176,5 +209,42 @@ class NewsletterProcessingService(
 
     companion object {
         private const val MAX_CONTENT_LENGTH = 10_000 // 콘텐츠당 최대 길이 (약 20K-30K 토큰)
+
+        private val PROVIDER_NAME_HINTS =
+            linkedMapOf(
+                "jsw@peterc.org" to "JavaScript Weekly",
+                "javascript weekly" to "JavaScript Weekly",
+                "newsletter@libhunt.com" to "Java Weekly",
+                "java weekly" to "Java Weekly",
+                "kotlinweekly.net" to "Kotlin Weekly",
+                "kotlin weekly" to "Kotlin Weekly",
+                "news@hada.io" to "GeekNews Weekly",
+                "noreply@maeil-mail.kr" to "Maeil Mail",
+                "kofearticle@substack.com" to "Korean FE Article",
+                "dan@tldrnewsletter.com" to "TLDR",
+                "eugen@baeldung.com" to "Baeldung",
+                "yozm_help@wishket.com" to "Yozm",
+                "tyler@ui.dev" to "Bytes",
+                "submissions@webtoolsweekly.com" to "Web Tools Weekly",
+                "submissions@vscode.email" to "VS Code Email",
+                "pragmaticengineer@substack.com" to "The Pragmatic Engineer",
+                "pragmaticengineer+deepdives@substack.com" to "The Pragmatic Engineer",
+                "thepracticalstack461@substack.com" to "The Practical Stack",
+                "thecodercafe+concepts@substack.com" to "The Coder Cafe",
+                "architectureweekly@substack.com" to "Architecture Weekly",
+                "fatbobman@substack.com" to "Fatbobman's Swift Weekly",
+                "jacobbartlett@substack.com" to "Jacob's Tech Tavern",
+                "react@cooperpress.com" to "React Status",
+                "frontend@cooperpress.com" to "Frontend Focus",
+                "node@cooperpress.com" to "Node Weekly",
+                "postgres@cooperpress.com" to "Postgres Weekly",
+                "peter@golangweekly.com" to "Go Weekly",
+                "rahul@pythonweekly.com" to "Python Weekly",
+                "contact@androidweekly.net" to "Android Weekly",
+                "itworld@techlibrary.co.kr" to "ITWorld Korea",
+                "css-weekly@beehiiv.com" to "CSS Weekly",
+                "swiftwithvincent.com" to "Swift with Vincent",
+                "ilbuntok.com" to "일분톡",
+            )
     }
 }
