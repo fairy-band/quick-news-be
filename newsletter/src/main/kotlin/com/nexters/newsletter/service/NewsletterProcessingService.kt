@@ -4,6 +4,7 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.entity.WebPageEnrichmentItem
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 import java.time.LocalDateTime
 
 @Service
@@ -122,13 +124,18 @@ class NewsletterProcessingService(
         return parsedContents.map { mailContent ->
             // Extract original URL from RSS header if available, otherwise use parsed link
             val originalUrl = newsletterSource.headers["RSS-Item-URL"] ?: mailContent.link
-            val imageUrl = mailContent.imageUrl ?: representativeImageUrlExtractorService.extractFromPage(originalUrl)
+            val enrichmentItem = newsletterSource.findSuccessfulWebPageEnrichment(originalUrl)
+            val imageUrl =
+                mailContent.imageUrl
+                    ?: enrichmentItem?.imageUrl?.takeIf { imageUrl -> imageUrl.isNotBlank() }
+                    ?: representativeImageUrlExtractorService.extractFromPage(originalUrl)
+            val contentText = enrichmentItem?.content?.takeIf { content -> content.isNotBlank() } ?: mailContent.content
 
             val content =
                 Content(
                     newsletterSourceId = newsletterSource.id,
                     title = mailContent.title,
-                    content = mailContent.content,
+                    content = contentText,
                     newsletterName = newsletterName,
                     originalUrl = originalUrl,
                     imageUrl = imageUrl,
@@ -139,9 +146,29 @@ class NewsletterProcessingService(
                 )
 
             val savedContent = contentService.save(content)
-            logger.debug("Created content: ${savedContent.title} (ID: ${savedContent.id})")
+            logger.debug(
+                "Created content: {} (ID: {}, contentLength: {})",
+                savedContent.title,
+                savedContent.id,
+                savedContent.content.length,
+            )
             savedContent
         }
+    }
+
+    private fun NewsletterSource.findSuccessfulWebPageEnrichment(originalUrl: String): WebPageEnrichmentItem? {
+        val normalizedOriginalUrl = originalUrl.normalizedForEnrichment()
+        val items =
+            enrichment
+                ?.webPage
+                ?.items
+                .orEmpty()
+                .filter { item -> item.status.equals(ENRICHMENT_STATUS_SUCCESS, ignoreCase = true) }
+                .filter { item -> !item.content.isNullOrBlank() }
+
+        return items.firstOrNull { item -> item.url.trim() == originalUrl.trim() }
+            ?: items.firstOrNull { item -> item.normalizedUrl?.trim() == normalizedOriginalUrl }
+            ?: items.firstOrNull { item -> item.url.normalizedForEnrichment() == normalizedOriginalUrl }
     }
 
     private fun groupContentsForProcessing(
@@ -199,5 +226,38 @@ class NewsletterProcessingService(
 
     companion object {
         private const val MAX_CONTENT_LENGTH = 10_000 // 콘텐츠당 최대 길이 (약 20K-30K 토큰)
+        private const val ENRICHMENT_STATUS_SUCCESS = "success"
+    }
+}
+
+private val TRACKING_QUERY_KEYS =
+    setOf(
+        "fbclid",
+        "gclid",
+        "mc_cid",
+        "mc_eid",
+    )
+
+private fun String.normalizedForEnrichment(): String {
+    val value = trim()
+    return runCatching {
+        val uri = URI(value)
+        val scheme = uri.scheme?.lowercase() ?: return@runCatching value.substringBefore("#").trimEnd('/')
+        val host = uri.host?.lowercase() ?: return@runCatching value.substringBefore("#").trimEnd('/')
+        val path = uri.rawPath.orEmpty().ifBlank { "/" }.trimEnd('/').ifBlank { "/" }
+        val query =
+            uri.rawQuery
+                ?.split("&")
+                ?.filter { parameter ->
+                    val key = parameter.substringBefore("=").lowercase()
+                    !key.startsWith("utm_") && key !in TRACKING_QUERY_KEYS
+                }
+                ?.sorted()
+                ?.joinToString("&")
+                ?.takeIf { it.isNotBlank() }
+
+        URI(scheme, null, host, uri.port, path, query, null).toString()
+    }.getOrElse {
+        value.substringBefore("#").trimEnd('/')
     }
 }

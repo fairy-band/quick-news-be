@@ -23,10 +23,34 @@ data class NewsletterSource(
     val receivedDate: LocalDateTime,
     val headers: Map<String, String> = emptyMap(),
     val attachments: List<Attachment> = emptyList(),
+    val enrichment: NewsletterSourceEnrichment? = null,
     @CreatedDate
     val createdAt: LocalDateTime? = null,
     @LastModifiedDate
     val updatedAt: LocalDateTime? = null
+)
+
+data class NewsletterSourceEnrichment(
+    val webPage: WebPageEnrichment? = null,
+)
+
+data class WebPageEnrichment(
+    val version: Int = 1,
+    val status: String? = null,
+    val processedAt: LocalDateTime? = null,
+    val items: List<WebPageEnrichmentItem> = emptyList(),
+)
+
+data class WebPageEnrichmentItem(
+    val url: String,
+    val normalizedUrl: String? = null,
+    val title: String? = null,
+    val content: String? = null,
+    val imageUrl: String? = null,
+    val status: String,
+    val reason: String? = null,
+    val fetchedAt: LocalDateTime? = null,
+    val contentHash: String? = null,
 )
 
 data class Attachment(
