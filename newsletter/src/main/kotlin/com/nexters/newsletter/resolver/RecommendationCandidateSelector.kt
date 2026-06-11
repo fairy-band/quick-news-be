@@ -111,13 +111,18 @@ class RecommendationCandidateSelector(
                     }
             }
 
-        candidate.contentProviderId?.let { contentProviderId ->
-            contentProviderCategoryWeightsByProviderId[contentProviderId]
+        val providerCategoryWeights =
+            candidate.contentProviderId
+                ?.let { contentProviderCategoryWeightsByProviderId[it] }
                 .orEmpty()
                 .filter { it.weight > 0.0 }
-                .forEach { categoryWeight ->
-                    categoryScores.addProviderScore(categoryWeight.categoryId, categoryWeight.weight)
-                }
+
+        if (providerCategoryWeights.isNotEmpty() && providerCategoryWeights.none { it.categoryId in requestedCategoryIds }) {
+            return false
+        }
+
+        providerCategoryWeights.forEach { categoryWeight ->
+            categoryScores.addProviderScore(categoryWeight.categoryId, categoryWeight.weight)
         }
 
         if (categoryScores.isEmpty()) {

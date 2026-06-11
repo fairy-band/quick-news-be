@@ -118,6 +118,43 @@ class RecommendationCandidateSelectorTest {
         }
     }
 
+    @Test
+    fun `select should filter candidates whose provider has no requested category mapping`() {
+        val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
+        val backendKeyword = ReservedKeyword(id = 10L, name = "Android")
+        val frontendKeyword = ReservedKeyword(id = 20L, name = "Frontend")
+        val context =
+            context(listOf(candidate)).copy(
+                categoryIds = listOf(4L),
+                keywordsByContentId = mapOf(candidate.contentId to listOf(backendKeyword, frontendKeyword)),
+                keywordCategoryWeightsByKeywordId =
+                    mapOf(
+                        10L to listOf(CategoryWeight(categoryId = 4L, weight = 29.0)),
+                        20L to listOf(CategoryWeight(categoryId = 2L, weight = 8.0)),
+                    ),
+                contentProviderCategoryWeightsByProviderId =
+                    mapOf(
+                        100L to listOf(CategoryWeight(categoryId = 2L, weight = 25.0)),
+                    ),
+            )
+
+        every { scoringSourceFactory.createContext(any(), any(), any(), any()) } returns context
+
+        val result =
+            selector.select(
+                RecommendationCandidateSelectionRequest(
+                    candidates = listOf(candidate),
+                    candidateSignalsByExposureContentId = emptyMap(),
+                    keywordWeightsByKeyword = emptyMap(),
+                    categoryIds = listOf(4L),
+                    limit = 1,
+                ),
+            )
+
+        assertThat(result).isEmpty()
+        verify(exactly = 0) { scoringSourceFactory.createSources(any(), any()) }
+    }
+
     private fun context(candidates: List<ExposureContentRecommendationCandidateRow>): CandidateScoringSourceContext =
         CandidateScoringSourceContext(
             candidates = candidates,
