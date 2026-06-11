@@ -24,6 +24,57 @@ class KotlinWeeklyParserTest {
     }
 
     @Test
+    fun `parse should group library section into weekly library content`() {
+        val sampleEmail =
+            """
+            ** ISSUE #468
+            20th of July 2025
+
+            Articles
+            Flow Marbles (https://terrakok.github.io/FlowMarbles/)
+            Interactive diagrams for Kotlin Flow operators.
+            terrakok.github.io
+
+            Libraries
+            Liquid Glass (https://github.com/Kyant0/AndroidLiquidGlass)
+            Library providing Apple's Liquid Glass effect for Android Jetpack Compose.
+            github.com
+
+            ScribeSwan (https://gitlab.com/islandoftex/libraries/scribeswan/)
+            ScribeSwan is a Kotlin Multiplatform library for creating manpages.
+            gitlab.com
+
+            Thanks to JetBrains for their support! (https://www.jetbrains.com/?utm_source=kotlinweekly&utm_medium=newsletter&utm_campaign=homepage-footer-link)
+
+            ============================================================** Twitter (http://www.twitter.com/kotlinweekly)
+
+            ** Facebook (https://www.facebook.com/kotlinweekly/)
+
+            ** Website (http://www.kotlinweekly.net)
+            Copyright © 2026 Kotlin Weekly, All rights reserved.
+
+            You can ** update your preferences (https://kotlinweekly.us12.list-manage.com/profile)
+
+            or ** unsubscribe from this list (https://kotlinweekly.us12.list-manage.com/unsubscribe)
+            """.trimIndent()
+
+        val result = sut.parse(sampleEmail)
+
+        assertEquals(2, result.size)
+        assertEquals("Flow Marbles", result[0].title)
+        assertEquals("Articles", result[0].section)
+
+        assertEquals("2025년 29주의 라이브러리", result[1].title)
+        assertEquals("Libraries", result[1].section)
+        assertEquals("https://github.com/Kyant0/AndroidLiquidGlass", result[1].link)
+        assertTrue(result[1].content.contains("Issue #468"))
+        assertTrue(result[1].content.contains("Liquid Glass"))
+        assertTrue(result[1].content.contains("ScribeSwan"))
+        assertTrue(!result[1].content.contains("JetBrains"))
+        assertTrue(!result[1].content.contains("unsubscribe"))
+    }
+
+    @Test
     @Disabled("확인 필요")
     fun `parse should extract articles from Kotlin Weekly newsletter`() {
         val sampleEmail =

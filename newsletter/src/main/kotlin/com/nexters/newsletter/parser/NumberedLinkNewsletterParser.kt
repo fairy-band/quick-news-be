@@ -4,14 +4,21 @@ abstract class NumberedLinkNewsletterParser(
     private val targetSender: String,
     private val sectionNames: Set<String>,
     private val maxArticleCount: Int = DEFAULT_MAX_ARTICLE_COUNT,
+    private val aggregateSectionsAsLibraries: Set<String> = emptySet(),
 ) : MailParser {
     override fun isTarget(sender: String): Boolean = sender.contains(targetSender, ignoreCase = true)
 
+    override fun isProcessable(
+        sender: String,
+        subject: String?,
+    ): Boolean = isTarget(sender) && subject?.contains(SUBSCRIPTION_CONFIRMATION_SUBJECT, ignoreCase = true) != true
+
     override fun parse(content: String): List<MailContent> {
         val normalized = content.normalizeNewsletterText()
-        val issueInfo = extractIssueInfo(normalized)
+        val plainText = normalized.extractPlainTextBody()
+        val issueInfo = extractIssueInfo(plainText)
         val linkMap = extractLinkMap(normalized)
-        val body = normalized.substringBefore(LINKS_MARKER)
+        val body = plainText.substringBefore(LINKS_MARKER)
         val lines = body.lines()
         val articles = mutableListOf<MailContent>()
         var section: String? = null
@@ -27,39 +34,62 @@ abstract class NumberedLinkNewsletterParser(
                 continue
             }
 
-            val match = ARTICLE_START_REGEX.matchEntire(line)
-            if (match == null || section == null || section !in sectionNames) {
+            if (line.isUntargetedSectionHeader()) {
+                section = null
                 index++
                 continue
             }
 
-            val title = extractTitle(lines, index, match.groupValues[1])
-            val linkNumber = match.groupValues[2]
-            val block = collectArticleBlock(lines, index, match.groupValues[3])
+            if (section == null || section !in sectionNames) {
+                index++
+                continue
+            }
+
+            val numberedMatch = ARTICLE_START_REGEX.matchEntire(line)
+            val inlineMatch = INLINE_ARTICLE_START_REGEX.matchEntire(line)
+            if (numberedMatch == null && inlineMatch == null) {
+                index++
+                continue
+            }
+
+            val titleSeed = numberedMatch?.groupValues?.get(1) ?: inlineMatch!!.groupValues[1]
+            val title = extractTitle(lines, index, titleSeed)
+            val block =
+                collectArticleBlock(
+                    lines = lines,
+                    startIndex = index,
+                    firstDescriptionLine = numberedMatch?.groupValues?.get(3) ?: inlineMatch!!.groupValues[3],
+                )
             val description =
                 block.descriptionLines
                     .joinToString(" ")
                     .cleanInlineText()
                     .take(MAX_DESCRIPTION_LENGTH)
-            val link = linkMap[linkNumber]?.cleanUrl()
+            val link =
+                numberedMatch
+                    ?.groupValues
+                    ?.get(2)
+                    ?.let { linkMap[it]?.cleanUrl() }
+                    ?: inlineMatch?.groupValues?.get(2)?.cleanUrl()
 
-            if (link != null && !shouldSkip(title, description, block.rawText)) {
-                articles.add(
-                    MailContent(
-                        title = title,
-                        content = "${issueInfo.prefix()}$description",
-                        link = link,
-                        section = section,
-                    ),
-                )
+            if (!link.isNullOrBlank() && !shouldSkip(title, description, block.rawText)) {
+                articles.add(title.toMailContent(description, link, section, issueInfo))
             }
 
             index = block.nextIndex
         }
 
-        return articles
-            .distinctBy { "${it.section}:${it.title}".lowercase() }
-            .take(maxArticleCount)
+        val parsedContents =
+            articles
+                .distinctBy { "${it.section}:${it.title}".lowercase() }
+                .take(maxArticleCount)
+
+        return WeeklyLibraryContentBuilder.groupSections(
+            contents = parsedContents,
+            issueNumber = issueInfo.number,
+            issueDate = issueInfo.date,
+            sections = aggregateSectionsAsLibraries,
+        )
     }
 
     private data class IssueInfo(
@@ -86,6 +116,11 @@ abstract class NumberedLinkNewsletterParser(
             number = match?.groupValues?.getOrNull(1),
             date = match?.groupValues?.getOrNull(2),
         )
+    }
+
+    private fun String.extractPlainTextBody(): String {
+        val withoutPrefix = substringAfter(PLAIN_TEXT_MARKER, this)
+        return withoutPrefix.substringBefore(HTML_MARKER)
     }
 
     private fun extractLinkMap(content: String): Map<String, String> =
@@ -120,7 +155,13 @@ abstract class NumberedLinkNewsletterParser(
 
         while (index < lines.size) {
             val line = lines[index].trim()
-            if (line.isBlank() || line.asSectionHeader() != null || line.isFooterStart() || ARTICLE_START_REGEX.matches(line)) {
+            if (line.isBlank() ||
+                line.asSectionHeader() != null ||
+                line.isUntargetedSectionHeader() ||
+                line.isFooterStart() ||
+                ARTICLE_START_REGEX.matches(line) ||
+                INLINE_ARTICLE_START_REGEX.matches(line)
+            ) {
                 break
             }
 
@@ -138,6 +179,19 @@ abstract class NumberedLinkNewsletterParser(
         )
     }
 
+    private fun String.toMailContent(
+        description: String,
+        link: String,
+        section: String,
+        issueInfo: IssueInfo,
+    ): MailContent =
+        MailContent(
+            title = this,
+            content = "${issueInfo.prefix()}$description",
+            link = link,
+            section = section,
+        )
+
     private fun shouldSkip(
         title: String,
         description: String,
@@ -149,14 +203,19 @@ abstract class NumberedLinkNewsletterParser(
             EXCLUDED_TITLE_PARTS.any { title.contains(it, ignoreCase = true) }
 
     private fun String.asSectionHeader(): String? {
-        val cleaned = cleanInlineText().uppercase()
+        val cleaned = cleanSectionHeaderText()
         return sectionNames.firstOrNull { section -> section.equals(cleaned, ignoreCase = true) }
     }
+
+    private fun String.isUntargetedSectionHeader(): Boolean = trim().startsWith(LEGACY_SECTION_PREFIX)
 
     private fun String.isWrappedTitlePrefix(): Boolean =
         isNotBlank() &&
             !ARTICLE_START_REGEX.matches(this) &&
+            !INLINE_ARTICLE_START_REGEX.matches(this) &&
+            !HORIZONTAL_RULE_REGEX.matches(this) &&
             asSectionHeader() == null &&
+            !isUntargetedSectionHeader() &&
             !isFooterStart() &&
             !isSkippableContinuationLine() &&
             uppercase() == this
@@ -188,19 +247,33 @@ abstract class NumberedLinkNewsletterParser(
             .replace("&#39;", "'")
             .trim()
 
+    private fun String.cleanSectionHeaderText(): String =
+        cleanInlineText()
+            .replace(LEGACY_SECTION_HEADER_PREFIX_REGEX, "")
+            .removeSuffix(":")
+            .trim()
+            .uppercase()
+
     private fun String.cleanUrl(): String = trim().trimEnd(')', ']', ',', '.')
 
     companion object {
+        private const val PLAIN_TEXT_MARKER = "Plain Text:"
+        private const val HTML_MARKER = "\nHTML:"
         private const val LINKS_MARKER = "\nLinks:\n"
         private const val MIN_TITLE_LENGTH = 4
         private const val MIN_DESCRIPTION_LENGTH = 20
         private const val MAX_DESCRIPTION_LENGTH = 1_000
         private const val DEFAULT_MAX_ARTICLE_COUNT = 30
+        private const val LEGACY_SECTION_PREFIX = "** "
+        private const val SUBSCRIPTION_CONFIRMATION_SUBJECT = "Subscription Confirmed"
 
         private val ISSUE_REGEX = Regex("""Issue\s+#?(\d+)\s*[•]\s*([A-Za-z]+ \d{1,2}, \d{4})""", RegexOption.IGNORE_CASE)
         private val LINK_REGEX = Regex("""(?m)^\[(\d+)]\s+(https?://\S+)\s*$""")
         private val ARTICLE_START_REGEX = Regex("""^(.+?)\s+\[(\d+)]\s+[—–-]\s*(.*)$""")
+        private val INLINE_ARTICLE_START_REGEX = Regex("""^(.+?)\s+\(\s*(https?://[^)]+)\s*\)\s+[—–-]\s*(.*)$""")
         private val REFERENCE_LINE_REGEX = Regex("""^\[.+]\s+\[\d+]$""")
+        private val HORIZONTAL_RULE_REGEX = Regex("""^-{5,}$""")
+        private val LEGACY_SECTION_HEADER_PREFIX_REGEX = Regex("""^\*+\s*""")
         private val SPONSOR_REGEX = Regex("""\bSPONSOR(?:ED)?\b|\bAdvertisement\b|\bAD\b""", RegexOption.IGNORE_CASE)
         private val EXCLUDED_TITLE_PARTS =
             listOf(

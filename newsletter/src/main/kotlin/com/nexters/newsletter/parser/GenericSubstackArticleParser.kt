@@ -255,6 +255,37 @@ class GenericSubstackArticleParser : MailParser {
                         ),
                     defaultLink = "https://www.architecture-weekly.com",
                 ),
+                Publication(
+                    name = "Fatbobman's Swift Weekly",
+                    targetSenders = listOf("fatbobman@substack.com"),
+                    linkHints =
+                        listOf(
+                            "weekly.fatbobman.com",
+                            "fatbobman.com",
+                            "pub/fatbobman",
+                        ),
+                    contentHints =
+                        listOf(
+                            "Fatbobman",
+                        ),
+                    defaultLink = "https://weekly.fatbobman.com",
+                ),
+                Publication(
+                    name = "Jacob's Tech Tavern",
+                    targetSenders = listOf("jacobbartlett@substack.com"),
+                    linkHints =
+                        listOf(
+                            "blog.jacobstechtavern.com",
+                            "jacobbartlett.substack.com",
+                            "pub/jacobbartlett",
+                        ),
+                    contentHints =
+                        listOf(
+                            "Jacob's Tech Tavern",
+                            "Jacob Bartlett",
+                        ),
+                    defaultLink = "https://blog.jacobstechtavern.com",
+                ),
             )
     }
 }

@@ -67,14 +67,19 @@ class JavaWeeklyParserTest {
 
         val articles = result.filter { it.section == "Popular News and Articles" }
         val projects = result.filter { it.section == "Popular projects" }
+        val libraries = result.filter { it.section == "Libraries" }
 
         assertEquals(3, articles.size)
-        assertEquals(3, projects.size)
+        assertEquals(0, projects.size)
+        assertEquals(1, libraries.size)
 
         assertEquals("Value Classes Heap Flattening - What to expect from JEP 401 #JVMLS", articles[0].title)
         assertEquals("https://youtu.be/NF4CpL_EWFI", articles[0].link)
 
-        assertEquals("fory", projects[0].title)
-        assertEquals("https://www.libhunt.com/r/fory", projects[0].link)
+        assertEquals("2025년 45주의 라이브러리", libraries[0].title)
+        assertEquals("https://java.libhunt.com/newsletter/494", libraries[0].link)
+        assertTrue(libraries[0].content.contains("fory"))
+        assertTrue(libraries[0].content.contains("opendataloader-pdf"))
+        assertTrue(libraries[0].content.contains("fernflower"))
     }
 }

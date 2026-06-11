@@ -8,6 +8,11 @@ import java.nio.charset.StandardCharsets
 class ItWorldKoreaParser : MailParser {
     override fun isTarget(sender: String): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
+    override fun isProcessable(
+        sender: String,
+        subject: String?,
+    ): Boolean = isTarget(sender) && subject?.contains(NEWSLETTER_SUBJECT_MARKER) == true
+
     override fun parse(content: String): List<MailContent> = parse(content, null, null)
 
     override fun parse(
@@ -17,7 +22,7 @@ class ItWorldKoreaParser : MailParser {
     ): List<MailContent> {
         if (subject?.contains(NEWSLETTER_SUBJECT_MARKER) != true) return emptyList()
 
-        val document = Jsoup.parse(htmlContent ?: content)
+        val document = Jsoup.parse(selectHtmlSource(content, htmlContent))
         val linkByLabel = document.select("a[linklabel]").associateBy { element -> element.attr("linklabel") }
         val titleElements =
             (document.select("a[linklabel$=Title]") + document.select("h2.article-title a[href]"))
@@ -35,6 +40,14 @@ class ItWorldKoreaParser : MailParser {
             }.distinctBy { it.title.lowercase() }
             .take(MAX_ARTICLE_COUNT)
             .toList()
+    }
+
+    private fun selectHtmlSource(
+        content: String,
+        htmlContent: String?,
+    ): String {
+        val html = htmlContent.orEmpty()
+        return if (html.hasArticleMarkers()) html else content
     }
 
     private fun findDescriptionElement(
@@ -105,6 +118,10 @@ class ItWorldKoreaParser : MailParser {
             .replace("&quot;", "\"")
             .replace("&#39;", "'")
             .trim()
+
+    private fun String.hasArticleMarkers(): Boolean =
+        contains("linklabel=", ignoreCase = true) ||
+            contains("article-title", ignoreCase = true)
 
     private fun String.cleanUrl(): String = trim()
 

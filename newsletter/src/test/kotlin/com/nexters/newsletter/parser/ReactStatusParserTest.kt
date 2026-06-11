@@ -77,7 +77,7 @@ class ReactStatusParserTest {
         val result = parser.parse(emailContent)
 
         // Then - 전체 파싱 결과 검증
-        assertEquals(8, result.size, "총 8개 아이템이 파싱되어야 함")
+        assertEquals(7, result.size, "총 7개 콘텐츠가 파싱되어야 함")
 
         // === Main 섹션 검증 ===
         assertEquals("THE HISTORY OF REACT THROUGH CODE", result[0].title)
@@ -99,23 +99,21 @@ class ReactStatusParserTest {
         assertEquals("https://nextjs.org/blog/next-15-4", result[3].link)
         assertEquals("Brief", result[3].section)
 
-        // === Tool 섹션 검증 ===
-        assertEquals("REACT-EASY-CROP: A COMPONENT FOR INTERACTIVE IMAGE CROPPING", result[4].title)
-        assertEquals("https://valentinh.github.io/react-easy-crop/", result[4].link)
-        assertEquals("Tool", result[4].section)
-
-        assertEquals("REACTPLAYER 3.2: A COMPONENT FOR PLAYING MEDIA FROM URLS", result[5].title)
-        assertEquals("https://github.com/cookpete/react-player", result[5].link)
-        assertEquals("Tool", result[5].section)
+        // === Tool 섹션은 라이브러리 묶음 콘텐츠로 검증 ===
+        assertEquals("2025년 29주의 라이브러리", result[4].title)
+        assertEquals("https://react.statuscode.com", result[4].link)
+        assertEquals("Libraries", result[4].section)
+        assertTrue(result[4].content.contains("REACT-EASY-CROP: A COMPONENT FOR INTERACTIVE IMAGE CROPPING"))
+        assertTrue(result[4].content.contains("REACTPLAYER 3.2: A COMPONENT FOR PLAYING MEDIA FROM URLS"))
 
         // === Elsewhere 섹션 검증 ===
-        assertTrue(result[6].title.contains("New versions"))
+        assertTrue(result[5].title.contains("New versions"))
+        assertEquals("https://react.statuscode.com", result[5].link)
+        assertEquals("Elsewhere", result[5].section)
+
+        assertTrue(result[6].title.contains("JavaScript's Date class"))
         assertEquals("https://react.statuscode.com", result[6].link)
         assertEquals("Elsewhere", result[6].section)
-
-        assertTrue(result[7].title.contains("JavaScript's Date class"))
-        assertEquals("https://react.statuscode.com", result[7].link)
-        assertEquals("Elsewhere", result[7].section)
     }
 
     @Test

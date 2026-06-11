@@ -67,11 +67,20 @@ class ReactStatusParser : MailParser {
         val sectionPositions = findSectionPositions(content)
         if (sectionPositions.isEmpty()) return emptyList()
 
-        return sectionPositions.flatMapIndexed { index, (section, start) ->
-            val end = sectionPositions.getOrNull(index + 1)?.second ?: content.length
-            val sectionContent = content.substring(start, end)
-            parseSection(section, sectionContent, issueInfo)
-        }
+        val parsedContents =
+            sectionPositions.flatMapIndexed { index, (section, start) ->
+                val end = sectionPositions.getOrNull(index + 1)?.second ?: content.length
+                val sectionContent = content.substring(start, end)
+                parseSection(section, sectionContent, issueInfo)
+            }
+
+        return WeeklyLibraryContentBuilder.groupSections(
+            contents = parsedContents,
+            issueNumber = issueInfo.number,
+            issueDate = issueInfo.date,
+            sections = setOf(Section.TOOLS.label),
+            issueLink = DEFAULT_URL,
+        )
     }
 
     private fun findSectionPositions(content: String): List<Pair<Section, Int>> {
@@ -205,7 +214,8 @@ class ReactStatusParser : MailParser {
         private const val DEFAULT_URL = "https://react.statuscode.com"
 
         // 이슈 정보 추출용 정규식
-        private val ISSUE_NUMBER_REGEX = Regex("#\\s*(\\d+)")
+        private val ISSUE_NUMBER_REGEX =
+            Regex("""(?im)^\s*(?:React\s+Status\s*)?#(?:\s|[\u200B\uFEFF])*(\d{2,4})\b""")
         private val ISSUE_DATE_REGEX = Regex("(\\w+ \\d+, \\d{4})")
 
         // 메인 아티클 파싱용 정규식
@@ -236,7 +246,7 @@ class ReactStatusParser : MailParser {
     ) {
         MAIN(
             "Main",
-            Regex("""⚛️ REACT STATUS""")
+            Regex("""(?im)^\s*(?:⚛️\s*)?REACT STATUS\s*$""")
         ),
         BRIEF(
             "Brief",
@@ -248,7 +258,7 @@ class ReactStatusParser : MailParser {
         ),
         ELSEWHERE(
             "Elsewhere",
-            Regex("""📢\s*ELSEWHERE\s+IN\s+JAVASCRIPT\s*\n-{15,}""")
+            Regex("""📢\s*ELSEWHERE\s+IN\s+(?:JAVASCRIPT|THE\s+ECOSYSTEM)\s*\n-{15,}""")
         );
 
         companion object {

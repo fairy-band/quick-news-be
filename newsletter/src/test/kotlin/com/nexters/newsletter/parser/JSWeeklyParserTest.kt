@@ -84,7 +84,7 @@ class JSWeeklyParserTest {
 
         val result = parser.parse(sampleEmail)
 
-        assertEquals(6, result.size, "Expected 6 articles, but got ${result.size}")
+        assertEquals(4, result.size, "Expected 4 contents, but got ${result.size}")
 
         // Articles section
         assertEquals("FROM STEAM TO FLOPPY: PORTING MODERN TYPESCRIPT TO RUN ON DOS", result[0].title)
@@ -101,19 +101,14 @@ class JSWeeklyParserTest {
         assertEquals("https://blog.dochia.dev/blog/json-isnt-json/", result[2].link)
         assertEquals("Articles", result[2].section)
 
-        // Tools section
-        assertEquals("GITHUB COPILOT CLI NOW IN PUBLIC PREVIEW", result[3].title)
-        assertEquals("https://github.blog/changelog/2025-09-25-github-copilot-cli-is-now-in-public-preview/", result[3].link)
-        assertEquals("Tools", result[3].section)
-
-        assertEquals("TANSTACK START V1 RELEASE CANDIDATE", result[4].title)
-        assertEquals("https://tanstack.com/blog/announcing-tanstack-start-v1", result[4].link)
-        assertEquals("Tools", result[4].section)
-        assertTrue(result[4].content.contains("TanStack's attempt"))
-
-        assertEquals("CAP'N WEB: A NEW RPC SYSTEM FOR BROWSERS AND WEB SERVERS", result[5].title)
-        assertEquals("https://blog.cloudflare.com/capnweb-javascript-rpc-library/", result[5].link)
-        assertEquals("Tools", result[5].section)
+        // Tools section is grouped into one library roundup content.
+        assertEquals("2025년 39주의 라이브러리", result[3].title)
+        assertEquals("https://javascriptweekly.com/issues/754", result[3].link)
+        assertEquals("Libraries", result[3].section)
+        assertTrue(result[3].content.contains("GITHUB COPILOT CLI NOW IN PUBLIC PREVIEW"))
+        assertTrue(result[3].content.contains("TANSTACK START V1 RELEASE CANDIDATE"))
+        assertTrue(result[3].content.contains("CAP'N WEB: A NEW RPC SYSTEM FOR BROWSERS AND WEB SERVERS"))
+        assertTrue(result[3].content.contains("TanStack's attempt"))
     }
 
     @Test
@@ -160,6 +155,30 @@ class JSWeeklyParserTest {
 
         assertEquals(1, result.size)
         assertEquals("VALID ARTICLE TITLE", result[0].title)
+    }
+
+    @Test
+    fun `parse should filter sponsored tool items before grouping libraries`() {
+        val emailContent =
+            """
+            #754 — September 26, 2025
+
+            CODE & TOOLS
+
+            * LEGITIMATE TOOL RELEASE
+            ( https://example.com/tool ) — A useful developer tool release.
+
+            * SPONSORED AUTH TOOL
+            ( https://example.com/auth?utm_source=cooperpress ) — Manage auth from your terminal. -- Example (SPONSOR)
+            """.trimIndent()
+
+        val result = parser.parse(emailContent)
+
+        assertEquals(1, result.size)
+        assertEquals("2025년 39주의 라이브러리", result[0].title)
+        assertEquals("Libraries", result[0].section)
+        assertTrue(result[0].content.contains("LEGITIMATE TOOL RELEASE"))
+        assertTrue(!result[0].content.contains("SPONSORED AUTH TOOL"))
     }
 
     @Test
@@ -217,8 +236,9 @@ class JSWeeklyParserTest {
         assertEquals(2, result.size)
         assertEquals("ARTICLE WITHOUT EMOJI SECTION", result[0].title)
         assertEquals("Articles", result[0].section)
-        assertEquals("TOOL WITHOUT EMOJI SECTION", result[1].title)
-        assertEquals("Tools", result[1].section)
+        assertEquals("2025년 39주의 라이브러리", result[1].title)
+        assertEquals("Libraries", result[1].section)
+        assertTrue(result[1].content.contains("TOOL WITHOUT EMOJI SECTION"))
     }
 
     @Test
@@ -242,6 +262,7 @@ class JSWeeklyParserTest {
 
         assertEquals(2, result.size)
         assertTrue(result.any { it.title == "ARTICLE WITH EMOJI" && it.section == "Articles" })
-        assertTrue(result.any { it.title == "TOOL WITHOUT EMOJI" && it.section == "Tools" })
+        assertTrue(result.any { it.title == "2025년 39주의 라이브러리" && it.section == "Libraries" })
+        assertTrue(result.any { it.content.contains("TOOL WITHOUT EMOJI") })
     }
 }

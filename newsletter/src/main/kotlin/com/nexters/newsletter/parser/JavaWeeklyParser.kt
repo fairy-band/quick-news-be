@@ -23,28 +23,45 @@ class JavaWeeklyParser : MailParser {
 
     private data class IssueInfo(
         val number: String,
-        val date: String
+        val date: String,
+        val link: String?,
     )
 
     private fun extractIssueInfo(content: String): IssueInfo {
         val issueMatch = ISSUE_INFO_REGEX.find(content)
         return IssueInfo(
             number = issueMatch?.groupValues?.get(1) ?: "Unknown",
-            date = issueMatch?.groupValues?.get(2) ?: "Unknown date"
+            date = issueMatch?.groupValues?.get(2) ?: "Unknown date",
+            link =
+                ISSUE_LINK_REGEX
+                    .find(content)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.trim(),
         )
     }
 
     private fun parseSections(
         content: String,
         issueInfo: IssueInfo
-    ): List<MailContent> =
-        buildList {
-            extractSection(content, SECTION_ARTICLES, SECTION_PROJECTS)
-                ?.let { addAll(parseArticlesSection(it, issueInfo)) }
+    ): List<MailContent> {
+        val parsedContents =
+            buildList {
+                extractSection(content, SECTION_ARTICLES, SECTION_PROJECTS)
+                    ?.let { addAll(parseArticlesSection(it, issueInfo)) }
 
-            extractProjectsSection(content)
-                ?.let { addAll(parseProjectsSection(it, issueInfo)) }
-        }
+                extractProjectsSection(content)
+                    ?.let { addAll(parseProjectsSection(it, issueInfo)) }
+            }
+
+        return WeeklyLibraryContentBuilder.groupSections(
+            contents = parsedContents,
+            issueNumber = issueInfo.number,
+            issueDate = issueInfo.date,
+            sections = setOf(SECTION_PROJECTS),
+            issueLink = issueInfo.link,
+        )
+    }
 
     private fun extractSection(
         content: String,
@@ -185,6 +202,7 @@ class JavaWeeklyParser : MailParser {
 
     companion object {
         private val ISSUE_INFO_REGEX = Regex("Issue\\s*»\\s*(\\d+)\\s*/\\s*([A-Za-z]+ \\d+, \\d{4})")
+        private val ISSUE_LINK_REGEX = Regex("""Read it on the Web:\s*(https?://\S+)""", RegexOption.IGNORE_CASE)
         private val URL_PATTERN = Regex("<?(https?://[^>\\s]+)>?")
         private val PROJECT_PATTERN = Regex("\\*\\s*(.+?)\\s*-\\s*<?(https?://[^>\\s]+)>?")
 

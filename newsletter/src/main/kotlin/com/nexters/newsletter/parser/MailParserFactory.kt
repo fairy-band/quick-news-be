@@ -7,11 +7,16 @@ class MailParserFactory {
             JavaWeeklyParser(),
             KotlinWeeklyParser(),
             GeeknewsWeeklyParser(),
+            MaeilMailParser(),
             KoreanFeArticleParser(),
+            TLDRNewsletterParser(),
+            BaeldungParser(),
+            YozmParser(),
             BytesDevParser(),
             WebToolsWeeklyParser(),
             VSCodeEmailParser(),
             GenericSubstackArticleParser(),
+            ReactStatusParser(),
             CooperpressWeeklyParser(),
             PythonWeeklyParser(),
             AndroidWeeklyParser(),
@@ -19,10 +24,14 @@ class MailParserFactory {
             CssWeeklyParser(),
             SwiftVincentParser(),
             IlbunParser(),
-            ReactStatusParser(),
         )
 
     fun findParser(sender: String): MailParser? = parsers.find { it.isTarget(sender) }
+
+    fun findProcessableParser(
+        sender: String,
+        subject: String?,
+    ): MailParser? = parsers.find { it.isProcessable(sender, subject) }
 
     fun getAllParsers(): List<MailParser> = parsers
 }

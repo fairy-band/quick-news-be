@@ -28,7 +28,8 @@ class JSWeeklyParser : MailParser {
 
     private data class IssueInfo(
         val number: String,
-        val date: String
+        val date: String,
+        val link: String?,
     )
 
     private fun extractIssueInfo(content: String): IssueInfo {
@@ -38,7 +39,14 @@ class JSWeeklyParser : MailParser {
         val dateMatch = ISSUE_DATE_REGEX.find(content)
         val issueDate = dateMatch?.groupValues?.get(1) ?: "Unknown date"
 
-        return IssueInfo(issueNumber, issueDate)
+        val issueLink =
+            ISSUE_LINK_REGEX
+                .find(content)
+                ?.groupValues
+                ?.get(1)
+                ?.trim()
+
+        return IssueInfo(issueNumber, issueDate, issueLink)
     }
 
     private fun parseSections(
@@ -59,12 +67,21 @@ class JSWeeklyParser : MailParser {
 
         logger.debug("Found {} sections: {}", headerPositions.size, headerPositions.map { it.first.label })
 
-        return headerPositions
-            .flatMapIndexed { idx, (section, start) ->
-                val end = headerPositions.getOrNull(idx + 1)?.second ?: content.length
-                val sectionContent = content.substring(start, end)
-                parseSection(section, sectionContent, issueInfo)
-            }.filter { it.section != Section.CLASSIFIEDS.label }
+        val parsedContents =
+            headerPositions
+                .flatMapIndexed { idx, (section, start) ->
+                    val end = headerPositions.getOrNull(idx + 1)?.second ?: content.length
+                    val sectionContent = content.substring(start, end)
+                    parseSection(section, sectionContent, issueInfo)
+                }.filter { it.section != Section.CLASSIFIEDS.label }
+
+        return WeeklyLibraryContentBuilder.groupSections(
+            contents = parsedContents,
+            issueNumber = issueInfo.number,
+            issueDate = issueInfo.date,
+            sections = setOf(Section.TOOLS.label),
+            issueLink = issueInfo.link,
+        )
     }
 
     private fun parseSection(
@@ -109,6 +126,11 @@ class JSWeeklyParser : MailParser {
                             }
 
                         val description = fullDescription.cleanText()
+                        if (shouldSkipItem(url, description)) {
+                            i += 2
+                            continue
+                        }
+
                         val contentText = "[${section.label}] Issue #${issueInfo.number} (${issueInfo.date}): $description"
                         results += MailContent(title = title, content = contentText, link = url, section = section.label)
                     }
@@ -139,11 +161,29 @@ class JSWeeklyParser : MailParser {
 
     private fun String.cleanText(): String = replace("&#39;", "'").replace("&quot;", "\"").replace("&amp;", "&")
 
+    private fun shouldSkipItem(
+        url: String,
+        description: String,
+    ): Boolean =
+        SPONSOR_REGEX.containsMatchIn(description) ||
+            SPONSOR_URL_PARTS.any { url.contains(it, ignoreCase = true) }
+
     companion object {
         private val ISSUE_NUMBER_REGEX = Regex("#(\\d+)\\s*—")
         private val ISSUE_DATE_REGEX = Regex("—\\s*([A-Za-z]+ \\d+, \\d{4})")
+        private val ISSUE_LINK_REGEX = Regex("""Read on the Web\s*\(\s*(https?://[^)]+)\s*\)""", RegexOption.IGNORE_CASE)
         private val TITLE_REGEX = Regex("^\\*\\s*(.+?)\\s*$")
         private val URL_REGEX = Regex("^\\(\\s*(https?://[^)]+)\\s*\\)")
+        private val SPONSOR_REGEX = Regex("""\(\s*SPONSOR\s*\)|\bAdvertisement\b""", RegexOption.IGNORE_CASE)
+        private val SPONSOR_URL_PARTS =
+            listOf(
+                "utm_source=cooperpress",
+                "utm_source=jsweekly",
+                "utm_medium=javascriptweekly",
+                "utm_campaign=javascript-weekly-newsletter",
+                "utm_campaign=javascriptweekly",
+                "utm_medium=paid",
+            )
 
         private const val NEWSLETTER_NAME = "JavaScript Weekly"
         private const val NEWSLETTER_MAIL_ADDRESS = "jsw@peterc.org"

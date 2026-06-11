@@ -2,6 +2,7 @@ package com.nexters.newsletter.parser
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -10,6 +11,10 @@ class LatestNewsletterParsersTest {
     fun `factory should register latest information newsletter parsers`() {
         val factory = MailParserFactory()
 
+        assertInstanceOf(MaeilMailParser::class.java, factory.findParser("noreply@maeil-mail.kr"))
+        assertInstanceOf(TLDRNewsletterParser::class.java, factory.findParser("dan@tldrnewsletter.com"))
+        assertInstanceOf(BaeldungParser::class.java, factory.findParser("eugen@baeldung.com"))
+        assertInstanceOf(YozmParser::class.java, factory.findParser("yozm_help@wishket.com"))
         assertInstanceOf(BytesDevParser::class.java, factory.findParser("tyler@ui.dev"))
         assertInstanceOf(KoreanFeArticleParser::class.java, factory.findParser("kofearticle@substack.com"))
         assertInstanceOf(CooperpressWeeklyParser::class.java, factory.findParser("node@cooperpress.com"))
@@ -20,8 +25,24 @@ class LatestNewsletterParsersTest {
         assertInstanceOf(VSCodeEmailParser::class.java, factory.findParser("submissions@vscode.email"))
         assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("pragmaticengineer@substack.com"))
         assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("architectureweekly@substack.com"))
+        assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("fatbobman@substack.com"))
+        assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("jacobbartlett@substack.com"))
+        assertInstanceOf(ReactStatusParser::class.java, factory.findParser("react@cooperpress.com"))
         assertInstanceOf(IlbunParser::class.java, factory.findParser("morning@ilbuntok.com"))
         assertInstanceOf(JavaWeeklyParser::class.java, factory.findParser("Awesome Kotlin Weekly <newsletter@libhunt.com>"))
+    }
+
+    @Test
+    fun `factory should filter processable newsletters by subject when sender is shared`() {
+        val factory = MailParserFactory()
+
+        assertInstanceOf(
+            ItWorldKoreaParser::class.java,
+            factory.findProcessableParser("itworld@techlibrary.co.kr", "[ITWorld 뉴스레터] 보안 전략"),
+        )
+        assertNull(factory.findProcessableParser("itworld@techlibrary.co.kr", "(광고) 웨비나 초대"))
+        assertNull(factory.findProcessableParser("submissions@webtoolsweekly.com", "Web Tools Weekly: Subscription Confirmed"))
+        assertInstanceOf(ReactStatusParser::class.java, factory.findProcessableParser("react@cooperpress.com", "React issue"))
     }
 
     @Test
@@ -201,6 +222,34 @@ class LatestNewsletterParsersTest {
     }
 
     @Test
+    fun `ITWorld parser should fall back to content when htmlContent has no article markers`() {
+        val content =
+            """
+            <html><body>
+              <div>
+                <a linklabel="Slot One Title" href="http://abc.techlibrary.co.kr/newsletter_detect.php?url=https%3A%2F%2Fwww.itworld.co.kr%2Farticle%2F5000">
+                  AI 운영 전략을 다시 세우는 방법
+                </a>
+                <a linklabel="Slot One Description" href="http://abc.techlibrary.co.kr/newsletter_detect.php?url=https%3A%2F%2Fwww.itworld.co.kr%2Farticle%2F5000">
+                  조직의 AI 운영 방식을 점검하고 안정적인 확장 전략을 세우는 방법을 소개한다.
+                </a>
+              </div>
+            </body></html>
+            """.trimIndent()
+
+        val result =
+            ItWorldKoreaParser().parse(
+                content = content,
+                subject = "[ITWorld 뉴스레터] AI 운영 전략",
+                htmlContent = "<html><body>footer only</body></html>",
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("AI 운영 전략을 다시 세우는 방법", result[0].title)
+        assertEquals("https://www.itworld.co.kr/article/5000", result[0].link)
+    }
+
+    @Test
     fun `Web Tools Weekly parser should extract numbered tool links and skip sponsors`() {
         val content =
             """
@@ -227,11 +276,46 @@ class LatestNewsletterParsersTest {
 
         val result = WebToolsWeeklyParser().parse(content)
 
-        assertEquals(2, result.size)
-        assertEquals("FONT CHANGER PRO", result[0].title)
+        assertEquals(1, result.size)
+        assertEquals("2026년 23주의 라이브러리", result[0].title)
+        assertEquals("Libraries", result[0].section)
         assertEquals("https://example.com/font-changer", result[0].link)
         assertTrue(result[0].content.contains("Issue #672"))
-        assertEquals("OPEN AGENTS", result[1].title)
+        assertTrue(result[0].content.contains("FONT CHANGER PRO"))
+        assertTrue(result[0].content.contains("OPEN AGENTS"))
+        assertTrue(!result[0].content.contains("HUBSPOT DEVELOPER PLATFORM"))
+    }
+
+    @Test
+    fun `Web Tools Weekly parser should extract legacy inline tool links`() {
+        val content =
+            """
+            Plain Text: Web Tools Weekly
+            Issue #633 • September 4, 2025
+
+            ** CSS & HTML Tools
+            ------------------------------------------------------------
+
+            CSS Properties (https://example.com/css-properties) — A complete reference of CSS properties.
+
+            CodeRabbit (https://example.com/sponsor) — Cut code review time and bugs in half. SPONSORED
+
+            ** AI Tools, LLMs, etc.
+            ------------------------------------------------------------
+
+            Open Agents (https://example.com/open-agents) — A reference app for building and running background coding agents.
+
+            HTML: <html></html>
+            """.trimIndent()
+
+        val result = WebToolsWeeklyParser().parse(content)
+
+        assertEquals(1, result.size)
+        assertEquals("2025년 36주의 라이브러리", result[0].title)
+        assertEquals("https://example.com/css-properties", result[0].link)
+        assertTrue(result[0].content.contains("CSS Properties"))
+        assertTrue(result[0].content.contains("Open Agents"))
+        assertTrue(!result[0].content.contains("CodeRabbit"))
     }
 
     @Test
@@ -261,6 +345,35 @@ class LatestNewsletterParsersTest {
         assertEquals(2, result.size)
         assertEquals("KEEP YOUR CONTEXT SHORT - MANUAL COMPACTION IS NOW AVAILABLE IN VS CODE", result[0].title)
         assertEquals("https://example.com/compaction", result[0].link)
+    }
+
+    @Test
+    fun `VSCode Email parser should extract legacy inline links`() {
+        val content =
+            """
+            Plain Text: VSCode.Email
+            Issue 176 • September 3, 2025
+
+            ** VS Code Tools
+            ------------------------------------------------------------
+            Codex (https://example.com/codex) — The official coding agent extension.
+
+            Sponsor Tool (https://example.com/sponsor) — Sponsored placement. Sponsor
+
+            ** VS Code Articles & Videos
+            ------------------------------------------------------------
+            MCP Servers in VS Code (https://example.com/mcp) — Video from the VS Code team.
+
+            HTML: <html></html>
+            """.trimIndent()
+
+        val result = VSCodeEmailParser().parse(content)
+
+        assertEquals(2, result.size)
+        assertEquals("Codex", result[0].title)
+        assertEquals("https://example.com/codex", result[0].link)
+        assertEquals("MCP Servers in VS Code", result[1].title)
+        assertTrue(!result.any { it.title == "Sponsor Tool" })
     }
 
     @Test
