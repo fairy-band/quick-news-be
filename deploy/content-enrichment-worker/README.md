@@ -16,18 +16,31 @@ Postgres `contents`.
 MONGODB_URI=...
 MONGODB_DATABASE=newsletter
 ENRICHMENT_ALLOWED_NEWSLETTER_NAMES=GeekNews
-ENRICHMENT_LIMIT=20
+ENRICHMENT_LIMIT=5
 ENRICHMENT_INTERVAL_SECONDS=3600
 ENRICHMENT_LOOKBACK_DAYS=90
 ENRICHMENT_STALE_DAYS=30
 ENRICHMENT_MAX_ITEMS_PER_SOURCE=20
-ENRICHMENT_CONCURRENCY=4
+ENRICHMENT_CONCURRENCY=1
 ENRICHMENT_DRY_RUN=false
-ENRICHMENT_RUN_ONCE=false
+ENRICHMENT_RUN_ONCE=true
+CONTENT_ENRICHMENT_CRON_SCHEDULE="17 * * * *"
 ```
 
 `ENRICHMENT_ALLOWED_NEWSLETTER_NAMES` defaults to `GeekNews` because it has the
 most reliable URL structure among the currently reviewed publishers.
+
+## Production Run
+
+Production does not keep this worker running as a resident container. The
+server crontab runs `deploy/run-content-enrichment-worker.sh`, which executes:
+
+```bash
+docker compose --profile batch run --rm --no-deps content-enrichment-worker
+```
+
+The default schedule is hourly at minute 17. Override it with
+`CONTENT_ENRICHMENT_CRON_SCHEDULE` in the deploy `.env` file.
 
 ## Local One-Off Run
 

@@ -37,6 +37,9 @@ jobs:
               - 'settings.gradle.kts'
             content_enrichment_worker:
               - 'deploy/content-enrichment-worker/**'
+              - 'deploy/docker-compose.yml'
+              - 'deploy/deploy.sh'
+              - 'deploy/run-content-enrichment-worker.sh'
               - '.github/workflows/pr-build.yml'
 
   content-enrichment-worker:
@@ -62,7 +65,10 @@ jobs:
         run: pip install -r deploy/content-enrichment-worker/requirements.txt
 
       - name: 문법 검사
-        run: python -m py_compile deploy/content-enrichment-worker/content_enrichment_worker.py
+        run: |
+          python -m py_compile deploy/content-enrichment-worker/content_enrichment_worker.py
+          bash -n deploy/deploy.sh
+          bash -n deploy/run-content-enrichment-worker.sh
 
   ktlint:
     name: Ktlint 검사
