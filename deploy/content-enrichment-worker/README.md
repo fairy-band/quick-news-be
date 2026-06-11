@@ -24,7 +24,10 @@ ENRICHMENT_STALE_DAYS=30
 ENRICHMENT_MAX_ITEMS_PER_SOURCE=20
 ENRICHMENT_CONCURRENCY=1
 ENRICHMENT_UPDATE_POSTGRES=false
+ENRICHMENT_CREATE_MISSING_POSTGRES_CONTENTS=false
 ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH=700
+ENRICHMENT_POSTGRES_PROVIDER_TYPE=BLOG
+ENRICHMENT_POSTGRES_PROVIDER_LANGUAGE=en
 ENRICHMENT_DRY_RUN=false
 ENRICHMENT_RUN_ONCE=true
 CONTENT_ENRICHMENT_CRON_SCHEDULE="17 * * * *"
@@ -38,6 +41,10 @@ When `ENRICHMENT_UPDATE_POSTGRES=true`, the worker also updates matching
 Postgres `contents` rows by `newsletter_source_id` and `original_url`, but only
 when the current content is shorter than `ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH`
 and the enriched content is longer.
+
+When `ENRICHMENT_CREATE_MISSING_POSTGRES_CONTENTS=true`, the worker creates
+missing Postgres `contents` rows from successful enrichment items when neither
+the `newsletter_source_id` nor `original_url` already exists.
 
 ## Production Run
 
@@ -59,6 +66,7 @@ MONGODB_URI='mongodb://user:password@host:27017/newsletter?authSource=newsletter
 POSTGRES_DSN='postgresql://user:password@host:5432/newsletter' \
 ENRICHMENT_DRY_RUN=true \
 ENRICHMENT_UPDATE_POSTGRES=false \
+ENRICHMENT_CREATE_MISSING_POSTGRES_CONTENTS=false \
 ENRICHMENT_RUN_ONCE=true \
 python deploy/content-enrichment-worker/content_enrichment_worker.py
 ```

@@ -98,7 +98,10 @@ class Settings:
     run_once: bool
     postgres_dsn: str | None
     update_postgres: bool
+    create_missing_postgres_contents: bool
     postgres_max_existing_content_length: int
+    postgres_provider_type: str
+    postgres_provider_language: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -126,7 +129,10 @@ class Settings:
             run_once=boolean_env("ENRICHMENT_RUN_ONCE", False),
             postgres_dsn=os.getenv("POSTGRES_DSN"),
             update_postgres=boolean_env("ENRICHMENT_UPDATE_POSTGRES", False),
+            create_missing_postgres_contents=boolean_env("ENRICHMENT_CREATE_MISSING_POSTGRES_CONTENTS", False),
             postgres_max_existing_content_length=int(os.getenv("ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH", "700")),
+            postgres_provider_type=os.getenv("ENRICHMENT_POSTGRES_PROVIDER_TYPE", "BLOG"),
+            postgres_provider_language=os.getenv("ENRICHMENT_POSTGRES_PROVIDER_LANGUAGE", "en"),
         )
 
 
@@ -148,12 +154,16 @@ async def main() -> None:
     postgres_pool = await create_postgres_pool(settings)
 
     LOGGER.info(
-        "Starting content enrichment worker. database=%s collection=%s allowed=%s dryRun=%s updatePostgres=%s",
+        (
+            "Starting content enrichment worker. database=%s collection=%s allowed=%s "
+            "dryRun=%s updatePostgres=%s createMissingPostgresContents=%s"
+        ),
         settings.database_name,
         settings.collection_name,
         sorted(settings.allowed_newsletter_names),
         settings.dry_run,
         settings.update_postgres,
+        settings.create_missing_postgres_contents,
     )
 
     try:
@@ -169,10 +179,13 @@ async def main() -> None:
 
 
 async def create_postgres_pool(settings: Settings) -> asyncpg.Pool | None:
-    if not settings.update_postgres:
+    if not settings.update_postgres and not settings.create_missing_postgres_contents:
         return None
     if not settings.postgres_dsn:
-        raise ValueError("POSTGRES_DSN is required when ENRICHMENT_UPDATE_POSTGRES=true")
+        raise ValueError(
+            "POSTGRES_DSN is required when ENRICHMENT_UPDATE_POSTGRES=true "
+            "or ENRICHMENT_CREATE_MISSING_POSTGRES_CONTENTS=true"
+        )
     return await asyncpg.create_pool(dsn=settings.postgres_dsn, min_size=1, max_size=1)
 
 
@@ -265,8 +278,17 @@ async def enrich_source(
 
     if not candidates:
         await update_source(collection, source, existing_items, aggregate_status(existing_items), settings, "no-new-url-candidates")
-        await sync_postgres_contents(postgres_pool, source, existing_items, settings)
-        LOGGER.info("No new URL candidates. sourceId=%s", source_id)
+        updated_contents, created_contents, linked_contents = await sync_postgres_contents(postgres_pool, source, existing_items, settings)
+        LOGGER.info(
+            (
+                "No new URL candidates. sourceId=%s postgresUpdated=%s "
+                "postgresCreated=%s postgresLinked=%s"
+            ),
+            source_id,
+            updated_contents,
+            created_contents,
+            linked_contents,
+        )
         return
 
     semaphore = asyncio.Semaphore(settings.concurrency)
@@ -276,15 +298,20 @@ async def enrich_source(
     status = aggregate_status(merged_items)
 
     await update_source(collection, source, merged_items, status, settings)
-    updated_contents = await sync_postgres_contents(postgres_pool, source, merged_items, settings)
+    updated_contents, created_contents, linked_contents = await sync_postgres_contents(postgres_pool, source, merged_items, settings)
     LOGGER.info(
-        "Processed source. sourceId=%s candidates=%s success=%s skipped=%s failed=%s postgresUpdated=%s",
+        (
+            "Processed source. sourceId=%s candidates=%s success=%s skipped=%s failed=%s "
+            "postgresUpdated=%s postgresCreated=%s postgresLinked=%s"
+        ),
         source_id,
         len(candidates),
         sum(1 for item in new_items if item["status"] == "success"),
         sum(1 for item in new_items if item["status"] == "skipped"),
         sum(1 for item in new_items if item["status"] == "failed"),
         updated_contents,
+        created_contents,
+        linked_contents,
     )
 
 
@@ -317,20 +344,26 @@ async def sync_postgres_contents(
     source: dict[str, Any],
     items: list[dict[str, Any]],
     settings: Settings,
-) -> int:
+) -> tuple[int, int, int]:
     if not postgres_pool:
-        return 0
+        return 0, 0, 0
 
     source_id = str(source.get("_id", ""))
     if not source_id:
-        return 0
+        return 0, 0, 0
 
     if settings.dry_run:
         LOGGER.info("Dry-run postgres update skipped. sourceId=%s items=%s", source_id, len(items))
-        return 0
+        return 0, 0, 0
 
     updated_count = 0
+    created_count = 0
+    linked_count = 0
     async with postgres_pool.acquire() as connection:
+        provider_id = None
+        if settings.create_missing_postgres_contents:
+            provider_id = await resolve_content_provider_id(connection, source, settings)
+
         for item in items:
             content = item.get("content")
             url = item.get("url")
@@ -357,7 +390,136 @@ async def sync_postgres_contents(
             )
             updated_count += int(result.rsplit(" ", 1)[-1])
 
-    return updated_count
+            if settings.create_missing_postgres_contents and provider_id is not None:
+                insert_result = await insert_missing_postgres_content(connection, source, item, content, provider_id)
+                created_count += insert_result
+                linked_count += await link_postgres_content_provider(connection, source, item, provider_id)
+
+    return updated_count, created_count, linked_count
+
+
+async def resolve_content_provider_id(
+    connection: asyncpg.Connection,
+    source: dict[str, Any],
+    settings: Settings,
+) -> int | None:
+    provider_name = source_provider_name(source)
+    if not provider_name:
+        return None
+
+    existing_id = await connection.fetchval(
+        """
+        SELECT id
+        FROM content_provider
+        WHERE name = $1
+        ORDER BY id ASC
+        LIMIT 1
+        """,
+        provider_name,
+    )
+    if existing_id is not None:
+        return int(existing_id)
+
+    headers = source.get("headers") or {}
+    channel = headers.get("RSS-Feed-URL") or source.get("senderEmail") or provider_name
+    provider_id = await connection.fetchval(
+        """
+        INSERT INTO content_provider (name, channel, language, type, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, NOW(), NOW())
+        RETURNING id
+        """,
+        provider_name,
+        channel,
+        settings.postgres_provider_language,
+        settings.postgres_provider_type,
+    )
+    return int(provider_id) if provider_id is not None else None
+
+
+async def insert_missing_postgres_content(
+    connection: asyncpg.Connection,
+    source: dict[str, Any],
+    item: dict[str, Any],
+    content: str,
+    provider_id: int,
+) -> int:
+    source_id = str(source.get("_id", ""))
+    original_url = item.get("url")
+    if not source_id or not original_url:
+        return 0
+
+    provider_name = source_provider_name(source)
+    if not provider_name:
+        return 0
+
+    published_at = (source.get("receivedDate") or datetime.now(timezone.utc).replace(tzinfo=None)).date()
+    title = (source.get("subject") or item.get("title") or original_url).strip()
+    result = await connection.execute(
+        """
+        INSERT INTO contents (
+            newsletter_source_id,
+            title,
+            content,
+            newsletter_name,
+            original_url,
+            image_url,
+            published_at,
+            content_provider_id,
+            created_at,
+            updated_at
+        )
+        SELECT $1::varchar, $2::text, $3::text, $4::text, $5::text, $6::text, $7::date, $8::bigint, NOW(), NOW()
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM contents
+            WHERE newsletter_source_id = $1::varchar
+               OR original_url = $5::text
+        )
+        """,
+        source_id,
+        title,
+        content,
+        provider_name,
+        original_url,
+        item.get("imageUrl"),
+        published_at,
+        provider_id,
+    )
+    return int(result.rsplit(" ", 1)[-1])
+
+
+async def link_postgres_content_provider(
+    connection: asyncpg.Connection,
+    source: dict[str, Any],
+    item: dict[str, Any],
+    provider_id: int,
+) -> int:
+    source_id = str(source.get("_id", ""))
+    original_url = item.get("url")
+    if not source_id or not original_url:
+        return 0
+
+    result = await connection.execute(
+        """
+        UPDATE contents
+        SET
+            content_provider_id = $1,
+            updated_at = NOW()
+        WHERE content_provider_id IS NULL
+          AND (
+              newsletter_source_id = $2::varchar
+              OR original_url = $3::text
+          )
+        """,
+        provider_id,
+        source_id,
+        original_url,
+    )
+    return int(result.rsplit(" ", 1)[-1])
+
+
+def source_provider_name(source: dict[str, Any]) -> str:
+    return normalize_text(source.get("sender") or source.get("senderEmail") or "")
 
 
 def append_candidate(links: list[LinkCandidate], url: str, title: str | None) -> None:
