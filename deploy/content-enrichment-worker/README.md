@@ -60,7 +60,9 @@ the `newsletter_source_id` nor `original_url` already exists.
 ## Production Run
 
 Production does not keep this worker running as a resident container. The
-server crontab runs `deploy/run-content-enrichment-worker.sh`, which executes:
+deploy script first registers `deploy/run-content-enrichment-worker.sh` in the
+server crontab. If `crontab` is unavailable, it falls back to a systemd timer
+named `newsletter-content-enrichment-worker.timer`. Both paths execute:
 
 ```bash
 docker compose --profile batch run --rm --no-deps content-enrichment-worker
