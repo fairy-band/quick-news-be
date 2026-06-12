@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -58,6 +59,11 @@ class RssContentService(
         var savedCount = 0
 
         feedMetadata.items.forEach { item ->
+            if (item.link.isBlank()) {
+                logger.warn("Skipping RSS item without link. feedUrl=$feedUrl, title=${item.title}")
+                return@forEach
+            }
+
             if (!seenItemUrls.add(item.link)) {
                 logger.debug("Skipping duplicate RSS item in feed: ${item.link}")
                 return@forEach
@@ -187,7 +193,7 @@ class RssContentService(
         NewsletterSource(
             subject = item.title,
             sender = feedTitle,
-            senderEmail = "rss@${item.link.extractDomain()}",
+            senderEmail = "rss@${item.link.extractDomainOrNull() ?: feedUrl.extractDomainOrNull() ?: FALLBACK_RSS_DOMAIN}",
             recipient = "system",
             recipientEmail = "system@newsletter.ai",
             content = item.toContentText(),
@@ -271,12 +277,13 @@ class RssContentService(
 }
 
 private fun String.extractDomain(): String =
+    extractDomainOrNull() ?: FALLBACK_RSS_DOMAIN
+
+private fun String.extractDomainOrNull(): String? =
     runCatching {
-        substringAfter("://")
-            .substringBefore("/")
-            .substringBefore(":")
-            .removePrefix("www.")
-    }.getOrDefault("unknown.com")
+        val host = URI(trim()).host ?: return@runCatching null
+        host.removePrefix("www.").takeIf { it.contains('.') }
+    }.getOrNull()
 
 private fun String.calculateFeedPriority(): Int =
     when {
@@ -289,3 +296,5 @@ private fun String.calculateFeedPriority(): Int =
         contains("무신사") || contains("29CM") || contains("원티드") -> 65
         else -> 50
     }
+
+private const val FALLBACK_RSS_DOMAIN = "unknown.com"

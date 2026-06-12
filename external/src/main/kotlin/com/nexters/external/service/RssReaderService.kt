@@ -38,11 +38,11 @@ class RssReaderService(
     private fun parseFeed(feedUrl: String): RssFeed {
         logger.debug("Fetching RSS feed from: $feedUrl")
 
-        val finalUrl = followRedirects(feedUrl)
-        logger.debug("Final URL after redirects: $finalUrl")
-
         val connection =
-            URI(finalUrl).toURL().openConnection().apply {
+            URI(feedUrl).toURL().openConnection().apply {
+                if (this is HttpURLConnection) {
+                    instanceFollowRedirects = true
+                }
                 setRequestProperty("User-Agent", config.userAgent)
                 setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml, */*")
                 setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -52,8 +52,10 @@ class RssReaderService(
                 connectTimeout = config.connectTimeout
                 readTimeout = config.readTimeout
             }
+        connection.validateSuccessfulResponse(feedUrl)
 
         val feed = SyndFeedInput().build(XmlReader(connection.getInputStream()))
+        val itemBaseUrl = feed.link?.takeIf { link -> link.isHttpUrl() } ?: feedUrl
         val rssFeed =
             RssFeed(
                 title = feed.title ?: "Untitled Feed",
@@ -61,23 +63,26 @@ class RssReaderService(
                 link = feed.link ?: feedUrl,
                 language = feed.language,
                 publishedDate = feed.publishedDate?.toLocalDateTime(),
-                items = feed.entries.map { entry -> parseRssEntry(entry) }
+                items = feed.entries.map { entry -> parseRssEntry(entry, itemBaseUrl) }
             )
 
         logger.info("Successfully parsed RSS feed: ${feed.title} (${feed.entries.size} items)")
         return rssFeed
     }
 
-    private fun parseRssEntry(entry: SyndEntry): RssItem =
+    private fun parseRssEntry(
+        entry: SyndEntry,
+        baseUrl: String,
+    ): RssItem =
         RssItem(
-            title = entry.title ?: "Untitled",
+            title = entry.title?.trim() ?: "Untitled",
             description = entry.description?.value,
-            link = entry.link ?: "",
+            link = entry.link.toAbsoluteHttpUrl(baseUrl) ?: entry.link.orEmpty().trim(),
             publishedDate = entry.publishedDate?.toLocalDateTime(),
             author = entry.author,
             categories = entry.categories?.map { it.name } ?: emptyList(),
             content = entry.extractContent(),
-            imageUrl = entry.extractImageUrl(),
+            imageUrl = entry.extractImageUrl(baseUrl),
         )
 
     private fun SyndEntry.extractContent(): String? {
@@ -101,11 +106,11 @@ class RssReaderService(
         return contentCandidates.maxByOrNull { it.length }
     }
 
-    private fun SyndEntry.extractImageUrl(): String? =
+    private fun SyndEntry.extractImageUrl(baseUrl: String): String? =
         extractMediaImageUrl()
             ?: extractEnclosureImageUrl()
-            ?: representativeImageUrlExtractorService.extractFromHtml(description?.value, link.orEmpty())
-            ?: representativeImageUrlExtractorService.extractFromHtml(extractContent(), link.orEmpty())
+            ?: representativeImageUrlExtractorService.extractFromHtml(description?.value, link.toAbsoluteHttpUrl(baseUrl) ?: baseUrl)
+            ?: representativeImageUrlExtractorService.extractFromHtml(extractContent(), link.toAbsoluteHttpUrl(baseUrl) ?: baseUrl)
 
     private fun SyndEntry.extractMediaImageUrl(): String? =
         foreignMarkup
@@ -145,6 +150,18 @@ class RssReaderService(
             ?.url
             .toAbsoluteHttpUrl(link.orEmpty())
 
+    private fun java.net.URLConnection.validateSuccessfulResponse(url: String) {
+        val httpConnection = this as? HttpURLConnection ?: return
+        val responseCode = httpConnection.responseCode
+        if (responseCode !in 200..299) {
+            throw RssFeedHttpException(
+                url = url,
+                statusCode = responseCode,
+                retryAfter = httpConnection.getHeaderField("Retry-After"),
+            )
+        }
+    }
+
     private fun <T> retryWithBackoff(
         maxRetries: Int,
         block: () -> T
@@ -154,6 +171,20 @@ class RssReaderService(
         repeat(maxRetries) { attempt ->
             try {
                 return block()
+            } catch (e: RssFeedHttpException) {
+                lastException = e
+                if (!e.isRetryable) {
+                    logger.warn(
+                        "Non-retryable RSS HTTP error: status=${e.statusCode}, url=${e.url}, retryAfter=${e.retryAfter}",
+                    )
+                    return null
+                }
+
+                logger.warn("Attempt ${attempt + 1}/$maxRetries failed: ${e.message}")
+
+                if (attempt < maxRetries - 1) {
+                    Thread.sleep(config.retryDelayMs * (attempt + 1))
+                }
             } catch (e: Exception) {
                 lastException = e
                 logger.warn("Attempt ${attempt + 1}/$maxRetries failed: ${e.message}")
@@ -168,47 +199,6 @@ class RssReaderService(
         return null
     }
 
-    private fun followRedirects(
-        url: String,
-        maxRedirects: Int = 5
-    ): String {
-        var currentUrl = url
-        var redirectCount = 0
-
-        while (redirectCount < maxRedirects) {
-            val connection =
-                URI(currentUrl).toURL().openConnection() as? HttpURLConnection
-                    ?: return currentUrl
-
-            connection.apply {
-                instanceFollowRedirects = false
-                setRequestProperty("User-Agent", config.userAgent)
-                connectTimeout = config.connectTimeout
-                readTimeout = config.readTimeout
-            }
-
-            val responseCode = connection.responseCode
-
-            if (responseCode in 300..399) {
-                val location = connection.getHeaderField("Location")
-                if (location.isNullOrBlank()) {
-                    logger.warn("Redirect response without Location header")
-                    return currentUrl
-                }
-
-                currentUrl = URI(currentUrl).resolve(location).toString()
-                redirectCount++
-                logger.debug("Following redirect to: $currentUrl")
-            } else {
-                return currentUrl
-            }
-
-            connection.disconnect()
-        }
-
-        logger.warn("Max redirects ($maxRedirects) reached for URL: $url")
-        return currentUrl
-    }
 }
 
 private fun String.isValidRssFeedUrl(): Boolean = isNotBlank() && (startsWith("http://") || startsWith("https://"))
@@ -228,3 +218,11 @@ private fun String?.toAbsoluteHttpUrl(baseUrl: String): String? {
 }
 
 private fun Date.toLocalDateTime(): LocalDateTime = LocalDateTime.ofInstant(this.toInstant(), ZoneId.systemDefault())
+
+private class RssFeedHttpException(
+    val url: String,
+    val statusCode: Int,
+    val retryAfter: String?,
+) : RuntimeException("HTTP $statusCode for URL: $url") {
+    val isRetryable: Boolean = statusCode >= 500 || statusCode == HttpURLConnection.HTTP_CLIENT_TIMEOUT
+}
