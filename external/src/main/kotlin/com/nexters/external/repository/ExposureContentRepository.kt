@@ -371,6 +371,33 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         @Param("exposureContentIds") exposureContentIds: List<Long>,
     ): List<ExposureContent>
 
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExposureContentArchiveRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.id,
+            cp.language,
+            cp.type,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE e.id IN :exposureContentIds
+    """
+    )
+    fun findArchiveRowsByIds(
+        @Param("exposureContentIds") exposureContentIds: List<Long>,
+    ): List<ExposureContentArchiveRow>
+
     /**
      * Content ID 목록으로 노출된 Content ID 조회 (N+1 방지)
      */

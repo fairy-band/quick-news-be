@@ -1,7 +1,6 @@
 package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.DailyContentArchive
-import com.nexters.external.entity.ExposureContent
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.DailyContentArchiveService
@@ -103,7 +102,7 @@ class DailyContentArchiveResolver(
     private fun resolveTodayContents(
         userId: Long,
         categoryIds: List<Long>,
-    ): List<ExposureContent> {
+    ): List<DailyContentArchive.ExposureContentSnapshot> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
         val candidatePool = possibleContentsResolver.resolveCandidatePoolByCategoryIds(userId, categoryIds)
         val possibleContents = candidatePool.candidates.map { it.candidate }
@@ -142,8 +141,10 @@ class DailyContentArchiveResolver(
         return fetchExposureContents(selectedContents)
     }
 
-    private fun fetchExposureContents(candidates: List<ExposureContentRecommendationCandidateRow>): List<ExposureContent> =
-        exposureContentService.getExposureContentsByIdsPreservingOrder(
+    private fun fetchExposureContents(
+        candidates: List<ExposureContentRecommendationCandidateRow>
+    ): List<DailyContentArchive.ExposureContentSnapshot> =
+        exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(
             candidates.map { it.exposureContentId },
         )
 

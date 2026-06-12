@@ -2,7 +2,6 @@ package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.Category
 import com.nexters.external.entity.DailyContentArchive
-import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.entity.User
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
@@ -16,6 +15,7 @@ import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 class DailyContentArchiveResolverTest {
     private val userService = mockk<UserService>()
@@ -48,7 +48,7 @@ class DailyContentArchiveResolverTest {
                 categories = mutableSetOf(category),
             )
         val candidate = candidate(exposureContentId = 1L, contentId = 100L)
-        val exposureContent = mockk<ExposureContent>()
+        val exposureContent = exposureContentSnapshot(id = candidate.exposureContentId, contentId = candidate.contentId)
         val date = LocalDate.of(2026, 6, 9)
 
         every { dailyContentArchiveService.findByDateAndUserId(userId, date) } returns null
@@ -81,7 +81,7 @@ class DailyContentArchiveResolverTest {
         every {
             recommendationCandidateSelector.select(any())
         } returns listOf(candidate)
-        every { exposureContentService.getExposureContentsByIdsPreservingOrder(listOf(candidate.exposureContentId)) } returns
+        every { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(listOf(candidate.exposureContentId)) } returns
             listOf(exposureContent)
         every { dailyContentArchiveService.saveWithHistory(any()) } answers { firstArg<DailyContentArchive>() }
 
@@ -98,7 +98,7 @@ class DailyContentArchiveResolverTest {
                 },
             )
         }
-        verify { exposureContentService.getExposureContentsByIdsPreservingOrder(listOf(candidate.exposureContentId)) }
+        verify { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(listOf(candidate.exposureContentId)) }
     }
 
     private fun candidate(
@@ -115,5 +115,31 @@ class DailyContentArchiveResolverTest {
             title = "New AI platform release",
             provocativeHeadline = "New AI platform release",
             summaryContent = "A new AI platform was released.",
+        )
+
+    private fun exposureContentSnapshot(
+        id: Long,
+        contentId: Long,
+    ): DailyContentArchive.ExposureContentSnapshot =
+        DailyContentArchive.ExposureContentSnapshot(
+            id = id,
+            content =
+                DailyContentArchive.ContentSnapshot(
+                    id = contentId,
+                    originalUrl = "https://example.com/article",
+                    imageUrl = null,
+                    newsletterName = "Newsletter",
+                    contentProvider =
+                        DailyContentArchive.ContentProviderSnapshot(
+                            id = 200L,
+                            language = "ko",
+                            type = null,
+                        ),
+                ),
+            provocativeKeyword = "AI",
+            provocativeHeadline = "New AI platform release",
+            summaryContent = "A new AI platform was released.",
+            createdAt = LocalDateTime.of(2026, 6, 9, 0, 0),
+            updatedAt = LocalDateTime.of(2026, 6, 9, 0, 0),
         )
 }

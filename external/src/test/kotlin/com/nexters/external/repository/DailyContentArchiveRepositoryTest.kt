@@ -1,8 +1,6 @@
 package com.nexters.external.repository
 
-import com.nexters.external.entity.Content
 import com.nexters.external.entity.DailyContentArchive
-import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.User
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -28,26 +26,11 @@ class DailyContentArchiveRepositoryTest {
                 keywords = mutableSetOf()
             )
 
-        val exposureContent =
-            ExposureContent(
-                content =
-                    Content(
-                        title = "Test Content Title",
-                        content = "Test content body",
-                        newsletterName = "Test Newsletter",
-                        originalUrl = "https://example.com/test",
-                        publishedAt = LocalDate.now()
-                    ),
-                provocativeKeyword = "test-keyword",
-                provocativeHeadline = "test-headline",
-                summaryContent = "test-summary"
-            )
-
         val dailyContentArchive =
             DailyContentArchive(
                 date = LocalDate.now(),
                 user = DailyContentArchive.UserSnapshot.from(user),
-                exposureContents = listOf(exposureContent)
+                exposureContents = listOf(exposureContentSnapshot())
             )
 
         // when
@@ -58,10 +41,10 @@ class DailyContentArchiveRepositoryTest {
         assertEquals(LocalDate.now(), expected.date)
         assertEquals("test-device-token", expected.user.deviceToken)
         assertEquals(
-            "Test Content Title",
+            "Test Newsletter",
             expected.exposureContents
                 .first()
-                .content.title
+                .content.newsletterName
         )
     }
 
@@ -70,35 +53,18 @@ class DailyContentArchiveRepositoryTest {
         // given
         val user =
             User(
-                id = 1L,
+                id = 2L,
                 deviceToken = "test-device-token-2",
                 categories = mutableSetOf(),
                 keywords = mutableSetOf()
             )
 
-        val content =
-            Content(
-                title = "Test Content Title 2",
-                content = "Test content body 2",
-                newsletterName = "Test Newsletter 2",
-                originalUrl = "https://example.com/test2",
-                publishedAt = LocalDate.now()
-            )
-
-        val exposureContent =
-            ExposureContent(
-                content = content,
-                provocativeKeyword = "test-keyword-2",
-                provocativeHeadline = "test-headline-2",
-                summaryContent = "test-summary-2"
-            )
-
-        val date = LocalDate.now()
+        val date = LocalDate.now().plusDays(1)
         val dailyContentArchive =
             DailyContentArchive(
                 date = date,
                 user = DailyContentArchive.UserSnapshot.from(user),
-                exposureContents = listOf(exposureContent)
+                exposureContents = listOf(exposureContentSnapshot())
             )
         sut.save(dailyContentArchive)
 
@@ -121,4 +87,22 @@ class DailyContentArchiveRepositoryTest {
         // then
         assertFalse(actual)
     }
+
+    private fun exposureContentSnapshot(): DailyContentArchive.ExposureContentSnapshot =
+        DailyContentArchive.ExposureContentSnapshot(
+            id = 1L,
+            content =
+                DailyContentArchive.ContentSnapshot(
+                    id = 10L,
+                    newsletterName = "Test Newsletter",
+                    originalUrl = "https://example.com/test",
+                    imageUrl = null,
+                    contentProvider = null,
+                ),
+            provocativeKeyword = "test-keyword",
+            provocativeHeadline = "test-headline",
+            summaryContent = "test-summary",
+            createdAt = java.time.LocalDateTime.now(),
+            updatedAt = java.time.LocalDateTime.now(),
+        )
 }

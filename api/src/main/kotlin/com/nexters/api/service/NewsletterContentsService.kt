@@ -2,6 +2,7 @@ package com.nexters.api.service
 
 import com.nexters.api.dto.ContentViewApiResponse
 import com.nexters.api.enums.Language
+import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.enums.ContentProviderType
 import com.nexters.external.service.PopularNewsletterSnapshotService
@@ -47,5 +48,18 @@ class NewsletterContentsService(
             newsletterName = this.content.newsletterName,
             language = Language.fromString(this.content.contentProvider?.language),
             cardType = this.content.contentProvider?.type ?: ContentProviderType.UNKNOWN
+        )
+
+    private fun DailyContentArchive.ExposureContentSnapshot.toCard(): ContentViewApiResponse.ContentCardApiResponse =
+        ContentViewApiResponse.ContentCardApiResponse(
+            id = id,
+            title = provocativeHeadline,
+            topKeyword = provocativeKeyword,
+            summary = summaryContent,
+            contentUrl = content.originalUrl,
+            imageUrl = content.imageUrl,
+            newsletterName = content.newsletterName,
+            language = Language.fromString(content.contentProvider?.language),
+            cardType = content.contentProvider?.type ?: ContentProviderType.UNKNOWN
         )
 }

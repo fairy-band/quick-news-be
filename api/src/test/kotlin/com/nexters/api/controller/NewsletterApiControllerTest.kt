@@ -153,30 +153,7 @@ class NewsletterApiControllerTest {
                     ),
                 exposureContents =
                     listOf(
-                        ExposureContent(
-                            id = 11L,
-                            content =
-                                Content(
-                                    id = 101L,
-                                    title = "원문 제목",
-                                    content = "원문 본문",
-                                    newsletterName = "안드로이드 위클리",
-                                    originalUrl = "https://example.com/article-1",
-                                    imageUrl = "https://example.com/image-1.png",
-                                    publishedAt = publishedDate,
-                                    contentProvider =
-                                        ContentProvider(
-                                            id = 201L,
-                                            name = "Android Weekly",
-                                            channel = "android-weekly",
-                                            language = "ko",
-                                            type = null,
-                                        ),
-                                ),
-                            provocativeKeyword = "Kotlin",
-                            provocativeHeadline = "후킹 제목",
-                            summaryContent = "요약 내용",
-                        ),
+                        archiveSnapshot(),
                     ),
             )
         val featuredExposureContent =
@@ -251,30 +228,7 @@ class NewsletterApiControllerTest {
                     ),
                 exposureContents =
                     listOf(
-                        ExposureContent(
-                            id = 11L,
-                            content =
-                                Content(
-                                    id = 101L,
-                                    title = "원문 제목",
-                                    content = "원문 본문",
-                                    newsletterName = "안드로이드 위클리",
-                                    originalUrl = "https://example.com/article-1",
-                                    imageUrl = "https://example.com/image-1.png",
-                                    publishedAt = publishedDate,
-                                    contentProvider =
-                                        ContentProvider(
-                                            id = 201L,
-                                            name = "Android Weekly",
-                                            channel = "android-weekly",
-                                            language = "ko",
-                                            type = null,
-                                        ),
-                                ),
-                            provocativeKeyword = "Kotlin",
-                            provocativeHeadline = "후킹 제목",
-                            summaryContent = "요약 내용",
-                        ),
+                        archiveSnapshot(),
                     ),
             )
 
@@ -482,6 +436,29 @@ class NewsletterApiControllerTest {
             language = language,
             createdAt = LocalDateTime.of(2026, 4, 24, 10, 0),
             updatedAt = LocalDateTime.of(2026, 4, 24, 10, 0),
+        )
+
+    private fun archiveSnapshot(): DailyContentArchive.ExposureContentSnapshot =
+        DailyContentArchive.ExposureContentSnapshot(
+            id = 11L,
+            content =
+                DailyContentArchive.ContentSnapshot(
+                    id = 101L,
+                    newsletterName = "안드로이드 위클리",
+                    originalUrl = "https://example.com/article-1",
+                    imageUrl = "https://example.com/image-1.png",
+                    contentProvider =
+                        DailyContentArchive.ContentProviderSnapshot(
+                            id = 201L,
+                            language = "ko",
+                            type = null,
+                        ),
+                ),
+            provocativeKeyword = "Kotlin",
+            provocativeHeadline = "후킹 제목",
+            summaryContent = "요약 내용",
+            createdAt = LocalDateTime.of(2025, 7, 8, 0, 0),
+            updatedAt = LocalDateTime.of(2025, 7, 8, 0, 0),
         )
 
     private fun deleteExploreCacheKeys() {

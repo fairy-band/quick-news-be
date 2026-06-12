@@ -24,7 +24,7 @@ class DailyContentArchiveService(
             dailyContentArchive.exposureContents.map {
                 UserExposedContentMapping(
                     userId = dailyContentArchive.user.id,
-                    contentId = it.content.id!!,
+                    contentId = it.content.id,
                 )
             }
 

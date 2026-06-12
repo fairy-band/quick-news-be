@@ -2,10 +2,12 @@ package com.nexters.external.service
 
 import com.nexters.external.annotation.ExposureContentChanged
 import com.nexters.external.entity.Content
+import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.Summary
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExploreContentRow
+import com.nexters.external.repository.ExposureContentArchiveRow
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
@@ -280,7 +282,49 @@ class ExposureContentService(
         return exposureContentIds.mapNotNull { exposureContentsById[it] }
     }
 
+    fun getArchiveSnapshotsByIdsPreservingOrder(
+        exposureContentIds: List<Long>,
+    ): List<DailyContentArchive.ExposureContentSnapshot> {
+        if (exposureContentIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val archiveRowsById =
+            exposureContentRepository
+                .findArchiveRowsByIds(exposureContentIds)
+                .associateBy { it.exposureContentId }
+
+        return exposureContentIds.mapNotNull { exposureContentId ->
+            archiveRowsById[exposureContentId]?.toArchiveSnapshot()
+        }
+    }
+
     fun countAllExposureContents(): Long = exposureContentRepository.count()
+
+    private fun ExposureContentArchiveRow.toArchiveSnapshot(): DailyContentArchive.ExposureContentSnapshot =
+        DailyContentArchive.ExposureContentSnapshot(
+            id = exposureContentId,
+            content =
+                DailyContentArchive.ContentSnapshot(
+                    id = contentId,
+                    originalUrl = contentUrl,
+                    imageUrl = imageUrl,
+                    newsletterName = newsletterName,
+                    contentProvider =
+                        contentProviderId?.let { id ->
+                            DailyContentArchive.ContentProviderSnapshot(
+                                id = id,
+                                language = contentProviderLanguage,
+                                type = contentProviderType,
+                            )
+                        },
+                ),
+            provocativeKeyword = provocativeKeyword,
+            provocativeHeadline = provocativeHeadline,
+            summaryContent = summaryContent,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
 
     companion object {
         private val REGISTERED_SORT: Sort = JpaSort.unsafe(Sort.Direction.DESC, "e.id")
