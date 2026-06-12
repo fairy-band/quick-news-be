@@ -10,6 +10,7 @@ import org.jdom2.Element
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
+import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URI
 import java.time.LocalDateTime
@@ -30,7 +31,7 @@ class RssReaderService(
             return null
         }
 
-        return retryWithBackoff(config.maxRetries) {
+        return retryWithBackoff(feedUrl, config.maxRetries) {
             parseFeed(feedUrl)
         }
     }
@@ -54,7 +55,7 @@ class RssReaderService(
             }
         connection.validateSuccessfulResponse(feedUrl)
 
-        val feed = SyndFeedInput().build(XmlReader(connection.getInputStream()))
+        val feed = SyndFeedInput().build(StringReader(connection.readSanitizedXml(feedUrl)))
         val itemBaseUrl = feed.link?.takeIf { link -> link.isHttpUrl() } ?: feedUrl
         val rssFeed =
             RssFeed(
@@ -162,7 +163,37 @@ class RssReaderService(
         }
     }
 
+    private fun java.net.URLConnection.readSanitizedXml(feedUrl: String): String {
+        val xml =
+            getInputStream().use { inputStream ->
+                XmlReader(inputStream).use { reader -> reader.readText() }
+            }
+
+        return xml.sanitizeInvalidXmlCharacters(feedUrl)
+    }
+
+    private fun String.sanitizeInvalidXmlCharacters(feedUrl: String): String {
+        var removedCount = 0
+        val sanitized = StringBuilder(length)
+
+        codePoints().forEach { codePoint ->
+            if (codePoint.isValidXml10CodePoint()) {
+                sanitized.appendCodePoint(codePoint)
+            } else {
+                removedCount++
+            }
+        }
+
+        if (removedCount == 0) {
+            return this
+        }
+
+        logger.warn("Removed $removedCount invalid XML character(s) from RSS feed: $feedUrl")
+        return sanitized.toString()
+    }
+
     private fun <T> retryWithBackoff(
+        feedUrl: String,
         maxRetries: Int,
         block: () -> T
     ): T? {
@@ -180,14 +211,14 @@ class RssReaderService(
                     return null
                 }
 
-                logger.warn("Attempt ${attempt + 1}/$maxRetries failed: ${e.message}")
+                logger.warn("Attempt ${attempt + 1}/$maxRetries failed for RSS feed $feedUrl: ${e.message}")
 
                 if (attempt < maxRetries - 1) {
                     Thread.sleep(config.retryDelayMs * (attempt + 1))
                 }
             } catch (e: Exception) {
                 lastException = e
-                logger.warn("Attempt ${attempt + 1}/$maxRetries failed: ${e.message}")
+                logger.warn("Attempt ${attempt + 1}/$maxRetries failed for RSS feed $feedUrl: ${e.message}")
 
                 if (attempt < maxRetries - 1) {
                     Thread.sleep(config.retryDelayMs * (attempt + 1))
@@ -200,6 +231,14 @@ class RssReaderService(
     }
 
 }
+
+private fun Int.isValidXml10CodePoint(): Boolean =
+    this == 0x9 ||
+        this == 0xA ||
+        this == 0xD ||
+        this in 0x20..0xD7FF ||
+        this in 0xE000..0xFFFD ||
+        this in 0x10000..0x10FFFF
 
 private fun String.isValidRssFeedUrl(): Boolean = isNotBlank() && (startsWith("http://") || startsWith("https://"))
 

@@ -70,6 +70,38 @@ class RssReaderServiceTest {
         assertThat(requestCount.get()).isEqualTo(1)
     }
 
+    @Test
+    fun `fetchFeed should remove invalid xml control characters before parsing`() {
+        every { representativeImageUrlExtractorService.extractFromHtml(any(), any()) } returns null
+        val invalidControlCharacter = "\u001C"
+        val server =
+            startServer(
+                status = 200,
+                body =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <rss version="2.0">
+                        <channel>
+                            <title>Test Feed</title>
+                            <link>https://example.com</link>
+                            <description>test</description>
+                            <item>
+                                <title>Invalid Character Item</title>
+                                <link>https://example.com/posts/invalid-character</link>
+                                <description><![CDATA[hello ${invalidControlCharacter}world]]></description>
+                            </item>
+                        </channel>
+                    </rss>
+                    """.trimIndent(),
+            )
+
+        val feed = rssReaderService().fetchFeed(server.feedUrl())
+
+        assertThat(feed).isNotNull
+        assertThat(feed!!.items).hasSize(1)
+        assertThat(feed.items.first().description).isEqualTo("hello world")
+    }
+
     private fun rssReaderService(
         config: RssFeedConfig = RssFeedConfig(maxRetries = 1, retryDelayMs = 1),
     ): RssReaderService =
