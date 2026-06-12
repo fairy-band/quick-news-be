@@ -16,7 +16,7 @@ Postgres `contents`.
 MONGODB_URI=...
 MONGODB_DATABASE=newsletter
 POSTGRES_DSN=...
-ENRICHMENT_ALLOWED_NEWSLETTER_NAMES=GeekNews,GeekNews Weekly
+ENRICHMENT_ALLOWED_NEWSLETTER_NAMES=GeekNews,GeekNews Weekly,Maeil Mail
 ENRICHMENT_LIMIT=5
 ENRICHMENT_INTERVAL_SECONDS=3600
 ENRICHMENT_LOOKBACK_DAYS=90
@@ -33,14 +33,25 @@ ENRICHMENT_RUN_ONCE=true
 CONTENT_ENRICHMENT_CRON_SCHEDULE="17 * * * *"
 ```
 
-`ENRICHMENT_ALLOWED_NEWSLETTER_NAMES` defaults to `GeekNews,GeekNews Weekly`
-because `news.hada.io` has the most reliable URL structure among the currently
-reviewed publishers.
+`ENRICHMENT_ALLOWED_NEWSLETTER_NAMES` defaults to `GeekNews,GeekNews Weekly,Maeil Mail`.
+Maeil Mail is handled with a provider-specific URL rule: only public
+`maeil-mail.kr/question/{id}` pages are enriched, while settings, unsubscribe,
+private question, wiki, and image links are ignored.
+
+Provider-specific behavior is configured through `ProviderRule` entries in
+`content_enrichment_worker.py`. Add a rule there when a newsletter needs custom
+source matching, article URL allowlisting, title cleanup, or legacy Postgres row
+repair.
 
 When `ENRICHMENT_UPDATE_POSTGRES=true`, the worker also updates matching
 Postgres `contents` rows by `newsletter_source_id` and `original_url`, but only
 when the current content is shorter than `ENRICHMENT_POSTGRES_MAX_EXISTING_CONTENT_LENGTH`
 and the enriched content is longer.
+
+Maeil Mail has an additional repair path for older parser output: when a row
+for the same `newsletter_source_id` still points at the Maeil Mail homepage and
+contains the mail template text, the worker replaces it with the public
+`question/{id}` URL and enriched answer body.
 
 When `ENRICHMENT_CREATE_MISSING_POSTGRES_CONTENTS=true`, the worker creates
 missing Postgres `contents` rows from successful enrichment items when neither

@@ -29,6 +29,13 @@ NON_ARTICLE_HOSTS = {
     "youtu.be",
     "youtube.com",
 }
+NON_ARTICLE_PATH_KEYWORDS = {
+    "preference",
+    "preferences",
+    "privacy",
+    "setting",
+    "unsubscribe",
+}
 NON_HTML_EXTENSIONS = {
     ".gif",
     ".gz",
@@ -63,7 +70,7 @@ TITLE_STOP_WORDS = {
     "with",
     "your",
 }
-PROVIDER_HINTS = (
+GENERAL_PROVIDER_HINTS = (
     ("news@hada.io", "GeekNews"),
     ("news@hada.io", "GeekNews Weekly"),
     ("news.hada.io", "GeekNews"),
@@ -77,6 +84,8 @@ PROVIDER_HINTS = (
 URL_REGEX = re.compile(r"https?://[^\s<>()\"']+")
 WHITESPACE_REGEX = re.compile(r"\s+")
 TITLE_SEPARATOR_REGEX = re.compile(r"[^\w]+", re.UNICODE)
+MAEIL_MAIL_QUESTION_PATH_REGEX = re.compile(r"^/question/\d+/?$")
+MAEIL_MAIL_SUBJECT_PREFIX_REGEX = re.compile(r"^\s*\[매일메일]\s*")
 
 
 @dataclass(frozen=True)
@@ -107,7 +116,9 @@ class Settings:
     def from_env(cls) -> "Settings":
         mongodb_uri = required_env("MONGODB_URI")
         database_name = os.getenv("MONGODB_DATABASE") or database_from_uri(mongodb_uri) or "newsletter"
-        allowed_names = string_set(os.getenv("ENRICHMENT_ALLOWED_NEWSLETTER_NAMES", "GeekNews,GeekNews Weekly"))
+        allowed_names = string_set(
+            os.getenv("ENRICHMENT_ALLOWED_NEWSLETTER_NAMES", "GeekNews,GeekNews Weekly,Maeil Mail")
+        )
         if not allowed_names:
             raise ValueError("ENRICHMENT_ALLOWED_NEWSLETTER_NAMES must not be empty")
 
@@ -141,6 +152,90 @@ class LinkCandidate:
     url: str
     normalized_url: str
     title: str | None
+
+
+@dataclass(frozen=True)
+class ProviderRule:
+    name: str
+    hints: tuple[str, ...] = ()
+    allowed_hosts: frozenset[str] = frozenset()
+    allowed_path_regex: re.Pattern[str] | None = None
+    use_source_subject_for_links: bool = False
+    subject_prefix_regex: re.Pattern[str] | None = None
+    repair_original_urls: tuple[str, ...] = ()
+    repair_content_markers: tuple[str, ...] = ()
+
+    def matches_source(self, source: dict[str, Any]) -> bool:
+        headers = source.get("headers") or {}
+        haystacks = [
+            normalize_text(source.get("sender") or ""),
+            normalize_text(source.get("senderEmail") or ""),
+            normalize_text(source.get("subject") or ""),
+            normalize_text(headers.get("RSS-Feed-URL") or ""),
+            normalize_text(headers.get("RSS-Item-URL") or ""),
+        ]
+        return any(
+            hint.lower() in haystack.lower()
+            for hint in self.hints
+            for haystack in haystacks
+        )
+
+    def accepts_url(self, normalized_url: str) -> bool:
+        if not self.allowed_hosts and self.allowed_path_regex is None:
+            return True
+
+        parsed = urlparse(normalized_url)
+        host = parsed.netloc.lower()
+        if self.allowed_hosts and host not in self.allowed_hosts:
+            return False
+        return self.allowed_path_regex is None or bool(self.allowed_path_regex.match(parsed.path))
+
+    def candidate_title(
+        self,
+        source: dict[str, Any],
+        url: str,
+        title: str | None,
+    ) -> str | None:
+        if not self.accepts_url(normalize_url(url)):
+            return title
+
+        raw_title = title or ""
+        if self.use_source_subject_for_links:
+            raw_title = source.get("subject") or raw_title
+        if self.subject_prefix_regex:
+            raw_title = self.subject_prefix_regex.sub("", raw_title)
+        return normalize_text(raw_title) or None
+
+    @property
+    def has_postgres_repair(self) -> bool:
+        return bool(self.repair_original_urls or self.repair_content_markers)
+
+    @property
+    def repair_content_patterns(self) -> list[str]:
+        return [f"%{marker}%" for marker in self.repair_content_markers]
+
+
+PROVIDER_RULES = {
+    "Maeil Mail": ProviderRule(
+        name="Maeil Mail",
+        hints=("noreply@maeil-mail.kr", "maeil-mail", "[매일메일]"),
+        allowed_hosts=frozenset({"maeil-mail.kr", "www.maeil-mail.kr"}),
+        allowed_path_regex=MAEIL_MAIL_QUESTION_PATH_REGEX,
+        use_source_subject_for_links=True,
+        subject_prefix_regex=MAEIL_MAIL_SUBJECT_PREFIX_REGEX,
+        repair_original_urls=("https://www.maeil-mail.kr", "https://www.maeil-mail.kr/"),
+        repair_content_markers=("오늘의 질문이 도착했습니다",),
+    ),
+}
+
+PROVIDER_HINTS = (
+    GENERAL_PROVIDER_HINTS
+    + tuple(
+        (hint, rule.name)
+        for rule in PROVIDER_RULES.values()
+        for hint in rule.hints
+    )
+)
 
 
 async def main() -> None:
@@ -319,19 +414,30 @@ def extract_link_candidates(source: dict[str, Any]) -> list[LinkCandidate]:
     html = source.get("htmlContent") or ""
     text = source.get("content") or ""
     headers = source.get("headers") or {}
+    provider_rule = source_provider_rule(source)
     links: list[LinkCandidate] = []
 
-    append_candidate(links, clean_url(headers.get("RSS-Item-URL", "")), source.get("subject"))
+    append_candidate(
+        links,
+        clean_url(headers.get("RSS-Item-URL", "")),
+        source.get("subject"),
+        provider_rule,
+    )
 
     if html:
         soup = BeautifulSoup(html, "lxml")
         for anchor in soup.select("a[href]"):
             url = clean_url(anchor.get("href", ""))
-            title = normalize_text(anchor.get_text(" ", strip=True)) or None
-            append_candidate(links, url, title)
+            title = provider_rule.candidate_title(
+                source,
+                url,
+                normalize_text(anchor.get_text(" ", strip=True)) or None,
+            )
+            append_candidate(links, url, title, provider_rule)
 
     for match in URL_REGEX.finditer(text):
-        append_candidate(links, clean_url(match.group(0)), None)
+        url = clean_url(match.group(0))
+        append_candidate(links, url, provider_rule.candidate_title(source, url, None), provider_rule)
 
     deduped: dict[str, LinkCandidate] = {}
     for link in links:
@@ -356,6 +462,8 @@ async def sync_postgres_contents(
         LOGGER.info("Dry-run postgres update skipped. sourceId=%s items=%s", source_id, len(items))
         return 0, 0, 0
 
+    provider_name = source_provider_name(source)
+    provider_rule = provider_rule_by_name(provider_name)
     updated_count = 0
     created_count = 0
     linked_count = 0
@@ -376,17 +484,42 @@ async def sync_postgres_contents(
                 SET
                     content = $1,
                     image_url = COALESCE(NULLIF(image_url, ''), $2),
+                    original_url = CASE
+                        WHEN $6 THEN $4
+                        ELSE original_url
+                    END,
                     updated_at = NOW()
                 WHERE newsletter_source_id = $3
-                  AND original_url = $4
-                  AND length(content) <= $5
-                  AND length(content) < length($1)
+                  AND (
+                      original_url = $4
+                      OR (
+                          $6
+                          AND original_url = ANY($7::text[])
+                      )
+                  )
+                  AND (
+                      length(content) <= $5
+                      OR (
+                          $6
+                          AND content LIKE ANY($8::text[])
+                      )
+                  )
+                  AND (
+                      length(content) < length($1)
+                      OR (
+                          $6
+                          AND content LIKE ANY($8::text[])
+                      )
+                  )
                 """,
                 content,
                 item.get("imageUrl"),
                 source_id,
                 url,
                 settings.postgres_max_existing_content_length,
+                provider_rule.has_postgres_repair,
+                list(provider_rule.repair_original_urls),
+                provider_rule.repair_content_patterns,
             )
             updated_count += int(result.rsplit(" ", 1)[-1])
 
@@ -519,12 +652,39 @@ async def link_postgres_content_provider(
 
 
 def source_provider_name(source: dict[str, Any]) -> str:
+    rule = source_provider_rule(source)
+    if rule.name:
+        return rule.name
     return normalize_text(source.get("sender") or source.get("senderEmail") or "")
 
 
-def append_candidate(links: list[LinkCandidate], url: str, title: str | None) -> None:
+def source_provider_rule(source: dict[str, Any]) -> ProviderRule:
+    return next(
+        (rule for rule in PROVIDER_RULES.values() if rule.matches_source(source)),
+        default_provider_rule(),
+    )
+
+
+def provider_rule_by_name(provider_name: str) -> ProviderRule:
+    return PROVIDER_RULES.get(provider_name, default_provider_rule())
+
+
+def default_provider_rule() -> ProviderRule:
+    return ProviderRule(name="")
+
+
+def append_candidate(
+    links: list[LinkCandidate],
+    url: str,
+    title: str | None,
+    provider_rule: ProviderRule,
+) -> None:
     normalized_url = normalize_url(url)
-    if not normalized_url or is_non_article_url(normalized_url):
+    if (
+        not normalized_url
+        or is_non_article_url(normalized_url)
+        or not provider_rule.accepts_url(normalized_url)
+    ):
         return
     links.append(LinkCandidate(url=url, normalized_url=normalized_url, title=title))
 
@@ -715,8 +875,11 @@ def is_non_article_url(url: str) -> bool:
     parsed = urlparse(url)
     host = parsed.netloc.lower()
     path = parsed.path.lower()
-    return any(host == blocked or host.endswith(f".{blocked}") for blocked in NON_ARTICLE_HOSTS) or any(
-        path.endswith(extension) for extension in NON_HTML_EXTENSIONS
+    path_parts = {part for part in path.split("/") if part}
+    return (
+        any(host == blocked or host.endswith(f".{blocked}") for blocked in NON_ARTICLE_HOSTS)
+        or any(keyword in path_parts for keyword in NON_ARTICLE_PATH_KEYWORDS)
+        or any(path.endswith(extension) for extension in NON_HTML_EXTENSIONS)
     )
 
 
