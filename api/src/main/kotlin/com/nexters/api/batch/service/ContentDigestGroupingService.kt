@@ -39,7 +39,7 @@ class ContentDigestGroupingService(
     fun groupContents(request: ContentDigestGroupingRequest): ContentDigestGroupingResponse {
         val targetNewsletterNames = request.normalizedNewsletterNames()
         val rows = findTargetContents(request, targetNewsletterNames)
-        val sourceGroups = rows.groupBy { it.newsletterName to it.newsletterSourceId }
+        val sourceGroups = rows.groupBy { it.displayNewsletterName to it.newsletterSourceId }
         val samples = mutableListOf<ContentDigestGroupingSample>()
         var skippedReferencedGroups = 0
         var skippedNonGroupableGroups = 0
@@ -145,6 +145,7 @@ class ContentDigestGroupingService(
                 c.image_url,
                 c.published_at,
                 c.content_provider_id,
+                cp.name AS content_provider_name,
                 (
                     SELECT COUNT(*)
                     FROM contents grouped
@@ -162,6 +163,7 @@ class ContentDigestGroupingService(
                     OR EXISTS (SELECT 1 FROM popular_newsletter_snapshot_items pnsi WHERE pnsi.resolved_content_id = c.id)
                 ) AS has_references
             FROM contents c
+            LEFT JOIN content_provider cp ON cp.id = c.content_provider_id
             WHERE c.newsletter_source_id IS NOT NULL
                 AND c.newsletter_name IN ($placeholders)
                 AND c.content NOT LIKE ?
@@ -259,11 +261,12 @@ class ContentDigestGroupingService(
         chunkCount: Int,
     ): String {
         val issue = first.extractIssueNumber()
+        val newsletterName = first.displayNewsletterName
         val baseTitle =
             if (!issue.isNullOrBlank()) {
-                "${first.newsletterName} Issue #$issue 모음"
+                "$newsletterName Issue #$issue 모음"
             } else {
-                "${first.publishedAt.format(KOREAN_DATE_FORMATTER)} ${first.newsletterName} 모음"
+                "${first.publishedAt.format(KOREAN_DATE_FORMATTER)} $newsletterName 모음"
             }
 
         return if (chunkCount > 1) {
@@ -328,11 +331,11 @@ class ContentDigestGroupingService(
         if (size >= SAMPLE_LIMIT) return
 
         val first = chunk.first()
-        this +=
-            ContentDigestGroupingSample(
-                newsletterName = first.newsletterName,
-                newsletterSourceId = first.newsletterSourceId,
-                title = grouped.title,
+            this +=
+                ContentDigestGroupingSample(
+                    newsletterName = first.displayNewsletterName,
+                    newsletterSourceId = first.newsletterSourceId,
+                    title = grouped.title,
                 contentIds = chunk.map { row -> row.id },
                 groupedContentLength = grouped.content.length,
             )
@@ -356,6 +359,7 @@ class ContentDigestGroupingService(
             imageUrl = getString("image_url"),
             publishedAt = getDate("published_at").toLocalDate(),
             contentProviderId = getLong("content_provider_id").takeUnless { wasNull() },
+            contentProviderName = getString("content_provider_name"),
             existingGroupedCount = getInt("existing_grouped_count"),
             hasReferences = getBoolean("has_references"),
         )
@@ -392,9 +396,13 @@ class ContentDigestGroupingService(
         val imageUrl: String?,
         val publishedAt: LocalDate,
         val contentProviderId: Long?,
+        val contentProviderName: String?,
         val existingGroupedCount: Int,
         val hasReferences: Boolean,
-    )
+    ) {
+        val displayNewsletterName: String
+            get() = contentProviderName?.takeIf { name -> name.isNotBlank() } ?: newsletterName
+    }
 
     private data class GroupedContent(
         val title: String,
@@ -411,6 +419,11 @@ class ContentDigestGroupingService(
                 "ITWorld Korea",
                 "TLDR",
                 "Android Weekly",
+                "Awesome Android Newsletter",
+                "Awesome iOS Weekly",
+                "Awesome Java Newsletter",
+                "Awesome Java Weekly",
+                "Awesome Kotlin Weekly",
                 "Java Weekly",
                 "Python Weekly",
                 "VS Code Email",

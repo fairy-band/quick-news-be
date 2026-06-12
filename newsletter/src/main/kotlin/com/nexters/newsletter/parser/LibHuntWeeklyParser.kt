@@ -2,15 +2,17 @@ package com.nexters.newsletter.parser
 
 import org.slf4j.LoggerFactory
 
-class JavaWeeklyParser : MailParser {
-    private val logger = LoggerFactory.getLogger(JavaWeeklyParser::class.java)
+class LibHuntWeeklyParser : MailParser {
+    private val logger = LoggerFactory.getLogger(LibHuntWeeklyParser::class.java)
 
     override fun supports(
         sender: String,
         subject: String?,
     ): Boolean =
-        sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
-            sender.contains(NEWSLETTER_MAIL, ignoreCase = true)
+        sender.contains(NEWSLETTER_MAIL, ignoreCase = true) ||
+            LIBHUNT_NEWSLETTER_NAMES.any { name ->
+                sender.contains(name, ignoreCase = true) || subject?.contains(name, ignoreCase = true) == true
+            }
 
     override fun parse(context: MailParseContext): List<MailContent> =
         try {
@@ -21,7 +23,7 @@ class JavaWeeklyParser : MailParser {
             logParsingResult(results, issueInfo)
             results
         } catch (e: Exception) {
-            logger.error("Failed to parse Java Weekly email", e)
+            logger.error("Failed to parse LibHunt weekly email", e)
             emptyList()
         }
 
@@ -198,9 +200,9 @@ class JavaWeeklyParser : MailParser {
         issueInfo: IssueInfo
     ) {
         if (results.isEmpty()) {
-            logger.warn("No articles parsed from Java Weekly email. Issue: ${issueInfo.number}")
+            logger.warn("No articles parsed from LibHunt weekly email. Issue: ${issueInfo.number}")
         } else {
-            logger.info("Successfully parsed ${results.size} articles from Java Weekly Issue #${issueInfo.number}")
+            logger.info("Successfully parsed ${results.size} articles from LibHunt weekly Issue #${issueInfo.number}")
         }
     }
 
@@ -210,8 +212,16 @@ class JavaWeeklyParser : MailParser {
         private val URL_PATTERN = Regex("<?(https?://[^>\\s]+)>?")
         private val PROJECT_PATTERN = Regex("\\*\\s*(.+?)\\s*-\\s*<?(https?://[^>\\s]+)>?")
 
-        private const val NEWSLETTER_NAME = "Java Weekly"
         private const val NEWSLETTER_MAIL = "newsletter@libhunt.com"
+        private val LIBHUNT_NEWSLETTER_NAMES =
+            listOf(
+                "Awesome iOS Weekly",
+                "Awesome Android Newsletter",
+                "Awesome Kotlin Weekly",
+                "Awesome Java Newsletter",
+                "Awesome Java Weekly",
+                "Java Weekly",
+            )
 
         private const val SECTION_ARTICLES = "Popular News and Articles"
         private const val SECTION_PROJECTS = "Popular projects"

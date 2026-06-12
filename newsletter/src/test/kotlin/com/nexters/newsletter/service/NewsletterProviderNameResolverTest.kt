@@ -31,6 +31,29 @@ class NewsletterProviderNameResolverTest {
     }
 
     @Test
+    fun `resolve should map shared LibHunt sender from rss headers`() {
+        assertThat(
+            NewsletterProviderNameResolver.resolve(
+                source(
+                    sender = "newsletter@libhunt.com",
+                    senderEmail = "newsletter@libhunt.com",
+                    headers = mapOf("RSS-Item-URL" to "https://ios.libhunt.com/newsletter/511"),
+                ),
+            ),
+        ).isEqualTo("Awesome iOS Weekly")
+
+        assertThat(
+            NewsletterProviderNameResolver.resolve(
+                source(
+                    sender = "newsletter@libhunt.com",
+                    senderEmail = "newsletter@libhunt.com",
+                    headers = mapOf("RSS-Item-URL" to "https://java.libhunt.com/newsletter/511"),
+                ),
+            ),
+        ).isEqualTo("Awesome Java Newsletter")
+    }
+
+    @Test
     fun `resolve should map provider from rss headers`() {
         val source =
             source(

@@ -4,7 +4,7 @@ class MailParserFactory {
     private val parsers =
         listOf(
             JSWeeklyParser(),
-            JavaWeeklyParser(),
+            LibHuntWeeklyParser(),
             KotlinWeeklyParser(),
             GeeknewsWeeklyParser(),
             MaeilMailParser(),

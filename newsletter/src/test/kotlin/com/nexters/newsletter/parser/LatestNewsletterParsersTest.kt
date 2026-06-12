@@ -34,7 +34,7 @@ class LatestNewsletterParsersTest {
         assertNewsletterParser(GenericSubstackArticleParser::class.java, factory, "jacobbartlett@substack.com")
         assertNewsletterParser(ReactStatusParser::class.java, factory, "react@cooperpress.com")
         assertNewsletterParser(IlbunParser::class.java, factory, "morning@ilbuntok.com")
-        assertNewsletterParser(JavaWeeklyParser::class.java, factory, "Awesome Kotlin Weekly <newsletter@libhunt.com>")
+        assertNewsletterParser(LibHuntWeeklyParser::class.java, factory, "Awesome Kotlin Weekly <newsletter@libhunt.com>")
     }
 
     @Test
