@@ -55,38 +55,65 @@ interface ContentRepository : JpaRepository<Content, Long> {
     fun findContentsWithoutSummaryOrderedByProviderTypePriority(pageable: Pageable): Page<Content>
 
     @Query(
-        """
-        SELECT c FROM Content c
-        LEFT JOIN c.contentProvider cp
-        LEFT JOIN ContentKeywordMapping ckm ON c.id = ckm.content.id
-        LEFT JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
-        LEFT JOIN catkm.category cat
-        WHERE c.id NOT IN (
-            SELECT DISTINCT s.content.id FROM Summary s
+        value = """
+        WITH exposure_count_by_category AS (
+            SELECT catkm.category_id, COUNT(DISTINCT ec.id) AS exposure_count
+            FROM exposure_contents ec
+            JOIN content_keyword_mappings ckm ON ckm.content_id = ec.content_id
+            JOIN category_keyword_mappings catkm ON catkm.keyword_id = ckm.keyword_id
+            GROUP BY catkm.category_id
+        ), ranked_content AS (
+            SELECT
+                c.id,
+                CASE
+                    WHEN cp.type = 'BLOG' THEN 0
+                    WHEN cp.type = 'NEWSLETTER' THEN 1
+                    ELSE 2
+                END AS provider_priority,
+                COALESCE(MIN(ecbc.exposure_count), 2147483647) AS category_exposure_count,
+                c.created_at
+            FROM contents c
+            LEFT JOIN content_provider cp ON cp.id = c.content_provider_id
+            LEFT JOIN content_keyword_mappings ckm ON ckm.content_id = c.id
+            LEFT JOIN category_keyword_mappings catkm ON catkm.keyword_id = ckm.keyword_id
+            LEFT JOIN exposure_count_by_category ecbc ON ecbc.category_id = catkm.category_id
+            WHERE c.id NOT IN (
+                SELECT DISTINCT s.content_id FROM summaries s
+            )
+            AND CHAR_LENGTH(c.content) BETWEEN :minLength AND :maxLength
+            GROUP BY c.id, cp.type, c.created_at
+            ORDER BY provider_priority ASC, category_exposure_count ASC, c.created_at DESC, c.id DESC
+            LIMIT :limit
         )
-        AND LENGTH(c.content) <= :maxLength
-        AND LENGTH(c.content) >= 500
-        ORDER BY
-            CASE
-                WHEN cp.type = 'BLOG' THEN 0
-                WHEN cp.type = 'NEWSLETTER' THEN 1
-                ELSE 2
-            END,
-            (
-                SELECT COUNT(DISTINCT ec.id)
-                FROM ExposureContent ec
-                JOIN ec.content c2
-                JOIN ContentKeywordMapping ckm2 ON c2.id = ckm2.content.id
-                JOIN CategoryKeywordMapping catkm2 ON ckm2.keyword.id = catkm2.keyword.id
-                WHERE catkm2.category.id = cat.id
-            ) ASC,
-            c.createdAt DESC
-    """
+        SELECT c.*
+        FROM ranked_content rc
+        JOIN contents c ON c.id = rc.id
+        ORDER BY rc.provider_priority ASC, rc.category_exposure_count ASC, rc.created_at DESC, rc.id DESC
+    """,
+        nativeQuery = true,
     )
     fun findContentsWithoutSummaryOrderedByCategoryBalance(
+        @Param("minLength") minLength: Int,
         @Param("maxLength") maxLength: Int,
-        pageable: Pageable
-    ): Page<Content>
+        @Param("limit") limit: Int,
+    ): List<Content>
+
+    @Query(
+        value = """
+        SELECT COUNT(*)
+        FROM contents c
+        WHERE c.content IS NOT NULL
+        AND CHAR_LENGTH(c.content) BETWEEN :minLength AND :maxLength
+        AND c.id NOT IN (
+            SELECT DISTINCT s.content_id FROM summaries s
+        )
+    """,
+        nativeQuery = true,
+    )
+    fun countContentsWithoutSummaryInLengthRange(
+        @Param("minLength") minLength: Int,
+        @Param("maxLength") maxLength: Int,
+    ): Long
 
     @Query(
         """

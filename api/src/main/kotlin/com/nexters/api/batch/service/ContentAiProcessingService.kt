@@ -13,7 +13,6 @@ import com.nexters.external.service.ExposureContentService
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -60,22 +59,21 @@ class ContentAiProcessingService(
             logger.info("Starting unprocessed content AI batch processing")
 
             // Summary가 없는 Content 조회 (BLOG 우선순위 + 카테고리 균형 고려)
-            val pageable = PageRequest.of(0, BATCH_SIZE)
-            val unprocessedContentsPage =
+            val unprocessedContents =
                 contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
-                    MAX_CONTENT_LENGTH,
-                    pageable
+                    minLength = MIN_CONTENT_LENGTH,
+                    maxLength = MAX_CONTENT_LENGTH,
+                    limit = BATCH_SIZE,
                 )
 
-            if (unprocessedContentsPage.isEmpty) {
+            if (unprocessedContents.isEmpty()) {
                 logger.info("No unprocessed contents found in batch size $BATCH_SIZE, trying extended search with MAX_TOTAL_BATCH_LENGTH")
                 return processSingleLargeContent()
             }
 
-            val contents = unprocessedContentsPage.content
-            logger.info("Found ${contents.size} unprocessed contents to process in batch")
+            logger.info("Found ${unprocessedContents.size} unprocessed contents to process in batch")
 
-            return processContentsBatch(contents)
+            return processContentsBatch(unprocessedContents)
         } finally {
             // 처리 완료 후 플래그 해제
             isProcessing.set(false)
@@ -91,19 +89,19 @@ class ContentAiProcessingService(
 
         try {
             // MAX_TOTAL_BATCH_LENGTH로 범위를 넓혀서 콘텐츠 1개 조회
-            val pageable = PageRequest.of(0, 1)
-            val unprocessedContentsPage =
+            val unprocessedContents =
                 contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
-                    MAX_TOTAL_BATCH_LENGTH,
-                    pageable
+                    minLength = MIN_CONTENT_LENGTH,
+                    maxLength = MAX_TOTAL_BATCH_LENGTH,
+                    limit = 1,
                 )
 
-            if (unprocessedContentsPage.isEmpty) {
+            if (unprocessedContents.isEmpty()) {
                 logger.info("No unprocessed contents found even with MAX_TOTAL_BATCH_LENGTH")
                 return ProcessingResult(0, 0, 0)
             }
 
-            val singleContent = unprocessedContentsPage.content.first()
+            val singleContent = unprocessedContents.first()
             logger.info("Processing single content (ID: ${singleContent.id}, length: ${singleContent.content.length})")
             return processContentsBatch(listOf(singleContent))
         } catch (e: Exception) {
@@ -381,10 +379,10 @@ class ContentAiProcessingService(
 
     private fun getRemainingCount(): Int =
         contentRepository
-            .findContentsWithoutSummaryOrderedByCategoryBalance(
-                MAX_CONTENT_LENGTH,
-                PageRequest.of(0, 1)
-            ).totalElements
+            .countContentsWithoutSummaryInLengthRange(
+                minLength = MIN_CONTENT_LENGTH,
+                maxLength = MAX_CONTENT_LENGTH,
+            )
             .toInt()
 
     companion object {

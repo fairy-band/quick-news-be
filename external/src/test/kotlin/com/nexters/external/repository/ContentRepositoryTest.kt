@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
-import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -117,13 +116,17 @@ class ContentRepositoryTest {
         val newContent2 = createContentWithKeyword("New Content 2", blogProvider, keyword2) // category2
 
         // when: 배치 대상 조회
-        val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
+        val result =
+            contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
+                minLength = 500,
+                maxLength = 10_000,
+                limit = 10,
+            )
 
         // then: category2(노출 1개)의 컨텐츠가 category1(노출 2개)보다 먼저 조회되어야 함
-        assertEquals(2, result.content.size)
-        assertEquals(newContent2.id, result.content[0].id) // category2 컨텐츠가 먼저
-        assertEquals(newContent1.id, result.content[1].id) // category1 컨텐츠가 나중
+        assertEquals(2, result.size)
+        assertEquals(newContent2.id, result[0].id) // category2 컨텐츠가 먼저
+        assertEquals(newContent1.id, result[1].id) // category1 컨텐츠가 나중
     }
 
     @Test
@@ -133,13 +136,17 @@ class ContentRepositoryTest {
         val newsletterContent = createContentWithKeyword("Newsletter Content", newsletterProvider, keyword1)
 
         // when
-        val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
+        val result =
+            contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
+                minLength = 500,
+                maxLength = 10_000,
+                limit = 10,
+            )
 
         // then: BLOG가 NEWSLETTER보다 먼저 조회
-        assertEquals(2, result.content.size)
-        assertEquals(blogContent.id, result.content[0].id)
-        assertEquals(newsletterContent.id, result.content[1].id)
+        assertEquals(2, result.size)
+        assertEquals(blogContent.id, result[0].id)
+        assertEquals(newsletterContent.id, result[1].id)
     }
 
     @Test
@@ -159,12 +166,16 @@ class ContentRepositoryTest {
         )
 
         // when
-        val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
+        val result =
+            contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
+                minLength = 500,
+                maxLength = 10_000,
+                limit = 10,
+            )
 
         // then: Summary가 없는 컨텐츠만 조회
-        assertEquals(1, result.content.size)
-        assertEquals(contentWithoutSummary.id, result.content[0].id)
+        assertEquals(1, result.size)
+        assertEquals(contentWithoutSummary.id, result[0].id)
     }
 
     @Test
@@ -186,13 +197,17 @@ class ContentRepositoryTest {
             )
 
         // when
-        val pageable = PageRequest.of(0, 10)
-        val result = contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(10_000, pageable)
+        val result =
+            contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
+                minLength = 500,
+                maxLength = 10_000,
+                limit = 10,
+            )
 
         // then: 최신 컨텐츠가 먼저 조회
-        assertEquals(2, result.content.size)
-        assertEquals(newerContent.id, result.content[0].id)
-        assertEquals(olderContent.id, result.content[1].id)
+        assertEquals(2, result.size)
+        assertEquals(newerContent.id, result[0].id)
+        assertEquals(olderContent.id, result[1].id)
     }
 
     private fun createContentWithKeyword(
