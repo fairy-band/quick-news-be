@@ -34,6 +34,30 @@ class NewNewsletterParsersTest {
     }
 
     @Test
+    fun `Maeil Mail parser should prefer question link over template links`() {
+        val html =
+            """
+            <html><body>
+              <a href="https://www.maeil-mail.kr/">매일메일</a>
+              <a href="https://www.maeil-mail.kr/question/137">답변 확인</a>
+              <a href="https://www.maeil-mail.kr/question/mine/newsletter.feeding@gmail.com">내 질문</a>
+              <a href="https://www.maeil-mail.kr/setting?email=newsletter.feeding@gmail.com&amp;token=token">설정</a>
+              <a href="https://www.maeil-mail.kr/unsubscribe?email=newsletter.feeding@gmail.com&amp;token=token">수신거부</a>
+            </body></html>
+            """.trimIndent()
+
+        val result =
+            MaeilMailParser().parse(
+                content = "",
+                subject = "[매일메일] 시스템 간 비동기 연동 방식에는 무엇이 있나요?",
+                htmlContent = html,
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("https://www.maeil-mail.kr/question/137", result[0].link)
+    }
+
+    @Test
     fun `TLDR parser should extract text digest links and skip sponsor items`() {
         val content =
             """

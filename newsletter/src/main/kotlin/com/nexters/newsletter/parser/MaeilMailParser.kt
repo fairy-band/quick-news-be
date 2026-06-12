@@ -75,21 +75,23 @@ class MaeilMailParser : MailParser {
         content: String,
         htmlContent: String?,
     ): String {
-        val htmlLink =
+        val urls =
             htmlContent
                 ?.takeIf { it.isNotBlank() }
                 ?.let { Jsoup.parse(it) }
                 ?.select("a[href]")
                 ?.asSequence()
                 ?.map { element -> element.attr("abs:href").ifBlank { element.attr("href") }.cleanUrl() }
-                ?.firstOrNull { url -> url.isContentUrl() }
-        if (!htmlLink.isNullOrBlank()) return htmlLink
+                ?.toList()
+                .orEmpty() +
+                URL_REGEX
+                    .findAll(content)
+                    .map { it.value.cleanUrl() }
+                    .toList()
 
-        return URL_REGEX
-            .findAll(content)
-            .map { it.value.cleanUrl() }
-            .firstOrNull { it.isContentUrl() }
-            .orEmpty()
+        return urls.firstOrNull { it.isQuestionUrl() }
+            ?: urls.firstOrNull { it.isContentUrl() }
+            ?: ""
     }
 
     private fun String?.extractTitle(): String? =
@@ -104,7 +106,13 @@ class MaeilMailParser : MailParser {
             !normalized.contains("unsubscribe") &&
             !normalized.contains("privacy") &&
             !normalized.contains("preferences") &&
+            !normalized.contains("setting") &&
             !normalized.contains("mailto:")
+    }
+
+    private fun String.isQuestionUrl(): Boolean {
+        val normalized = lowercase().substringBefore("?").trimEnd('/')
+        return QUESTION_URL_REGEX.matches(normalized)
     }
 
     private fun String.substringBeforeFooter(): String =
@@ -139,6 +147,7 @@ class MaeilMailParser : MailParser {
 
         private val SUBJECT_PREFIX_REGEX = Regex("""^\s*\[매일메일]\s*""")
         private val URL_REGEX = Regex("""https?://[^\s)<>"']+""")
+        private val QUESTION_URL_REGEX = Regex("""https://(?:www\.)?maeil-mail\.kr/question/\d+""")
         private val FOOTER_MARKERS =
             listOf(
                 "수신거부",
