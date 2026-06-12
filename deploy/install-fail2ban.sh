@@ -22,6 +22,8 @@ sudo mkdir -p /etc/fail2ban/filter.d /etc/fail2ban/jail.d
 sudo cp "$DEPLOY_DIR"/fail2ban/filter.d/*.conf /etc/fail2ban/filter.d/
 sed "s#__DEPLOY_DIR__#$DEPLOY_DIR#g" "$JAIL_TEMPLATE" | sudo tee "$JAIL_TARGET" >/dev/null
 
+sudo fail2ban-client -t
+
 if command -v systemctl >/dev/null 2>&1; then
   sudo systemctl restart fail2ban
 else
