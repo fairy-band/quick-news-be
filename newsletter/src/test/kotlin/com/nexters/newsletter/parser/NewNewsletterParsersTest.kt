@@ -1,12 +1,17 @@
 package com.nexters.newsletter.parser
 
+import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.entity.NewsletterSourceEnrichment
+import com.nexters.external.entity.WebPageEnrichment
+import com.nexters.external.entity.WebPageEnrichmentItem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDateTime
 
 class NewNewsletterParsersTest {
     @Test
-    fun `Maeil Mail parser should create one article from subject and body`() {
+    fun `Maeil Mail parser should skip raw template without enrichment`() {
         val content =
             """
             오늘의 질문
@@ -21,40 +26,274 @@ class NewNewsletterParsersTest {
 
         val result =
             MaeilMailParser().parse(
-                content = content,
-                subject = "[매일메일] 자바스크립트 이벤트 루프는 어떻게 동작하나요?",
-                htmlContent = null,
+                MailParseContext(
+                    content = content,
+                    subject = "[매일메일] 자바스크립트 이벤트 루프는 어떻게 동작하나요?",
+                    htmlContent = null,
+                ),
             )
 
-        assertEquals(1, result.size)
-        assertEquals("자바스크립트 이벤트 루프는 어떻게 동작하나요?", result[0].title)
-        assertEquals("https://www.maeil-mail.kr/question/123", result[0].link)
-        assertEquals("Maeil Mail", result[0].section)
-        assertTrue(result[0].content.contains("태스크 큐"))
+        assertTrue(result.isEmpty())
     }
 
     @Test
-    fun `Maeil Mail parser should prefer question link over template links`() {
+    fun `Maeil Mail parser should create contents from successful enrichment only`() {
+        val result =
+            MaeilMailParser().parse(
+                MailParseContext(
+                    content = "오늘의 질문이 도착했습니다.",
+                    subject = "[매일메일] 시스템 간 비동기 연동 방식에는 무엇이 있나요?",
+                    htmlContent = null,
+                    webPageEnrichment =
+                        MailWebPageEnrichment(
+                            items =
+                                listOf(
+                                    MailWebPageEnrichmentItem(
+                                        url = "https://www.maeil-mail.kr/question/137",
+                                        normalizedUrl = "https://www.maeil-mail.kr/question/137",
+                                        title = "[매일메일] 시스템 간 비동기 연동 방식에는 무엇이 있나요?",
+                                        content = "분리된 시스템 간의 비동기 연동은 결합도를 낮출 수 있습니다.",
+                                        imageUrl = "https://example.com/image.png",
+                                        status = "success",
+                                    ),
+                                    MailWebPageEnrichmentItem(
+                                        url = "https://www.maeil-mail.kr/question/138",
+                                        title = "실패한 보강",
+                                        content = "저장되면 안 됩니다.",
+                                        status = "failed",
+                                    ),
+                                ),
+                        ),
+                ),
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("시스템 간 비동기 연동 방식에는 무엇이 있나요?", result[0].title)
+        assertEquals("https://www.maeil-mail.kr/question/137", result[0].link)
+        assertEquals("분리된 시스템 간의 비동기 연동은 결합도를 낮출 수 있습니다.", result[0].content)
+        assertEquals("https://example.com/image.png", result[0].imageUrl)
+        assertEquals("Maeil Mail", result[0].section)
+    }
+
+    @Test
+    fun `MailParseContext should include web page enrichment from newsletter source`() {
+        val source =
+            NewsletterSource(
+                subject = "[매일메일] 시스템 간 비동기 연동 방식에는 무엇이 있나요?",
+                sender = "매일메일",
+                senderEmail = "noreply@maeil-mail.kr",
+                recipient = "newsletter.feeding@gmail.com",
+                recipientEmail = "newsletter.feeding@gmail.com",
+                content = "오늘의 질문이 도착했습니다.",
+                contentType = "text/plain",
+                receivedDate = LocalDateTime.parse("2026-06-12T09:00:00"),
+                enrichment =
+                    NewsletterSourceEnrichment(
+                        webPage =
+                            WebPageEnrichment(
+                                items =
+                                    listOf(
+                                        WebPageEnrichmentItem(
+                                            url = "https://www.maeil-mail.kr/question/137",
+                                            normalizedUrl = "https://www.maeil-mail.kr/question/137",
+                                            title = "시스템 간 비동기 연동 방식에는 무엇이 있나요?",
+                                            content = "분리된 시스템 간의 비동기 연동은 결합도를 낮출 수 있습니다.",
+                                            imageUrl = "https://example.com/image.png",
+                                            status = "success",
+                                        ),
+                                    ),
+                            ),
+                    ),
+            )
+
+        val context = MailParseContext.from(source)
+        val result = MaeilMailParser().parse(context)
+
+        assertEquals(1, context.webPageEnrichment.items.size)
+        assertEquals("https://www.maeil-mail.kr/question/137", context.webPageEnrichment.items[0].url)
+        assertEquals("분리된 시스템 간의 비동기 연동은 결합도를 낮출 수 있습니다.", result[0].content)
+        assertEquals("https://example.com/image.png", result[0].imageUrl)
+    }
+
+    @Test
+    fun `Maeil Mail parser should use subject when enrichment title is missing`() {
+        val result =
+            MaeilMailParser().parse(
+                MailParseContext(
+                    content = "",
+                    subject = "[매일메일] 리액트에서 컴포넌트란 무엇인가요?",
+                    htmlContent = null,
+                    webPageEnrichment =
+                        MailWebPageEnrichment(
+                            items =
+                                listOf(
+                                    MailWebPageEnrichmentItem(
+                                        url = "https://www.maeil-mail.kr/question/94",
+                                        content = "리액트에서 컴포넌트는 UI를 구성하는 독립적인 단위입니다.",
+                                        status = "success",
+                                    ),
+                                ),
+                        ),
+                ),
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("리액트에서 컴포넌트란 무엇인가요?", result[0].title)
+        assertEquals("https://www.maeil-mail.kr/question/94", result[0].link)
+    }
+
+    @Test
+    fun `Maeil Mail parser should deduplicate enrichment URLs`() {
+        val result =
+            MaeilMailParser().parse(
+                MailParseContext(
+                    content = "",
+                    subject = "[매일메일] 리액트에서 컴포넌트란 무엇인가요?",
+                    htmlContent = null,
+                    webPageEnrichment =
+                        MailWebPageEnrichment(
+                            items =
+                                listOf(
+                                    MailWebPageEnrichmentItem(
+                                        url = "https://www.maeil-mail.kr/question/94?utm_source=email",
+                                        normalizedUrl = "https://www.maeil-mail.kr/question/94",
+                                        title = "리액트에서 컴포넌트란 무엇인가요?",
+                                        content = "첫 번째 본문",
+                                        status = "success",
+                                    ),
+                                    MailWebPageEnrichmentItem(
+                                        url = "https://www.maeil-mail.kr/question/94",
+                                        normalizedUrl = "https://www.maeil-mail.kr/question/94",
+                                        title = "리액트에서 컴포넌트란 무엇인가요?",
+                                        content = "두 번째 본문",
+                                        status = "success",
+                                    ),
+                                ),
+                        ),
+                ),
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("첫 번째 본문", result[0].content)
+    }
+
+    @Test
+    fun `web page enrichment should resolve exact URL before normalized fallback`() {
+        val enrichment =
+            MailWebPageEnrichment(
+                items =
+                    listOf(
+                        MailWebPageEnrichmentItem(
+                            url = "https://example.com/article?utm_source=newsletter",
+                            normalizedUrl = "https://example.com/article",
+                            content = "tracked url content",
+                            status = "success",
+                        ),
+                        MailWebPageEnrichmentItem(
+                            url = "https://example.com/article",
+                            normalizedUrl = "https://example.com/article",
+                            content = "exact url content",
+                            status = "success",
+                        ),
+                    ),
+            )
+
+        val result = enrichment.findSuccessfulContentItem("https://example.com/article")
+
+        assertEquals("exact url content", result?.content)
+    }
+
+    @Test
+    fun `web page enrichment should resolve enrichment key before URL fallback`() {
+        val enrichment =
+            MailWebPageEnrichment(
+                items =
+                    listOf(
+                        MailWebPageEnrichmentItem(
+                            url = "https://example.com/first",
+                            normalizedUrl = "https://example.com/first",
+                            content = "first content",
+                            status = "success",
+                        ),
+                        MailWebPageEnrichmentItem(
+                            url = "https://example.com/second",
+                            normalizedUrl = "https://example.com/second",
+                            content = "second content",
+                            status = "success",
+                        ),
+                    ),
+            )
+
+        val secondItem = enrichment.items[1]
+        val result =
+            enrichment.findSuccessfulContentItem(
+                url = "https://example.com/first",
+                enrichmentKey = secondItem.enrichmentKey,
+            )
+
+        assertEquals("second content", result?.content)
+    }
+
+    @Test
+    fun `web page enrichment key should ignore surrounding URL whitespace`() {
+        val item =
+            MailWebPageEnrichmentItem(
+                url = " https://example.com/article ",
+                normalizedUrl = " https://example.com/article ",
+                content = "content",
+                status = "success",
+            )
+        val enrichment = MailWebPageEnrichment(items = listOf(item))
+
+        val result =
+            enrichment.findSuccessfulContentItem(
+                url = "https://example.com/fallback",
+                enrichmentKey = "https://example.com/article#https://example.com/article",
+            )
+
+        assertEquals("content", result?.content)
+    }
+
+    @Test
+    fun `web page enrichment should resolve item by normalized URL`() {
+        val enrichment =
+            MailWebPageEnrichment(
+                items =
+                    listOf(
+                        MailWebPageEnrichmentItem(
+                            url = "https://example.com/article?utm_source=newsletter#section",
+                            content = "normalized url content",
+                            status = "success",
+                        ),
+                    ),
+            )
+
+        val result = enrichment.findSuccessfulContentItem("https://example.com/article")
+
+        assertEquals("normalized url content", result?.content)
+    }
+
+    @Test
+    fun `Maeil Mail parser should not parse template links without enrichment`() {
         val html =
             """
             <html><body>
               <a href="https://www.maeil-mail.kr/">매일메일</a>
               <a href="https://www.maeil-mail.kr/question/137">답변 확인</a>
-              <a href="https://www.maeil-mail.kr/question/mine/newsletter.feeding@gmail.com">내 질문</a>
-              <a href="https://www.maeil-mail.kr/setting?email=newsletter.feeding@gmail.com&amp;token=token">설정</a>
               <a href="https://www.maeil-mail.kr/unsubscribe?email=newsletter.feeding@gmail.com&amp;token=token">수신거부</a>
             </body></html>
             """.trimIndent()
 
         val result =
             MaeilMailParser().parse(
-                content = "",
-                subject = "[매일메일] 시스템 간 비동기 연동 방식에는 무엇이 있나요?",
-                htmlContent = html,
+                MailParseContext(
+                    content = "",
+                    subject = "[매일메일] 시스템 간 비동기 연동 방식에는 무엇이 있나요?",
+                    htmlContent = html,
+                ),
             )
 
-        assertEquals(1, result.size)
-        assertEquals("https://www.maeil-mail.kr/question/137", result[0].link)
+        assertTrue(result.isEmpty())
     }
 
     @Test

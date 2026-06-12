@@ -9,16 +9,16 @@ class JSWeeklyParserTest {
     private val parser = JSWeeklyParser()
 
     @Test
-    fun `isTarget should return true for JavaScript Weekly emails`() {
-        assertTrue(parser.isTarget("JavaScript Weekly <jsw@peterc.org>"))
-        assertTrue(parser.isTarget("jsw@peterc.org"))
-        assertTrue(parser.isTarget("Javascript Weekly"))
+    fun `supports should return true for JavaScript Weekly emails`() {
+        assertTrue(parser.supports("JavaScript Weekly <jsw@peterc.org>", null))
+        assertTrue(parser.supports("jsw@peterc.org", null))
+        assertTrue(parser.supports("Javascript Weekly", null))
     }
 
     @Test
-    fun `isTarget should return false for non-JavaScript Weekly emails`() {
-        assertFalse(parser.isTarget("Some Other Newsletter <info@example.com>"))
-        assertFalse(parser.isTarget("random@example.com"))
+    fun `supports should return false for non-JavaScript Weekly emails`() {
+        assertFalse(parser.supports("Some Other Newsletter <info@example.com>", null))
+        assertFalse(parser.supports("random@example.com", null))
     }
 
     @Test

@@ -8,9 +8,9 @@ class GeeknewsWeeklyParserTest {
 
     @Test
     fun `긱뉴스 위클리 sender를 감지한다`() {
-        assertThat(parser.isTarget("news@hada.io")).isTrue()
-        assertThat(parser.isTarget("긱뉴스 <news@hada.io>")).isTrue()
-        assertThat(parser.isTarget("other@example.com")).isFalse()
+        assertThat(parser.supports("news@hada.io", null)).isTrue()
+        assertThat(parser.supports("긱뉴스 <news@hada.io>", null)).isTrue()
+        assertThat(parser.supports("other@example.com", null)).isFalse()
     }
 
     @Test

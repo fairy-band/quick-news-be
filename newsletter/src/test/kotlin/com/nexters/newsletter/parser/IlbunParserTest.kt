@@ -11,10 +11,10 @@ class IlbunParserTest {
 
     @Test
     fun `should correctly identify ilbuntok emails`() {
-        assertTrue(sut.isTarget("morning@ilbuntok.com"))
-        assertTrue(sut.isTarget("newsletter from ilbuntok"))
-        assertTrue(sut.isTarget("ILBUNTOK Daily News"))
-        assertFalse(sut.isTarget("other@example.com"))
+        assertTrue(sut.supports("morning@ilbuntok.com", null))
+        assertTrue(sut.supports("newsletter from ilbuntok", null))
+        assertTrue(sut.supports("ILBUNTOK Daily News", null))
+        assertFalse(sut.supports("other@example.com", null))
     }
 
     @Test

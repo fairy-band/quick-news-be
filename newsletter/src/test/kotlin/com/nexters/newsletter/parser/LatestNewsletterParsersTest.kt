@@ -11,25 +11,30 @@ class LatestNewsletterParsersTest {
     fun `factory should register latest information newsletter parsers`() {
         val factory = MailParserFactory()
 
-        assertInstanceOf(MaeilMailParser::class.java, factory.findParser("noreply@maeil-mail.kr"))
-        assertInstanceOf(TLDRNewsletterParser::class.java, factory.findParser("dan@tldrnewsletter.com"))
-        assertInstanceOf(BaeldungParser::class.java, factory.findParser("eugen@baeldung.com"))
-        assertInstanceOf(YozmParser::class.java, factory.findParser("yozm_help@wishket.com"))
-        assertInstanceOf(BytesDevParser::class.java, factory.findParser("tyler@ui.dev"))
-        assertInstanceOf(KoreanFeArticleParser::class.java, factory.findParser("kofearticle@substack.com"))
-        assertInstanceOf(CooperpressWeeklyParser::class.java, factory.findParser("node@cooperpress.com"))
-        assertInstanceOf(PythonWeeklyParser::class.java, factory.findParser("rahul@pythonweekly.com"))
-        assertInstanceOf(AndroidWeeklyParser::class.java, factory.findParser("contact@androidweekly.net"))
-        assertInstanceOf(ItWorldKoreaParser::class.java, factory.findParser("itworld@techlibrary.co.kr"))
-        assertInstanceOf(WebToolsWeeklyParser::class.java, factory.findParser("submissions@webtoolsweekly.com"))
-        assertInstanceOf(VSCodeEmailParser::class.java, factory.findParser("submissions@vscode.email"))
-        assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("pragmaticengineer@substack.com"))
-        assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("architectureweekly@substack.com"))
-        assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("fatbobman@substack.com"))
-        assertInstanceOf(GenericSubstackArticleParser::class.java, factory.findParser("jacobbartlett@substack.com"))
-        assertInstanceOf(ReactStatusParser::class.java, factory.findParser("react@cooperpress.com"))
-        assertInstanceOf(IlbunParser::class.java, factory.findParser("morning@ilbuntok.com"))
-        assertInstanceOf(JavaWeeklyParser::class.java, factory.findParser("Awesome Kotlin Weekly <newsletter@libhunt.com>"))
+        assertNewsletterParser(MaeilMailParser::class.java, factory, "noreply@maeil-mail.kr")
+        assertNewsletterParser(TLDRNewsletterParser::class.java, factory, "dan@tldrnewsletter.com")
+        assertNewsletterParser(BaeldungParser::class.java, factory, "eugen@baeldung.com")
+        assertNewsletterParser(YozmParser::class.java, factory, "yozm_help@wishket.com")
+        assertNewsletterParser(BytesDevParser::class.java, factory, "tyler@ui.dev")
+        assertNewsletterParser(KoreanFeArticleParser::class.java, factory, "kofearticle@substack.com")
+        assertNewsletterParser(CooperpressWeeklyParser::class.java, factory, "node@cooperpress.com")
+        assertNewsletterParser(PythonWeeklyParser::class.java, factory, "rahul@pythonweekly.com")
+        assertNewsletterParser(AndroidWeeklyParser::class.java, factory, "contact@androidweekly.net")
+        assertNewsletterParser(
+            ItWorldKoreaParser::class.java,
+            factory,
+            "itworld@techlibrary.co.kr",
+            "[ITWorld 뉴스레터] 보안 전략",
+        )
+        assertNewsletterParser(WebToolsWeeklyParser::class.java, factory, "submissions@webtoolsweekly.com")
+        assertNewsletterParser(VSCodeEmailParser::class.java, factory, "submissions@vscode.email")
+        assertNewsletterParser(GenericSubstackArticleParser::class.java, factory, "pragmaticengineer@substack.com")
+        assertNewsletterParser(GenericSubstackArticleParser::class.java, factory, "architectureweekly@substack.com")
+        assertNewsletterParser(GenericSubstackArticleParser::class.java, factory, "fatbobman@substack.com")
+        assertNewsletterParser(GenericSubstackArticleParser::class.java, factory, "jacobbartlett@substack.com")
+        assertNewsletterParser(ReactStatusParser::class.java, factory, "react@cooperpress.com")
+        assertNewsletterParser(IlbunParser::class.java, factory, "morning@ilbuntok.com")
+        assertNewsletterParser(JavaWeeklyParser::class.java, factory, "Awesome Kotlin Weekly <newsletter@libhunt.com>")
     }
 
     @Test
@@ -38,11 +43,20 @@ class LatestNewsletterParsersTest {
 
         assertInstanceOf(
             ItWorldKoreaParser::class.java,
-            factory.findProcessableParser("itworld@techlibrary.co.kr", "[ITWorld 뉴스레터] 보안 전략"),
+            factory.findParser("itworld@techlibrary.co.kr", "[ITWorld 뉴스레터] 보안 전략"),
         )
-        assertNull(factory.findProcessableParser("itworld@techlibrary.co.kr", "(광고) 웨비나 초대"))
-        assertNull(factory.findProcessableParser("submissions@webtoolsweekly.com", "Web Tools Weekly: Subscription Confirmed"))
-        assertInstanceOf(ReactStatusParser::class.java, factory.findProcessableParser("react@cooperpress.com", "React issue"))
+        assertNull(factory.findParser("itworld@techlibrary.co.kr", "(광고) 웨비나 초대"))
+        assertNull(factory.findParser("submissions@webtoolsweekly.com", "Web Tools Weekly: Subscription Confirmed"))
+        assertInstanceOf(ReactStatusParser::class.java, factory.findParser("react@cooperpress.com", "React issue"))
+    }
+
+    private fun assertNewsletterParser(
+        expectedType: Class<out MailParser>,
+        factory: MailParserFactory,
+        sender: String,
+        subject: String = "Newsletter issue",
+    ) {
+        assertInstanceOf(expectedType, factory.findParser(sender, subject))
     }
 
     @Test

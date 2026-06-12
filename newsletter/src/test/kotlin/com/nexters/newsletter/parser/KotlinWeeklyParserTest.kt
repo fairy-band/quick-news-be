@@ -11,16 +11,16 @@ class KotlinWeeklyParserTest {
     private val sut = KotlinWeeklyParser()
 
     @Test
-    fun `isTarget should return true for Kotlin Weekly emails`() {
-        assertTrue(sut.isTarget("Kotlin Weekly <mailinglist@kotlinweekly.net>"))
-        assertTrue(sut.isTarget("newsletter@kotlinweekly.net"))
-        assertTrue(sut.isTarget("Kotlin Weekly"))
+    fun `supports should return true for Kotlin Weekly emails`() {
+        assertTrue(sut.supports("Kotlin Weekly <mailinglist@kotlinweekly.net>", null))
+        assertTrue(sut.supports("newsletter@kotlinweekly.net", null))
+        assertTrue(sut.supports("Kotlin Weekly", null))
     }
 
     @Test
-    fun `isTarget should return false for non-Kotlin Weekly emails`() {
-        assertFalse(sut.isTarget("Some Other Newsletter <info@example.com>"))
-        assertFalse(sut.isTarget("random@example.com"))
+    fun `supports should return false for non-Kotlin Weekly emails`() {
+        assertFalse(sut.supports("Some Other Newsletter <info@example.com>", null))
+        assertFalse(sut.supports("random@example.com", null))
     }
 
     @Test

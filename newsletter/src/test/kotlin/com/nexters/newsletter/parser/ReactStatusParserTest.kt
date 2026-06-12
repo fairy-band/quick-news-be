@@ -118,10 +118,10 @@ class ReactStatusParserTest {
 
     @Test
     fun `발신자 정보 파싱 테스트`() {
-        assertTrue(parser.isTarget("React Status <react@cooperpress.com>"))
-        assertTrue(parser.isTarget("react@cooperpress.com"))
-        assertTrue(parser.isTarget("REACT STATUS"))
-        assertFalse(parser.isTarget("other@newsletter.com"))
+        assertTrue(parser.supports("React Status <react@cooperpress.com>", null))
+        assertTrue(parser.supports("react@cooperpress.com", null))
+        assertTrue(parser.supports("REACT STATUS", null))
+        assertFalse(parser.supports("other@newsletter.com", null))
     }
 
     @Test

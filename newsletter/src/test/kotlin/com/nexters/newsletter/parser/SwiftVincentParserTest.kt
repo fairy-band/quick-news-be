@@ -9,9 +9,9 @@ class SwiftVincentParserTest {
     private val parser = SwiftVincentParser()
 
     @Test
-    fun `isTarget should return true for Swift with Vincent newsletter`() {
-        assertTrue(parser.isTarget("Swift with Vincent <vincent@swiftwithvincent.com>"))
-        assertTrue(parser.isTarget("newsletter@swiftwithvincent.com"))
+    fun `supports should return true for Swift with Vincent newsletter`() {
+        assertTrue(parser.supports("Swift with Vincent <vincent@swiftwithvincent.com>", null))
+        assertTrue(parser.supports("newsletter@swiftwithvincent.com", null))
     }
 
     @Test
