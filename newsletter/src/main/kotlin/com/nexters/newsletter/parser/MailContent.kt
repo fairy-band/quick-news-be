@@ -6,4 +6,5 @@ data class MailContent(
     val link: String,
     val section: String? = null,
     val imageUrl: String? = null,
+    val enrichmentKey: String? = null,
 )

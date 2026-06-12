@@ -1,9 +1,13 @@
 package com.nexters.newsletter.parser
 
 class PythonWeeklyParser : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         val normalized = content.normalizeNewsletterText()
         val issueNumber = ISSUE_REGEX.find(normalized)?.groupValues?.getOrNull(1)
 

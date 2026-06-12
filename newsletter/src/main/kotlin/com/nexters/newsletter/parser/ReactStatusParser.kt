@@ -1,14 +1,18 @@
 package com.nexters.newsletter.parser
 
 class ReactStatusParser : MailParser {
-    override fun isTarget(sender: String): Boolean =
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
             sender.contains(
                 NEWSLETTER_MAIL_ADDRESS,
                 ignoreCase = true
             )
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         val normalized = content.normalizeContent()
         val issueInfo = extractIssueInfo(normalized)
 

@@ -4,9 +4,13 @@ import org.springframework.stereotype.Component
 
 @Component
 class GeeknewsWeeklyParser : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains("news@hada.io", ignoreCase = true)
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean = sender.contains("news@hada.io", ignoreCase = true)
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         // 푸터 부분 제거 (✓ 사내 커뮤니케이션 도구... 이후 내용)
         val cleanedContent = content.substringBefore("✓ 사내 커뮤니케이션 도구")
 

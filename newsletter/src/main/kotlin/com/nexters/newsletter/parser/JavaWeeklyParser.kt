@@ -5,12 +5,16 @@ import org.slf4j.LoggerFactory
 class JavaWeeklyParser : MailParser {
     private val logger = LoggerFactory.getLogger(JavaWeeklyParser::class.java)
 
-    override fun isTarget(sender: String): Boolean =
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
             sender.contains(NEWSLETTER_MAIL, ignoreCase = true)
 
-    override fun parse(content: String): List<MailContent> =
+    override fun parse(context: MailParseContext): List<MailContent> =
         try {
+            val content = context.content
             val issueInfo = extractIssueInfo(content)
             val results = parseSections(content, issueInfo)
 

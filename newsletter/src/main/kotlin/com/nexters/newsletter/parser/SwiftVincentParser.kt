@@ -5,11 +5,15 @@ import org.jsoup.nodes.Document
 import java.util.regex.Pattern
 
 class SwiftVincentParser : MailParser {
-    override fun isTarget(sender: String): Boolean =
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
             sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         // 먼저 HTML 부분을 추출
         val htmlContent =
             extractHtmlContent(content).let {

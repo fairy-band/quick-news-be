@@ -10,6 +10,7 @@ import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.newsletter.parser.MailContent
+import com.nexters.newsletter.parser.MailParseContext
 import com.nexters.newsletter.parser.MailParser
 import com.nexters.newsletter.parser.MailParserFactory
 import jakarta.mail.internet.MimeUtility
@@ -38,7 +39,7 @@ class NewsletterParseOnlyBackfillService(
                 .filter { source -> targetSenders == null || source.senderEmail.normalizedEmail() in targetSenders }
                 .onEach { targetSources++ }
                 .mapNotNull { source ->
-                    val parser = mailParserFactory.findProcessableParser(source.senderEmail, source.subject)
+                    val parser = mailParserFactory.findParser(source.senderEmail, source.subject)
                     if (parser == null) {
                         skippedNoParser++
                         null
@@ -77,11 +78,7 @@ class NewsletterParseOnlyBackfillService(
 
             val parsedContents =
                 try {
-                    candidate.parser.parse(
-                        content = source.content,
-                        subject = source.subject,
-                        htmlContent = source.htmlContent,
-                    )
+                    candidate.parser.parse(MailParseContext.from(source))
                 } catch (e: Exception) {
                     parseFailedSources++
                     failures.addFailure(source, "parse failed: ${e.message}")
@@ -191,9 +188,9 @@ class NewsletterParseOnlyBackfillService(
         source: NewsletterSource,
         mailContent: MailContent,
     ): String =
-        source.headers["RSS-Item-URL"]
-            ?.takeIf { url -> url.isNotBlank() }
-            ?: mailContent.link.trim()
+        mailContent.link
+            .trim()
+            .ifBlank { source.headers["RSS-Item-URL"].orEmpty().trim() }
 
     private fun resolveProviderName(source: NewsletterSource): String =
         source.providerNameFromHint()

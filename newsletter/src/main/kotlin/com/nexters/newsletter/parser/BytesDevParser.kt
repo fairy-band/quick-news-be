@@ -3,15 +3,14 @@ package com.nexters.newsletter.parser
 import java.util.Base64
 
 class BytesDevParser : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
-
-    override fun parse(content: String): List<MailContent> = parse(content, null, null)
-
-    override fun parse(
-        content: String,
+    override fun supports(
+        sender: String,
         subject: String?,
-        htmlContent: String?,
-    ): List<MailContent> {
+    ): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
+
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
+        val subject = context.subject
         val normalized = content.normalizeNewsletterText()
         val issueNumber = ISSUE_REGEX.find(normalized)?.groupValues?.getOrNull(1)
         val mainArticle = extractMainArticle(normalized, subject) ?: return emptyList()

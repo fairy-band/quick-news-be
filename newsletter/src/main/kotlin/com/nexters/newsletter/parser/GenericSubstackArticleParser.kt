@@ -3,18 +3,18 @@ package com.nexters.newsletter.parser
 import org.jsoup.Jsoup
 
 class GenericSubstackArticleParser : MailParser {
-    override fun isTarget(sender: String): Boolean =
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean =
         PUBLICATIONS.any { publication ->
             publication.targetSenders.any { target -> sender.contains(target, ignoreCase = true) }
         }
 
-    override fun parse(content: String): List<MailContent> = parse(content, null, null)
-
-    override fun parse(
-        content: String,
-        subject: String?,
-        htmlContent: String?,
-    ): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
+        val subject = context.subject
+        val htmlContent = context.htmlContent
         val normalized = content.normalizeNewsletterText()
         val title = subject.cleanTitle() ?: extractTitleFromHtml(htmlContent) ?: extractFallbackTitle(normalized) ?: return emptyList()
         val link = extractArticleLink(normalized, htmlContent)

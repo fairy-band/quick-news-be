@@ -1,19 +1,20 @@
 package com.nexters.newsletter.parser
 
-abstract class NumberedLinkNewsletterParser(
+open class NumberedLinkNewsletterParser(
     private val targetSender: String,
     private val sectionNames: Set<String>,
     private val maxArticleCount: Int = DEFAULT_MAX_ARTICLE_COUNT,
     private val aggregateSectionsAsLibraries: Set<String> = emptySet(),
 ) : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains(targetSender, ignoreCase = true)
-
-    override fun isProcessable(
+    override fun supports(
         sender: String,
         subject: String?,
-    ): Boolean = isTarget(sender) && subject?.contains(SUBSCRIPTION_CONFIRMATION_SUBJECT, ignoreCase = true) != true
+    ): Boolean =
+        sender.contains(targetSender, ignoreCase = true) &&
+            subject?.contains(SUBSCRIPTION_CONFIRMATION_SUBJECT, ignoreCase = true) != true
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         val normalized = content.normalizeNewsletterText()
         val plainText = normalized.extractPlainTextBody()
         val issueInfo = extractIssueInfo(plainText)

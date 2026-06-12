@@ -4,15 +4,15 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 class AndroidWeeklyParser : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
-
-    override fun parse(content: String): List<MailContent> = parse(content, null, null)
-
-    override fun parse(
-        content: String,
+    override fun supports(
+        sender: String,
         subject: String?,
-        htmlContent: String?,
-    ): List<MailContent> {
+    ): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
+
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
+        val subject = context.subject
+        val htmlContent = context.htmlContent
         val html = htmlContent?.takeIf { it.isNotBlank() }
         if (html != null) {
             val parsed = parseHtml(html)

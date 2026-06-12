@@ -1,11 +1,15 @@
 package com.nexters.newsletter.parser
 
 class CssWeeklyParser : MailParser {
-    override fun isTarget(sender: String): Boolean =
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean =
         sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
             sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         val lines = content.lines()
         return parseSections(lines)
     }

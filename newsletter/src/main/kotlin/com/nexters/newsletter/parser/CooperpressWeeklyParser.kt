@@ -1,9 +1,13 @@
 package com.nexters.newsletter.parser
 
 class CooperpressWeeklyParser : MailParser {
-    override fun isTarget(sender: String): Boolean = TARGET_SENDERS.any { target -> sender.contains(target, ignoreCase = true) }
+    override fun supports(
+        sender: String,
+        subject: String?,
+    ): Boolean = TARGET_SENDERS.any { target -> sender.contains(target, ignoreCase = true) }
 
-    override fun parse(content: String): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
         val normalized = content.normalizeNewsletterText()
         val issueInfo = extractIssueInfo(normalized)
 

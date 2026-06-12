@@ -3,15 +3,14 @@ package com.nexters.newsletter.parser
 import org.jsoup.Jsoup
 
 class YozmParser : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
-
-    override fun parse(content: String): List<MailContent> = parse(content, null, null)
-
-    override fun parse(
-        content: String,
+    override fun supports(
+        sender: String,
         subject: String?,
-        htmlContent: String?,
-    ): List<MailContent> {
+    ): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
+
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
+        val htmlContent = context.htmlContent
         val articles = parseHtmlArticles(htmlContent) + parseTextArticles(content)
 
         return articles

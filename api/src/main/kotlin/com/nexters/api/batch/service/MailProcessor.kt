@@ -33,7 +33,7 @@ class MailProcessor(
 
     fun shouldProcess(emailMessage: EmailMessage): Boolean {
         val senderInfo = parseSenderInfo(emailMessage.from.firstOrNull() ?: "Unknown")
-        val parser = mailParserFactory.findProcessableParser(senderInfo.second, emailMessage.subject)
+        val parser = mailParserFactory.findParser(senderInfo.second, emailMessage.subject)
         if (parser == null) {
             logger.info(
                 "Skipping unsupported newsletter mail. senderEmail={}, subject={}",

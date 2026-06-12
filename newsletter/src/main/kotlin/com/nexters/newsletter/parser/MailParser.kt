@@ -1,18 +1,23 @@
 package com.nexters.newsletter.parser
 
 sealed interface MailParser {
-    fun isTarget(sender: String): Boolean
-
-    fun isProcessable(
+    fun supports(
         sender: String,
         subject: String?,
-    ): Boolean = isTarget(sender)
+    ): Boolean
 
-    fun parse(content: String): List<MailContent>
-
-    fun parse(
-        content: String,
-        subject: String?,
-        htmlContent: String?,
-    ): List<MailContent> = parse(content)
+    fun parse(context: MailParseContext): List<MailContent>
 }
+
+fun MailParser.parse(
+    content: String,
+    subject: String? = null,
+    htmlContent: String? = null,
+): List<MailContent> =
+    parse(
+        MailParseContext(
+            content = content,
+            subject = subject,
+            htmlContent = htmlContent,
+        ),
+    )

@@ -26,12 +26,10 @@ class MailParserFactory {
             IlbunParser(),
         )
 
-    fun findParser(sender: String): MailParser? = parsers.find { it.isTarget(sender) }
-
-    fun findProcessableParser(
+    fun findParser(
         sender: String,
         subject: String?,
-    ): MailParser? = parsers.find { it.isProcessable(sender, subject) }
+    ): MailParser? = parsers.find { it.supports(sender, subject) }
 
     fun getAllParsers(): List<MailParser> = parsers
 }

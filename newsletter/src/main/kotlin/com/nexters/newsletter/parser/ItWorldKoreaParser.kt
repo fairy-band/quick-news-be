@@ -6,20 +6,17 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
 class ItWorldKoreaParser : MailParser {
-    override fun isTarget(sender: String): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
-
-    override fun isProcessable(
+    override fun supports(
         sender: String,
         subject: String?,
-    ): Boolean = isTarget(sender) && subject?.contains(NEWSLETTER_SUBJECT_MARKER) == true
+    ): Boolean =
+        sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true) &&
+            subject?.contains(NEWSLETTER_SUBJECT_MARKER) == true
 
-    override fun parse(content: String): List<MailContent> = parse(content, null, null)
-
-    override fun parse(
-        content: String,
-        subject: String?,
-        htmlContent: String?,
-    ): List<MailContent> {
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val content = context.content
+        val subject = context.subject
+        val htmlContent = context.htmlContent
         if (subject?.contains(NEWSLETTER_SUBJECT_MARKER) != true) return emptyList()
 
         val document = Jsoup.parse(selectHtmlSource(content, htmlContent))
