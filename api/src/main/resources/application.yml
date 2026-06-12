@@ -68,6 +68,7 @@ rss:
   scheduler:
     fetch:
       delay: ${RSS_FETCH_DELAY:3600000}
+      medium-delay-ms: ${RSS_MEDIUM_FEED_DELAY_MS:15000}
     stats:
       cron: ${RSS_STATS_CRON:0 0 */6 * * *}
 

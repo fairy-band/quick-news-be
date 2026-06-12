@@ -32,10 +32,7 @@ rss:
     - https://techblog.gccompany.co.kr/feed
     - https://techblog.yogiyo.co.kr/feed
     - https://meetup.toast.com/rss
-    - https://helloworld.kurly.com/feed.xml
     - https://woowabros.github.io/feed.xml
-    - https://smartstudio.tech/feed/
-    - https://techblog.woowahan.com/feed/
 
     # Medium 기업 블로그
     - https://medium.com/feed/ssgtech
