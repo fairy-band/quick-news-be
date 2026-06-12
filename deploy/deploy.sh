@@ -36,6 +36,13 @@ else
   echo "⚠️ crontab 명령을 찾을 수 없어 content enrichment cron을 등록하지 못했습니다."
 fi
 
+echo "🛡️ fail2ban 설정 적용 중..."
+if [ -x ./install-fail2ban.sh ]; then
+  ./install-fail2ban.sh || echo "⚠️ fail2ban 설정 적용에 실패했습니다. 서버에서 deploy/install-fail2ban.sh를 확인하세요."
+else
+  echo "⚠️ install-fail2ban.sh 파일을 찾을 수 없어 fail2ban 설정을 건너뜁니다."
+fi
+
 echo "⏳ 서비스 시작 대기..."
 sleep 15
 

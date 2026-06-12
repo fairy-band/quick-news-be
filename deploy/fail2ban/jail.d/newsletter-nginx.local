@@ -1,0 +1,43 @@
+[DEFAULT]
+# 밴(차단) 유지 시간: 1시간
+bantime = 3600
+# 에러 감지 시간 창: 10분 내에
+findtime = 600
+# 최대 허용 횟수: maxretry번 초과하면 차단
+maxretry = 5
+
+# Nginx Rate Limiting(limit_req) 감지 및 차단
+[nginx-limit-req]
+enabled = true
+port = http,https
+protocol = tcp
+filter = nginx-limit-req
+logpath = __DEPLOY_DIR__/logs/nginx/error.log
+# 차단 액션: 일반적인 리눅스 환경의 경우 iptables-multiport 사용
+banaction = iptables-multiport
+# limit_req 에러가 10분 내에 3번 발생하면 IP 차단
+maxretry = 3
+
+# 명백한 스캔 경로(.env, .git, wp/phpmyadmin, parameters.yml 등) 접근 시 차단
+[nginx-bot-scan]
+enabled = true
+port = http,https
+protocol = tcp
+filter = nginx-bot-scan
+logpath = __DEPLOY_DIR__/logs/nginx/bot_scan.log
+banaction = iptables-multiport
+bantime = 86400
+findtime = 600
+maxretry = 1
+
+# nginx가 정적 파일 탐색 실패로 error.log에 남긴 명백한 스캔도 차단
+[nginx-error-bot-scan]
+enabled = true
+port = http,https
+protocol = tcp
+filter = nginx-error-bot-scan
+logpath = __DEPLOY_DIR__/logs/nginx/error.log
+banaction = iptables-multiport
+bantime = 86400
+findtime = 600
+maxretry = 1

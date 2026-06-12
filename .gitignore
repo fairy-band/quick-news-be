@@ -49,3 +49,8 @@ og_preview/
 migration_script/
 walkthrough-data/
 deploy/fail2ban/
+!deploy/fail2ban/
+!deploy/fail2ban/filter.d/
+!deploy/fail2ban/filter.d/*.conf
+!deploy/fail2ban/jail.d/
+!deploy/fail2ban/jail.d/*.local
