@@ -11,7 +11,6 @@ rss:
     - http://kentcdodds.com/blog/rss.xml
 
     # 한국 기술 미디어
-    - https://ppss.kr/archives/category/tech/feed
     - https://www.44bits.io/ko/feed/all
     - http://hacks.mozilla.or.kr/feed/
     - https://kofearticle.substack.com/feed
