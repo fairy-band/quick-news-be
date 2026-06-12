@@ -36,14 +36,17 @@ class DailyContentArchiveResolver(
             // 락 대기 중 다른 스레드가 채워 넣었을 수 있으므로 한 번 더 확인
             dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return@withArchiveLock it }
 
-            val user = userService.getUserById(userId)
+            val trace = ArchiveGenerationTrace()
+            val user = trace.measure("loadUser") { userService.getUserById(userId) }
             val userCategories = user.categories.map { it.id!! }
             val categoryIds =
-                userCategories.ifEmpty {
-                    categoryService.getAllCategories().map { it.id!! }
+                trace.measure("resolveCategories") {
+                    userCategories.ifEmpty {
+                        categoryService.getAllCategories().map { it.id!! }
+                    }
                 }
 
-            val contents = resolveTodayContents(userId, categoryIds)
+            val contents = resolveTodayContents(userId, categoryIds, trace)
 
             val dailyContentArchive =
                 DailyContentArchive(
@@ -52,7 +55,19 @@ class DailyContentArchiveResolver(
                     exposureContents = contents,
                 )
 
-            dailyContentArchiveService.saveWithHistory(dailyContentArchive)
+            trace.measure("saveArchive") {
+                dailyContentArchiveService.saveWithHistory(dailyContentArchive)
+            }.also {
+                logger.info(
+                    "daily_archive_generated userId={} date={} subscribedCategoryCount={} resolvedCategoryCount={} exposureContentCount={} timingsMs={}",
+                    userId,
+                    date,
+                    userCategories.size,
+                    categoryIds.size,
+                    contents.size,
+                    trace.timings,
+                )
+            }
         }
     }
 
@@ -102,9 +117,13 @@ class DailyContentArchiveResolver(
     private fun resolveTodayContents(
         userId: Long,
         categoryIds: List<Long>,
+        trace: ArchiveGenerationTrace,
     ): List<DailyContentArchive.ExposureContentSnapshot> {
         // TODO: 1차 MVP 유저 정보가 필요할지?
-        val candidatePool = possibleContentsResolver.resolveCandidatePoolByCategoryIds(userId, categoryIds)
+        val candidatePool =
+            trace.measure("resolveCandidatePool") {
+                possibleContentsResolver.resolveCandidatePoolByCategoryIds(userId, categoryIds)
+            }
         val possibleContents = candidatePool.candidates.map { it.candidate }
         val candidateSignalsByExposureContentId =
             candidatePool.candidates.associate { poolItem ->
@@ -116,17 +135,22 @@ class DailyContentArchiveResolver(
             return emptyList()
         }
 
-        val keywordWeights = categoryService.getKeywordWeightsByCategoryIds(categoryIds)
+        val keywordWeights =
+            trace.measure("loadKeywordWeights") {
+                categoryService.getKeywordWeightsByCategoryIds(categoryIds)
+            }
         val selectedContents =
-            recommendationCandidateSelector.select(
-                RecommendationCandidateSelectionRequest(
-                    candidates = possibleContents,
-                    candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
-                    keywordWeightsByKeyword = keywordWeights,
-                    categoryIds = categoryIds,
-                    limit = MAX_CONTENT_SIZE,
-                ),
-            )
+            trace.measure("selectCandidates") {
+                recommendationCandidateSelector.select(
+                    RecommendationCandidateSelectionRequest(
+                        candidates = possibleContents,
+                        candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
+                        keywordWeightsByKeyword = keywordWeights,
+                        categoryIds = categoryIds,
+                        limit = MAX_CONTENT_SIZE,
+                    ),
+                )
+            }
 
         if (selectedContents.size < MAX_CONTENT_SIZE) {
             logger.warn(
@@ -138,7 +162,9 @@ class DailyContentArchiveResolver(
             )
         }
 
-        return fetchExposureContents(selectedContents)
+        return trace.measure("fetchArchiveSnapshots") {
+            fetchExposureContents(selectedContents)
+        }
     }
 
     private fun fetchExposureContents(
@@ -167,3 +193,19 @@ private class ReferenceCountedLock(
 class RefreshNotAvailableException(
     message: String
 ) : RuntimeException(message)
+
+private class ArchiveGenerationTrace {
+    val timings = linkedMapOf<String, Long>()
+
+    fun <T> measure(
+        operation: String,
+        block: () -> T,
+    ): T {
+        val startedAt = System.nanoTime()
+        return try {
+            block()
+        } finally {
+            timings[operation] = (System.nanoTime() - startedAt) / 1_000_000
+        }
+    }
+}
