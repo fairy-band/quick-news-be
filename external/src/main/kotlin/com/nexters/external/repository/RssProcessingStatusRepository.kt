@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
@@ -13,6 +14,11 @@ interface RssProcessingStatusRepository : JpaRepository<RssProcessingStatus, Lon
     fun findByItemUrl(itemUrl: String): RssProcessingStatus?
 
     fun existsByItemUrl(itemUrl: String): Boolean
+
+    @Query("SELECT r.itemUrl FROM RssProcessingStatus r WHERE r.itemUrl IN :itemUrls")
+    fun findExistingItemUrls(
+        @Param("itemUrls") itemUrls: Collection<String>,
+    ): List<String>
 
     fun findByNewsletterSourceId(newsletterSourceId: String): RssProcessingStatus?
 

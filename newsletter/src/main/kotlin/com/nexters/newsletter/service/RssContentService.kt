@@ -53,16 +53,24 @@ class RssContentService(
                 return 0
             }
 
-        val savedCount =
-            feedMetadata.items.count { item ->
-                if (isItemAlreadyProcessed(item.link)) {
-                    logger.debug("RSS item already exists: ${item.link}")
-                    false
-                } else {
-                    saveRssItem(feedUrl, feedMetadata.title, item)
-                    true
-                }
+        val processedItemUrls = findProcessedItemUrls(feedMetadata.items.map { item -> item.link })
+        val seenItemUrls = mutableSetOf<String>()
+        var savedCount = 0
+
+        feedMetadata.items.forEach { item ->
+            if (!seenItemUrls.add(item.link)) {
+                logger.debug("Skipping duplicate RSS item in feed: ${item.link}")
+                return@forEach
             }
+
+            if (item.link in processedItemUrls) {
+                logger.debug("RSS item already exists: ${item.link}")
+                return@forEach
+            }
+
+            saveRssItem(feedUrl, feedMetadata.title, item)
+            savedCount++
+        }
 
         logger.info("Saved $savedCount new items from feed: $feedUrl")
         return savedCount
@@ -127,7 +135,16 @@ class RssContentService(
             }
     }
 
-    private fun isItemAlreadyProcessed(itemUrl: String): Boolean = rssProcessingStatusRepository.existsByItemUrl(itemUrl)
+    private fun findProcessedItemUrls(itemUrls: Collection<String>): Set<String> {
+        val distinctItemUrls = itemUrls.filter { itemUrl -> itemUrl.isNotBlank() }.distinct()
+        if (distinctItemUrls.isEmpty()) {
+            return emptySet()
+        }
+
+        return rssProcessingStatusRepository
+            .findExistingItemUrls(distinctItemUrls)
+            .toSet()
+    }
 
     private fun saveRssItem(
         feedUrl: String,
