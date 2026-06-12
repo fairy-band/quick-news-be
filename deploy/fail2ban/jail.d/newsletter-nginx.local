@@ -13,6 +13,7 @@ port = http,https
 protocol = tcp
 filter = nginx-limit-req
 logpath = __DEPLOY_DIR__/logs/nginx/error.log
+backend = polling
 # 차단 액션: 일반적인 리눅스 환경의 경우 iptables-multiport 사용
 banaction = iptables-multiport
 # limit_req 에러가 10분 내에 3번 발생하면 IP 차단
@@ -25,6 +26,7 @@ port = http,https
 protocol = tcp
 filter = nginx-bot-scan
 logpath = __DEPLOY_DIR__/logs/nginx/bot_scan.log
+backend = polling
 banaction = iptables-multiport
 bantime = 86400
 findtime = 600
@@ -37,6 +39,7 @@ port = http,https
 protocol = tcp
 filter = nginx-error-bot-scan
 logpath = __DEPLOY_DIR__/logs/nginx/error.log
+backend = polling
 banaction = iptables-multiport
 bantime = 86400
 findtime = 600
