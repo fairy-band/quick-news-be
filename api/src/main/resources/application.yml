@@ -83,6 +83,11 @@ google:
 batch:
   enabled: ${BATCH_ENABLED:false}
 
+# Startup Warmup
+app:
+  warmup:
+    enabled: ${APP_WARMUP_ENABLED:true}
+
 # Notification Scheduler Configuration
 notification:
   scheduler:
