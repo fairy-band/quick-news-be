@@ -25,6 +25,14 @@ import java.time.LocalDateTime
             name = "idx_popular_newsletter_snapshot_items_snapshot_resolution_rank",
             columnList = "snapshot_id, resolution_status, rank_order",
         ),
+        Index(
+            name = "idx_popular_newsletter_snapshot_items_resolved_content",
+            columnList = "resolved_content_id",
+        ),
+        Index(
+            name = "idx_popular_newsletter_snapshot_items_resolved_exposure_content",
+            columnList = "resolved_exposure_content_id",
+        ),
     ],
     uniqueConstraints = [
         UniqueConstraint(

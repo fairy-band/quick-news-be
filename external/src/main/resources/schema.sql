@@ -152,6 +152,10 @@ ALTER TABLE summaries
 CREATE INDEX IF NOT EXISTS idx_summaries_content_id
     ON summaries (content_id);
 
+-- generation_attempt_id FK 검사 및 Summary.generationAttempt 조인 지원
+CREATE INDEX IF NOT EXISTS idx_summaries_generation_attempt_id
+    ON summaries (generation_attempt_id);
+
 -- Category-Keyword mappings table
 CREATE TABLE IF NOT EXISTS category_keyword_mappings
 (
@@ -310,6 +314,10 @@ CREATE TABLE IF NOT EXISTS content_provider
     updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- findFirstByNameOrderByIdAsc, findByName 조회 지원
+CREATE INDEX IF NOT EXISTS idx_content_provider_name_id
+    ON content_provider (name, id);
+
 -- RSS processing status table
 CREATE TABLE IF NOT EXISTS rss_processing_status
 (
@@ -342,6 +350,9 @@ CREATE INDEX IF NOT EXISTS idx_rss_processing_status_rss_url
 
 CREATE INDEX IF NOT EXISTS idx_rss_processing_status_ai_processed_created_at
     ON rss_processing_status (ai_processed, is_processed, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_rss_processing_status_content_id
+    ON rss_processing_status (content_id);
 
 -- Content provider category mappings table
 CREATE TABLE IF NOT EXISTS content_provider_category_mappings
@@ -450,6 +461,12 @@ ALTER TABLE popular_newsletter_snapshot_items
 CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_snapshot_resolution_rank
     ON popular_newsletter_snapshot_items (snapshot_id, resolution_status, rank_order);
 
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_resolved_content
+    ON popular_newsletter_snapshot_items (resolved_content_id);
+
+CREATE INDEX IF NOT EXISTS idx_popular_newsletter_snapshot_items_resolved_exposure_content
+    ON popular_newsletter_snapshot_items (resolved_exposure_content_id);
+
 COMMENT ON TABLE popular_newsletter_snapshots IS '인기 뉴스레터 랭킹 스냅샷 메타데이터';
 
 COMMENT ON TABLE popular_newsletter_snapshot_items IS '인기 뉴스레터 스냅샷 개별 랭킹 아이템';
@@ -460,6 +477,9 @@ CREATE INDEX IF NOT EXISTS idx_contents_original_url
 CREATE INDEX IF NOT EXISTS idx_contents_newsletter_source_published_id
     ON contents (newsletter_source_id, published_at DESC, id DESC);
 
+CREATE INDEX IF NOT EXISTS idx_contents_newsletter_source_original_url
+    ON contents (newsletter_source_id, original_url);
+
 -- findByNewsletterName, findContentsWithoutSummaryByNewsletterName 등 newsletter_name 필터 쿼리
 CREATE INDEX IF NOT EXISTS idx_contents_newsletter_name
     ON contents (newsletter_name);
@@ -468,3 +488,6 @@ CREATE INDEX IF NOT EXISTS idx_contents_newsletter_name
 -- HOT: deleted 컬럼을 인덱스에서 제외하여 deleted UPDATE 시 HOT 유지
 CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_user_created
     ON user_exposed_contents_mapping (user_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_content_id
+    ON user_exposed_contents_mapping (content_id);

@@ -8,11 +8,17 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "content_provider")
+@Table(
+    name = "content_provider",
+    indexes = [
+        Index(name = "idx_content_provider_name_id", columnList = "name, id"),
+    ],
+)
 class ContentProvider(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

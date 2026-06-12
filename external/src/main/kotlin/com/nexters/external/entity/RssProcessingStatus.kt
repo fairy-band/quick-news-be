@@ -5,11 +5,17 @@ import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "rss_processing_status")
+@Table(
+    name = "rss_processing_status",
+    indexes = [
+        Index(name = "idx_rss_processing_status_content_id", columnList = "content_id"),
+    ],
+)
 class RssProcessingStatus(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
