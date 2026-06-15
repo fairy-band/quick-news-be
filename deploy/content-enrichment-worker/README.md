@@ -70,6 +70,9 @@ docker compose --profile batch run --rm --no-deps content-enrichment-worker
 
 The default schedule is hourly at minute 17. Override it with
 `CONTENT_ENRICHMENT_CRON_SCHEDULE` in the deploy `.env` file.
+The runner uses `deploy/logs/content-enrichment-worker/worker.lock` by default
+to prevent overlapping runs. Override it with `CONTENT_ENRICHMENT_LOCK_FILE` only
+when the target path is writable by the deploy user.
 
 ## Local One-Off Run
 

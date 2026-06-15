@@ -2,12 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOCK_FILE="${CONTENT_ENRICHMENT_LOCK_FILE:-/tmp/newsletter-content-enrichment-worker.lock}"
+LOCK_FILE="${CONTENT_ENRICHMENT_LOCK_FILE:-$SCRIPT_DIR/logs/content-enrichment-worker/worker.lock}"
 
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 cd "$SCRIPT_DIR"
 mkdir -p logs/content-enrichment-worker
+mkdir -p "$(dirname "$LOCK_FILE")"
 
 run_worker() {
   docker compose --profile batch run --rm --no-deps content-enrichment-worker
