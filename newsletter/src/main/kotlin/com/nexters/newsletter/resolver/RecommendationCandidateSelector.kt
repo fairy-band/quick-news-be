@@ -77,6 +77,8 @@ class RecommendationCandidateSelector(
         private val FALLBACK_MULTIPLIERS = listOf(2.0, 3.0, 4.0)
         private const val DOMINANT_CATEGORY_RATIO = 1.5
         private const val DOMINANT_CATEGORY_GAP = 8.0
+        private const val SINGLE_CATEGORY_MIN_SCORE_MARGIN = 2.0
+        private const val PROVIDER_CATEGORY_FIT_WEIGHT_CAP = 4.0
     }
 
     private fun CandidateScoringSourceContext.filterByCategoryFit(): CandidateScoringSourceContext {
@@ -144,6 +146,11 @@ class RecommendationCandidateSelector(
             return false
         }
 
+        if (requestedCategoryIds.size == 1) {
+            return strongestOtherScore <= 0.0 ||
+                requestedScore >= strongestOtherScore + SINGLE_CATEGORY_MIN_SCORE_MARGIN
+        }
+
         return strongestOtherScore < requestedScore * DOMINANT_CATEGORY_RATIO ||
             strongestOtherScore - requestedScore < DOMINANT_CATEGORY_GAP
     }
@@ -161,7 +168,10 @@ class RecommendationCandidateSelector(
         weight: Double,
     ) {
         val current = this[categoryId] ?: CategoryFitScore()
-        this[categoryId] = current.copy(providerScore = current.providerScore + weight)
+        this[categoryId] =
+            current.copy(
+                providerScore = current.providerScore + weight.coerceAtMost(PROVIDER_CATEGORY_FIT_WEIGHT_CAP),
+            )
     }
 }
 

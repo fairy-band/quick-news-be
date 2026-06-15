@@ -155,6 +155,149 @@ class RecommendationCandidateSelectorTest {
         verify(exactly = 0) { scoringSourceFactory.createSources(any(), any()) }
     }
 
+    @Test
+    fun `select should reject single category candidates when another category is stronger within tolerance`() {
+        val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
+        val sharedKeyword = ReservedKeyword(id = 10L, name = "Kotlin")
+        val context =
+            context(listOf(candidate)).copy(
+                categoryIds = listOf(1L),
+                keywordsByContentId = mapOf(candidate.contentId to listOf(sharedKeyword)),
+                keywordCategoryWeightsByKeywordId =
+                    mapOf(
+                        10L to
+                            listOf(
+                                CategoryWeight(categoryId = 1L, weight = 17.0),
+                                CategoryWeight(categoryId = 4L, weight = 20.0),
+                            ),
+                    ),
+                contentProviderCategoryWeightsByProviderId =
+                    mapOf(
+                        100L to
+                            listOf(
+                                CategoryWeight(categoryId = 1L, weight = 14.0),
+                                CategoryWeight(categoryId = 4L, weight = 18.0),
+                            ),
+                    ),
+            )
+
+        every { scoringSourceFactory.createContext(any(), any(), any(), any()) } returns context
+
+        val result =
+            selector.select(
+                RecommendationCandidateSelectionRequest(
+                    candidates = listOf(candidate),
+                    candidateSignalsByExposureContentId = emptyMap(),
+                    keywordWeightsByKeyword = emptyMap(),
+                    categoryIds = listOf(1L),
+                    limit = 1,
+                ),
+            )
+
+        assertThat(result).isEmpty()
+        verify(exactly = 0) { scoringSourceFactory.createSources(any(), any()) }
+    }
+
+    @Test
+    fun `select should reject single category candidates when requested category only barely beats another category`() {
+        val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
+        val backendKeyword = ReservedKeyword(id = 10L, name = "API")
+        val sharedKeyword = ReservedKeyword(id = 20L, name = "Kotlin")
+        val androidKeyword = ReservedKeyword(id = 30L, name = "Android")
+        val context =
+            context(listOf(candidate)).copy(
+                categoryIds = listOf(1L),
+                keywordsByContentId = mapOf(candidate.contentId to listOf(backendKeyword, sharedKeyword, androidKeyword)),
+                keywordCategoryWeightsByKeywordId =
+                    mapOf(
+                        10L to listOf(CategoryWeight(categoryId = 1L, weight = 4.0)),
+                        20L to
+                            listOf(
+                                CategoryWeight(categoryId = 1L, weight = 4.0),
+                                CategoryWeight(categoryId = 4L, weight = 4.0),
+                            ),
+                        30L to listOf(CategoryWeight(categoryId = 4L, weight = 3.0)),
+                    ),
+                contentProviderCategoryWeightsByProviderId =
+                    mapOf(
+                        100L to
+                            listOf(
+                                CategoryWeight(categoryId = 1L, weight = 25.0),
+                                CategoryWeight(categoryId = 4L, weight = 25.0),
+                            ),
+                    ),
+            )
+
+        every { scoringSourceFactory.createContext(any(), any(), any(), any()) } returns context
+
+        val result =
+            selector.select(
+                RecommendationCandidateSelectionRequest(
+                    candidates = listOf(candidate),
+                    candidateSignalsByExposureContentId = emptyMap(),
+                    keywordWeightsByKeyword = emptyMap(),
+                    categoryIds = listOf(1L),
+                    limit = 1,
+                ),
+            )
+
+        assertThat(result).isEmpty()
+        verify(exactly = 0) { scoringSourceFactory.createSources(any(), any()) }
+    }
+
+    @Test
+    fun `select should cap provider category fit weights so article keywords decide fit`() {
+        val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
+        val backendKeyword = ReservedKeyword(id = 10L, name = "API")
+        val context =
+            context(listOf(candidate)).copy(
+                categoryIds = listOf(1L),
+                keywordsByContentId = mapOf(candidate.contentId to listOf(backendKeyword)),
+                keywordCategoryWeightsByKeywordId =
+                    mapOf(
+                        10L to listOf(CategoryWeight(categoryId = 1L, weight = 4.0)),
+                    ),
+                contentProviderCategoryWeightsByProviderId =
+                    mapOf(
+                        100L to
+                            listOf(
+                                CategoryWeight(categoryId = 1L, weight = 25.0),
+                                CategoryWeight(categoryId = 4L, weight = 100.0),
+                            ),
+                    ),
+            )
+        val filteredSources = sourcesByCandidate("filtered", candidate)
+
+        every { scoringSourceFactory.createContext(any(), any(), any(), any()) } returns context
+        every {
+            scoringSourceFactory.createSources(
+                match { it.candidates == listOf(candidate) },
+                1.0,
+            )
+        } returns filteredSources
+        every { ranker.rank(filteredSources) } returns listOf(ScoredRecommendationCandidate(candidate, 10.0))
+        every {
+            publisherDiversityPolicy.apply(
+                candidates = listOf(candidate),
+                sourcesByCandidate = filteredSources,
+                limit = 1,
+            )
+        } returns listOf(candidate)
+
+        val result =
+            selector.select(
+                RecommendationCandidateSelectionRequest(
+                    candidates = listOf(candidate),
+                    candidateSignalsByExposureContentId = emptyMap(),
+                    keywordWeightsByKeyword = emptyMap(),
+                    categoryIds = listOf(1L),
+                    limit = 1,
+                ),
+            )
+
+        assertThat(result).containsExactly(candidate)
+    }
+
     private fun context(candidates: List<ExposureContentRecommendationCandidateRow>): CandidateScoringSourceContext =
         CandidateScoringSourceContext(
             candidates = candidates,
