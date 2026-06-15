@@ -11,8 +11,10 @@ import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentKeywordMatchScoreRepository
 import com.nexters.external.repository.KeywordAliasRepository
 import com.nexters.external.repository.ReservedKeywordRepository
+import com.nexters.external.service.category.ContentCategoryScoreService
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.time.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -25,6 +27,7 @@ class ContentKeywordAutomationServiceTest {
     private val reservedKeywordRepository = mockk<ReservedKeywordRepository>()
     private val contentKeywordMappingRepository = mockk<ContentKeywordMappingRepository>()
     private val contentKeywordMatchScoreRepository = mockk<ContentKeywordMatchScoreRepository>()
+    private val contentCategoryScoreService = mockk<ContentCategoryScoreService>()
 
     private lateinit var service: ContentKeywordAutomationService
 
@@ -53,6 +56,7 @@ class ContentKeywordAutomationServiceTest {
         every { contentKeywordMatchScoreRepository.save(any()) } answers {
             firstArg<ContentKeywordMatchScore>().also(savedScores::add)
         }
+        every { contentCategoryScoreService.recalculateForContent(any<Content>()) } returns 1
 
         service =
             ContentKeywordAutomationService(
@@ -60,6 +64,7 @@ class ContentKeywordAutomationServiceTest {
                 reservedKeywordRepository = reservedKeywordRepository,
                 contentKeywordMappingRepository = contentKeywordMappingRepository,
                 contentKeywordMatchScoreRepository = contentKeywordMatchScoreRepository,
+                contentCategoryScoreService = contentCategoryScoreService,
             )
     }
 
@@ -77,6 +82,7 @@ class ContentKeywordAutomationServiceTest {
         assertEquals(0, result.aiFallbackKeywordCount)
         assertEquals(listOf("Kotlin", "Redis"), savedMappings.map { it.keyword.name }.sorted())
         assertTrue(savedScores.none { it.source == KeywordMatchSource.AI_FALLBACK })
+        verify(exactly = 1) { contentCategoryScoreService.recalculateForContent(any<Content>()) }
     }
 
     @Test

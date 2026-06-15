@@ -244,6 +244,34 @@ CREATE INDEX IF NOT EXISTS idx_content_keyword_match_scores_keyword
 CREATE INDEX IF NOT EXISTS idx_content_keyword_match_scores_accepted
     ON content_keyword_match_scores (accepted, confidence DESC);
 
+-- Cached category fit scores for content-level recommendation and explore filtering.
+CREATE TABLE IF NOT EXISTS content_category_scores
+(
+    id                          BIGSERIAL PRIMARY KEY,
+    content_id                  BIGINT           NOT NULL,
+    category_id                 BIGINT           NOT NULL,
+    keyword_score               DOUBLE PRECISION NOT NULL DEFAULT 0,
+    provider_score              DOUBLE PRECISION NOT NULL DEFAULT 0,
+    total_score                 DOUBLE PRECISION NOT NULL DEFAULT 0,
+    competing_category_id       BIGINT,
+    competing_score             DOUBLE PRECISION NOT NULL DEFAULT 0,
+    provider_mismatch           BOOLEAN          NOT NULL DEFAULT FALSE,
+    is_single_category_fit      BOOLEAN          NOT NULL DEFAULT FALSE,
+    calculation_version         VARCHAR(50)      NOT NULL,
+    calculated_at               TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at                  TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_content_category_scores_content_category UNIQUE (content_id, category_id),
+    CONSTRAINT fk_content_category_scores_content FOREIGN KEY (content_id) REFERENCES contents (id),
+    CONSTRAINT fk_content_category_scores_category FOREIGN KEY (category_id) REFERENCES categories (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_category_scores_content
+    ON content_category_scores (content_id);
+
+CREATE INDEX IF NOT EXISTS idx_content_category_scores_category_fit_score
+    ON content_category_scores (category_id, is_single_category_fit, total_score DESC, content_id);
+
 -- Newsletter sources table
 CREATE TABLE IF NOT EXISTS newsletter_sources
 (

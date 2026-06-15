@@ -9,6 +9,7 @@ import com.nexters.external.enums.KeywordMatchSource
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentKeywordMatchScoreRepository
 import com.nexters.external.repository.ReservedKeywordRepository
+import com.nexters.external.service.category.ContentCategoryScoreService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,6 +21,7 @@ class ContentKeywordAutomationService(
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val contentKeywordMatchScoreRepository: ContentKeywordMatchScoreRepository,
+    private val contentCategoryScoreService: ContentCategoryScoreService,
 ) {
     private val logger = LoggerFactory.getLogger(ContentKeywordAutomationService::class.java)
 
@@ -37,6 +39,7 @@ class ContentKeywordAutomationService(
         val reservedKeywords = reservedKeywordRepository.findAll()
         if (reservedKeywords.isEmpty()) {
             logger.warn("No reserved keywords available for content keyword automation")
+            contentCategoryScoreService.recalculateForContent(content)
             return ContentKeywordAssignmentResult(0, 0, 0, usedAiFallback = false)
         }
 
@@ -69,6 +72,7 @@ class ContentKeywordAutomationService(
         acceptedCandidates.forEach { candidate ->
             assignKeywordToContent(content, candidate.keyword)
         }
+        contentCategoryScoreService.recalculateForContent(content)
 
         return ContentKeywordAssignmentResult(
             automaticKeywordCount = automaticCandidates.size,

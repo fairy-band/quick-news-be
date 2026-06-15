@@ -11,6 +11,7 @@ import com.nexters.external.repository.ExposureContentArchiveRow
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
+import com.nexters.external.service.category.ContentCategoryScoreService
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -27,6 +28,7 @@ class ExposureContentService(
     private val exposureContentRepository: ExposureContentRepository,
     private val summaryRepository: SummaryRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
+    private val contentCategoryScoreService: ContentCategoryScoreService,
 ) {
     private val logger = LoggerFactory.getLogger(ExposureContentService::class.java)
 
@@ -43,6 +45,7 @@ class ExposureContentService(
 
         if (existingExposureContent != null) {
             logger.info("Exposure content already exists for content ID: ${summary.content.id}")
+            contentCategoryScoreService.recalculateForContent(summary.content)
             return existingExposureContent
         }
 
@@ -61,7 +64,9 @@ class ExposureContentService(
                 summaryContent = summary.summarizedContent,
             )
 
-        return exposureContentRepository.save(exposureContent)
+        return exposureContentRepository.save(exposureContent).also {
+            contentCategoryScoreService.recalculateForContent(summary.content)
+        }
     }
 
     @ExposureContentChanged
@@ -92,7 +97,9 @@ class ExposureContentService(
                 summaryContent = summary.summarizedContent,
             )
 
-        return exposureContentRepository.save(exposureContent)
+        return exposureContentRepository.save(exposureContent).also {
+            contentCategoryScoreService.recalculateForContent(summary.content)
+        }
     }
 
     private fun findMostProvocativeKeyword(content: Content): String {
@@ -238,7 +245,9 @@ class ExposureContentService(
                 )
 
             logger.info("Updated existing exposure content for content ID: ${content.id}")
-            return exposureContentRepository.save(updatedContent)
+            return exposureContentRepository.save(updatedContent).also {
+                contentCategoryScoreService.recalculateForContent(existingExposureContent.content)
+            }
         } else {
             // Create new exposure content
             val newExposureContent =
@@ -250,7 +259,9 @@ class ExposureContentService(
                 )
 
             logger.info("Created new exposure content for content ID: ${content.id}")
-            return exposureContentRepository.save(newExposureContent)
+            return exposureContentRepository.save(newExposureContent).also {
+                contentCategoryScoreService.recalculateForContent(content)
+            }
         }
     }
 

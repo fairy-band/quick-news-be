@@ -2,6 +2,7 @@ package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import com.nexters.external.service.category.CategoryFitThresholds
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -77,8 +78,6 @@ class RecommendationCandidateSelector(
         private val FALLBACK_MULTIPLIERS = listOf(2.0, 3.0, 4.0)
         private const val DOMINANT_CATEGORY_RATIO = 1.5
         private const val DOMINANT_CATEGORY_GAP = 8.0
-        private const val SINGLE_CATEGORY_MIN_SCORE_MARGIN = 2.0
-        private const val PROVIDER_CATEGORY_FIT_WEIGHT_CAP = 4.0
     }
 
     private fun CandidateScoringSourceContext.filterByCategoryFit(): CandidateScoringSourceContext {
@@ -136,7 +135,7 @@ class RecommendationCandidateSelector(
                 .filterKeys { it in requestedCategoryIds }
                 .values
                 .sumOf { it.total }
-        val strongestOtherScore =
+        val competingScore =
             categoryScores
                 .filterKeys { it !in requestedCategoryIds }
                 .values
@@ -147,12 +146,12 @@ class RecommendationCandidateSelector(
         }
 
         if (requestedCategoryIds.size == 1) {
-            return strongestOtherScore <= 0.0 ||
-                requestedScore >= strongestOtherScore + SINGLE_CATEGORY_MIN_SCORE_MARGIN
+            return competingScore <= 0.0 ||
+                requestedScore >= competingScore + CategoryFitThresholds.SINGLE_CATEGORY_MIN_SCORE_MARGIN
         }
 
-        return strongestOtherScore < requestedScore * DOMINANT_CATEGORY_RATIO ||
-            strongestOtherScore - requestedScore < DOMINANT_CATEGORY_GAP
+        return competingScore < requestedScore * DOMINANT_CATEGORY_RATIO ||
+            competingScore - requestedScore < DOMINANT_CATEGORY_GAP
     }
 
     private fun MutableMap<Long, CategoryFitScore>.addKeywordScore(
@@ -170,7 +169,7 @@ class RecommendationCandidateSelector(
         val current = this[categoryId] ?: CategoryFitScore()
         this[categoryId] =
             current.copy(
-                providerScore = current.providerScore + weight.coerceAtMost(PROVIDER_CATEGORY_FIT_WEIGHT_CAP),
+                providerScore = current.providerScore + weight.coerceAtMost(CategoryFitThresholds.PROVIDER_CATEGORY_FIT_WEIGHT_CAP),
             )
     }
 }
