@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -71,7 +72,8 @@ class NewsletterApiController(
         summary = "탐색 콘텐츠 조회",
         description = """
             노출 콘텐츠 목록을 keyset cursor pagination으로 조회합니다.
-            sort 없음(기본): 등록 ID 내림차순. sort=published: 발행일(published_at) 내림차순, 동일 발행일은 ID 내림차순.
+            sort 없음(기본): 등록 ID 기준. sort=published: 발행일(published_at) 기준.
+            direction 없음(기본): DESC. direction=ASC로 오래된 순서 조회가 가능합니다.
             다음 페이지 조회 시 응답의 nextOffset을 lastSeenOffset에 전달합니다.
         """,
     )
@@ -82,9 +84,11 @@ class NewsletterApiController(
         @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "정렬 기준 (PUBLISHED: 발행일 최신순)", example = "PUBLISHED")
         @RequestParam(required = false) sort: ExploreSortType?,
+        @Parameter(description = "정렬 방향 (DESC: 최신순, ASC: 오래된 순)", example = "DESC")
+        @RequestParam(defaultValue = "DESC") direction: Sort.Direction,
     ): ExposureContentListApiResponse =
         newsletterExploreService
-            .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED)
+            .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED, direction)
             .toApiResponse()
 
     @PostMapping("/contents")

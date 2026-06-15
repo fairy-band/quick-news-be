@@ -124,10 +124,13 @@ class ExposureContentService(
     fun getExploreContentRows(
         lastSeenOffset: Long,
         limit: Int,
+        direction: Sort.Direction = Sort.Direction.DESC,
     ): List<ExploreContentRow> {
-        val pageable = PageRequest.of(0, limit, REGISTERED_SORT)
+        val pageable = PageRequest.of(0, limit, registeredSort(direction))
         return if (lastSeenOffset == 0L) {
             exposureContentRepository.findExploreRows(pageable)
+        } else if (direction.isAscending) {
+            exposureContentRepository.findExploreRowsAfterAscending(lastSeenOffset, pageable)
         } else {
             exposureContentRepository.findExploreRowsAfter(lastSeenOffset, pageable)
         }
@@ -137,17 +140,25 @@ class ExposureContentService(
     fun getExploreContentRowsSortedByPublishedAt(
         lastSeenOffset: Long,
         limit: Int,
+        direction: Sort.Direction = Sort.Direction.DESC,
     ): List<ExploreContentRow> {
-        val pageable = PageRequest.of(0, limit, PUBLISHED_SORT)
+        val pageable = PageRequest.of(0, limit, publishedSort(direction))
         if (lastSeenOffset == 0L) return exposureContentRepository.findExploreRows(pageable)
         val lastSeen =
             exposureContentRepository
                 .findById(lastSeenOffset)
                 .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
-        return exposureContentRepository.findExploreRowsAfterByPublishedAt(
-            lastSeen.content.publishedAt,
-            pageable,
-        )
+        return if (direction.isAscending) {
+            exposureContentRepository.findExploreRowsAfterByPublishedAtAscending(
+                lastSeen.content.publishedAt,
+                pageable,
+            )
+        } else {
+            exposureContentRepository.findExploreRowsAfterByPublishedAt(
+                lastSeen.content.publishedAt,
+                pageable,
+            )
+        }
     }
 
     fun getAllExposureContentsPaged(pageable: Pageable): Page<ExposureContent> = exposureContentRepository.findAllPaged(pageable)
@@ -327,10 +338,11 @@ class ExposureContentService(
         )
 
     companion object {
-        private val REGISTERED_SORT: Sort = JpaSort.unsafe(Sort.Direction.DESC, "e.id")
-        private val PUBLISHED_SORT: Sort =
+        private fun registeredSort(direction: Sort.Direction): Sort = JpaSort.unsafe(direction, "e.id")
+
+        private fun publishedSort(direction: Sort.Direction): Sort =
             JpaSort
-                .unsafe(Sort.Direction.DESC, "c.publishedAt")
-                .and(JpaSort.unsafe(Sort.Direction.DESC, "e.id"))
+                .unsafe(direction, "c.publishedAt")
+                .and(JpaSort.unsafe(direction, "e.id"))
     }
 }

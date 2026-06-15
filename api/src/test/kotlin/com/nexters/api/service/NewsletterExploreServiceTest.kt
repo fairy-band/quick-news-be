@@ -8,6 +8,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.springframework.data.domain.Sort
 import java.time.LocalDateTime
 
 class NewsletterExploreServiceTest {
@@ -170,6 +171,43 @@ class NewsletterExploreServiceTest {
     }
 
     @Test
+    fun `ASC and DESC direction should not share cache`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRows(0L, 3, Sort.Direction.DESC))
+            .thenReturn(listOf(exploreRow(id = 20L), exploreRow(id = 10L)))
+        Mockito
+            .`when`(exposureContentService.getExploreContentRows(0L, 3, Sort.Direction.ASC))
+            .thenReturn(listOf(exploreRow(id = 10L), exploreRow(id = 20L)))
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(2L)
+
+        val desc =
+            sut.getExploreContents(
+                lastSeenOffset = 0L,
+                size = 2,
+                sortType = ExploreSortType.REGISTERED,
+                direction = Sort.Direction.DESC,
+            )
+        val asc =
+            sut.getExploreContents(
+                lastSeenOffset = 0L,
+                size = 2,
+                sortType = ExploreSortType.REGISTERED,
+                direction = Sort.Direction.ASC,
+            )
+
+        assertThat(desc.contents.map { it.id }).containsExactly(20L, 10L)
+        assertThat(asc.contents.map { it.id }).containsExactly(10L, 20L)
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRows(0L, 3, Sort.Direction.DESC)
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRows(0L, 3, Sort.Direction.ASC)
+    }
+
+    @Test
     fun `PUBLISHED sort next page should use publishedAt fetcher not registered fetcher`() {
         Mockito
             .`when`(exposureContentService.getExploreContentRowsSortedByPublishedAt(0L, 3))
@@ -189,10 +227,13 @@ class NewsletterExploreServiceTest {
         assertThat(second.hasMore).isFalse()
         Mockito
             .verify(exposureContentService, Mockito.never())
-            .getExploreContentRows(Mockito.anyLong(), Mockito.anyInt())
+            .getExploreContentRows(0L, 3, Sort.Direction.DESC)
         Mockito
-            .verify(exposureContentService, Mockito.times(2))
-            .getExploreContentRowsSortedByPublishedAt(Mockito.anyLong(), Mockito.eq(3))
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRowsSortedByPublishedAt(0L, 3, Sort.Direction.DESC)
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRowsSortedByPublishedAt(20L, 3, Sort.Direction.DESC)
     }
 
     @Test

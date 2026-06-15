@@ -4,6 +4,7 @@ import com.nexters.api.enums.ExploreSortType
 import com.nexters.api.util.LocalCache
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.service.ExposureContentService
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 
 @Service
@@ -14,10 +15,11 @@ class NewsletterExploreService(
         lastSeenOffset: Long,
         size: Int,
         sortType: ExploreSortType,
+        direction: Sort.Direction = Sort.Direction.DESC,
     ): ExploreContentsResult {
         validateRequest(lastSeenOffset, size)
 
-        val page = findExploreContentPage(lastSeenOffset, size, sortType)
+        val page = findExploreContentPage(lastSeenOffset, size, sortType, direction)
         val totalCount = countExposureContents()
 
         return ExploreContentsResult(
@@ -32,14 +34,19 @@ class NewsletterExploreService(
         lastSeenOffset: Long,
         size: Int,
         sortType: ExploreSortType,
+        direction: Sort.Direction,
     ): ExploreContentPageResult {
-        val fetcher =
+        val fetcher: (Long, Int) -> List<ExploreContentRow> =
             when (sortType) {
-                ExploreSortType.REGISTERED -> exposureContentService::getExploreContentRows
-                ExploreSortType.PUBLISHED -> exposureContentService::getExploreContentRowsSortedByPublishedAt
+                ExploreSortType.REGISTERED -> { offset: Long, limit: Int ->
+                    exposureContentService.getExploreContentRows(offset, limit, direction)
+                }
+                ExploreSortType.PUBLISHED -> { offset: Long, limit: Int ->
+                    exposureContentService.getExploreContentRowsSortedByPublishedAt(offset, limit, direction)
+                }
             }
         return if (lastSeenOffset == FIRST_PAGE_OFFSET) {
-            findCachedFirstExploreContentPage(sortType, size, fetcher)
+            findCachedFirstExploreContentPage(sortType, direction, size, fetcher)
         } else {
             loadPage(lastSeenOffset, size, fetcher)
         }
@@ -47,11 +54,12 @@ class NewsletterExploreService(
 
     private fun findCachedFirstExploreContentPage(
         sortType: ExploreSortType,
+        direction: Sort.Direction,
         size: Int,
         fetch: (Long, Int) -> List<ExploreContentRow>,
     ): ExploreContentPageResult =
         LocalCache.getOrPut(
-            key = buildExploreContentPageCacheKey(sortType, size),
+            key = buildExploreContentPageCacheKey(sortType, direction, size),
             ttl = EXPOSURE_CONTENTS_CACHE_TTL_MINUTES,
         ) {
             loadPage(FIRST_PAGE_OFFSET, size, fetch)
@@ -116,7 +124,8 @@ class NewsletterExploreService(
 
         private fun buildExploreContentPageCacheKey(
             sortType: ExploreSortType,
-            size: Int
-        ): String = "${PAGE_CACHE_KEY_PREFIX}sort:${sortType.name}:size:$size"
+            direction: Sort.Direction,
+            size: Int,
+        ): String = "${PAGE_CACHE_KEY_PREFIX}sort:${sortType.name}:direction:${direction.name}:size:$size"
     }
 }

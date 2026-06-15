@@ -45,11 +45,18 @@ class ExposureContentRepositoryTest {
         entityManager.clear()
 
         val byIdDesc = JpaSort.unsafe(Sort.Direction.DESC, "e.id")
+        val byIdAsc = JpaSort.unsafe(Sort.Direction.ASC, "e.id")
         val rows = repository.findExploreRows(PageRequest.of(0, 2, byIdDesc))
         val rowsAfterNewest =
             repository.findExploreRowsAfter(
                 lastSeenOffset = secondExposureContent.id!!,
                 pageable = PageRequest.of(0, 2, byIdDesc),
+            )
+        val rowsAscending = repository.findExploreRows(PageRequest.of(0, 2, byIdAsc))
+        val rowsAfterOldest =
+            repository.findExploreRowsAfterAscending(
+                lastSeenOffset = firstExposureContent.id!!,
+                pageable = PageRequest.of(0, 2, byIdAsc),
             )
 
         assertThat(rows).hasSize(2)
@@ -61,6 +68,64 @@ class ExposureContentRepositoryTest {
         assertThat(rows[0].newsletterName).isEqualTo(secondContent.newsletterName)
         assertThat(rows[0].language).isEqualTo("ko")
         assertThat(rowsAfterNewest.map { it.id }).containsExactly(firstExposureContent.id)
+        assertThat(rowsAscending.map { it.id }).containsExactly(firstExposureContent.id, secondExposureContent.id)
+        assertThat(rowsAfterOldest.map { it.id }).containsExactly(secondExposureContent.id)
+    }
+
+    @Test
+    fun `findExploreRowsAfterByPublishedAt should support descending and ascending direction`() {
+        val provider =
+            entityManager.persist(
+                ContentProvider(
+                    name = "Kotlin Weekly",
+                    channel = "kotlin-weekly",
+                    language = "ko",
+                    type = ContentProviderType.NEWSLETTER,
+                ),
+            )
+        val olderContent =
+            entityManager.persist(
+                content(
+                    provider = provider,
+                    title = "Older",
+                    publishedAt = LocalDate.of(2026, 4, 20),
+                ),
+            )
+        val newerContent =
+            entityManager.persist(
+                content(
+                    provider = provider,
+                    title = "Newer",
+                    publishedAt = LocalDate.of(2026, 4, 24),
+                ),
+            )
+        val olderExposureContent = entityManager.persist(exposureContent(olderContent, "Older headline"))
+        val newerExposureContent = entityManager.persist(exposureContent(newerContent, "Newer headline"))
+        entityManager.flush()
+        entityManager.clear()
+
+        val byPublishedAtDesc =
+            JpaSort
+                .unsafe(Sort.Direction.DESC, "c.publishedAt")
+                .and(JpaSort.unsafe(Sort.Direction.DESC, "e.id"))
+        val byPublishedAtAsc =
+            JpaSort
+                .unsafe(Sort.Direction.ASC, "c.publishedAt")
+                .and(JpaSort.unsafe(Sort.Direction.ASC, "e.id"))
+
+        val rowsAfterNewest =
+            repository.findExploreRowsAfterByPublishedAt(
+                lastSeenPublishedAt = newerContent.publishedAt,
+                pageable = PageRequest.of(0, 2, byPublishedAtDesc),
+            )
+        val rowsAfterOldest =
+            repository.findExploreRowsAfterByPublishedAtAscending(
+                lastSeenPublishedAt = olderContent.publishedAt,
+                pageable = PageRequest.of(0, 2, byPublishedAtAsc),
+            )
+
+        assertThat(rowsAfterNewest.map { it.id }).containsExactly(olderExposureContent.id)
+        assertThat(rowsAfterOldest.map { it.id }).containsExactly(newerExposureContent.id)
     }
 
     @Test
@@ -94,9 +159,10 @@ class ExposureContentRepositoryTest {
 
         // Create a User to satisfy foreign key constraints
         val user = entityManager.persist(User(deviceToken = "test-device-token"))
+        val userId = user.id!!
 
         // Expose content1 to user
-        entityManager.persist(UserExposedContentMapping(userId = user.id!!, contentId = content1.id!!))
+        entityManager.persist(UserExposedContentMapping(userId = userId, contentId = content1.id!!))
 
         entityManager.flush()
         entityManager.clear()
@@ -104,7 +170,7 @@ class ExposureContentRepositoryTest {
         // When
         val candidates =
             repository.findNotExposedRecommendationCandidatesByReservedKeywordIds(
-                userId = user.id!!,
+                userId = userId,
                 reservedKeywordIds = listOf(keyword1.id!!, keyword2.id!!, keyword3.id!!),
                 publishedFrom = LocalDate.of(2026, 1, 1),
                 pageable = PageRequest.of(0, 10),
@@ -123,6 +189,7 @@ class ExposureContentRepositoryTest {
     private fun content(
         provider: ContentProvider,
         title: String,
+        publishedAt: LocalDate = LocalDate.of(2026, 4, 24),
     ): Content =
         Content(
             title = title,
@@ -130,7 +197,7 @@ class ExposureContentRepositoryTest {
             newsletterName = provider.name,
             originalUrl = "https://example.com/${title.lowercase()}",
             imageUrl = "https://example.com/${title.lowercase()}.png",
-            publishedAt = LocalDate.of(2026, 4, 24),
+            publishedAt = publishedAt,
             contentProvider = provider,
         )
 

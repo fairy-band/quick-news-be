@@ -164,10 +164,62 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         FROM ExposureContent e
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
+        WHERE e.id > :lastSeenOffset
+    """,
+    )
+    fun findExploreRowsAfterAscending(
+        @Param("lastSeenOffset") lastSeenOffset: Long,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
         WHERE c.publishedAt < :lastSeenPublishedAt
     """,
     )
     fun findExploreRowsAfterByPublishedAt(
+        @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE c.publishedAt > :lastSeenPublishedAt
+    """,
+    )
+    fun findExploreRowsAfterByPublishedAtAscending(
         @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
         pageable: Pageable,
     ): List<ExploreContentRow>

@@ -24,6 +24,7 @@ import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -114,6 +115,38 @@ class NewsletterApiControllerTest {
             .andExpect(jsonPath("$.totalCount").value(3L))
             .andExpect(jsonPath("$.hasMore").value(true))
             .andExpect(jsonPath("$.nextOffset").value(20L))
+    }
+
+    @Test
+    fun `should return explore contents in ascending direction`() {
+        Mockito
+            .`when`(exposureContentService.getExploreContentRows(0L, 3, Sort.Direction.ASC))
+            .thenReturn(
+                listOf(
+                    exploreRow(id = 10L, contentId = 110L, language = "ko"),
+                    exploreRow(id = 20L, contentId = 120L, language = "en"),
+                    exploreRow(id = 30L, contentId = 130L, language = "ko"),
+                ),
+            )
+        Mockito
+            .`when`(exposureContentService.countAllExposureContents())
+            .thenReturn(3L)
+
+        mockMvc
+            .perform(
+                get("/api/newsletters/explore/contents")
+                    .param("size", "2")
+                    .param("direction", "ASC"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.contents.length()").value(2))
+            .andExpect(jsonPath("$.contents[0].id").value(10L))
+            .andExpect(jsonPath("$.contents[1].id").value(20L))
+            .andExpect(jsonPath("$.hasMore").value(true))
+            .andExpect(jsonPath("$.nextOffset").value(20L))
+
+        Mockito
+            .verify(exposureContentService, Mockito.times(1))
+            .getExploreContentRows(0L, 3, Sort.Direction.ASC)
     }
 
     @Test
