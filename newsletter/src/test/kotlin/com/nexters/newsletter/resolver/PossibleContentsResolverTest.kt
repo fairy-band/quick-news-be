@@ -66,6 +66,41 @@ class PossibleContentsResolverTest {
     }
 
     @Test
+    fun `resolveCandidatePoolByCategoryIds should not load keyword and provider context when early source fills target pool`() {
+        val categoryService = categoryService()
+        val primarySource =
+            RecordingCandidateSource(
+                sourceName = "primary_source",
+                sourceOrder = 1,
+                sourceDefaultLimit = 130,
+            ) { request ->
+                assertThat(request.context.categoryIds).containsExactly(1L)
+                (1L..130L).map { id ->
+                    CandidateSeed(
+                        candidate = candidate(exposureContentId = id),
+                        signals = listOf(signal(source = "primary_source")),
+                    )
+                }
+            }
+        val fallbackSource =
+            RecordingCandidateSource(
+                sourceName = "fallback_source",
+                sourceOrder = 2,
+                sourceDefaultLimit = 10,
+            ) {
+                error("fallback source should not be called")
+            }
+        val resolver = resolver(listOf(primarySource, fallbackSource), categoryService)
+
+        val pool = resolver.resolveCandidatePoolByCategoryIds(userId = 1L, categoryIds = listOf(1L))
+
+        assertThat(pool.candidates).hasSize(130)
+        assertThat(fallbackSource.requests).isEmpty()
+        verify(exactly = 0) { categoryService.getKeywordsByCategoryIds(any()) }
+        verify(exactly = 0) { categoryService.getContentProvidersByCategoryIds(any()) }
+    }
+
+    @Test
     fun `resolveCandidatePoolByCategoryIds should increase source limits while expanding windows`() {
         val source =
             RecordingCandidateSource(

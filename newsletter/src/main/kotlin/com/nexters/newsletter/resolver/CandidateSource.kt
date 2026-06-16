@@ -19,11 +19,14 @@ data class CandidateSourceRequest(
     val window: CandidateRecencyWindow,
 )
 
-data class CandidateSourceContext(
+class CandidateSourceContext(
     val categoryIds: List<Long>,
-    val reservedKeywordIds: List<Long>,
-    val contentProviderIds: List<Long>,
-)
+    reservedKeywordIdsLazy: Lazy<List<Long>> = lazyOf(emptyList()),
+    contentProviderIdsLazy: Lazy<List<Long>> = lazyOf(emptyList()),
+) {
+    val reservedKeywordIds: List<Long> by reservedKeywordIdsLazy
+    val contentProviderIds: List<Long> by contentProviderIdsLazy
+}
 
 data class CandidateSeed(
     val candidate: ExposureContentRecommendationCandidateRow,

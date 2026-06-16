@@ -413,6 +413,44 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
+        SELECT new com.nexters.external.repository.ExposureContentRecommendationCandidateRow(
+            e.id,
+            c.id,
+            cp.id,
+            cp.name,
+            c.newsletterName,
+            c.publishedAt,
+            c.title,
+            e.provocativeHeadline,
+            e.summaryContent
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE c.publishedAt >= :publishedFrom
+        AND EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id
+            AND ccs.categoryId IN :categoryIds
+            AND ccs.totalScore > 0
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM UserExposedContentMapping uecm
+            WHERE uecm.contentId = c.id
+            AND uecm.userId = :userId
+        )
+        ORDER BY c.publishedAt DESC, e.id DESC
+    """
+    )
+    fun findNotExposedRecommendationCandidatesByCategoryScoreCategoryIds(
+        @Param("userId") userId: Long,
+        @Param("categoryIds") categoryIds: List<Long>,
+        @Param("publishedFrom") publishedFrom: LocalDate,
+        pageable: Pageable,
+    ): List<ExposureContentRecommendationCandidateRow>
+
+    @Query(
+        """
         SELECT e FROM ExposureContent e
         JOIN FETCH e.content c
         LEFT JOIN FETCH c.contentProvider

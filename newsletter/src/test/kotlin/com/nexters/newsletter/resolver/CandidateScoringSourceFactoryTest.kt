@@ -4,8 +4,9 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentKeywordProjection
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
-import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentProviderService
+import com.nexters.external.service.category.ContentCategoryScoreService
+import com.nexters.external.service.category.ContentCategoryScoreSnapshot
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -16,12 +17,12 @@ import java.time.LocalDate
 class CandidateScoringSourceFactoryTest {
     private val contentKeywordMappingRepository = mockk<ContentKeywordMappingRepository>()
     private val contentProviderService = mockk<ContentProviderService>()
-    private val categoryService = mockk<CategoryService>()
+    private val contentCategoryScoreService = mockk<ContentCategoryScoreService>()
     private val factory =
         CandidateScoringSourceFactory(
             contentKeywordMappingRepository = contentKeywordMappingRepository,
             contentProviderService = contentProviderService,
-            categoryService = categoryService,
+            contentCategoryScoreService = contentCategoryScoreService,
         )
 
     @Test
@@ -46,15 +47,22 @@ class CandidateScoringSourceFactoryTest {
                 contentKeywordProjection(candidate.contentId, contentPositiveKeyword),
                 contentKeywordProjection(candidate.contentId, contentNegativeKeyword),
             )
-        every { contentProviderService.getAllCategoryMatchWeights(listOf(200L)) } returns
+        every { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) } returns
             mapOf(
                 (200L to 10L) to 7.0,
-                (200L to 11L) to 3.0,
             )
-        every { categoryService.getKeywordCategoryWeightsByKeywordIds(listOf(1L, 2L)) } returns
+        every { contentCategoryScoreService.getScoresByContentIds(listOf(candidate.contentId)) } returns
             mapOf(
-                (1L to 10L) to 2.0,
-                (2L to 11L) to 4.0,
+                candidate.contentId to
+                    listOf(
+                        ContentCategoryScoreSnapshot(
+                            contentId = candidate.contentId,
+                            categoryId = 10L,
+                            keywordScore = 2.0,
+                            providerScore = 7.0,
+                            totalScore = 9.0,
+                        ),
+                    ),
             )
 
         val context =
@@ -71,19 +79,22 @@ class CandidateScoringSourceFactoryTest {
         assertThat(source.positiveKeywordSources).containsExactly(PositiveKeywordSource(weight = 4.0, keywordName = "AI"))
         assertThat(source.negativeKeywordSources).containsExactly(NegativeKeywordSource(weight = -3.0, keywordName = "Legacy"))
         assertThat(source.categoryMatchBonus).isEqualTo(7.0)
-        assertThat(context.keywordCategoryWeightsByKeywordId)
-            .containsEntry(1L, listOf(CategoryWeight(categoryId = 10L, weight = 2.0)))
-        assertThat(context.contentProviderCategoryWeightsByProviderId)
+        assertThat(context.categoryScoresByContentId)
             .containsEntry(
-                200L,
+                candidate.contentId,
                 listOf(
-                    CategoryWeight(categoryId = 10L, weight = 7.0),
-                    CategoryWeight(categoryId = 11L, weight = 3.0),
+                    ContentCategoryScoreSnapshot(
+                        contentId = candidate.contentId,
+                        categoryId = 10L,
+                        keywordScore = 2.0,
+                        providerScore = 7.0,
+                        totalScore = 9.0,
+                    ),
                 ),
             )
         verify(exactly = 1) { contentKeywordMappingRepository.findKeywordsByContentIds(listOf(candidate.contentId)) }
-        verify(exactly = 1) { contentProviderService.getAllCategoryMatchWeights(listOf(200L)) }
-        verify(exactly = 1) { categoryService.getKeywordCategoryWeightsByKeywordIds(listOf(1L, 2L)) }
+        verify(exactly = 1) { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) }
+        verify(exactly = 1) { contentCategoryScoreService.getScoresByContentIds(listOf(candidate.contentId)) }
     }
 
     private fun contentKeywordProjection(

@@ -32,9 +32,8 @@ class PossibleContentsResolver(
                 context = context,
                 window = window,
                 today = today,
-            ).forEach { seed ->
-                mergedCandidates.merge(seed)
-            }
+                mergedCandidates = mergedCandidates,
+            )
 
             if (mergedCandidates.size >= TARGET_POOL_SIZE) {
                 break
@@ -67,10 +66,11 @@ class PossibleContentsResolver(
         context: CandidateSourceContext,
         window: CandidateRecencyWindow,
         today: LocalDate,
-    ): List<CandidateSeed> {
+        mergedCandidates: MutableMap<Long, CandidatePoolItem>,
+    ) {
         val publishedFrom = window.publishedFrom(today)
 
-        return candidateSources.flatMap { source ->
+        for (source in candidateSources) {
             source.fetch(
                 CandidateSourceRequest(
                     userId = userId,
@@ -79,23 +79,31 @@ class PossibleContentsResolver(
                     limit = source.defaultLimit * window.limitMultiplier,
                     window = window,
                 ),
-            )
+            ).forEach { seed ->
+                mergedCandidates.merge(seed)
+            }
+
+            if (mergedCandidates.size >= TARGET_POOL_SIZE) {
+                break
+            }
         }
     }
 
     private fun createCandidateSourceContext(categoryIds: List<Long>): CandidateSourceContext =
         CandidateSourceContext(
             categoryIds = categoryIds,
-            reservedKeywordIds =
+            reservedKeywordIdsLazy = lazy(LazyThreadSafetyMode.NONE) {
                 categoryService
                     .getKeywordsByCategoryIds(categoryIds)
                     .mapNotNull { it.id }
-                    .distinct(),
-            contentProviderIds =
+                    .distinct()
+            },
+            contentProviderIdsLazy = lazy(LazyThreadSafetyMode.NONE) {
                 categoryService
                     .getContentProvidersByCategoryIds(categoryIds)
                     .mapNotNull { it.id }
-                    .distinct(),
+                    .distinct()
+            },
         )
 
     private fun MutableMap<Long, CandidatePoolItem>.merge(seed: CandidateSeed) {

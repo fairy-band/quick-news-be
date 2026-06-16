@@ -3,15 +3,16 @@ package com.nexters.newsletter.resolver
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
-import com.nexters.external.service.CategoryService
 import com.nexters.external.service.ContentProviderService
+import com.nexters.external.service.category.ContentCategoryScoreService
+import com.nexters.external.service.category.ContentCategoryScoreSnapshot
 import org.springframework.stereotype.Component
 
 @Component
 class CandidateScoringSourceFactory(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val contentProviderService: ContentProviderService,
-    private val categoryService: CategoryService,
+    private val contentCategoryScoreService: ContentCategoryScoreService,
 ) {
     fun createContext(
         candidates: List<ExposureContentRecommendationCandidateRow>,
@@ -27,29 +28,16 @@ class CandidateScoringSourceFactory(
                 keywordsByContentId = emptyMap(),
                 categoryIds = categoryIds,
                 categoryMatchWeights = emptyMap(),
-                keywordCategoryWeightsByKeywordId = emptyMap(),
-                contentProviderCategoryWeightsByProviderId = emptyMap(),
+                categoryScoresByContentId = emptyMap(),
             )
         }
 
-        val contentIds = candidates.map { it.contentId }
+        val contentIds = candidates.map { it.contentId }.distinct()
         val keywordsByContentId =
             contentKeywordMappingRepository
                 .findKeywordsByContentIds(contentIds)
                 .groupBy({ it.contentId }, { it.keyword })
         val contentProviderIds = candidates.mapNotNull { it.contentProviderId }.distinct()
-        val allCategoryMatchWeights = contentProviderService.getAllCategoryMatchWeights(contentProviderIds)
-        val categoryIdSet = categoryIds.toSet()
-        val categoryMatchWeights =
-            allCategoryMatchWeights.filterKeys { (_, categoryId) ->
-                categoryId in categoryIdSet
-            }
-        val keywordIds =
-            keywordsByContentId
-                .values
-                .flatten()
-                .mapNotNull { it.id }
-                .distinct()
 
         return CandidateScoringSourceContext(
             candidates = candidates,
@@ -57,12 +45,8 @@ class CandidateScoringSourceFactory(
             keywordWeightsByKeywordId = keywordWeightsByKeyword.toKeywordIdMap(),
             keywordsByContentId = keywordsByContentId,
             categoryIds = categoryIds,
-            categoryMatchWeights = categoryMatchWeights,
-            keywordCategoryWeightsByKeywordId =
-                categoryService
-                    .getKeywordCategoryWeightsByKeywordIds(keywordIds)
-                    .toCategoryWeightsByFirstId(),
-            contentProviderCategoryWeightsByProviderId = allCategoryMatchWeights.toCategoryWeightsByFirstId(),
+            categoryMatchWeights = contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds),
+            categoryScoresByContentId = contentCategoryScoreService.getScoresByContentIds(contentIds),
         )
     }
 
@@ -131,11 +115,6 @@ class CandidateScoringSourceFactory(
             keyword.id?.let { it to weight }
         }.toMap()
 
-    private fun Map<Pair<Long, Long>, Double>.toCategoryWeightsByFirstId(): Map<Long, List<CategoryWeight>> =
-        entries.groupBy(
-            keySelector = { (key, _) -> key.first },
-            valueTransform = { (key, weight) -> CategoryWeight(categoryId = key.second, weight = weight) },
-        )
 }
 
 data class CandidateScoringSourceContext(
@@ -145,11 +124,5 @@ data class CandidateScoringSourceContext(
     val keywordsByContentId: Map<Long, List<ReservedKeyword>>,
     val categoryIds: List<Long>,
     val categoryMatchWeights: Map<Pair<Long, Long>, Double>,
-    val keywordCategoryWeightsByKeywordId: Map<Long, List<CategoryWeight>>,
-    val contentProviderCategoryWeightsByProviderId: Map<Long, List<CategoryWeight>>,
-)
-
-data class CategoryWeight(
-    val categoryId: Long,
-    val weight: Double,
+    val categoryScoresByContentId: Map<Long, List<ContentCategoryScoreSnapshot>>,
 )

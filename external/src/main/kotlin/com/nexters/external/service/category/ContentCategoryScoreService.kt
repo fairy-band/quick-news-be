@@ -85,6 +85,26 @@ class ContentCategoryScoreService(
         return scores.size
     }
 
+    @Transactional(readOnly = true)
+    fun getScoresByContentIds(contentIds: Collection<Long>): Map<Long, List<ContentCategoryScoreSnapshot>> {
+        val distinctContentIds = contentIds.distinct()
+        if (distinctContentIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return contentCategoryScoreRepository
+            .findByContentIdIn(distinctContentIds)
+            .map { score ->
+                ContentCategoryScoreSnapshot(
+                    contentId = score.contentId,
+                    categoryId = score.categoryId,
+                    keywordScore = score.keywordScore,
+                    providerScore = score.providerScore,
+                    totalScore = score.totalScore,
+                )
+            }.groupBy { it.contentId }
+    }
+
     private fun calculateKeywordScoresByCategoryId(keywordIds: List<Long>): Map<Long, Double> {
         if (keywordIds.isEmpty()) {
             return emptyMap()
@@ -141,3 +161,11 @@ class ContentCategoryScoreService(
         const val CALCULATION_VERSION = "category-fit-v1"
     }
 }
+
+data class ContentCategoryScoreSnapshot(
+    val contentId: Long,
+    val categoryId: Long,
+    val keywordScore: Double,
+    val providerScore: Double,
+    val totalScore: Double,
+)

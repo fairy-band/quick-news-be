@@ -291,6 +291,24 @@ class ExposureContentService(
             pageable = PageRequest.of(0, limit),
         )
 
+    fun getNotExposedRecommendationCandidatesByCategoryIds(
+        userId: Long,
+        categoryIds: List<Long>,
+        publishedFrom: LocalDate,
+        limit: Int,
+    ): List<ExposureContentRecommendationCandidateRow> {
+        if (categoryIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return exposureContentRepository.findNotExposedRecommendationCandidatesByCategoryScoreCategoryIds(
+            userId = userId,
+            categoryIds = categoryIds,
+            publishedFrom = publishedFrom,
+            pageable = PageRequest.of(0, limit),
+        )
+    }
+
     fun getExposureContentsByIdsPreservingOrder(exposureContentIds: List<Long>): List<ExposureContent> {
         if (exposureContentIds.isEmpty()) {
             return emptyList()

@@ -1,7 +1,7 @@
 package com.nexters.newsletter.resolver
 
-import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import com.nexters.external.service.category.ContentCategoryScoreSnapshot
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -59,25 +59,18 @@ class RecommendationCandidateSelectorTest {
     fun `select should filter candidates dominated by another category`() {
         val backendCandidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
         val frontendCandidate = candidate(exposureContentId = 2L, contentProviderId = 200L)
-        val backendKeyword = ReservedKeyword(id = 10L, name = "API")
-        val frontendKeyword = ReservedKeyword(id = 20L, name = "React")
         val context =
             context(listOf(backendCandidate, frontendCandidate)).copy(
                 categoryIds = listOf(1L),
-                keywordsByContentId =
+                categoryScoresByContentId =
                     mapOf(
-                        backendCandidate.contentId to listOf(backendKeyword),
-                        frontendCandidate.contentId to listOf(backendKeyword, frontendKeyword),
-                    ),
-                keywordCategoryWeightsByKeywordId =
-                    mapOf(
-                        10L to listOf(CategoryWeight(categoryId = 1L, weight = 4.0)),
-                        20L to listOf(CategoryWeight(categoryId = 2L, weight = 4.0)),
-                    ),
-                contentProviderCategoryWeightsByProviderId =
-                    mapOf(
-                        100L to listOf(CategoryWeight(categoryId = 1L, weight = 25.0)),
-                        200L to listOf(CategoryWeight(categoryId = 2L, weight = 25.0)),
+                        backendCandidate.contentId to
+                            listOf(categoryScore(backendCandidate.contentId, categoryId = 1L, keywordScore = 4.0, providerScore = 4.0)),
+                        frontendCandidate.contentId to
+                            listOf(
+                                categoryScore(frontendCandidate.contentId, categoryId = 1L, keywordScore = 4.0),
+                                categoryScore(frontendCandidate.contentId, categoryId = 2L, keywordScore = 4.0, providerScore = 4.0),
+                            ),
                     ),
             )
         val filteredSources = sourcesByCandidate("filtered", backendCandidate)
@@ -121,20 +114,16 @@ class RecommendationCandidateSelectorTest {
     @Test
     fun `select should filter candidates whose provider has no requested category mapping`() {
         val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
-        val backendKeyword = ReservedKeyword(id = 10L, name = "Android")
-        val frontendKeyword = ReservedKeyword(id = 20L, name = "Frontend")
         val context =
             context(listOf(candidate)).copy(
                 categoryIds = listOf(4L),
-                keywordsByContentId = mapOf(candidate.contentId to listOf(backendKeyword, frontendKeyword)),
-                keywordCategoryWeightsByKeywordId =
+                categoryScoresByContentId =
                     mapOf(
-                        10L to listOf(CategoryWeight(categoryId = 4L, weight = 29.0)),
-                        20L to listOf(CategoryWeight(categoryId = 2L, weight = 8.0)),
-                    ),
-                contentProviderCategoryWeightsByProviderId =
-                    mapOf(
-                        100L to listOf(CategoryWeight(categoryId = 2L, weight = 25.0)),
+                        candidate.contentId to
+                            listOf(
+                                categoryScore(candidate.contentId, categoryId = 4L, keywordScore = 29.0),
+                                categoryScore(candidate.contentId, categoryId = 2L, keywordScore = 8.0, providerScore = 4.0),
+                            ),
                     ),
             )
 
@@ -158,25 +147,15 @@ class RecommendationCandidateSelectorTest {
     @Test
     fun `select should reject single category candidates when another category is stronger within tolerance`() {
         val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
-        val sharedKeyword = ReservedKeyword(id = 10L, name = "Kotlin")
         val context =
             context(listOf(candidate)).copy(
                 categoryIds = listOf(1L),
-                keywordsByContentId = mapOf(candidate.contentId to listOf(sharedKeyword)),
-                keywordCategoryWeightsByKeywordId =
+                categoryScoresByContentId =
                     mapOf(
-                        10L to
+                        candidate.contentId to
                             listOf(
-                                CategoryWeight(categoryId = 1L, weight = 17.0),
-                                CategoryWeight(categoryId = 4L, weight = 20.0),
-                            ),
-                    ),
-                contentProviderCategoryWeightsByProviderId =
-                    mapOf(
-                        100L to
-                            listOf(
-                                CategoryWeight(categoryId = 1L, weight = 14.0),
-                                CategoryWeight(categoryId = 4L, weight = 18.0),
+                                categoryScore(candidate.contentId, categoryId = 1L, keywordScore = 17.0, providerScore = 4.0),
+                                categoryScore(candidate.contentId, categoryId = 4L, keywordScore = 20.0, providerScore = 4.0),
                             ),
                     ),
             )
@@ -201,29 +180,15 @@ class RecommendationCandidateSelectorTest {
     @Test
     fun `select should reject single category candidates when requested category only barely beats another category`() {
         val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
-        val backendKeyword = ReservedKeyword(id = 10L, name = "API")
-        val sharedKeyword = ReservedKeyword(id = 20L, name = "Kotlin")
-        val androidKeyword = ReservedKeyword(id = 30L, name = "Android")
         val context =
             context(listOf(candidate)).copy(
                 categoryIds = listOf(1L),
-                keywordsByContentId = mapOf(candidate.contentId to listOf(backendKeyword, sharedKeyword, androidKeyword)),
-                keywordCategoryWeightsByKeywordId =
+                categoryScoresByContentId =
                     mapOf(
-                        10L to listOf(CategoryWeight(categoryId = 1L, weight = 4.0)),
-                        20L to
+                        candidate.contentId to
                             listOf(
-                                CategoryWeight(categoryId = 1L, weight = 4.0),
-                                CategoryWeight(categoryId = 4L, weight = 4.0),
-                            ),
-                        30L to listOf(CategoryWeight(categoryId = 4L, weight = 3.0)),
-                    ),
-                contentProviderCategoryWeightsByProviderId =
-                    mapOf(
-                        100L to
-                            listOf(
-                                CategoryWeight(categoryId = 1L, weight = 25.0),
-                                CategoryWeight(categoryId = 4L, weight = 25.0),
+                                categoryScore(candidate.contentId, categoryId = 1L, keywordScore = 8.0, providerScore = 4.0),
+                                categoryScore(candidate.contentId, categoryId = 4L, keywordScore = 7.0, providerScore = 4.0),
                             ),
                     ),
             )
@@ -248,21 +213,15 @@ class RecommendationCandidateSelectorTest {
     @Test
     fun `select should cap provider category fit weights so article keywords decide fit`() {
         val candidate = candidate(exposureContentId = 1L, contentProviderId = 100L)
-        val backendKeyword = ReservedKeyword(id = 10L, name = "API")
         val context =
             context(listOf(candidate)).copy(
                 categoryIds = listOf(1L),
-                keywordsByContentId = mapOf(candidate.contentId to listOf(backendKeyword)),
-                keywordCategoryWeightsByKeywordId =
+                categoryScoresByContentId =
                     mapOf(
-                        10L to listOf(CategoryWeight(categoryId = 1L, weight = 4.0)),
-                    ),
-                contentProviderCategoryWeightsByProviderId =
-                    mapOf(
-                        100L to
+                        candidate.contentId to
                             listOf(
-                                CategoryWeight(categoryId = 1L, weight = 25.0),
-                                CategoryWeight(categoryId = 4L, weight = 100.0),
+                                categoryScore(candidate.contentId, categoryId = 1L, keywordScore = 4.0, providerScore = 4.0),
+                                categoryScore(candidate.contentId, categoryId = 4L, providerScore = 4.0),
                             ),
                     ),
             )
@@ -306,8 +265,21 @@ class RecommendationCandidateSelectorTest {
             keywordsByContentId = emptyMap(),
             categoryIds = listOf(10L),
             categoryMatchWeights = emptyMap(),
-            keywordCategoryWeightsByKeywordId = emptyMap(),
-            contentProviderCategoryWeightsByProviderId = emptyMap(),
+            categoryScoresByContentId = emptyMap(),
+        )
+
+    private fun categoryScore(
+        contentId: Long,
+        categoryId: Long,
+        keywordScore: Double = 0.0,
+        providerScore: Double = 0.0,
+    ): ContentCategoryScoreSnapshot =
+        ContentCategoryScoreSnapshot(
+            contentId = contentId,
+            categoryId = categoryId,
+            keywordScore = keywordScore,
+            providerScore = providerScore,
+            totalScore = keywordScore + providerScore,
         )
 
     private fun sourcesByCandidate(

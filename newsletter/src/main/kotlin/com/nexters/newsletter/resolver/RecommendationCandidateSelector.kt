@@ -98,48 +98,33 @@ class RecommendationCandidateSelector(
         candidate: ExposureContentRecommendationCandidateRow,
         requestedCategoryIds: Set<Long>,
     ): Boolean {
-        val categoryScores = mutableMapOf<Long, CategoryFitScore>()
-
-        keywordsByContentId[candidate.contentId]
-            .orEmpty()
-            .mapNotNull { it.id }
-            .forEach { keywordId ->
-                keywordCategoryWeightsByKeywordId[keywordId]
-                    .orEmpty()
-                    .filter { it.weight > 0.0 }
-                    .forEach { categoryWeight ->
-                        categoryScores.addKeywordScore(categoryWeight.categoryId, categoryWeight.weight)
-                    }
-            }
-
-        val providerCategoryWeights =
-            candidate.contentProviderId
-                ?.let { contentProviderCategoryWeightsByProviderId[it] }
+        val categoryScores =
+            categoryScoresByContentId[candidate.contentId]
                 .orEmpty()
-                .filter { it.weight > 0.0 }
-
-        if (providerCategoryWeights.isNotEmpty() && providerCategoryWeights.none { it.categoryId in requestedCategoryIds }) {
-            return false
-        }
-
-        providerCategoryWeights.forEach { categoryWeight ->
-            categoryScores.addProviderScore(categoryWeight.categoryId, categoryWeight.weight)
-        }
+                .filter { it.totalScore > 0.0 }
 
         if (categoryScores.isEmpty()) {
             return true
         }
 
+        val providerCategoryIds =
+            categoryScores
+                .filter { it.providerScore > 0.0 }
+                .map { it.categoryId }
+                .toSet()
+
+        if (providerCategoryIds.isNotEmpty() && providerCategoryIds.none { it in requestedCategoryIds }) {
+            return false
+        }
+
         val requestedScore =
             categoryScores
-                .filterKeys { it in requestedCategoryIds }
-                .values
-                .sumOf { it.total }
+                .filter { it.categoryId in requestedCategoryIds }
+                .sumOf { it.totalScore }
         val competingScore =
             categoryScores
-                .filterKeys { it !in requestedCategoryIds }
-                .values
-                .maxOfOrNull { it.total } ?: 0.0
+                .filter { it.categoryId !in requestedCategoryIds }
+                .maxOfOrNull { it.totalScore } ?: 0.0
 
         if (requestedScore <= 0.0) {
             return false
@@ -153,32 +138,6 @@ class RecommendationCandidateSelector(
         return competingScore < requestedScore * DOMINANT_CATEGORY_RATIO ||
             competingScore - requestedScore < DOMINANT_CATEGORY_GAP
     }
-
-    private fun MutableMap<Long, CategoryFitScore>.addKeywordScore(
-        categoryId: Long,
-        weight: Double,
-    ) {
-        val current = this[categoryId] ?: CategoryFitScore()
-        this[categoryId] = current.copy(keywordScore = current.keywordScore + weight)
-    }
-
-    private fun MutableMap<Long, CategoryFitScore>.addProviderScore(
-        categoryId: Long,
-        weight: Double,
-    ) {
-        val current = this[categoryId] ?: CategoryFitScore()
-        this[categoryId] =
-            current.copy(
-                providerScore = current.providerScore + weight.coerceAtMost(CategoryFitThresholds.PROVIDER_CATEGORY_FIT_WEIGHT_CAP),
-            )
-    }
-}
-
-private data class CategoryFitScore(
-    val keywordScore: Double = 0.0,
-    val providerScore: Double = 0.0,
-) {
-    val total: Double = keywordScore + providerScore
 }
 
 data class RecommendationCandidateSelectionRequest(

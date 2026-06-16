@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface ContentCategoryScoreRepository : JpaRepository<ContentCategoryScore, Long> {
+    fun findByContentIdIn(contentIds: Collection<Long>): List<ContentCategoryScore>
+
     @Modifying
     @Query(
         """
