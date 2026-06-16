@@ -4,6 +4,7 @@ import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordFeatureProjection
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
+import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.category.ContentCategoryScoreService
 import com.nexters.external.service.category.ContentCategoryScoreSnapshot
 import io.mockk.every
@@ -15,10 +16,12 @@ import java.time.LocalDate
 
 class CandidateScoringSourceFactoryTest {
     private val contentKeywordMappingRepository = mockk<ContentKeywordMappingRepository>()
+    private val contentProviderService = mockk<ContentProviderService>()
     private val contentCategoryScoreService = mockk<ContentCategoryScoreService>()
     private val factory =
         CandidateScoringSourceFactory(
             contentKeywordMappingRepository = contentKeywordMappingRepository,
+            contentProviderService = contentProviderService,
             contentCategoryScoreService = contentCategoryScoreService,
         )
 
@@ -41,6 +44,10 @@ class CandidateScoringSourceFactoryTest {
             listOf(
                 contentKeywordProjection(candidate.contentId, keywordId = 1L, keywordName = "AI"),
                 contentKeywordProjection(candidate.contentId, keywordId = 2L, keywordName = "Legacy"),
+            )
+        every { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) } returns
+            mapOf(
+                (200L to 10L) to 7.0,
             )
         every { contentCategoryScoreService.getScoresByContentIds(listOf(candidate.contentId)) } returns
             mapOf(
@@ -85,6 +92,7 @@ class CandidateScoringSourceFactoryTest {
                 ),
             )
         verify(exactly = 1) { contentKeywordMappingRepository.findKeywordFeaturesByContentIds(listOf(candidate.contentId)) }
+        verify(exactly = 1) { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) }
         verify(exactly = 1) { contentCategoryScoreService.getScoresByContentIds(listOf(candidate.contentId)) }
     }
 

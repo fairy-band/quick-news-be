@@ -271,6 +271,7 @@ class RecommendationCandidateSelectorTest {
             keywordWeightsByKeywordId = emptyMap(),
             keywordsByContentId = emptyMap(),
             categoryIds = listOf(10L),
+            categoryMatchWeights = emptyMap(),
             categoryScoresByContentId = emptyMap(),
         )
 
