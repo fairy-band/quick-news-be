@@ -43,10 +43,14 @@ class RecommendationCandidateSelector(
                 filteredContext.candidates.size,
             )
         }
+        val scoringContext =
+            trace.measure("loadScoringFeatures") {
+                scoringSourceFactory.loadScoringFeatures(filteredContext)
+            }
 
         val sourcesByCandidate =
             trace.measure("createSources") {
-                scoringSourceFactory.createSources(filteredContext, multiplier = 1.0)
+                scoringSourceFactory.createSources(scoringContext, multiplier = 1.0)
             }
         val scoredCandidates = trace.measure("rankCandidates") { ranker.rank(sourcesByCandidate) }
         val positiveScoreCandidates =
@@ -84,7 +88,7 @@ class RecommendationCandidateSelector(
             fallbackRounds++
             val amplifiedSourcesByCandidate =
                 trace.measureAccumulated("fallbackCreateSources") {
-                    scoringSourceFactory.createSources(filteredContext, multiplier)
+                    scoringSourceFactory.createSources(scoringContext, multiplier)
                 }
             val amplifiedScoredCandidates =
                 trace.measureAccumulated("fallbackRankCandidates") {

@@ -6,6 +6,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 
@@ -19,6 +20,11 @@ class RecommendationCandidateSelectorTest {
             ranker = ranker,
             publisherDiversityPolicy = publisherDiversityPolicy,
         )
+
+    @BeforeEach
+    fun setUp() {
+        every { scoringSourceFactory.loadScoringFeatures(any()) } answers { firstArg() }
+    }
 
     @Test
     fun `select should reuse source context while applying fallback multipliers`() {
@@ -51,6 +57,7 @@ class RecommendationCandidateSelectorTest {
 
         assertThat(result).containsExactly(first, second)
         verify(exactly = 1) { scoringSourceFactory.createContext(any(), any(), any(), any()) }
+        verify(exactly = 1) { scoringSourceFactory.loadScoringFeatures(context) }
         verify(exactly = 1) { scoringSourceFactory.createSources(context, 1.0) }
         verify(exactly = 1) { scoringSourceFactory.createSources(context, 2.0) }
     }
@@ -264,7 +271,6 @@ class RecommendationCandidateSelectorTest {
             keywordWeightsByKeywordId = emptyMap(),
             keywordsByContentId = emptyMap(),
             categoryIds = listOf(10L),
-            categoryMatchWeights = emptyMap(),
             categoryScoresByContentId = emptyMap(),
         )
 

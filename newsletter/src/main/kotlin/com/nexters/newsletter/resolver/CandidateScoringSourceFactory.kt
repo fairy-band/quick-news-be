@@ -3,7 +3,6 @@ package com.nexters.newsletter.resolver
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
-import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.category.ContentCategoryScoreService
 import com.nexters.external.service.category.ContentCategoryScoreSnapshot
 import org.slf4j.LoggerFactory
@@ -15,7 +14,6 @@ private const val SLOW_CONTEXT_LOG_THRESHOLD_MS = 500L
 @Component
 class CandidateScoringSourceFactory(
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
-    private val contentProviderService: ContentProviderService,
     private val contentCategoryScoreService: ContentCategoryScoreService,
 ) {
     fun createContext(
@@ -31,27 +29,12 @@ class CandidateScoringSourceFactory(
                 keywordWeightsByKeywordId = keywordWeightsByKeyword.toKeywordIdMap(),
                 keywordsByContentId = emptyMap(),
                 categoryIds = categoryIds,
-                categoryMatchWeights = emptyMap(),
                 categoryScoresByContentId = emptyMap(),
             )
         }
 
         val trace = CandidateScoringContextTrace()
         val contentIds = candidates.map { it.contentId }.distinct()
-        val keywordsByContentId =
-            trace.measure("loadKeywordFeatures") {
-                contentKeywordMappingRepository
-                    .findKeywordFeaturesByContentIds(contentIds)
-                    .groupBy(
-                        keySelector = { it.contentId },
-                        valueTransform = { CandidateKeywordFeature(id = it.keywordId, name = it.keywordName) },
-                    )
-            }
-        val contentProviderIds = candidates.mapNotNull { it.contentProviderId }.distinct()
-        val categoryMatchWeights =
-            trace.measure("loadCategoryMatchWeights") {
-                contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds)
-            }
         val categoryScoresByContentId =
             trace.measure("loadCategoryScores") {
                 contentCategoryScoreService.getScoresByContentIds(contentIds)
@@ -60,7 +43,6 @@ class CandidateScoringSourceFactory(
         trace.logIfSlow(
             candidateCount = candidates.size,
             contentCount = contentIds.size,
-            contentProviderCount = contentProviderIds.size,
             categoryCount = categoryIds.size,
         )
 
@@ -68,11 +50,27 @@ class CandidateScoringSourceFactory(
             candidates = candidates,
             candidateSignalsByExposureContentId = candidateSignalsByExposureContentId,
             keywordWeightsByKeywordId = keywordWeightsByKeyword.toKeywordIdMap(),
-            keywordsByContentId = keywordsByContentId,
+            keywordsByContentId = emptyMap(),
             categoryIds = categoryIds,
-            categoryMatchWeights = categoryMatchWeights,
             categoryScoresByContentId = categoryScoresByContentId,
         )
+    }
+
+    fun loadScoringFeatures(context: CandidateScoringSourceContext): CandidateScoringSourceContext {
+        if (context.candidates.isEmpty()) {
+            return context
+        }
+
+        val contentIds = context.candidates.map { it.contentId }.distinct()
+        val keywordsByContentId =
+            contentKeywordMappingRepository
+                .findKeywordFeaturesByContentIds(contentIds)
+                .groupBy(
+                    keySelector = { it.contentId },
+                    valueTransform = { CandidateKeywordFeature(id = it.keywordId, name = it.keywordName) },
+                )
+
+        return context.copy(keywordsByContentId = keywordsByContentId)
     }
 
     fun createSources(
@@ -93,7 +91,7 @@ class CandidateScoringSourceFactory(
                 negativeKeywordSources = extractNegativeKeywordSources(contentKeywords, context.keywordWeightsByKeywordId),
                 publishedDate = candidate.publishedAt,
                 publisherDuplicateCandidateCount = 0,
-                categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentProviderId, context),
+                categoryMatchBonus = calculateCategoryMatchBonus(candidate.contentId, context),
             )
         }
 
@@ -125,15 +123,13 @@ class CandidateScoringSourceFactory(
             }
 
     private fun calculateCategoryMatchBonus(
-        contentProviderId: Long?,
+        contentId: Long,
         context: CandidateScoringSourceContext,
-    ): Double {
-        contentProviderId ?: return 0.0
-
-        return context.categoryIds.sumOf { categoryId ->
-            context.categoryMatchWeights[contentProviderId to categoryId] ?: 0.0
-        }
-    }
+    ): Double =
+        context.categoryScoresByContentId[contentId]
+            .orEmpty()
+            .filter { it.categoryId in context.categoryIds }
+            .sumOf { it.providerScore }
 
     private fun Map<ReservedKeyword, Double>.toKeywordIdMap(): Map<Long, Double> =
         mapNotNull { (keyword, weight) ->
@@ -152,7 +148,6 @@ data class CandidateScoringSourceContext(
     val keywordWeightsByKeywordId: Map<Long, Double>,
     val keywordsByContentId: Map<Long, List<CandidateKeywordFeature>>,
     val categoryIds: List<Long>,
-    val categoryMatchWeights: Map<Pair<Long, Long>, Double>,
     val categoryScoresByContentId: Map<Long, List<ContentCategoryScoreSnapshot>>,
 )
 
@@ -174,7 +169,6 @@ private class CandidateScoringContextTrace {
     fun logIfSlow(
         candidateCount: Int,
         contentCount: Int,
-        contentProviderCount: Int,
         categoryCount: Int,
     ) {
         val totalMillis = timings.values.sum()
@@ -183,10 +177,9 @@ private class CandidateScoringContextTrace {
         }
 
         candidateScoringSourceFactoryLogger.info(
-            "candidate_scoring_context_loaded candidateCount={} contentCount={} contentProviderCount={} categoryCount={} timingsMs={}",
+            "candidate_scoring_context_loaded candidateCount={} contentCount={} categoryCount={} timingsMs={}",
             candidateCount,
             contentCount,
-            contentProviderCount,
             categoryCount,
             timings,
         )
