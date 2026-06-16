@@ -102,9 +102,7 @@ class RssReaderServiceTest {
         assertThat(feed.items.first().description).isEqualTo("hello world")
     }
 
-    private fun rssReaderService(
-        config: RssFeedConfig = RssFeedConfig(maxRetries = 1, retryDelayMs = 1),
-    ): RssReaderService =
+    private fun rssReaderService(config: RssFeedConfig = RssFeedConfig(maxRetries = 1, retryDelayMs = 1)): RssReaderService =
         RssReaderService(
             representativeImageUrlExtractorService = representativeImageUrlExtractorService,
             config = config,

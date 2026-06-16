@@ -229,7 +229,6 @@ class RssReaderService(
         logger.error("All $maxRetries attempts failed", lastException)
         return null
     }
-
 }
 
 private fun Int.isValidXml10CodePoint(): Boolean =

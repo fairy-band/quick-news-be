@@ -192,8 +192,7 @@ class NewsletterParseOnlyBackfillService(
             .trim()
             .ifBlank { source.headers["RSS-Item-URL"].orEmpty().trim() }
 
-    private fun resolveProviderName(source: NewsletterSource): String =
-        NewsletterProviderNameResolver.resolve(source)
+    private fun resolveProviderName(source: NewsletterSource): String = NewsletterProviderNameResolver.resolve(source)
 
     private fun MutableList<NewsletterParseOnlyBackfillSample>.addSample(
         source: NewsletterSource,

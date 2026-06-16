@@ -276,8 +276,7 @@ class RssContentService(
     )
 }
 
-private fun String.extractDomain(): String =
-    extractDomainOrNull() ?: FALLBACK_RSS_DOMAIN
+private fun String.extractDomain(): String = extractDomainOrNull() ?: FALLBACK_RSS_DOMAIN
 
 private fun String.extractDomainOrNull(): String? =
     runCatching {

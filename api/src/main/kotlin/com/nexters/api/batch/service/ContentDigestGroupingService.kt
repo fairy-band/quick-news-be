@@ -331,11 +331,11 @@ class ContentDigestGroupingService(
         if (size >= SAMPLE_LIMIT) return
 
         val first = chunk.first()
-            this +=
-                ContentDigestGroupingSample(
-                    newsletterName = first.displayNewsletterName,
-                    newsletterSourceId = first.newsletterSourceId,
-                    title = grouped.title,
+        this +=
+            ContentDigestGroupingSample(
+                newsletterName = first.displayNewsletterName,
+                newsletterSourceId = first.newsletterSourceId,
+                title = grouped.title,
                 contentIds = chunk.map { row -> row.id },
                 groupedContentLength = grouped.content.length,
             )

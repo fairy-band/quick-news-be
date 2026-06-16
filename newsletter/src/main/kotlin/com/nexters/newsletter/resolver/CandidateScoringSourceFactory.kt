@@ -114,7 +114,6 @@ class CandidateScoringSourceFactory(
         mapNotNull { (keyword, weight) ->
             keyword.id?.let { it to weight }
         }.toMap()
-
 }
 
 data class CandidateScoringSourceContext(

@@ -71,17 +71,18 @@ class PossibleContentsResolver(
         val publishedFrom = window.publishedFrom(today)
 
         for (source in candidateSources) {
-            source.fetch(
-                CandidateSourceRequest(
-                    userId = userId,
-                    context = context,
-                    publishedFrom = publishedFrom,
-                    limit = source.defaultLimit * window.limitMultiplier,
-                    window = window,
-                ),
-            ).forEach { seed ->
-                mergedCandidates.merge(seed)
-            }
+            source
+                .fetch(
+                    CandidateSourceRequest(
+                        userId = userId,
+                        context = context,
+                        publishedFrom = publishedFrom,
+                        limit = source.defaultLimit * window.limitMultiplier,
+                        window = window,
+                    ),
+                ).forEach { seed ->
+                    mergedCandidates.merge(seed)
+                }
 
             if (mergedCandidates.size >= TARGET_POOL_SIZE) {
                 break
@@ -92,18 +93,20 @@ class PossibleContentsResolver(
     private fun createCandidateSourceContext(categoryIds: List<Long>): CandidateSourceContext =
         CandidateSourceContext(
             categoryIds = categoryIds,
-            reservedKeywordIdsLazy = lazy(LazyThreadSafetyMode.NONE) {
-                categoryService
-                    .getKeywordsByCategoryIds(categoryIds)
-                    .mapNotNull { it.id }
-                    .distinct()
-            },
-            contentProviderIdsLazy = lazy(LazyThreadSafetyMode.NONE) {
-                categoryService
-                    .getContentProvidersByCategoryIds(categoryIds)
-                    .mapNotNull { it.id }
-                    .distinct()
-            },
+            reservedKeywordIdsLazy =
+                lazy(LazyThreadSafetyMode.NONE) {
+                    categoryService
+                        .getKeywordsByCategoryIds(categoryIds)
+                        .mapNotNull { it.id }
+                        .distinct()
+                },
+            contentProviderIdsLazy =
+                lazy(LazyThreadSafetyMode.NONE) {
+                    categoryService
+                        .getContentProvidersByCategoryIds(categoryIds)
+                        .mapNotNull { it.id }
+                        .distinct()
+                },
         )
 
     private fun MutableMap<Long, CandidatePoolItem>.merge(seed: CandidateSeed) {

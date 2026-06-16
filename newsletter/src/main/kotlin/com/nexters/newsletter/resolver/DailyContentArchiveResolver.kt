@@ -55,19 +55,20 @@ class DailyContentArchiveResolver(
                     exposureContents = contents,
                 )
 
-            trace.measure("saveArchive") {
-                dailyContentArchiveService.saveWithHistory(dailyContentArchive)
-            }.also {
-                logger.info(
-                    "daily_archive_generated userId={} date={} subscribedCategoryCount={} resolvedCategoryCount={} exposureContentCount={} timingsMs={}",
-                    userId,
-                    date,
-                    userCategories.size,
-                    categoryIds.size,
-                    contents.size,
-                    trace.timings,
-                )
-            }
+            trace
+                .measure("saveArchive") {
+                    dailyContentArchiveService.saveWithHistory(dailyContentArchive)
+                }.also {
+                    logger.info(
+                        "daily_archive_generated userId={} date={} subscribedCategoryCount={} resolvedCategoryCount={} exposureContentCount={} timingsMs={}",
+                        userId,
+                        date,
+                        userCategories.size,
+                        categoryIds.size,
+                        contents.size,
+                        trace.timings,
+                    )
+                }
         }
     }
 

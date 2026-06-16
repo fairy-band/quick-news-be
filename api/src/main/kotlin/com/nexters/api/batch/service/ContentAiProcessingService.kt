@@ -382,8 +382,7 @@ class ContentAiProcessingService(
             .countContentsWithoutSummaryInLengthRange(
                 minLength = MIN_CONTENT_LENGTH,
                 maxLength = MAX_CONTENT_LENGTH,
-            )
-            .toInt()
+            ).toInt()
 
     companion object {
         private const val BATCH_SIZE = 5

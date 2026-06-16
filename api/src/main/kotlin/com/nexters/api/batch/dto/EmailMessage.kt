@@ -185,8 +185,7 @@ sealed class EmailMessage(
             emailAttachments,
             emailHeaders,
         ) {
-        override fun toString(): String =
-            "${safeDescription("UnknownContent").dropLast(1)}, contentClassName=$contentClassName)"
+        override fun toString(): String = "${safeDescription("UnknownContent").dropLast(1)}, contentClassName=$contentClassName)"
     }
 
     protected fun safeDescription(type: String): String =

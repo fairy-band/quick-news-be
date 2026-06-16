@@ -322,9 +322,7 @@ class ExposureContentService(
         return exposureContentIds.mapNotNull { exposureContentsById[it] }
     }
 
-    fun getArchiveSnapshotsByIdsPreservingOrder(
-        exposureContentIds: List<Long>,
-    ): List<DailyContentArchive.ExposureContentSnapshot> {
+    fun getArchiveSnapshotsByIdsPreservingOrder(exposureContentIds: List<Long>,): List<DailyContentArchive.ExposureContentSnapshot> {
         if (exposureContentIds.isEmpty()) {
             return emptyList()
         }
