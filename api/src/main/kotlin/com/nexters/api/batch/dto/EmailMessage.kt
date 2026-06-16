@@ -45,6 +45,9 @@ data class AttachmentInfo(
         result = 31 * result + (data?.contentHashCode() ?: 0)
         return result
     }
+
+    override fun toString(): String =
+        "AttachmentInfo(fileName=$fileName, contentType=$contentType, size=$size, dataSize=${data?.size ?: 0})"
 }
 
 data class ExtractedContent(
@@ -90,7 +93,9 @@ sealed class EmailMessage(
             emailHtmlContent,
             emailAttachments,
             emailHeaders,
-        )
+        ) {
+        override fun toString(): String = safeDescription("StringContent")
+    }
 
     data class MultipartContent(
         private val emailFrom: List<String>,
@@ -114,7 +119,9 @@ sealed class EmailMessage(
             emailHtmlContent,
             emailAttachments,
             emailHeaders,
-        )
+        ) {
+        override fun toString(): String = safeDescription("MultipartContent")
+    }
 
     /**
      * InputStream 콘텐츠를 가진 이메일
@@ -149,7 +156,9 @@ sealed class EmailMessage(
             emailHtmlContent,
             emailAttachments,
             emailHeaders,
-        )
+        ) {
+        override fun toString(): String = safeDescription("StreamContent")
+    }
 
     data class UnknownContent(
         private val emailFrom: List<String>,
@@ -175,11 +184,29 @@ sealed class EmailMessage(
             emailHtmlContent,
             emailAttachments,
             emailHeaders,
-        )
+        ) {
+        override fun toString(): String =
+            "${safeDescription("UnknownContent").dropLast(1)}, contentClassName=$contentClassName)"
+    }
+
+    protected fun safeDescription(type: String): String =
+        "$type(" +
+            "fromDomains=${from.senderDomains()}, " +
+            "subject=${subject.safeLogText()}, " +
+            "receivedDate=$receivedDate, " +
+            "sentDate=$sentDate, " +
+            "contentType=${contentType.safeLogText()}, " +
+            "extractedContentLength=${extractedContent.length}, " +
+            "textContentLength=${textContent?.length ?: 0}, " +
+            "htmlContentLength=${htmlContent?.length ?: 0}, " +
+            "attachmentCount=${attachments.size}, " +
+            "headerCount=${headers.size}" +
+            ")"
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(EmailMessage::class.java)
         private val CHARSET_PATTERN = Regex("charset=([^;\\s]+)", RegexOption.IGNORE_CASE)
+        private val EMAIL_DOMAIN_PATTERN = Regex("@([^>\\s]+)")
 
         fun fromMimeMessage(mimeMessage: MimeMessage): EmailMessage {
             val from = mimeMessage.from?.map { it.toString() } ?: emptyList()
@@ -469,5 +496,22 @@ sealed class EmailMessage(
                 data = data
             )
         }
+
+        private fun List<String>.senderDomains(): List<String> =
+            mapNotNull { sender ->
+                EMAIL_DOMAIN_PATTERN.find(sender)?.groupValues?.getOrNull(1)
+            }.distinct()
+
+        private fun String?.safeLogText(maxLength: Int = 120): String? =
+            this
+                ?.replace(Regex("\\s+"), " ")
+                ?.trim()
+                ?.let { normalized ->
+                    if (normalized.length <= maxLength) {
+                        normalized
+                    } else {
+                        normalized.take(maxLength) + "..."
+                    }
+                }
     }
 }
