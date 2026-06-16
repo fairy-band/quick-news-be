@@ -4,12 +4,16 @@ import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.UserExposedContentMapping
 import com.nexters.external.repository.DailyContentArchiveRepository
 import com.nexters.external.repository.UserExposedContentMappingRepository
+import org.slf4j.LoggerFactory
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+
+private val dailyContentArchiveServiceLogger = LoggerFactory.getLogger(DailyContentArchiveService::class.java)
+private const val SLOW_ARCHIVE_SAVE_LOG_THRESHOLD_MS = 500L
 
 @Service
 class DailyContentArchiveService(
@@ -38,6 +42,7 @@ class DailyContentArchiveService(
 
     @Transactional
     fun saveWithHistory(dailyContentArchive: DailyContentArchive): DailyContentArchive {
+        val trace = DailyContentArchiveSaveTrace()
         val mappings =
             dailyContentArchive.exposureContents.map {
                 UserExposedContentMapping(
@@ -46,9 +51,18 @@ class DailyContentArchiveService(
                 )
             }
 
-        userExposedContentMappingRepository.saveAll(mappings)
+        trace.measure("saveExposureHistory") {
+            if (mappings.isNotEmpty()) {
+                userExposedContentMappingRepository.saveAll(mappings)
+            }
+        }
 
-        return dailyContentArchiveRepository.save(dailyContentArchive)
+        return trace
+            .measure("saveArchiveDocument") {
+                dailyContentArchiveRepository.save(dailyContentArchive)
+            }.also {
+                trace.logIfSlow(dailyContentArchive)
+            }
     }
 
     @Transactional
@@ -74,4 +88,35 @@ class DailyContentArchiveService(
             startAt = date.atStartOfDay(),
             endAt = date.plusDays(1).atStartOfDay(),
         )
+}
+
+private class DailyContentArchiveSaveTrace {
+    private val timings = linkedMapOf<String, Long>()
+
+    fun <T> measure(
+        operation: String,
+        block: () -> T,
+    ): T {
+        val startedAt = System.nanoTime()
+        return try {
+            block()
+        } finally {
+            timings[operation] = (System.nanoTime() - startedAt) / 1_000_000
+        }
+    }
+
+    fun logIfSlow(dailyContentArchive: DailyContentArchive) {
+        val totalMillis = timings.values.sum()
+        if (totalMillis < SLOW_ARCHIVE_SAVE_LOG_THRESHOLD_MS) {
+            return
+        }
+
+        dailyContentArchiveServiceLogger.info(
+            "daily_archive_save_completed userId={} date={} exposureContentCount={} timingsMs={}",
+            dailyContentArchive.user.id,
+            dailyContentArchive.date,
+            dailyContentArchive.exposureContents.size,
+            timings,
+        )
+    }
 }

@@ -20,7 +20,7 @@ class RecommendationCandidateRanker {
     ): ScoredRecommendationCandidate =
         ScoredRecommendationCandidate(
             candidate = candidate,
-            recommendScore = calculator.calculate(source).recommendScore,
+            recommendScore = calculator.calculateScore(source),
         )
 
     companion object {

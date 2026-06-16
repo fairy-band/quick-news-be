@@ -24,22 +24,21 @@ interface ContentKeywordMappingRepository : JpaRepository<ContentKeywordMapping,
         keyword: ReservedKeyword
     ): ContentKeywordMapping?
 
-    /**
-     * Content ID별로 키워드 목록을 Map으로 반환
-     */
     @Query(
         """
-        SELECT ckm.content.id as contentId, ckm.keyword as keyword
+        SELECT ckm.content.id as contentId, kw.id as keywordId, kw.name as keywordName
         FROM ContentKeywordMapping ckm
+        JOIN ckm.keyword kw
         WHERE ckm.content.id IN :contentIds
         """
     )
-    fun findKeywordsByContentIds(
+    fun findKeywordFeaturesByContentIds(
         @Param("contentIds") contentIds: List<Long>
-    ): List<ContentKeywordProjection>
+    ): List<ContentKeywordFeatureProjection>
 }
 
-interface ContentKeywordProjection {
+interface ContentKeywordFeatureProjection {
     val contentId: Long
-    val keyword: ReservedKeyword
+    val keywordId: Long
+    val keywordName: String
 }

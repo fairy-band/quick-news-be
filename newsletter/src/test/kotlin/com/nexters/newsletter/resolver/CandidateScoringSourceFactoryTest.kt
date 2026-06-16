@@ -1,8 +1,8 @@
 package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.ReservedKeyword
+import com.nexters.external.repository.ContentKeywordFeatureProjection
 import com.nexters.external.repository.ContentKeywordMappingRepository
-import com.nexters.external.repository.ContentKeywordProjection
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.category.ContentCategoryScoreService
@@ -30,8 +30,6 @@ class CandidateScoringSourceFactoryTest {
         val candidate = candidate(exposureContentId = 1L, contentId = 100L, contentProviderId = 200L)
         val positiveKeyword = ReservedKeyword(id = 1L, name = "AI")
         val negativeKeyword = ReservedKeyword(id = 2L, name = "Legacy")
-        val contentPositiveKeyword = ReservedKeyword(id = 1L, name = "AI")
-        val contentNegativeKeyword = ReservedKeyword(id = 2L, name = "Legacy")
         val signals =
             listOf(
                 CandidateSourceSignal(
@@ -42,10 +40,10 @@ class CandidateScoringSourceFactoryTest {
                 ),
             )
 
-        every { contentKeywordMappingRepository.findKeywordsByContentIds(listOf(candidate.contentId)) } returns
+        every { contentKeywordMappingRepository.findKeywordFeaturesByContentIds(listOf(candidate.contentId)) } returns
             listOf(
-                contentKeywordProjection(candidate.contentId, contentPositiveKeyword),
-                contentKeywordProjection(candidate.contentId, contentNegativeKeyword),
+                contentKeywordProjection(candidate.contentId, keywordId = 1L, keywordName = "AI"),
+                contentKeywordProjection(candidate.contentId, keywordId = 2L, keywordName = "Legacy"),
             )
         every { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) } returns
             mapOf(
@@ -92,18 +90,20 @@ class CandidateScoringSourceFactoryTest {
                     ),
                 ),
             )
-        verify(exactly = 1) { contentKeywordMappingRepository.findKeywordsByContentIds(listOf(candidate.contentId)) }
+        verify(exactly = 1) { contentKeywordMappingRepository.findKeywordFeaturesByContentIds(listOf(candidate.contentId)) }
         verify(exactly = 1) { contentProviderService.getCategoryMatchWeights(listOf(200L), listOf(10L)) }
         verify(exactly = 1) { contentCategoryScoreService.getScoresByContentIds(listOf(candidate.contentId)) }
     }
 
     private fun contentKeywordProjection(
         contentId: Long,
-        keyword: ReservedKeyword,
-    ): ContentKeywordProjection =
-        object : ContentKeywordProjection {
+        keywordId: Long,
+        keywordName: String,
+    ): ContentKeywordFeatureProjection =
+        object : ContentKeywordFeatureProjection {
             override val contentId: Long = contentId
-            override val keyword: ReservedKeyword = keyword
+            override val keywordId: Long = keywordId
+            override val keywordName: String = keywordName
         }
 
     private fun candidate(

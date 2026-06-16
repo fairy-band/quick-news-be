@@ -6,7 +6,11 @@ import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.category.ContentCategoryScoreService
 import com.nexters.external.service.category.ContentCategoryScoreSnapshot
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+
+private val candidateScoringSourceFactoryLogger = LoggerFactory.getLogger(CandidateScoringSourceFactory::class.java)
+private const val SLOW_CONTEXT_LOG_THRESHOLD_MS = 500L
 
 @Component
 class CandidateScoringSourceFactory(
@@ -32,12 +36,33 @@ class CandidateScoringSourceFactory(
             )
         }
 
+        val trace = CandidateScoringContextTrace()
         val contentIds = candidates.map { it.contentId }.distinct()
         val keywordsByContentId =
-            contentKeywordMappingRepository
-                .findKeywordsByContentIds(contentIds)
-                .groupBy({ it.contentId }, { it.keyword })
+            trace.measure("loadKeywordFeatures") {
+                contentKeywordMappingRepository
+                    .findKeywordFeaturesByContentIds(contentIds)
+                    .groupBy(
+                        keySelector = { it.contentId },
+                        valueTransform = { CandidateKeywordFeature(id = it.keywordId, name = it.keywordName) },
+                    )
+            }
         val contentProviderIds = candidates.mapNotNull { it.contentProviderId }.distinct()
+        val categoryMatchWeights =
+            trace.measure("loadCategoryMatchWeights") {
+                contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds)
+            }
+        val categoryScoresByContentId =
+            trace.measure("loadCategoryScores") {
+                contentCategoryScoreService.getScoresByContentIds(contentIds)
+            }
+
+        trace.logIfSlow(
+            candidateCount = candidates.size,
+            contentCount = contentIds.size,
+            contentProviderCount = contentProviderIds.size,
+            categoryCount = categoryIds.size,
+        )
 
         return CandidateScoringSourceContext(
             candidates = candidates,
@@ -45,8 +70,8 @@ class CandidateScoringSourceFactory(
             keywordWeightsByKeywordId = keywordWeightsByKeyword.toKeywordIdMap(),
             keywordsByContentId = keywordsByContentId,
             categoryIds = categoryIds,
-            categoryMatchWeights = contentProviderService.getCategoryMatchWeights(contentProviderIds, categoryIds),
-            categoryScoresByContentId = contentCategoryScoreService.getScoresByContentIds(contentIds),
+            categoryMatchWeights = categoryMatchWeights,
+            categoryScoresByContentId = categoryScoresByContentId,
         )
     }
 
@@ -73,28 +98,28 @@ class CandidateScoringSourceFactory(
         }
 
     private fun extractPositiveKeywordSources(
-        keywords: List<ReservedKeyword>,
+        keywords: List<CandidateKeywordFeature>,
         keywordWeightsByKeywordId: Map<Long, Double>,
         multiplier: Double,
     ): List<PositiveKeywordSource> =
         keywords
-            .filter { keyword -> (keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0) > 0 }
+            .filter { keyword -> (keywordWeightsByKeywordId[keyword.id] ?: 0.0) > 0 }
             .map { keyword ->
                 PositiveKeywordSource(
-                    weight = (keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0) * multiplier,
+                    weight = (keywordWeightsByKeywordId[keyword.id] ?: 0.0) * multiplier,
                     keywordName = keyword.name,
                 )
             }
 
     private fun extractNegativeKeywordSources(
-        keywords: List<ReservedKeyword>,
+        keywords: List<CandidateKeywordFeature>,
         keywordWeightsByKeywordId: Map<Long, Double>,
     ): List<NegativeKeywordSource> =
         keywords
-            .filter { keyword -> (keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0) < 0 }
+            .filter { keyword -> (keywordWeightsByKeywordId[keyword.id] ?: 0.0) < 0 }
             .map { keyword ->
                 NegativeKeywordSource(
-                    weight = keyword.id?.let { keywordWeightsByKeywordId[it] } ?: 0.0,
+                    weight = keywordWeightsByKeywordId[keyword.id] ?: 0.0,
                     keywordName = keyword.name,
                 )
             }
@@ -116,12 +141,54 @@ class CandidateScoringSourceFactory(
         }.toMap()
 }
 
+data class CandidateKeywordFeature(
+    val id: Long,
+    val name: String,
+)
+
 data class CandidateScoringSourceContext(
     val candidates: List<ExposureContentRecommendationCandidateRow>,
     val candidateSignalsByExposureContentId: Map<Long, List<CandidateSourceSignal>>,
     val keywordWeightsByKeywordId: Map<Long, Double>,
-    val keywordsByContentId: Map<Long, List<ReservedKeyword>>,
+    val keywordsByContentId: Map<Long, List<CandidateKeywordFeature>>,
     val categoryIds: List<Long>,
     val categoryMatchWeights: Map<Pair<Long, Long>, Double>,
     val categoryScoresByContentId: Map<Long, List<ContentCategoryScoreSnapshot>>,
 )
+
+private class CandidateScoringContextTrace {
+    val timings = linkedMapOf<String, Long>()
+
+    fun <T> measure(
+        operation: String,
+        block: () -> T,
+    ): T {
+        val startedAt = System.nanoTime()
+        return try {
+            block()
+        } finally {
+            timings[operation] = (System.nanoTime() - startedAt) / 1_000_000
+        }
+    }
+
+    fun logIfSlow(
+        candidateCount: Int,
+        contentCount: Int,
+        contentProviderCount: Int,
+        categoryCount: Int,
+    ) {
+        val totalMillis = timings.values.sum()
+        if (totalMillis < SLOW_CONTEXT_LOG_THRESHOLD_MS) {
+            return
+        }
+
+        candidateScoringSourceFactoryLogger.info(
+            "candidate_scoring_context_loaded candidateCount={} contentCount={} contentProviderCount={} categoryCount={} timingsMs={}",
+            candidateCount,
+            contentCount,
+            contentProviderCount,
+            categoryCount,
+            timings,
+        )
+    }
+}

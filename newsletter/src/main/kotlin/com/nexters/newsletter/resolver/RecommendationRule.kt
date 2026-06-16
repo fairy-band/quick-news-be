@@ -7,6 +7,8 @@ interface RecommendationRule {
     val name: String
 
     fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult>
+
+    fun score(source: RecommendCalculateSource): Double = evaluate(source).sumOf { it.score }
 }
 
 data class RecommendationRuleResult(
@@ -25,6 +27,8 @@ enum class RecommendationRuleType {
 
 class KeywordAffinityRule : RecommendationRule {
     override val name: String = "keyword_affinity"
+
+    override fun score(source: RecommendCalculateSource): Double = calculateScore(source)
 
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
         val positiveWeight =
@@ -48,10 +52,25 @@ class KeywordAffinityRule : RecommendationRule {
             ),
         )
     }
+
+    private fun calculateScore(source: RecommendCalculateSource): Double {
+        val positiveWeight =
+            source.positiveKeywordSources.fold(1.0) { acc, keyword ->
+                acc * keyword.weight
+            }
+        val negativeWeight =
+            source.negativeKeywordSources.fold(1.0) { acc, keyword ->
+                acc * keyword.weight * -1
+            }
+
+        return maxOf(positiveWeight - negativeWeight + source.categoryMatchBonus, 0.0)
+    }
 }
 
 class CandidateSourceSignalRule : RecommendationRule {
     override val name: String = "candidate_source_signal"
+
+    override fun score(source: RecommendCalculateSource): Double = calculateScore(source)
 
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
         if (source.candidateSignals.isEmpty()) {
@@ -90,6 +109,25 @@ class CandidateSourceSignalRule : RecommendationRule {
         private const val SOURCE_QUALITY_WEIGHT = 20.0
         private const val CONSENSUS_BONUS_PER_ADDITIONAL_SOURCE = 15.0
     }
+
+    private fun calculateScore(source: RecommendCalculateSource): Double {
+        if (source.candidateSignals.isEmpty()) {
+            return 0.0
+        }
+
+        val sourceCount =
+            source.candidateSignals
+                .map { it.source }
+                .distinct()
+                .size
+        val sourceQualityBonus =
+            source.candidateSignals.sumOf { signal ->
+                signal.score * signal.confidence * SOURCE_QUALITY_WEIGHT
+            }
+        val consensusBonus = (sourceCount - 1).coerceAtLeast(0) * CONSENSUS_BONUS_PER_ADDITIONAL_SOURCE
+
+        return sourceQualityBonus + consensusBonus
+    }
 }
 
 class RerankingBonusRule(
@@ -97,7 +135,48 @@ class RerankingBonusRule(
 ) : RecommendationRule {
     override val name: String = "reranking_bonus"
 
+    override fun score(source: RecommendCalculateSource): Double = calculateScore(source).totalScore
+
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
+        val score = calculateScore(source)
+
+        return listOf(
+            RecommendationRuleResult(
+                ruleName = "new_technology_signal",
+                score = score.newTechnologyBonus,
+                reason = "matched=${score.newTechnologyBonus > 0}",
+                type = RecommendationRuleType.BONUS,
+            ),
+            RecommendationRuleResult(
+                ruleName = "ai_llm_signal",
+                score = score.aiLlmBonus,
+                reason = "matched=${score.aiLlmBonus > 0}",
+                type = RecommendationRuleType.BONUS,
+            ),
+            RecommendationRuleResult(
+                ruleName = "platform_signal",
+                score = score.platformBonus,
+                reason = "matched=${score.platformBonus > 0}",
+                type = RecommendationRuleType.BONUS,
+            ),
+            RecommendationRuleResult(
+                ruleName = "signal_synergy",
+                score = score.synergyBonus,
+                reason =
+                    "newTechnology=${score.newTechnologyBonus > 0}, " +
+                        "aiLlm=${score.aiLlmBonus > 0}, platform=${score.platformBonus > 0}",
+                type = RecommendationRuleType.BONUS,
+            ),
+            RecommendationRuleResult(
+                ruleName = "reranking_recency",
+                score = score.recencyBonus,
+                reason = "publishedDate=${source.publishedDate}",
+                type = RecommendationRuleType.BONUS,
+            ),
+        ).filter { it.score != 0.0 }
+    }
+
+    private fun calculateScore(source: RecommendCalculateSource): RerankingScore {
         val signalText =
             buildString {
                 append(source.title).append(' ')
@@ -114,38 +193,13 @@ class RerankingBonusRule(
         val synergyBonus = calculateSynergyBonus(newTechnologyBonus, aiLlmBonus, platformBonus)
         val recencyBonus = calculateRecencyBonus(source.publishedDate)
 
-        return listOf(
-            RecommendationRuleResult(
-                ruleName = "new_technology_signal",
-                score = newTechnologyBonus,
-                reason = "matched=${newTechnologyBonus > 0}",
-                type = RecommendationRuleType.BONUS,
-            ),
-            RecommendationRuleResult(
-                ruleName = "ai_llm_signal",
-                score = aiLlmBonus,
-                reason = "matched=${aiLlmBonus > 0}",
-                type = RecommendationRuleType.BONUS,
-            ),
-            RecommendationRuleResult(
-                ruleName = "platform_signal",
-                score = platformBonus,
-                reason = "matched=${platformBonus > 0}",
-                type = RecommendationRuleType.BONUS,
-            ),
-            RecommendationRuleResult(
-                ruleName = "signal_synergy",
-                score = synergyBonus,
-                reason = "newTechnology=${newTechnologyBonus > 0}, aiLlm=${aiLlmBonus > 0}, platform=${platformBonus > 0}",
-                type = RecommendationRuleType.BONUS,
-            ),
-            RecommendationRuleResult(
-                ruleName = "reranking_recency",
-                score = recencyBonus,
-                reason = "publishedDate=${source.publishedDate}",
-                type = RecommendationRuleType.BONUS,
-            ),
-        ).filter { it.score != 0.0 }
+        return RerankingScore(
+            newTechnologyBonus = newTechnologyBonus,
+            aiLlmBonus = aiLlmBonus,
+            platformBonus = platformBonus,
+            synergyBonus = synergyBonus,
+            recencyBonus = recencyBonus,
+        )
     }
 
     private fun calculateSynergyBonus(
@@ -228,12 +282,25 @@ class RerankingBonusRule(
                 Regex("""플랫폼|API|SDK|프레임워크|라이브러리|런타임|데이터베이스|클라우드|인프라|확장\s*프로그램"""),
             )
     }
+
+    private data class RerankingScore(
+        val newTechnologyBonus: Double,
+        val aiLlmBonus: Double,
+        val platformBonus: Double,
+        val synergyBonus: Double,
+        val recencyBonus: Double,
+    ) {
+        val totalScore: Double
+            get() = newTechnologyBonus + aiLlmBonus + platformBonus + synergyBonus + recencyBonus
+    }
 }
 
 class FreshnessRule(
     private val todayProvider: () -> LocalDate = { LocalDate.now() },
 ) : RecommendationRule {
     override val name: String = "freshness"
+
+    override fun score(source: RecommendCalculateSource): Double = calculateScore(source)
 
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
         val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider())
@@ -252,13 +319,20 @@ class FreshnessRule(
     companion object {
         private const val FRESHNESS_DECAY_PER_DAY = 10.0
     }
+
+    private fun calculateScore(source: RecommendCalculateSource): Double {
+        val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider())
+        return -daysOld * FRESHNESS_DECAY_PER_DAY
+    }
 }
 
 class DuplicatePublisherPenaltyRule : RecommendationRule {
     override val name: String = "duplicate_publisher_penalty"
 
+    override fun score(source: RecommendCalculateSource): Double = calculateScore(source)
+
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
-        val score = -source.publisherDuplicateCandidateCount * DUPLICATE_PUBLISHER_PENALTY
+        val score = calculateScore(source)
 
         return listOf(
             RecommendationRuleResult(
@@ -273,10 +347,15 @@ class DuplicatePublisherPenaltyRule : RecommendationRule {
     companion object {
         private const val DUPLICATE_PUBLISHER_PENALTY = 50.0
     }
+
+    private fun calculateScore(source: RecommendCalculateSource): Double =
+        -source.publisherDuplicateCandidateCount * DUPLICATE_PUBLISHER_PENALTY
 }
 
 class FinalScoreFloorRule : RecommendationRule {
     override val name: String = "final_score_floor"
+
+    override fun score(source: RecommendCalculateSource): Double = 0.0
 
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> =
         listOf(

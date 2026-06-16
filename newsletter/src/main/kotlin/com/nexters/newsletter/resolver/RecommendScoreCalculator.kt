@@ -29,6 +29,11 @@ class RecommendScoreCalculator(
             ruleResults = finalRuleResults,
         )
     }
+
+    fun calculateScore(source: RecommendCalculateSource): Double {
+        val rawScore = rules.sumOf { rule -> rule.score(source) }
+        return maxOf(rawScore, 0.0)
+    }
 }
 
 data class RecommendCalculateResult(
