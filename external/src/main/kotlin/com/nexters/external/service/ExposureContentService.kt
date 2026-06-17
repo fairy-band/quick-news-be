@@ -138,8 +138,17 @@ class ExposureContentService(
         return when {
             lastSeenOffset == 0L && categoryIds == null -> exposureContentRepository.findExploreRows(pageable)
             lastSeenOffset == 0L && categoryIds != null -> exposureContentRepository.findExploreRowsByCategoryIds(categoryIds, pageable)
-            direction.isAscending && categoryIds == null -> exposureContentRepository.findExploreRowsAfterAscending(lastSeenOffset, pageable)
-            direction.isAscending && categoryIds != null -> exposureContentRepository.findExploreRowsAfterAscendingByCategoryIds(lastSeenOffset, categoryIds, pageable)
+            direction.isAscending && categoryIds == null ->
+                exposureContentRepository.findExploreRowsAfterAscending(
+                    lastSeenOffset,
+                    pageable
+                )
+            direction.isAscending && categoryIds != null ->
+                exposureContentRepository.findExploreRowsAfterAscendingByCategoryIds(
+                    lastSeenOffset,
+                    categoryIds,
+                    pageable
+                )
             categoryIds == null -> exposureContentRepository.findExploreRowsAfter(lastSeenOffset, pageable)
             else -> exposureContentRepository.findExploreRowsAfterByCategoryIds(lastSeenOffset, categoryIds, pageable)
         }
@@ -165,8 +174,18 @@ class ExposureContentService(
                 .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
                 .content.publishedAt
         return when {
-            direction.isAscending && categoryIds == null -> exposureContentRepository.findExploreRowsAfterByPublishedAtAscending(publishedAt, pageable)
-            direction.isAscending && categoryIds != null -> exposureContentRepository.findExploreRowsAfterByPublishedAtAscendingByCategoryIds(publishedAt, categoryIds, pageable)
+            direction.isAscending && categoryIds == null ->
+                exposureContentRepository.findExploreRowsAfterByPublishedAtAscending(
+                    publishedAt,
+                    pageable
+                )
+            direction.isAscending && categoryIds != null ->
+                exposureContentRepository
+                    .findExploreRowsAfterByPublishedAtAscendingByCategoryIds(
+                        publishedAt,
+                        categoryIds,
+                        pageable
+                    )
             categoryIds == null -> exposureContentRepository.findExploreRowsAfterByPublishedAt(publishedAt, pageable)
             else -> exposureContentRepository.findExploreRowsAfterByPublishedAtByCategoryIds(publishedAt, categoryIds, pageable)
         }
