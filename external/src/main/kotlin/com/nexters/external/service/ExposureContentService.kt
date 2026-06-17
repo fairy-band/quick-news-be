@@ -132,14 +132,16 @@ class ExposureContentService(
         lastSeenOffset: Long,
         limit: Int,
         direction: Sort.Direction = Sort.Direction.DESC,
+        categoryIds: List<Long>? = null,
     ): List<ExploreContentRow> {
         val pageable = PageRequest.of(0, limit, registeredSort(direction))
-        return if (lastSeenOffset == 0L) {
-            exposureContentRepository.findExploreRows(pageable)
-        } else if (direction.isAscending) {
-            exposureContentRepository.findExploreRowsAfterAscending(lastSeenOffset, pageable)
-        } else {
-            exposureContentRepository.findExploreRowsAfter(lastSeenOffset, pageable)
+        return when {
+            lastSeenOffset == 0L && categoryIds == null -> exposureContentRepository.findExploreRows(pageable)
+            lastSeenOffset == 0L && categoryIds != null -> exposureContentRepository.findExploreRowsByCategoryIds(categoryIds, pageable)
+            direction.isAscending && categoryIds == null -> exposureContentRepository.findExploreRowsAfterAscending(lastSeenOffset, pageable)
+            direction.isAscending && categoryIds != null -> exposureContentRepository.findExploreRowsAfterAscendingByCategoryIds(lastSeenOffset, categoryIds, pageable)
+            categoryIds == null -> exposureContentRepository.findExploreRowsAfter(lastSeenOffset, pageable)
+            else -> exposureContentRepository.findExploreRowsAfterByCategoryIds(lastSeenOffset, categoryIds, pageable)
         }
     }
 
@@ -148,25 +150,29 @@ class ExposureContentService(
         lastSeenOffset: Long,
         limit: Int,
         direction: Sort.Direction = Sort.Direction.DESC,
+        categoryIds: List<Long>? = null,
     ): List<ExploreContentRow> {
         val pageable = PageRequest.of(0, limit, publishedSort(direction))
-        if (lastSeenOffset == 0L) return exposureContentRepository.findExploreRows(pageable)
-        val lastSeen =
+        if (lastSeenOffset == 0L) {
+            return when {
+                categoryIds == null -> exposureContentRepository.findExploreRows(pageable)
+                else -> exposureContentRepository.findExploreRowsByCategoryIds(categoryIds, pageable)
+            }
+        }
+        val publishedAt =
             exposureContentRepository
                 .findById(lastSeenOffset)
                 .orElseThrow { NoSuchElementException("Exposure content not found: $lastSeenOffset") }
-        return if (direction.isAscending) {
-            exposureContentRepository.findExploreRowsAfterByPublishedAtAscending(
-                lastSeen.content.publishedAt,
-                pageable,
-            )
-        } else {
-            exposureContentRepository.findExploreRowsAfterByPublishedAt(
-                lastSeen.content.publishedAt,
-                pageable,
-            )
+                .content.publishedAt
+        return when {
+            direction.isAscending && categoryIds == null -> exposureContentRepository.findExploreRowsAfterByPublishedAtAscending(publishedAt, pageable)
+            direction.isAscending && categoryIds != null -> exposureContentRepository.findExploreRowsAfterByPublishedAtAscendingByCategoryIds(publishedAt, categoryIds, pageable)
+            categoryIds == null -> exposureContentRepository.findExploreRowsAfterByPublishedAt(publishedAt, pageable)
+            else -> exposureContentRepository.findExploreRowsAfterByPublishedAtByCategoryIds(publishedAt, categoryIds, pageable)
         }
     }
+
+    fun countByCategoryIds(categoryIds: List<Long>): Long = exposureContentRepository.countByCategoryIds(categoryIds)
 
     fun getAllExposureContentsPaged(pageable: Pageable): Page<ExposureContent> = exposureContentRepository.findAllPaged(pageable)
 

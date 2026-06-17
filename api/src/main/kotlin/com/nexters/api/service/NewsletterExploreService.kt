@@ -16,11 +16,18 @@ class NewsletterExploreService(
         size: Int,
         sortType: ExploreSortType,
         direction: Sort.Direction = Sort.Direction.DESC,
+        categoryIds: List<Long>? = null,
     ): ExploreContentsResult {
         validateRequest(lastSeenOffset, size)
 
-        val page = findExploreContentPage(lastSeenOffset, size, sortType, direction)
-        val totalCount = countExposureContents()
+        val categoryIds = categoryIds?.takeIf { it.isNotEmpty() }
+        val page = findExploreContentPage(lastSeenOffset, size, sortType, direction, categoryIds)
+        val totalCount =
+            if (categoryIds == null) {
+                countExposureContents()
+            } else {
+                exposureContentService.countByCategoryIds(categoryIds)
+            }
 
         return ExploreContentsResult(
             contents = page.contents,
@@ -35,17 +42,18 @@ class NewsletterExploreService(
         size: Int,
         sortType: ExploreSortType,
         direction: Sort.Direction,
+        categoryIds: List<Long>? = null,
     ): ExploreContentPageResult {
         val fetcher: (Long, Int) -> List<ExploreContentRow> =
             when (sortType) {
-                ExploreSortType.REGISTERED -> { offset: Long, limit: Int ->
-                    exposureContentService.getExploreContentRows(offset, limit, direction)
+                ExploreSortType.REGISTERED -> { offset, limit ->
+                    exposureContentService.getExploreContentRows(offset, limit, direction, categoryIds)
                 }
-                ExploreSortType.PUBLISHED -> { offset: Long, limit: Int ->
-                    exposureContentService.getExploreContentRowsSortedByPublishedAt(offset, limit, direction)
+                ExploreSortType.PUBLISHED -> { offset, limit ->
+                    exposureContentService.getExploreContentRowsSortedByPublishedAt(offset, limit, direction, categoryIds)
                 }
             }
-        return if (lastSeenOffset == FIRST_PAGE_OFFSET) {
+        return if (categoryIds == null && lastSeenOffset == FIRST_PAGE_OFFSET) {
             findCachedFirstExploreContentPage(sortType, direction, size, fetcher)
         } else {
             loadPage(lastSeenOffset, size, fetcher)
