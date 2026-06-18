@@ -59,10 +59,19 @@ internal object WeeklyLibraryContentBuilder {
         return MailContent(
             title = title,
             content = buildContent(title, issueNumber, items),
-            link = issueLink?.takeIf { it.isNotBlank() } ?: items.first().link,
+            link = issueLink?.takeIf { it.isNotBlank() } ?: items.findIssueLink(issueNumber) ?: items.first().link,
             section = SECTION_LIBRARIES,
             imageUrl = items.firstNotNullOfOrNull { it.imageUrl },
         )
+    }
+
+    private fun List<MailContent>.findIssueLink(issueNumber: String?): String? {
+        val knownIssueNumber = issueNumber.knownValue() ?: return null
+        val issuePath = "/newsletter/$knownIssueNumber"
+
+        return firstOrNull { item ->
+            item.link.contains(issuePath, ignoreCase = true)
+        }?.link
     }
 
     private fun buildTitle(
