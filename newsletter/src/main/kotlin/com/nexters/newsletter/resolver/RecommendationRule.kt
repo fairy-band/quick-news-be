@@ -303,8 +303,8 @@ class FreshnessRule(
     override fun score(source: RecommendCalculateSource): Double = calculateScore(source)
 
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
-        val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider())
-        val score = -daysOld * FRESHNESS_DECAY_PER_DAY
+        val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider()).coerceAtLeast(0)
+        val score = calculateScore(daysOld)
 
         return listOf(
             RecommendationRuleResult(
@@ -317,13 +317,16 @@ class FreshnessRule(
     }
 
     companion object {
-        private const val FRESHNESS_DECAY_PER_DAY = 10.0
+        private const val FRESHNESS_DECAY_PER_DAY = 1.0
+        private const val MAX_FRESHNESS_PENALTY = 10.0
     }
 
     private fun calculateScore(source: RecommendCalculateSource): Double {
-        val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider())
-        return -daysOld * FRESHNESS_DECAY_PER_DAY
+        val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider()).coerceAtLeast(0)
+        return calculateScore(daysOld)
     }
+
+    private fun calculateScore(daysOld: Long): Double = -(daysOld * FRESHNESS_DECAY_PER_DAY).coerceAtMost(MAX_FRESHNESS_PENALTY)
 }
 
 class DuplicatePublisherPenaltyRule : RecommendationRule {

@@ -83,7 +83,7 @@ class RecommendScoreCalculatorTest {
 
         val result = calculator.calculate(source)
 
-        assertThat(result.recommendScore).isEqualTo(194.0)
+        assertThat(result.recommendScore).isEqualTo(203.0)
         assertThat(result.ruleResults.map { it.ruleName })
             .containsExactly(
                 "keyword_affinity",
@@ -130,6 +130,40 @@ class RecommendScoreCalculatorTest {
 
         assertThat(result.recommendScore).isCloseTo(37.7, within(0.0001))
         assertThat(result.ruleResults.single().ruleName).isEqualTo("candidate_source_signal")
+    }
+
+    @Test
+    fun `calculate should keep old category matched content selectable`() {
+        val today = LocalDate.of(2026, 6, 20)
+        val calculator =
+            RecommendScoreCalculator(
+                rules =
+                    listOf(
+                        KeywordAffinityRule(),
+                        CandidateSourceSignalRule(),
+                        FreshnessRule { today },
+                    ),
+            )
+        val source =
+            RecommendCalculateSource(
+                candidateSignals =
+                    listOf(
+                        CandidateSourceSignal(
+                            source = "category_score",
+                            score = 1.0,
+                            confidence = 0.85,
+                            reason = "matched precomputed category scores",
+                        ),
+                    ),
+                positiveKeywordSources = emptyList(),
+                negativeKeywordSources = emptyList(),
+                publishedDate = today.minusDays(90),
+                publisherDuplicateCandidateCount = 0,
+            )
+
+        val result = calculator.calculate(source)
+
+        assertThat(result.recommendScore).isGreaterThan(0.0)
     }
 
     @Test
