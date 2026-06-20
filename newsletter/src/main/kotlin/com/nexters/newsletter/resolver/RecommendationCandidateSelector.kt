@@ -2,7 +2,6 @@ package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
-import com.nexters.external.service.category.CategoryFitThresholds
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -118,8 +117,6 @@ class RecommendationCandidateSelector(
 
     companion object {
         private val FALLBACK_MULTIPLIERS = listOf(2.0, 3.0, 4.0)
-        private const val DOMINANT_CATEGORY_RATIO = 1.5
-        private const val DOMINANT_CATEGORY_GAP = 8.0
     }
 
     private fun CandidateScoringSourceContext.filterByCategoryFit(): CandidateScoringSourceContext {
@@ -131,54 +128,12 @@ class RecommendationCandidateSelector(
         return copy(
             candidates =
                 candidates.filter { candidate ->
-                    hasCategoryFit(candidate, requestedCategoryIds)
+                    CategoryFitPolicy.hasCategoryFit(
+                        categoryScoresByContentId[candidate.contentId].orEmpty(),
+                        requestedCategoryIds,
+                    )
                 },
         )
-    }
-
-    private fun CandidateScoringSourceContext.hasCategoryFit(
-        candidate: ExposureContentRecommendationCandidateRow,
-        requestedCategoryIds: Set<Long>,
-    ): Boolean {
-        val categoryScores =
-            categoryScoresByContentId[candidate.contentId]
-                .orEmpty()
-                .filter { it.totalScore > 0.0 }
-
-        if (categoryScores.isEmpty()) {
-            return true
-        }
-
-        val providerCategoryIds =
-            categoryScores
-                .filter { it.providerScore > 0.0 }
-                .map { it.categoryId }
-                .toSet()
-
-        if (providerCategoryIds.isNotEmpty() && providerCategoryIds.none { it in requestedCategoryIds }) {
-            return false
-        }
-
-        val requestedScore =
-            categoryScores
-                .filter { it.categoryId in requestedCategoryIds }
-                .sumOf { it.totalScore }
-        val competingScore =
-            categoryScores
-                .filter { it.categoryId !in requestedCategoryIds }
-                .maxOfOrNull { it.totalScore } ?: 0.0
-
-        if (requestedScore <= 0.0) {
-            return false
-        }
-
-        if (requestedCategoryIds.size == 1) {
-            return competingScore <= 0.0 ||
-                requestedScore >= competingScore + CategoryFitThresholds.SINGLE_CATEGORY_MIN_SCORE_MARGIN
-        }
-
-        return competingScore < requestedScore * DOMINANT_CATEGORY_RATIO ||
-            competingScore - requestedScore < DOMINANT_CATEGORY_GAP
     }
 }
 

@@ -4,6 +4,8 @@ import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ReservedKeyword
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.CategoryService
+import com.nexters.external.service.category.ContentCategoryScoreService
+import com.nexters.external.service.category.ContentCategoryScoreSnapshot
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -63,6 +65,54 @@ class PossibleContentsResolverTest {
         assertThat(pool.expandedWindow).isEqualTo(CandidateRecencyWindow.DAYS_30)
         assertThat(pool.candidates).hasSize(130)
         assertThat(source.requests).hasSize(1)
+    }
+
+    @Test
+    fun `resolveCandidatePoolByCategoryIds should keep expanding when raw pool reaches target but category fit pool does not`() {
+        val fitExposureContentIds = ((1L..3L) + (131L..247L)).toSet()
+        val scoresByContentId =
+            (1L..260L).associate { exposureContentId ->
+                val contentId = exposureContentId * 10
+                contentId to
+                    if (exposureContentId in fitExposureContentIds) {
+                        listOf(categoryScore(contentId, categoryId = 1L, keywordScore = 4.0))
+                    } else {
+                        listOf(
+                            categoryScore(contentId, categoryId = 1L, keywordScore = 4.0),
+                            categoryScore(contentId, categoryId = 2L, keywordScore = 4.0),
+                        )
+                    }
+            }
+        val source =
+            RecordingCandidateSource(
+                sourceName = "bulk_source",
+                sourceOrder = 1,
+                sourceDefaultLimit = 130,
+            ) { request ->
+                val ids =
+                    when (request.window) {
+                        CandidateRecencyWindow.DAYS_30 -> 1L..130L
+                        CandidateRecencyWindow.DAYS_90 -> 131L..260L
+                        else -> LongRange.EMPTY
+                    }
+                ids.map { id ->
+                    CandidateSeed(
+                        candidate = candidate(exposureContentId = id),
+                        signals = listOf(signal(source = "bulk_source")),
+                    )
+                }
+            }
+        val resolver =
+            resolver(
+                sources = listOf(source),
+                contentCategoryScoreService = contentCategoryScoreService(scoresByContentId),
+            )
+
+        val pool = resolver.resolveCandidatePoolByCategoryIds(userId = 1L, categoryIds = listOf(1L))
+
+        assertThat(pool.expandedWindow).isEqualTo(CandidateRecencyWindow.DAYS_90)
+        assertThat(pool.candidates).hasSize(120)
+        assertThat(pool.candidates.map { it.candidate.exposureContentId }).containsOnly(*fitExposureContentIds.toTypedArray())
     }
 
     @Test
@@ -163,7 +213,13 @@ class PossibleContentsResolverTest {
     private fun resolver(
         sources: List<CandidateSource>,
         categoryService: CategoryService = categoryService(),
-    ): PossibleContentsResolver = PossibleContentsResolver(sources, categoryService)
+        contentCategoryScoreService: ContentCategoryScoreService = contentCategoryScoreService(),
+    ): PossibleContentsResolver =
+        PossibleContentsResolver(
+            candidateSources = sources,
+            categoryService = categoryService,
+            contentCategoryScoreService = contentCategoryScoreService,
+        )
 
     private fun categoryService(
         keywords: List<ReservedKeyword> = emptyList(),
@@ -174,6 +230,31 @@ class PossibleContentsResolverTest {
         every { categoryService.getContentProvidersByCategoryIds(any()) } returns providers
         return categoryService
     }
+
+    private fun contentCategoryScoreService(
+        scoresByContentId: Map<Long, List<ContentCategoryScoreSnapshot>> = emptyMap(),
+    ): ContentCategoryScoreService {
+        val contentCategoryScoreService = mockk<ContentCategoryScoreService>()
+        every { contentCategoryScoreService.getScoresByContentIds(any()) } answers {
+            val contentIds = firstArg<Collection<Long>>().toSet()
+            scoresByContentId.filterKeys { it in contentIds }
+        }
+        return contentCategoryScoreService
+    }
+
+    private fun categoryScore(
+        contentId: Long,
+        categoryId: Long,
+        keywordScore: Double = 0.0,
+        providerScore: Double = 0.0,
+    ): ContentCategoryScoreSnapshot =
+        ContentCategoryScoreSnapshot(
+            contentId = contentId,
+            categoryId = categoryId,
+            keywordScore = keywordScore,
+            providerScore = providerScore,
+            totalScore = keywordScore + providerScore,
+        )
 
     private fun fakeSource(
         name: String,

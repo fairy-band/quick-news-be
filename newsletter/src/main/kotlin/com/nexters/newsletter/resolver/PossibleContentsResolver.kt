@@ -1,6 +1,7 @@
 package com.nexters.newsletter.resolver
 
 import com.nexters.external.service.CategoryService
+import com.nexters.external.service.category.ContentCategoryScoreService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -9,6 +10,7 @@ import java.time.LocalDate
 class PossibleContentsResolver(
     candidateSources: List<CandidateSource>,
     private val categoryService: CategoryService,
+    private val contentCategoryScoreService: ContentCategoryScoreService,
 ) {
     private val candidateSources = candidateSources.sortedBy { it.order }
 
@@ -21,6 +23,7 @@ class PossibleContentsResolver(
         }
 
         val mergedCandidates = linkedMapOf<Long, CandidatePoolItem>()
+        var categoryFitCandidates: List<CandidatePoolItem>? = null
         var expandedWindow = CandidateRecencyWindow.DAYS_30
         val today = LocalDate.now()
         val context = createCandidateSourceContext(categoryIds)
@@ -36,23 +39,30 @@ class PossibleContentsResolver(
             )
 
             if (mergedCandidates.size >= TARGET_POOL_SIZE) {
-                break
+                val currentCategoryFitCandidates = filterByCategoryFit(mergedCandidates.values, categoryIds)
+                categoryFitCandidates = currentCategoryFitCandidates
+                if (currentCategoryFitCandidates.size >= TARGET_POOL_SIZE) {
+                    break
+                }
             }
         }
 
+        val candidateItems =
+            categoryFitCandidates
+                ?: filterByCategoryFit(mergedCandidates.values, categoryIds)
         val candidates =
-            mergedCandidates
-                .values
+            candidateItems
                 .sortedWith(CANDIDATE_POOL_COMPARATOR)
                 .take(MAX_POOL_SIZE)
 
         logger.debug(
-            "가능한 콘텐츠 풀 생성 완료. userId: {}, categoryIds: {}, sourceCount: {}, window: {}, candidates: {}",
+            "가능한 콘텐츠 풀 생성 완료. userId: {}, categoryIds: {}, sourceCount: {}, window: {}, candidates: {}, categoryFitCandidates: {}",
             userId,
             categoryIds,
             candidateSources.size,
             expandedWindow,
             candidates.size,
+            candidateItems.size,
         )
 
         return CandidatePool(
@@ -108,6 +118,30 @@ class PossibleContentsResolver(
                         .distinct()
                 },
         )
+
+    private fun filterByCategoryFit(
+        candidates: Collection<CandidatePoolItem>,
+        categoryIds: List<Long>,
+    ): List<CandidatePoolItem> {
+        if (categoryIds.isEmpty() || candidates.isEmpty()) {
+            return candidates.toList()
+        }
+
+        val requestedCategoryIds = categoryIds.toSet()
+        val categoryScoresByContentId =
+            contentCategoryScoreService.getScoresByContentIds(
+                candidates
+                    .map { it.candidate.contentId }
+                    .distinct(),
+            )
+
+        return candidates.filter { candidate ->
+            CategoryFitPolicy.hasCategoryFit(
+                categoryScoresByContentId[candidate.candidate.contentId].orEmpty(),
+                requestedCategoryIds,
+            )
+        }
+    }
 
     private fun MutableMap<Long, CandidatePoolItem>.merge(seed: CandidateSeed) {
         val exposureContentId = seed.candidate.exposureContentId
