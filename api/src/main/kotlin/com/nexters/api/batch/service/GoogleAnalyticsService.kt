@@ -5,11 +5,15 @@ import com.google.analytics.data.v1beta.DateRange
 import com.google.analytics.data.v1beta.Dimension
 import com.google.analytics.data.v1beta.Filter
 import com.google.analytics.data.v1beta.FilterExpression
+import com.google.analytics.data.v1beta.FilterExpressionList
 import com.google.analytics.data.v1beta.Metric
 import com.google.analytics.data.v1beta.OrderBy
 import com.google.analytics.data.v1beta.RunReportRequest
 import com.nexters.api.batch.dto.AnalyticsReport
+import com.nexters.api.batch.dto.ContentDetailPageView
+import com.nexters.api.batch.dto.ContentDetailPageViewReport
 import com.nexters.api.batch.dto.NewsletterClick
+import com.nexters.api.batch.dto.NewsletterPageView
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -27,6 +31,17 @@ class GoogleAnalyticsService(
     private val analyticsClient: BetaAnalyticsDataClient
 ) {
     private val logger = LoggerFactory.getLogger(GoogleAnalyticsService::class.java)
+    private val contentDetailPageViewEvents =
+        listOf(
+            ContentDetailPageViewEvent(
+                eventName = MAIN_CONTENT_DETAIL_PAGEVIEW_EVENT_NAME,
+                label = "메인 콘텐츠 상세 조회",
+            ),
+            ContentDetailPageViewEvent(
+                eventName = EXPLORE_CONTENT_DETAIL_PAGEVIEW_EVENT_NAME,
+                label = "탐색 콘텐츠 상세 조회",
+            ),
+        )
 
     @Value("\${google.analytics.property.id}")
     private lateinit var propertyId: String
@@ -110,6 +125,13 @@ class GoogleAnalyticsService(
 
             // Newsletter 클릭 데이터 조회
             val topNewsletterClicks = getTopNewsletterClicks(dateString)
+            val topNewsletterCarouselPageViews = getTopNewsletterCarouselPageViews(dateString)
+            val contentDetailPageViewReports =
+                getContentDetailPageViewReports(
+                    startDateString = dateString,
+                    endDateString = dateString,
+                    limit = 5,
+                )
 
             val report =
                 AnalyticsReport(
@@ -121,6 +143,8 @@ class GoogleAnalyticsService(
                     sessions = sessions,
                     pageViews = pageViews,
                     topNewsletterClicks = topNewsletterClicks,
+                    topNewsletterCarouselPageViews = topNewsletterCarouselPageViews,
+                    contentDetailPageViewReports = contentDetailPageViewReports,
                     yesterdayTotalUsers = yesterdayTotalUsers
                 )
 
@@ -241,7 +265,7 @@ class GoogleAnalyticsService(
                     ).addDimensions(
                         Dimension
                             .newBuilder()
-                            .setName("customEvent:object_id")
+                            .setName(OBJECT_ID_DIMENSION)
                             .build()
                     ).addMetrics(
                         Metric
@@ -254,11 +278,11 @@ class GoogleAnalyticsService(
                             .setFilter(
                                 Filter
                                     .newBuilder()
-                                    .setFieldName("eventName")
+                                    .setFieldName(EVENT_NAME_DIMENSION)
                                     .setStringFilter(
                                         Filter.StringFilter
                                             .newBuilder()
-                                            .setValue("click_newsletter")
+                                            .setValue(NEWSLETTER_CLICK_EVENT_NAME)
                                             .setMatchType(Filter.StringFilter.MatchType.EXACT)
                                             .build()
                                     ).build()
@@ -291,6 +315,13 @@ class GoogleAnalyticsService(
             logger.error("Newsletter 클릭 데이터 조회 중 오류 발생", e)
             emptyList()
         }
+
+    private fun getTopNewsletterCarouselPageViews(dateString: String): List<NewsletterPageView> =
+        getTopNewsletterCarouselPageViewsForPeriod(
+            startDateString = dateString,
+            endDateString = dateString,
+            limit = 5,
+        )
 
     fun getWeeklyReport(
         startDate: LocalDate,
@@ -376,6 +407,13 @@ class GoogleAnalyticsService(
 
             // Newsletter 클릭 데이터 조회
             val topNewsletterClicks = getTopNewsletterClicksForPeriod(startDateString, endDateString)
+            val topNewsletterCarouselPageViews = getTopNewsletterCarouselPageViewsForPeriod(startDateString, endDateString)
+            val contentDetailPageViewReports =
+                getContentDetailPageViewReports(
+                    startDateString = startDateString,
+                    endDateString = endDateString,
+                    limit = 10,
+                )
 
             val report =
                 AnalyticsReport(
@@ -387,6 +425,8 @@ class GoogleAnalyticsService(
                     sessions = sessions,
                     pageViews = pageViews,
                     topNewsletterClicks = topNewsletterClicks,
+                    topNewsletterCarouselPageViews = topNewsletterCarouselPageViews,
+                    contentDetailPageViewReports = contentDetailPageViewReports,
                     startDate = startDate,
                     endDate = endDate,
                     yesterdayTotalUsers = lastWeekTotalUsers
@@ -423,7 +463,7 @@ class GoogleAnalyticsService(
                     ).addDimensions(
                         Dimension
                             .newBuilder()
-                            .setName("customEvent:object_id")
+                            .setName(OBJECT_ID_DIMENSION)
                             .build()
                     ).addMetrics(
                         Metric
@@ -436,11 +476,11 @@ class GoogleAnalyticsService(
                             .setFilter(
                                 Filter
                                     .newBuilder()
-                                    .setFieldName("eventName")
+                                    .setFieldName(EVENT_NAME_DIMENSION)
                                     .setStringFilter(
                                         Filter.StringFilter
                                             .newBuilder()
-                                            .setValue("click_newsletter")
+                                            .setValue(NEWSLETTER_CLICK_EVENT_NAME)
                                             .setMatchType(Filter.StringFilter.MatchType.EXACT)
                                             .build()
                                     ).build()
@@ -473,4 +513,272 @@ class GoogleAnalyticsService(
             logger.error("Newsletter 클릭 데이터 조회 중 오류 발생", e)
             emptyList()
         }
+
+    private fun getTopNewsletterCarouselPageViewsForPeriod(
+        startDateString: String,
+        endDateString: String,
+        limit: Int = 10,
+    ): List<NewsletterPageView> =
+        try {
+            logger.info("Newsletter 캐러셀 조회 데이터 조회 시작 ($startDateString ~ $endDateString)")
+
+            val newsletterCarouselPageViewRequest =
+                RunReportRequest
+                    .newBuilder()
+                    .setProperty("properties/$propertyId")
+                    .addDateRanges(
+                        DateRange
+                            .newBuilder()
+                            .setStartDate(startDateString)
+                            .setEndDate(endDateString)
+                            .build()
+                    ).addDimensions(
+                        Dimension
+                            .newBuilder()
+                            .setName(OBJECT_ID_DIMENSION)
+                            .build()
+                    ).addMetrics(
+                        Metric
+                            .newBuilder()
+                            .setName(EVENT_COUNT_METRIC)
+                            .build()
+                    ).setDimensionFilter(
+                        FilterExpression
+                            .newBuilder()
+                            .setAndGroup(
+                                FilterExpressionList
+                                    .newBuilder()
+                                    .addExpressions(exactEventNameFilter(NEWSLETTER_CAROUSEL_PAGEVIEW_EVENT_NAME))
+                                    .addExpressions(notSetObjectIdFilter())
+                                    .build()
+                            ).build()
+                    ).addOrderBys(
+                        OrderBy
+                            .newBuilder()
+                            .setMetric(
+                                OrderBy.MetricOrderBy
+                                    .newBuilder()
+                                    .setMetricName(EVENT_COUNT_METRIC)
+                                    .build()
+                            ).setDesc(true)
+                            .build()
+                    ).setLimit(limit.toLong())
+                    .build()
+
+            val response = analyticsClient.runReport(newsletterCarouselPageViewRequest)
+
+            val newsletterPageViews =
+                response.rowsList.map { row ->
+                    val objectId = row.getDimensionValues(0).value
+                    val viewCount = row.getMetricValues(0).value.toLongOrNull() ?: 0L
+                    NewsletterPageView(objectId, viewCount)
+                }
+
+            logger.info("Newsletter 캐러셀 조회 데이터 조회 완료: ${newsletterPageViews.size}개 항목")
+            newsletterPageViews
+        } catch (e: Exception) {
+            logger.error("Newsletter 캐러셀 조회 데이터 조회 중 오류 발생", e)
+            emptyList()
+        }
+
+    private fun getContentDetailPageViewReports(
+        startDateString: String,
+        endDateString: String,
+        limit: Int,
+    ): List<ContentDetailPageViewReport> {
+        val countsByEventName = getContentDetailPageViewCounts(startDateString, endDateString)
+
+        return contentDetailPageViewEvents.map { event ->
+            ContentDetailPageViewReport(
+                eventName = event.eventName,
+                label = event.label,
+                totalCount = countsByEventName[event.eventName] ?: 0L,
+                topContentTitles =
+                    getTopContentDetailPageViewsForEvent(
+                        startDateString = startDateString,
+                        endDateString = endDateString,
+                        eventName = event.eventName,
+                        limit = limit,
+                    ),
+            )
+        }
+    }
+
+    private fun getContentDetailPageViewCounts(
+        startDateString: String,
+        endDateString: String,
+    ): Map<String, Long> =
+        try {
+            logger.info("콘텐츠 상세 조회 이벤트 수 조회 시작 ($startDateString ~ $endDateString)")
+
+            val contentDetailPageViewCountRequest =
+                RunReportRequest
+                    .newBuilder()
+                    .setProperty("properties/$propertyId")
+                    .addDateRanges(
+                        DateRange
+                            .newBuilder()
+                            .setStartDate(startDateString)
+                            .setEndDate(endDateString)
+                            .build()
+                    ).addDimensions(
+                        Dimension
+                            .newBuilder()
+                            .setName(EVENT_NAME_DIMENSION)
+                            .build()
+                    ).addMetrics(
+                        Metric
+                            .newBuilder()
+                            .setName(EVENT_COUNT_METRIC)
+                            .build()
+                    ).setDimensionFilter(
+                        eventNameAnyFilter(contentDetailPageViewEvents.map { it.eventName })
+                    ).build()
+
+            val response = analyticsClient.runReport(contentDetailPageViewCountRequest)
+            val contentDetailPageViewCounts =
+                response.rowsList.associate { row ->
+                    val eventName = row.getDimensionValues(0).value
+                    val viewCount = row.getMetricValues(0).value.toLongOrNull() ?: 0L
+                    eventName to viewCount
+                }
+
+            logger.info("콘텐츠 상세 조회 이벤트 수 조회 완료: $contentDetailPageViewCounts")
+            contentDetailPageViewCounts
+        } catch (e: Exception) {
+            logger.error("콘텐츠 상세 조회 이벤트 수 조회 중 오류 발생", e)
+            emptyMap()
+        }
+
+    private fun getTopContentDetailPageViewsForEvent(
+        startDateString: String,
+        endDateString: String,
+        eventName: String,
+        limit: Int,
+    ): List<ContentDetailPageView> =
+        try {
+            logger.info("콘텐츠 상세 조회 TOP 데이터 조회 시작 eventName=$eventName ($startDateString ~ $endDateString)")
+
+            val contentDetailPageViewRequest =
+                RunReportRequest
+                    .newBuilder()
+                    .setProperty("properties/$propertyId")
+                    .addDateRanges(
+                        DateRange
+                            .newBuilder()
+                            .setStartDate(startDateString)
+                            .setEndDate(endDateString)
+                            .build()
+                    ).addDimensions(
+                        Dimension
+                            .newBuilder()
+                            .setName(CONTENT_TITLE_DIMENSION)
+                            .build()
+                    ).addMetrics(
+                        Metric
+                            .newBuilder()
+                            .setName(EVENT_COUNT_METRIC)
+                            .build()
+                    ).setDimensionFilter(
+                        FilterExpression
+                            .newBuilder()
+                            .setAndGroup(
+                                FilterExpressionList
+                                    .newBuilder()
+                                    .addExpressions(exactEventNameFilter(eventName))
+                                    .addExpressions(notSetDimensionFilter(CONTENT_TITLE_DIMENSION))
+                                    .build()
+                            ).build()
+                    ).addOrderBys(
+                        OrderBy
+                            .newBuilder()
+                            .setMetric(
+                                OrderBy.MetricOrderBy
+                                    .newBuilder()
+                                    .setMetricName(EVENT_COUNT_METRIC)
+                                    .build()
+                            ).setDesc(true)
+                            .build()
+                    ).setLimit(limit.toLong())
+                    .build()
+
+            val response = analyticsClient.runReport(contentDetailPageViewRequest)
+            val contentDetailPageViews =
+                response.rowsList.map { row ->
+                    val contentTitle = row.getDimensionValues(0).value
+                    val viewCount = row.getMetricValues(0).value.toLongOrNull() ?: 0L
+                    ContentDetailPageView(contentTitle, viewCount)
+                }
+
+            logger.info("콘텐츠 상세 조회 TOP 데이터 조회 완료 eventName=$eventName: ${contentDetailPageViews.size}개 항목")
+            contentDetailPageViews
+        } catch (e: Exception) {
+            logger.error("콘텐츠 상세 조회 TOP 데이터 조회 중 오류 발생 eventName=$eventName", e)
+            emptyList()
+        }
+
+    private fun exactEventNameFilter(eventName: String): FilterExpression =
+        FilterExpression
+            .newBuilder()
+            .setFilter(
+                Filter
+                    .newBuilder()
+                    .setFieldName(EVENT_NAME_DIMENSION)
+                    .setStringFilter(
+                        Filter.StringFilter
+                            .newBuilder()
+                            .setValue(eventName)
+                            .setMatchType(Filter.StringFilter.MatchType.EXACT)
+                            .build()
+                    ).build()
+            ).build()
+
+    private fun eventNameAnyFilter(eventNames: List<String>): FilterExpression =
+        FilterExpression
+            .newBuilder()
+            .setOrGroup(
+                FilterExpressionList
+                    .newBuilder()
+                    .addAllExpressions(eventNames.map(::exactEventNameFilter))
+                    .build()
+            ).build()
+
+    private fun notSetObjectIdFilter(): FilterExpression = notSetDimensionFilter(OBJECT_ID_DIMENSION)
+
+    private fun notSetDimensionFilter(dimensionName: String): FilterExpression =
+        FilterExpression
+            .newBuilder()
+            .setNotExpression(
+                FilterExpression
+                    .newBuilder()
+                    .setFilter(
+                        Filter
+                            .newBuilder()
+                            .setFieldName(dimensionName)
+                            .setStringFilter(
+                                Filter.StringFilter
+                                    .newBuilder()
+                                    .setValue(NOT_SET_VALUE)
+                                    .setMatchType(Filter.StringFilter.MatchType.EXACT)
+                                    .build()
+                            ).build()
+                    ).build()
+            ).build()
+
+    companion object {
+        private const val EVENT_NAME_DIMENSION = "eventName"
+        private const val EVENT_COUNT_METRIC = "eventCount"
+        private const val OBJECT_ID_DIMENSION = "customEvent:object_id"
+        private const val CONTENT_TITLE_DIMENSION = "customEvent:content_title"
+        private const val NEWSLETTER_CLICK_EVENT_NAME = "click_newsletter"
+        private const val NEWSLETTER_CAROUSEL_PAGEVIEW_EVENT_NAME = "pageview_newsletter_carousel"
+        private const val MAIN_CONTENT_DETAIL_PAGEVIEW_EVENT_NAME = "main_contents_detail_pageview"
+        private const val EXPLORE_CONTENT_DETAIL_PAGEVIEW_EVENT_NAME = "explore_contents_detail_pageview"
+        private const val NOT_SET_VALUE = "(not set)"
+    }
 }
+
+private data class ContentDetailPageViewEvent(
+    val eventName: String,
+    val label: String,
+)
