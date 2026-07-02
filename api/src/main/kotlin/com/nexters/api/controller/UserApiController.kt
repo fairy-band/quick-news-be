@@ -1,8 +1,11 @@
 package com.nexters.api.controller
 
 import com.nexters.api.dto.CreateUserApiRequest
+import com.nexters.api.dto.Preference
 import com.nexters.api.dto.UpdateUserPreferenceApiRequest
 import com.nexters.api.dto.UserApiResponse
+import com.nexters.api.dto.UserInfoApiResponse
+import com.nexters.api.dto.WorkingExperience
 import com.nexters.api.exception.UserNotFoundException
 import com.nexters.external.service.UserService
 import org.springframework.web.bind.annotation.GetMapping
@@ -37,6 +40,24 @@ class UserApiController(
             userId,
             preferenceRequest.preferences.map { it.categoryName },
             listOf(preferenceRequest.workingExperience.keywordName),
+        )
+    }
+
+    @GetMapping("/{userId}")
+    fun getUserInfo(
+        @PathVariable userId: Long,
+    ): UserInfoApiResponse {
+        val user = userService.getUserById(userId)
+        val userCategoryNames = user.categories.map { it.name }
+        val userKeywordNames = user.keywords.map { it.name }
+
+        val preferences = Preference.values().filter { userCategoryNames.contains(it.categoryName) }
+        val workingExperience = WorkingExperience.values().firstOrNull { userKeywordNames.contains(it.keywordName) }
+
+        return UserInfoApiResponse(
+            id = user.id!!,
+            preferences = preferences,
+            workingExperience = workingExperience
         )
     }
 }
