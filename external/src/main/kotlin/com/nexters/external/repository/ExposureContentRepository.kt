@@ -226,6 +226,174 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
 
     @Query(
         """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+        )
+    """,
+    )
+    fun findExploreRowsByCategoryIds(
+        @Param("categoryIds") categoryIds: List<Long>,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE e.id < :lastSeenOffset
+        AND EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+        )
+    """,
+    )
+    fun findExploreRowsAfterByCategoryIds(
+        @Param("lastSeenOffset") lastSeenOffset: Long,
+        @Param("categoryIds") categoryIds: List<Long>,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE e.id > :lastSeenOffset
+        AND EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+        )
+    """,
+    )
+    fun findExploreRowsAfterAscendingByCategoryIds(
+        @Param("lastSeenOffset") lastSeenOffset: Long,
+        @Param("categoryIds") categoryIds: List<Long>,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE c.publishedAt < :lastSeenPublishedAt
+        AND EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+        )
+    """,
+    )
+    fun findExploreRowsAfterByPublishedAtByCategoryIds(
+        @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
+        @Param("categoryIds") categoryIds: List<Long>,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT new com.nexters.external.repository.ExploreContentRow(
+            e.id,
+            c.id,
+            e.provocativeKeyword,
+            e.provocativeHeadline,
+            e.summaryContent,
+            c.originalUrl,
+            c.imageUrl,
+            c.newsletterName,
+            cp.language,
+            e.createdAt,
+            e.updatedAt
+        )
+        FROM ExposureContent e
+        JOIN e.content c
+        LEFT JOIN c.contentProvider cp
+        WHERE c.publishedAt > :lastSeenPublishedAt
+        AND EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+        )
+    """,
+    )
+    fun findExploreRowsAfterByPublishedAtAscendingByCategoryIds(
+        @Param("lastSeenPublishedAt") lastSeenPublishedAt: LocalDate,
+        @Param("categoryIds") categoryIds: List<Long>,
+        pageable: Pageable,
+    ): List<ExploreContentRow>
+
+    @Query(
+        """
+        SELECT COUNT(e)
+        FROM ExposureContent e
+        JOIN e.content c
+        WHERE EXISTS (
+            SELECT 1 FROM ContentCategoryScore ccs
+            WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+        )
+    """,
+    )
+    fun countByCategoryIds(
+        @Param("categoryIds") categoryIds: List<Long>,
+    ): Long
+
+    @Query(
+        """
         SELECT c FROM Content c
         WHERE c.id IN (
             SELECT DISTINCT e.content.id FROM ExposureContent e

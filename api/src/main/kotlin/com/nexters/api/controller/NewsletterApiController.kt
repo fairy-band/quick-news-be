@@ -75,6 +75,7 @@ class NewsletterApiController(
             sort 없음(기본): 등록 ID 기준. sort=published: 발행일(published_at) 기준.
             direction 없음(기본): DESC. direction=ASC로 오래된 순서 조회가 가능합니다.
             다음 페이지 조회 시 응답의 nextOffset을 lastSeenOffset에 전달합니다.
+            categoryIds 지정 시 해당 직군 카테고리의 콘텐츠만 필터링됩니다. 미지정 시 전체 조회.
         """,
     )
     fun getExploreContents(
@@ -86,9 +87,11 @@ class NewsletterApiController(
         @RequestParam(required = false) sort: ExploreSortType?,
         @Parameter(description = "정렬 방향 (DESC: 최신순, ASC: 오래된 순)", example = "DESC")
         @RequestParam(defaultValue = "DESC") direction: Sort.Direction,
+        @Parameter(description = "직군 카테고리 ID 목록. 미지정 시 전체 조회.", example = "2")
+        @RequestParam(required = false) categoryIds: List<Long>?,
     ): ExposureContentListApiResponse =
         newsletterExploreService
-            .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED, direction)
+            .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED, direction, categoryIds)
             .toApiResponse()
 
     @PostMapping("/contents")
