@@ -9,9 +9,9 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface FcmTokenRepository : JpaRepository<FcmToken, Long> {
-    fun findByDeviceTokenAndIsActiveTrue(deviceToken: String): FcmToken?
+    fun findAllByDeviceTokenAndIsActiveTrue(deviceToken: String): List<FcmToken>
 
-    fun findByFcmTokenAndIsActiveTrue(fcmToken: String): FcmToken?
+    fun findFirstByFcmTokenAndIsActiveTrue(fcmToken: String): FcmToken?
 
     @Modifying
     @Query("UPDATE FcmToken f SET f.isActive = false WHERE f.fcmToken = :fcmToken")

@@ -320,8 +320,8 @@ CREATE INDEX IF NOT EXISTS user_exposed_contents_user_id_content_id_index
 CREATE TABLE IF NOT EXISTS fcm_tokens
 (
     id           SERIAL PRIMARY KEY,
-    device_token VARCHAR(255) NOT NULL UNIQUE,
-    fcm_token    VARCHAR(255) NOT NULL UNIQUE,
+    device_token VARCHAR(255) NOT NULL,
+    fcm_token    VARCHAR(255) NOT NULL,
     device_type  VARCHAR(20)  NOT NULL CHECK (device_type IN ('ANDROID', 'IOS')),
     is_active    BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -519,3 +519,6 @@ CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_user_created
 
 CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_content_id
     ON user_exposed_contents_mapping (content_id);
+
+ALTER TABLE fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_device_token_key;
+ALTER TABLE fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_fcm_token_key;

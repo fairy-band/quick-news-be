@@ -35,12 +35,15 @@ class UserNotificationService(
 
         try {
             val users =
-                fcmTokenRepository.findAllByIsActiveTrue().map {
-                    FcmUser(
-                        it.deviceToken,
-                        it.fcmToken,
-                    )
-                }
+                fcmTokenRepository
+                    .findAllByIsActiveTrue()
+                    .distinctBy { it.fcmToken }
+                    .map {
+                        FcmUser(
+                            it.deviceToken,
+                            it.fcmToken,
+                        )
+                    }
 
             val batchRequest =
                 BatchFcmRequest(

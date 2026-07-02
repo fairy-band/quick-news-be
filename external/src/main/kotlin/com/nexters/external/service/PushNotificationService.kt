@@ -29,14 +29,21 @@ class PushNotificationService(
         body: String,
         data: Map<String, String> = emptyMap()
     ): Boolean {
-        val token = fcmTokenRepository.findByDeviceTokenAndIsActiveTrue(deviceToken)
+        val tokens = fcmTokenRepository.findAllByDeviceTokenAndIsActiveTrue(deviceToken)
 
-        if (token == null) {
+        if (tokens.isEmpty()) {
             logger.warn("No active token found for device: $deviceToken")
             return false
         }
 
-        return sendNotification(token.fcmToken, title, body, data)
+        var anySuccess = false
+        val uniqueTokens = tokens.map { it.fcmToken }.toSet()
+        for (fcmToken in uniqueTokens) {
+            if (sendNotification(fcmToken, title, body, data)) {
+                anySuccess = true
+            }
+        }
+        return anySuccess
     }
 
     /**
@@ -99,33 +106,16 @@ class PushNotificationService(
     ): Boolean =
         try {
             // 디바이스 토큰으로 기존 레코드 찾기
-            val existingToken = fcmTokenRepository.findByDeviceTokenAndIsActiveTrue(deviceToken)
+            val existingTokens = fcmTokenRepository.findAllByDeviceTokenAndIsActiveTrue(deviceToken)
+            val matchedToken = existingTokens.find { it.fcmToken == fcmToken }
 
-            if (existingToken != null) {
-                // 디바이스 토큰이 이미 존재하는 경우
-                if (existingToken.fcmToken == fcmToken) {
-                    // FCM 토큰도 같으면 이미 등록된 상태 - 마지막 접근 시간만 업데이트
-                    logger.info("FCM token already registered for device: $deviceToken - updating last access time")
-                    // 기존 토큰의 updated_at을 갱신하기 위해 저장 (Hibernate가 @UpdateTimestamp 처리)
-                    fcmTokenRepository.save(existingToken)
-                } else {
-                    // FCM 토큰이 다르면 업데이트 (기존 토큰 비활성화 후 새로 등록)
-                    fcmTokenRepository.deactivateDeviceToken(deviceToken)
-                    logger.info("Updated FCM token for existing device: $deviceToken")
-
-                    val newToken =
-                        FcmToken(
-                            deviceToken = deviceToken,
-                            fcmToken = fcmToken,
-                            deviceType = deviceType
-                        )
-                    fcmTokenRepository.save(newToken)
-                    logger.info("New FCM token registered for device: $deviceToken, deviceType: $deviceType")
-                }
+            if (matchedToken != null) {
+                // 이미 등록된 상태 - 마지막 접근 시간만 업데이트
+                logger.info("FCM token already registered for device: $deviceToken - updating last access time")
+                fcmTokenRepository.save(matchedToken)
             } else {
-                // 디바이스 토큰이 없는 경우 - 새로운 등록
-                // 하지만 FCM 토큰이 다른 디바이스에 등록되어 있을 수 있으므로 체크
-                val existingFcmToken = fcmTokenRepository.findByFcmTokenAndIsActiveTrue(fcmToken)
+                // FCM 토큰이 다른 디바이스에 등록되어 있을 수 있으므로 체크
+                val existingFcmToken = fcmTokenRepository.findFirstByFcmTokenAndIsActiveTrue(fcmToken)
                 if (existingFcmToken != null) {
                     // FCM 토큰이 다른 디바이스에 등록되어 있으면 비활성화
                     fcmTokenRepository.deactivateToken(fcmToken)
@@ -139,7 +129,7 @@ class PushNotificationService(
                         deviceType = deviceType
                     )
                 fcmTokenRepository.save(newToken)
-                logger.info("New FCM token registered for new device: $deviceToken, deviceType: $deviceType")
+                logger.info("New FCM token registered for device: $deviceToken, deviceType: $deviceType")
             }
             true
         } catch (e: Exception) {

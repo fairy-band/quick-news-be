@@ -26,9 +26,9 @@ class FcmToken(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @Column(name = "device_token", nullable = false, length = 255, unique = true)
+    @Column(name = "device_token", nullable = false, length = 255)
     val deviceToken: String,
-    @Column(name = "fcm_token", nullable = false, length = 255, unique = true)
+    @Column(name = "fcm_token", nullable = false, length = 255)
     val fcmToken: String,
     @Enumerated(EnumType.STRING)
     @Column(name = "device_type", nullable = false)
