@@ -60,6 +60,9 @@ class NewsletterApiControllerTest {
     private lateinit var popularNewsletterSnapshotService: PopularNewsletterSnapshotService
 
     @MockitoBean
+    private lateinit var userExposedContentMappingRepository: com.nexters.external.repository.UserExposedContentMappingRepository
+
+    @MockitoBean
     private lateinit var contentService: ContentService
 
     @MockitoBean
@@ -219,8 +222,8 @@ class NewsletterApiControllerTest {
             .`when`(dayArchiveResolver.resolveTodayContentArchive(1L, publishedDate))
             .thenReturn(archive)
         Mockito
-            .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContent())
-            .thenReturn(featuredExposureContent)
+            .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContents(limit = 10))
+            .thenReturn(listOf(featuredExposureContent))
 
         mockMvc
             .perform(
@@ -269,8 +272,8 @@ class NewsletterApiControllerTest {
             .`when`(dayArchiveResolver.resolveTodayContentArchive(1L, publishedDate))
             .thenReturn(archive)
         Mockito
-            .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContent())
-            .thenReturn(null)
+            .`when`(popularNewsletterSnapshotService.findLatestFeaturedExposureContents(limit = 10))
+            .thenReturn(emptyList())
 
         mockMvc
             .perform(
@@ -281,7 +284,7 @@ class NewsletterApiControllerTest {
             .andExpect(jsonPath("$.trendingCard.id").value(11L))
             .andExpect(jsonPath("$.trendingCard.title").value("후킹 제목"))
             .andExpect(jsonPath("$.trendingCard.topKeyword").value("Kotlin"))
-            .andExpect(jsonPath("$.cards[0].id").value(11L))
+            .andExpect(jsonPath("$.cards").isEmpty)
     }
 
     @Test

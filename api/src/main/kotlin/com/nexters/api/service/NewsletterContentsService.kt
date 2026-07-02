@@ -5,6 +5,7 @@ import com.nexters.api.enums.Language
 import com.nexters.external.entity.DailyContentArchive
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.enums.ContentProviderType
+import com.nexters.external.repository.UserExposedContentMappingRepository
 import com.nexters.external.service.PopularNewsletterSnapshotService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.springframework.stereotype.Service
@@ -14,6 +15,7 @@ import java.time.LocalDate
 class NewsletterContentsService(
     private val dayArchiveResolver: DailyContentArchiveResolver,
     private val popularNewsletterSnapshotService: PopularNewsletterSnapshotService,
+    private val userExposedContentMappingRepository: UserExposedContentMappingRepository,
 ) {
     fun getNewsletterContents(
         userId: Long,
@@ -24,16 +26,32 @@ class NewsletterContentsService(
                 exposureContent.toCard()
             }
 
-        val trendingCard =
-            popularNewsletterSnapshotService
-                .findLatestFeaturedExposureContent()
+        val topExposureContents = popularNewsletterSnapshotService.findLatestFeaturedExposureContents(limit = 10)
+
+        val contentIds = topExposureContents.map { it.content.id }.filterNotNull()
+        val exposedContentIds =
+            if (contentIds.isNotEmpty()) {
+                userExposedContentMappingRepository.findExposedContentIdsByUserIdAndContentIds(userId, contentIds)
+            } else {
+                emptySet()
+            }
+
+        val unexposedTrendingCard =
+            topExposureContents
+                .firstOrNull { it.content.id !in exposedContentIds }
                 ?.toCard()
-                ?: cards.firstOrNull()
+
+        val trendingCard = unexposedTrendingCard ?: topExposureContents.firstOrNull()?.toCard() ?: cards.firstOrNull()
+
+        val filteredCards =
+            trendingCard?.let { trending ->
+                cards.filter { it.id != trending.id }
+            } ?: cards
 
         return ContentViewApiResponse(
             publishedDate = publishedDate,
             trendingCard = trendingCard,
-            cards = cards,
+            cards = filteredCards,
         )
     }
 

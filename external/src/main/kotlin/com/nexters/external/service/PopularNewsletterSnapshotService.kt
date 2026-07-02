@@ -71,7 +71,19 @@ class PopularNewsletterSnapshotService(
     fun findLatestFeaturedExposureContent(
         segmentType: PopularNewsletterSegmentType = PopularNewsletterSegmentType.GLOBAL,
         segmentKey: String? = null,
-    ): ExposureContent? {
+    ): ExposureContent? =
+        findLatestFeaturedExposureContents(
+            limit = 1,
+            segmentType = segmentType,
+            segmentKey = segmentKey
+        ).firstOrNull()
+
+    @Transactional(readOnly = true)
+    fun findLatestFeaturedExposureContents(
+        limit: Int = 10,
+        segmentType: PopularNewsletterSegmentType = PopularNewsletterSegmentType.GLOBAL,
+        segmentKey: String? = null,
+    ): List<ExposureContent> {
         val latestSnapshot =
             popularNewsletterSnapshotRepository
                 .findLatestFeaturedBySegmentTypeAndSegmentKeyAndStatus(
@@ -80,10 +92,24 @@ class PopularNewsletterSnapshotService(
                     status = PopularNewsletterSnapshotStatus.SUCCESS,
                     pageable = PageRequest.of(0, 1),
                 ).firstOrNull()
-                ?: return null
+                ?: return emptyList()
 
-        return latestSnapshot.featuredExposureContentId
-            ?.let { exposureContentId -> exposureContentRepository.findById(exposureContentId).orElse(null) }
+        val topItems =
+            popularNewsletterSnapshotItemRepository
+                .findBySnapshotIdAndResolutionStatusOrderByRankAsc(
+                    snapshotId = latestSnapshot.id!!,
+                    resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
+                    pageable = PageRequest.of(0, limit)
+                )
+
+        val exposureContentIds = topItems.mapNotNull { it.resolvedExposureContentId }
+
+        if (exposureContentIds.isEmpty()) return emptyList()
+
+        val exposureContents = exposureContentRepository.findAllById(exposureContentIds)
+        val idToContentMap = exposureContents.associateBy { it.id }
+
+        return exposureContentIds.mapNotNull { idToContentMap[it] }
     }
 }
 

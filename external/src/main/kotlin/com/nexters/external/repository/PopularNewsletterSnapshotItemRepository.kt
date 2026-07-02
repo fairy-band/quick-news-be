@@ -11,4 +11,10 @@ interface PopularNewsletterSnapshotItemRepository : JpaRepository<PopularNewslet
         snapshotId: Long,
         resolutionStatus: PopularNewsletterResolutionStatus,
     ): PopularNewsletterSnapshotItem?
+
+    fun findBySnapshotIdAndResolutionStatusOrderByRankAsc(
+        snapshotId: Long,
+        resolutionStatus: PopularNewsletterResolutionStatus,
+        pageable: org.springframework.data.domain.Pageable
+    ): List<PopularNewsletterSnapshotItem>
 }

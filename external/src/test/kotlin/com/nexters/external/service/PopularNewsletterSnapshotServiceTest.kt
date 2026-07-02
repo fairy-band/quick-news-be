@@ -14,7 +14,6 @@ import org.mockito.Mockito
 import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -72,13 +71,48 @@ class PopularNewsletterSnapshotServiceTest {
                     PageRequest.of(0, 1),
                 ),
             ).thenReturn(listOf(latestFeaturedSnapshot))
+
+        val snapshotItem =
+            com.nexters.external.entity.PopularNewsletterSnapshotItem(
+                snapshot = latestFeaturedSnapshot,
+                rank = 1,
+                rawObjectId = "11",
+                clickCount = 100L,
+                resolvedContentId = 101L,
+                resolvedExposureContentId = 11L,
+                resolutionStatus = PopularNewsletterResolutionStatus.RESOLVED,
+            )
+
         Mockito
-            .`when`(exposureContentRepository.findById(11L))
-            .thenReturn(Optional.of(featuredExposureContent))
+            .`when`(
+                popularNewsletterSnapshotItemRepository.findBySnapshotIdAndResolutionStatusOrderByRankAsc(
+                    2L,
+                    PopularNewsletterResolutionStatus.RESOLVED,
+                    PageRequest.of(0, 10)
+                )
+            ).thenReturn(listOf(snapshotItem))
+
+        Mockito
+            .`when`(
+                popularNewsletterSnapshotItemRepository.findBySnapshotIdAndResolutionStatusOrderByRankAsc(
+                    2L,
+                    PopularNewsletterResolutionStatus.RESOLVED,
+                    PageRequest.of(0, 1)
+                )
+            ).thenReturn(listOf(snapshotItem))
+
+        Mockito
+            .`when`(exposureContentRepository.findAllById(listOf(11L)))
+            .thenReturn(listOf(featuredExposureContent))
 
         val result = sut.findLatestFeaturedExposureContent()
 
         assertSame(featuredExposureContent, result)
+
+        val results = sut.findLatestFeaturedExposureContents()
+
+        assertEquals(1, results.size)
+        assertSame(featuredExposureContent, results[0])
     }
 
     @Test

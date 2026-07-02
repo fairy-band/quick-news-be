@@ -55,4 +55,17 @@ interface UserExposedContentMappingRepository : JpaRepository<UserExposedContent
         @Param("startAt") startAt: LocalDateTime,
         @Param("endAt") endAt: LocalDateTime,
     ): Boolean
+
+    @Query(
+        """
+        SELECT u.contentId FROM UserExposedContentMapping u
+        WHERE u.userId = :userId
+        AND u.contentId IN :contentIds
+        AND u.deleted = false
+    """
+    )
+    fun findExposedContentIdsByUserIdAndContentIds(
+        @Param("userId") userId: Long,
+        @Param("contentIds") contentIds: List<Long>,
+    ): Set<Long>
 }
