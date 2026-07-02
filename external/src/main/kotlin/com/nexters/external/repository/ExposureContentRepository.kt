@@ -668,4 +668,17 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     fun findContentIdsWithExposure(
         @Param("contentIds") contentIds: List<Long>,
     ): List<Long>
+
+    @Query(
+        """
+        SELECT e FROM ExposureContent e
+        JOIN FETCH e.content c
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ExposureContentMarkdown m
+            WHERE m.exposureContentId = e.id
+        )
+        ORDER BY e.id DESC
+    """
+    )
+    fun findExposureContentsWithoutMarkdown(pageable: Pageable): List<ExposureContent>
 }

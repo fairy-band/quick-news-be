@@ -8,6 +8,7 @@ import com.nexters.external.entity.Summary
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ExploreContentRow
 import com.nexters.external.repository.ExposureContentArchiveRow
+import com.nexters.external.repository.ExposureContentMarkdownRepository
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
@@ -29,6 +30,7 @@ class ExposureContentService(
     private val summaryRepository: SummaryRepository,
     private val contentKeywordMappingRepository: ContentKeywordMappingRepository,
     private val contentCategoryScoreService: ContentCategoryScoreService,
+    private val exposureContentMarkdownRepository: ExposureContentMarkdownRepository,
 ) {
     private val logger = LoggerFactory.getLogger(ExposureContentService::class.java)
 
@@ -206,6 +208,10 @@ class ExposureContentService(
         exposureContentRepository
             .findById(id)
             .orElseThrow { NoSuchElementException("Exposure content not found with ID: $id") }
+
+    fun getMarkdownByExposureContentId(exposureContentId: Long): com.nexters.external.entity.ExposureContentMarkdown =
+        exposureContentMarkdownRepository.findByExposureContentId(exposureContentId)
+            ?: throw NoSuchElementException("Markdown not found for exposure content ID: $exposureContentId")
 
     fun getExposureContentByContent(content: Content): ExposureContent? = exposureContentRepository.findByContent(content)
 

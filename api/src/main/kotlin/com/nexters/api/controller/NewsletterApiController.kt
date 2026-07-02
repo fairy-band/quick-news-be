@@ -45,6 +45,7 @@ class NewsletterApiController(
     private val newsletterExploreService: NewsletterExploreService,
     private val contentService: ContentService,
     private val contentProviderRequestService: ContentProviderRequestService,
+    private val exposureContentService: com.nexters.external.service.ExposureContentService,
     private val tokenUtil: TokenUtil,
 ) {
     @GetMapping("/contents/{userId}")
@@ -134,6 +135,18 @@ class NewsletterApiController(
             newsletterName = content.newsletterName,
             originalUrl = content.originalUrl,
             createdAt = content.createdAt,
+        )
+    }
+
+    @GetMapping("/exposure-contents/{exposureContentId}/markdown")
+    @Operation(summary = "노출 콘텐츠 마크다운 조회", description = "노출 콘텐츠의 마크다운 내용을 조회합니다.")
+    fun getExposureContentMarkdown(
+        @PathVariable exposureContentId: Long,
+    ): com.nexters.api.dto.ExposureContentMarkdownApiResponse {
+        val markdown = exposureContentService.getMarkdownByExposureContentId(exposureContentId)
+        return com.nexters.api.dto.ExposureContentMarkdownApiResponse(
+            exposureContentId = markdown.exposureContentId,
+            markdownContent = markdown.markdownContent
         )
     }
 

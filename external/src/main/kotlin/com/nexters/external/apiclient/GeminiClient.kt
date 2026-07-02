@@ -219,6 +219,12 @@ class GeminiClient(
             schema = BATCH_CONTENT_EVALUATION_SCHEMA,
         )
 
+    fun requestTextGeneration(
+        model: GeminiModel,
+        prompt: String,
+        maxOutputTokens: Int = 3000,
+    ): GenerateContentResponse? = executeTextRequest(model, prompt, maxOutputTokens)
+
     private fun executeJsonRequest(
         model: GeminiModel,
         prompt: String,
