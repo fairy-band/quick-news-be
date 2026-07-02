@@ -20,6 +20,8 @@ import com.nexters.external.service.ContentService
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.ArraySchema
+import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -88,7 +90,14 @@ class NewsletterApiController(
         @RequestParam(required = false) sort: ExploreSortType?,
         @Parameter(description = "정렬 방향 (DESC: 최신순, ASC: 오래된 순)", example = "DESC")
         @RequestParam(defaultValue = "DESC") direction: Sort.Direction,
-        @Parameter(description = "직군 카테고리 ID 목록. 미지정 시 전체 조회.", example = "2")
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "직군 카테고리 ID 목록 (다중 선택 가능) - 1: BE, 2: FE, 3: iOS, 4: Android, 5: DevOps",
+            array = io.swagger.v3.oas.annotations.media.ArraySchema(
+                schema = io.swagger.v3.oas.annotations.media.Schema(
+                    allowableValues = ["1", "2", "3", "4", "5"]
+                )
+            )
+        )
         @RequestParam(required = false) categoryIds: List<Long>?,
     ): ExposureContentListApiResponse =
         newsletterExploreService
