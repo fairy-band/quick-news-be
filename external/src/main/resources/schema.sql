@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users
 (
     id           SERIAL PRIMARY KEY,
     device_token VARCHAR(255) NOT NULL UNIQUE,
+    is_onboarded BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -64,6 +65,9 @@ CREATE TABLE IF NOT EXISTS contents
 );
 
 -- Backfill columns for older PostgreSQL databases
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN NOT NULL DEFAULT FALSE;
+
 ALTER TABLE contents
     ADD COLUMN IF NOT EXISTS newsletter_source_id VARCHAR(255);
 

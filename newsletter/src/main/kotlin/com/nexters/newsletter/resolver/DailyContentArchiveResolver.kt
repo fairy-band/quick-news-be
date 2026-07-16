@@ -1,6 +1,7 @@
 package com.nexters.newsletter.resolver
 
 import com.nexters.external.entity.DailyContentArchive
+import com.nexters.external.entity.User
 import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.service.CategoryService
 import com.nexters.external.service.DailyContentArchiveService
@@ -21,6 +22,7 @@ class DailyContentArchiveResolver(
     private val possibleContentsResolver: PossibleContentsResolver,
     private val recommendationCandidateSelector: RecommendationCandidateSelector,
     private val exposureContentService: ExposureContentService,
+    private val onboardingContentPolicy: OnboardingContentPolicy,
 ) {
     private val archiveLocks = ConcurrentHashMap<ArchiveLockKey, ReferenceCountedLock>()
 
@@ -39,14 +41,18 @@ class DailyContentArchiveResolver(
             val trace = ArchiveGenerationTrace()
             val user = trace.measure("loadUser") { userService.getUserById(userId) }
             val userCategories = user.categories.map { it.id!! }
+            val onboardingContents = resolveOnboardingContents(user, date, trace)
             val categoryIds =
-                trace.measure("resolveCategories") {
-                    userCategories.ifEmpty {
-                        categoryService.getAllCategories().map { it.id!! }
+                if (onboardingContents == null) {
+                    trace.measure("resolveCategories") {
+                        userCategories.ifEmpty {
+                            categoryService.getAllCategories().map { it.id!! }
+                        }
                     }
+                } else {
+                    emptyList()
                 }
-
-            val contents = resolveTodayContents(userId, categoryIds, trace)
+            val contents = onboardingContents ?: resolveTodayContents(userId, categoryIds, trace)
 
             val dailyContentArchive =
                 DailyContentArchive(
@@ -57,7 +63,11 @@ class DailyContentArchiveResolver(
 
             trace
                 .measure("saveArchive") {
-                    dailyContentArchiveService.saveWithHistory(dailyContentArchive)
+                    dailyContentArchiveService.saveWithHistory(dailyContentArchive).also {
+                        if (onboardingContents != null) {
+                            userService.markOnboarded(userId)
+                        }
+                    }
                 }.also {
                     logger.info(
                         "daily_archive_generated userId={} date={} subscribedCategoryCount={} resolvedCategoryCount={} exposureContentCount={} timingsMs={}",
@@ -65,6 +75,44 @@ class DailyContentArchiveResolver(
                         date,
                         userCategories.size,
                         categoryIds.size,
+                        contents.size,
+                        trace.timings,
+                    )
+                }
+        }
+    }
+
+    @Transactional
+    fun createOnboardingContentArchive(
+        userId: Long,
+        date: LocalDate = LocalDate.now(),
+    ): DailyContentArchive? {
+        dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return it }
+
+        return withArchiveLock(userId, date) {
+            dailyContentArchiveService.findByDateAndUserId(userId, date)?.let { return@withArchiveLock it }
+
+            val trace = ArchiveGenerationTrace()
+            val user = trace.measure("loadUser") { userService.getUserById(userId) }
+            val contents = resolveOnboardingContents(user, date, trace) ?: return@withArchiveLock null
+
+            val dailyContentArchive =
+                DailyContentArchive(
+                    user = DailyContentArchive.UserSnapshot.from(user),
+                    date = date,
+                    exposureContents = contents,
+                )
+
+            trace
+                .measure("saveOnboardingArchive") {
+                    dailyContentArchiveService.saveWithHistory(dailyContentArchive).also {
+                        userService.markOnboarded(userId)
+                    }
+                }.also {
+                    logger.info(
+                        "onboarding_daily_archive_generated userId={} date={} exposureContentCount={} timingsMs={}",
+                        userId,
+                        date,
                         contents.size,
                         trace.timings,
                     )
@@ -166,6 +214,52 @@ class DailyContentArchiveResolver(
         return trace.measure("fetchArchiveSnapshots") {
             fetchExposureContents(selectedContents)
         }
+    }
+
+    private fun resolveOnboardingContents(
+        user: User,
+        date: LocalDate,
+        trace: ArchiveGenerationTrace,
+    ): List<DailyContentArchive.ExposureContentSnapshot>? {
+        if (user.isOnboarded) {
+            return null
+        }
+
+        val exposureContentIds =
+            trace.measure("resolveOnboardingContentIds") {
+                onboardingContentPolicy.resolveExposureContentIds(user, date)
+            }
+
+        if (exposureContentIds.isEmpty()) {
+            return null
+        }
+
+        val contents =
+            trace.measure("fetchOnboardingArchiveSnapshots") {
+                exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(exposureContentIds)
+            }
+
+        if (contents.isEmpty()) {
+            logger.warn(
+                "온보딩 추천 콘텐츠를 찾을 수 없습니다. userId: {}, date: {}, exposureContentIds: {}",
+                user.id,
+                date,
+                exposureContentIds,
+            )
+            return null
+        }
+
+        if (contents.size != exposureContentIds.size) {
+            logger.warn(
+                "일부 온보딩 추천 콘텐츠를 찾지 못했습니다. userId: {}, date: {}, requested: {}, resolved: {}",
+                user.id,
+                date,
+                exposureContentIds,
+                contents.map { it.id },
+            )
+        }
+
+        return contents
     }
 
     private fun fetchExposureContents(

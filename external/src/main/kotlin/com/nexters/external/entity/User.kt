@@ -34,6 +34,8 @@ class User(
         inverseJoinColumns = [JoinColumn(name = "keyword_id")]
     )
     var keywords: MutableSet<ReservedKeyword> = mutableSetOf<ReservedKeyword>(),
+    @Column(nullable = false, name = "is_onboarded")
+    var isOnboarded: Boolean = false,
     @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false, name = "updated_at")

@@ -92,11 +92,13 @@ class NewsletterApiController(
         @RequestParam(defaultValue = "DESC") direction: Sort.Direction,
         @io.swagger.v3.oas.annotations.Parameter(
             description = "직군 카테고리 ID 목록 (다중 선택 가능) - 1: BE, 2: FE, 3: iOS, 4: Android, 5: DevOps",
-            array = io.swagger.v3.oas.annotations.media.ArraySchema(
-                schema = io.swagger.v3.oas.annotations.media.Schema(
-                    allowableValues = ["1", "2", "3", "4", "5"]
+            array =
+                io.swagger.v3.oas.annotations.media.ArraySchema(
+                    schema =
+                        io.swagger.v3.oas.annotations.media.Schema(
+                            allowableValues = ["1", "2", "3", "4", "5"]
+                        )
                 )
-            )
         )
         @RequestParam(required = false) categoryIds: List<Long>?,
     ): ExposureContentListApiResponse =

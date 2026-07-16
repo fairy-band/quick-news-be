@@ -4,4 +4,5 @@ data class UserInfoApiResponse(
     val id: Long,
     val preferences: List<Preference>,
     val workingExperience: WorkingExperience?,
+    val isOnboarded: Boolean,
 )

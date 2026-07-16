@@ -57,7 +57,8 @@ class UserApiController(
         return UserInfoApiResponse(
             id = user.id!!,
             preferences = preferences,
-            workingExperience = workingExperience
+            workingExperience = workingExperience,
+            isOnboarded = user.isOnboarded
         )
     }
 }

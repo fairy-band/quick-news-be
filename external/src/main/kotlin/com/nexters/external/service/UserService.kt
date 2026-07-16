@@ -68,4 +68,11 @@ class UserService(
         userRepository.findById(userId).orElseThrow {
             IllegalArgumentException("User with ID $userId not found.")
         }
+
+    @Transactional
+    fun markOnboarded(userId: Long) {
+        val user = getUserById(userId)
+        user.isOnboarded = true
+        userRepository.save(user)
+    }
 }
