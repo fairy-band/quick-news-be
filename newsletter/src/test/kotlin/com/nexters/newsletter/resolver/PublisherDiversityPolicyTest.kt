@@ -39,6 +39,35 @@ class PublisherDiversityPolicyTest {
         assertThat(result.map { it.publisherName }).contains("Other")
     }
 
+    @Test
+    fun `apply should return exact limit even if all candidates are from the same publisher`() {
+        val candidates =
+            listOf(
+                candidate(exposureContentId = 1L, publisher = "Same"),
+                candidate(exposureContentId = 2L, publisher = "Same"),
+                candidate(exposureContentId = 3L, publisher = "Same"),
+                candidate(exposureContentId = 4L, publisher = "Same"),
+            )
+        val sourcesByCandidate =
+            candidates.associateWith {
+                RecommendCalculateSource(
+                    positiveKeywordSources = listOf(PositiveKeywordSource(weight = 100.0)),
+                    negativeKeywordSources = emptyList(),
+                    publishedDate = it.publishedAt,
+                    publisherDuplicateCandidateCount = 0,
+                )
+            }
+
+        val result =
+            policy.apply(
+                candidates = candidates,
+                sourcesByCandidate = sourcesByCandidate,
+                limit = 3,
+            )
+
+        assertThat(result).hasSize(3)
+    }
+
     private fun candidate(
         exposureContentId: Long,
         publisher: String,

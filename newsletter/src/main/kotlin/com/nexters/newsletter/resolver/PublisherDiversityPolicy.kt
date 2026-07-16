@@ -38,17 +38,29 @@ class PublisherDiversityPolicy(
                 .map { it.candidate }
 
         val selectedPublisherCounts = mutableMapOf<String, Int>()
-        return scoredCandidates
-            .filter { candidate ->
-                val publisherId = candidate.publisherName
-                val count = selectedPublisherCounts.getOrDefault(publisherId, 0)
-                if (count < maxPerPublisher) {
-                    selectedPublisherCounts[publisherId] = count + 1
-                    true
-                } else {
-                    false
-                }
-            }.take(limit)
+        val selected = mutableListOf<ExposureContentRecommendationCandidateRow>()
+        val rejected = mutableListOf<ExposureContentRecommendationCandidateRow>()
+
+        for (candidate in scoredCandidates) {
+            val publisherId = candidate.publisherName
+            val count = selectedPublisherCounts.getOrDefault(publisherId, 0)
+            if (count < maxPerPublisher) {
+                selectedPublisherCounts[publisherId] = count + 1
+                selected.add(candidate)
+            } else {
+                rejected.add(candidate)
+            }
+
+            if (selected.size == limit) {
+                break
+            }
+        }
+
+        if (selected.size < limit) {
+            selected.addAll(rejected.take(limit - selected.size))
+        }
+
+        return selected
     }
 }
 
