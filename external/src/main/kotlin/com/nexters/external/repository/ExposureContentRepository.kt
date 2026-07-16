@@ -245,6 +245,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         WHERE EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
     """,
     )
@@ -275,6 +277,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         AND EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
     """,
     )
@@ -306,6 +310,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         AND EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
     """,
     )
@@ -337,6 +343,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         AND EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
     """,
     )
@@ -368,6 +376,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         AND EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
     """,
     )
@@ -385,6 +395,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         WHERE EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id AND ccs.categoryId IN :categoryIds AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
     """,
     )
@@ -601,6 +613,8 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
             WHERE ccs.contentId = c.id
             AND ccs.categoryId IN :categoryIds
             AND ccs.totalScore > 0
+            AND ccs.providerMismatch = false
+            AND (ccs.competingScore < ccs.totalScore * 1.5 OR ccs.competingScore - ccs.totalScore < 8.0)
         )
         AND NOT EXISTS (
             SELECT 1 FROM UserExposedContentMapping uecm
