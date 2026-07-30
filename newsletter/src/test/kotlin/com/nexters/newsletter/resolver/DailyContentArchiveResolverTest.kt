@@ -87,6 +87,7 @@ class DailyContentArchiveResolverTest {
         every { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(listOf(candidate.exposureContentId)) } returns
             listOf(exposureContent)
         every { dailyContentArchiveService.saveWithHistory(any()) } answers { firstArg<DailyContentArchive>() }
+        every { userService.markOnboarded(userId) } answers { }
 
         val result = resolver.resolveTodayContentArchive(userId, date)
 
@@ -105,7 +106,7 @@ class DailyContentArchiveResolverTest {
     }
 
     @Test
-    fun `resolveTodayContentArchive should use fixed onboarding contents on registration day`() {
+    fun `resolveTodayContentArchive should use fixed onboarding contents on registration day without marking onboarded`() {
         val userId = 1L
         val date = LocalDate.of(2026, 6, 9)
         val user =
@@ -125,18 +126,76 @@ class DailyContentArchiveResolverTest {
         every { categoryService.getAllCategories() } returns emptyList()
         every { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(onboardingExposureContentIds) } returns onboardingContents
         every { dailyContentArchiveService.saveWithHistory(any()) } answers { firstArg<DailyContentArchive>() }
-        every { userService.markOnboarded(userId) } answers { }
 
         val result = resolver.resolveTodayContentArchive(userId, date)
 
         assertThat(result.exposureContents).containsExactlyElementsOf(onboardingContents)
         verify(exactly = 0) { possibleContentsResolver.resolveCandidatePoolByCategoryIds(any(), any()) }
         verify(exactly = 0) { recommendationCandidateSelector.select(any()) }
+        verify(exactly = 0) { userService.markOnboarded(any()) }
         verify { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(onboardingExposureContentIds) }
     }
 
     @Test
-    fun `createOnboardingContentArchive should create only onboarding archive without regular fallback`() {
+    fun `resolveTodayContentArchive should mark user as onboarded when resolving regular contents on next day`() {
+        val userId = 1L
+        val categoryId = 10L
+        val registeredAt = LocalDate.of(2026, 6, 8)
+        val date = LocalDate.of(2026, 6, 9)
+        val keyword = ReservedKeyword(id = 1L, name = "AI")
+        val category = Category(id = categoryId, name = "BE")
+        val user =
+            User(
+                id = userId,
+                deviceToken = "test-device-token",
+                categories = mutableSetOf(category),
+                isOnboarded = false,
+                createdAt = registeredAt.atStartOfDay(),
+            )
+        val candidate = candidate(exposureContentId = 1L, contentId = 100L)
+        val exposureContent = exposureContentSnapshot(id = candidate.exposureContentId, contentId = candidate.contentId)
+
+        every { dailyContentArchiveService.findByDateAndUserId(userId, date) } returns null
+        every { userService.getUserById(userId) } returns user
+        every {
+            possibleContentsResolver.resolveCandidatePoolByCategoryIds(
+                userId = userId,
+                categoryIds = listOf(categoryId),
+            )
+        } returns
+            CandidatePool(
+                candidates =
+                    listOf(
+                        CandidatePoolItem(
+                            candidate = candidate,
+                            signals =
+                                listOf(
+                                    CandidateSourceSignal(
+                                        source = "test_source",
+                                        score = 1.0,
+                                        confidence = 0.8,
+                                        reason = "test",
+                                    ),
+                                ),
+                        ),
+                    ),
+                expandedWindow = CandidateRecencyWindow.DAYS_30,
+            )
+        every { categoryService.getKeywordWeightsByCategoryIds(listOf(categoryId)) } returns mapOf(keyword to 2.0)
+        every { recommendationCandidateSelector.select(any()) } returns listOf(candidate)
+        every { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(listOf(candidate.exposureContentId)) } returns
+            listOf(exposureContent)
+        every { dailyContentArchiveService.saveWithHistory(any()) } answers { firstArg<DailyContentArchive>() }
+        every { userService.markOnboarded(userId) } answers { }
+
+        val result = resolver.resolveTodayContentArchive(userId, date)
+
+        assertThat(result.exposureContents).containsExactly(exposureContent)
+        verify(exactly = 1) { userService.markOnboarded(userId) }
+    }
+
+    @Test
+    fun `createOnboardingContentArchive should create only onboarding archive without marking onboarded`() {
         val userId = 1L
         val date = LocalDate.of(2026, 6, 9)
         val user =
@@ -155,7 +214,6 @@ class DailyContentArchiveResolverTest {
         every { userService.getUserById(userId) } returns user
         every { exposureContentService.getArchiveSnapshotsByIdsPreservingOrder(onboardingExposureContentIds) } returns onboardingContents
         every { dailyContentArchiveService.saveWithHistory(any()) } answers { firstArg<DailyContentArchive>() }
-        every { userService.markOnboarded(userId) } answers { }
 
         val result = resolver.createOnboardingContentArchive(userId, date)
 
@@ -163,6 +221,7 @@ class DailyContentArchiveResolverTest {
         verify(exactly = 0) { categoryService.getAllCategories() }
         verify(exactly = 0) { possibleContentsResolver.resolveCandidatePoolByCategoryIds(any(), any()) }
         verify(exactly = 0) { recommendationCandidateSelector.select(any()) }
+        verify(exactly = 0) { userService.markOnboarded(any()) }
     }
 
     @Test

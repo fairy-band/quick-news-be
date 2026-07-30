@@ -64,7 +64,7 @@ class DailyContentArchiveResolver(
             trace
                 .measure("saveArchive") {
                     dailyContentArchiveService.saveWithHistory(dailyContentArchive).also {
-                        if (onboardingContents != null) {
+                        if (onboardingContents == null && !user.isOnboarded) {
                             userService.markOnboarded(userId)
                         }
                     }
@@ -105,9 +105,7 @@ class DailyContentArchiveResolver(
 
             trace
                 .measure("saveOnboardingArchive") {
-                    dailyContentArchiveService.saveWithHistory(dailyContentArchive).also {
-                        userService.markOnboarded(userId)
-                    }
+                    dailyContentArchiveService.saveWithHistory(dailyContentArchive)
                 }.also {
                     logger.info(
                         "onboarding_daily_archive_generated userId={} date={} exposureContentCount={} timingsMs={}",
