@@ -36,6 +36,10 @@ class User(
     var keywords: MutableSet<ReservedKeyword> = mutableSetOf<ReservedKeyword>(),
     @Column(nullable = false, name = "is_onboarded")
     var isOnboarded: Boolean = false,
+    @Column(nullable = false, name = "is_category_changed")
+    var isCategoryChanged: Boolean = false,
+    @Column(nullable = false, name = "category_change_count")
+    var categoryChangeCount: Int = 0,
     @Column(nullable = false, name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
     @Column(nullable = false, name = "updated_at")

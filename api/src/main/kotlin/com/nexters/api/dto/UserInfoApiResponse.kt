@@ -5,4 +5,6 @@ data class UserInfoApiResponse(
     val preferences: List<Preference>,
     val workingExperience: WorkingExperience?,
     val isOnboarded: Boolean,
+    val isCategoryChanged: Boolean = false,
+    val categoryChangeCount: Int = 0,
 )

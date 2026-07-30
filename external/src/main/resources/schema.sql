@@ -1,11 +1,13 @@
 -- Users table
 CREATE TABLE IF NOT EXISTS users
 (
-    id           SERIAL PRIMARY KEY,
-    device_token VARCHAR(255) NOT NULL UNIQUE,
-    is_onboarded BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id                  SERIAL PRIMARY KEY,
+    device_token        VARCHAR(255) NOT NULL UNIQUE,
+    is_onboarded        BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_category_changed BOOLEAN      NOT NULL DEFAULT FALSE,
+    category_change_count INT        NOT NULL DEFAULT 0,
+    created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Categories table
@@ -67,6 +69,12 @@ CREATE TABLE IF NOT EXISTS contents
 -- Backfill columns for older PostgreSQL databases
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_category_changed BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS category_change_count INT NOT NULL DEFAULT 0;
 
 ALTER TABLE contents
     ADD COLUMN IF NOT EXISTS newsletter_source_id VARCHAR(255);

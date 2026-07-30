@@ -6,6 +6,7 @@ import com.nexters.external.repository.ReservedKeywordRepository
 import com.nexters.external.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 import java.util.concurrent.locks.ReentrantLock
 
 @Service
@@ -14,6 +15,7 @@ class UserService(
     private val categoryRepository: CategoryRepository,
     private val reservedKeywordRepository: ReservedKeywordRepository,
     private val notificationService: NotificationService,
+    private val dailyContentArchiveService: DailyContentArchiveService,
 ) {
     private val userRegistrationLock = ReentrantLock() // TODO: 이후 upsert로 변경
 
@@ -59,9 +61,30 @@ class UserService(
                 throw IllegalArgumentException("No valid keywords found for the provided names: $keywords")
             }
 
+        val oldCategoryIds = user.categories.mapNotNull { it.id }.toSet()
+        val newCategoryIds = categories.mapNotNull { it.id }.toSet()
+
+        val isCategoryChanging = oldCategoryIds.isNotEmpty() && oldCategoryIds != newCategoryIds
+
+        if (isCategoryChanging) {
+            if (user.categoryChangeCount >= MAX_ALLOWED_CATEGORY_CHANGES) {
+                throw IllegalStateException("직군 변경은 계정당 최대 ${MAX_ALLOWED_CATEGORY_CHANGES}회만 가능합니다.")
+            }
+            user.categoryChangeCount += 1
+            user.isCategoryChanged = true
+        }
+
         user.categories = categories.toMutableSet()
         user.keywords = reservedKeywords.toMutableSet()
         userRepository.save(user)
+
+        if (isCategoryChanging) {
+            dailyContentArchiveService.deleteByDateAndUserId(userId, LocalDate.now())
+        }
+    }
+
+    companion object {
+        const val MAX_ALLOWED_CATEGORY_CHANGES = 1
     }
 
     fun getUserById(userId: Long): User =

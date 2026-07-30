@@ -58,7 +58,9 @@ class UserApiController(
             id = user.id!!,
             preferences = preferences,
             workingExperience = workingExperience,
-            isOnboarded = user.isOnboarded
+            isOnboarded = user.isOnboarded,
+            isCategoryChanged = user.isCategoryChanged,
+            categoryChangeCount = user.categoryChangeCount,
         )
     }
 }
