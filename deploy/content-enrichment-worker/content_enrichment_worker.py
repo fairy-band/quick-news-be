@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, unquote, urlencode, urljoin, urlparse, urlunparse
 
 import aiohttp
 import asyncpg
@@ -30,10 +30,13 @@ NON_ARTICLE_HOSTS = {
     "youtube.com",
 }
 NON_ARTICLE_PATH_KEYWORDS = {
+    "login",
     "preference",
     "preferences",
     "privacy",
     "setting",
+    "signin",
+    "signup",
     "unsubscribe",
 }
 NON_HTML_EXTENSIONS = {
@@ -868,7 +871,12 @@ def normalize_url(url: str) -> str:
 
 
 def clean_url(url: str) -> str:
-    return url.strip().strip(".,;:!?)>]}'\"")
+    cleaned = url.strip().strip(".,;:!?)>]}'\"")
+    if "tracking.tldrnewsletter.com/CL0/http" in cleaned:
+        match = re.search(r"tracking\.tldrnewsletter\.com/CL0/([^/]+)", cleaned)
+        if match:
+            cleaned = unquote(match.group(1))
+    return cleaned
 
 
 def is_non_article_url(url: str) -> bool:
