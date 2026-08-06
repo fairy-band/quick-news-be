@@ -71,6 +71,14 @@ class GeminiRateLimiterService(
             geminiClient.requestTextGeneration(model, prompt)
         }?.text()
 
+    fun executeMarkdownGeneration(
+        model: GeminiModel,
+        originalContent: String,
+    ): String? =
+        execute(model) {
+            geminiClient.requestMarkdownGeneration(model, originalContent)
+        }?.text()
+
     private fun execute(
         model: GeminiModel,
         block: () -> GenerateContentResponse?,

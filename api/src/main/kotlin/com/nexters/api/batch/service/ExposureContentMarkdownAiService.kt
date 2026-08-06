@@ -47,8 +47,8 @@ class ExposureContentMarkdownAiService(
 
             contents.forEach { exposureContent ->
                 try {
-                    val prompt = buildMarkdownPrompt(exposureContent.content.content)
-                    val response = geminiRateLimiterService.executeTextGeneration(GeminiModel.TWO_FIVE_FLASH, prompt)
+                    val originalContent = exposureContent.content.content
+                    val response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent)
 
                     val markdownText = response?.trim()
 
@@ -59,15 +59,15 @@ class ExposureContentMarkdownAiService(
                                 markdownContent = markdownText
                             )
                         exposureContentMarkdownRepository.save(entity)
-                        logger.info("Saved markdown for exposure content ID: \${exposureContent.id}")
+                        logger.info("Saved AI-generated markdown for exposure content ID: ${exposureContent.id}")
                     } else {
-                        logger.warn("Received empty markdown from AI for exposure content ID: \${exposureContent.id}")
+                        logger.warn("Received empty markdown from AI for exposure content ID: ${exposureContent.id}")
                     }
                 } catch (e: RateLimitExceededException) {
                     logger.error("Rate limit exceeded during markdown generation. Halting batch.", e)
                     throw e
                 } catch (e: Exception) {
-                    logger.error("Failed to generate markdown for exposure content ID: \${exposureContent.id}", e)
+                    logger.error("Failed to generate markdown for exposure content ID: ${exposureContent.id}", e)
                 }
             }
         } finally {
@@ -75,16 +75,6 @@ class ExposureContentMarkdownAiService(
             logger.debug("Markdown batch processing lock released")
         }
     }
-
-    private fun buildMarkdownPrompt(originalContent: String): String =
-        """
-        다음 전체 본문을 읽기 좋은 형태의 **한국어** 마크다운 포맷으로 번역 및 재가공해 줘.
-        반드시 한국어로 번역 및 작성해야 해.
-        불필요한 부연 설명은 제외하고 변환된 마크다운 결과만 응답해 줘.
-        
-        원본 본문:
-        ${"$"}{originalContent}
-        """.trimIndent()
 
     companion object {
         private const val BATCH_SIZE = 5

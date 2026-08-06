@@ -30,6 +30,7 @@ class GeminiClient(
         private val AUTO_CONTENT_EVALUATION_TEMPLATE = loadPromptTemplate("auto-content-evaluation.txt")
         private val BATCH_AUTO_CONTENT_EVALUATION_TEMPLATE = loadPromptTemplate("batch-auto-content-evaluation.txt")
         private val PROMPT_REVISION_SUGGESTION_TEMPLATE = loadPromptTemplate("prompt-revision-suggestion.txt")
+        private val MARKDOWN_GENERATION_TEMPLATE = loadPromptTemplate("markdown-generation.txt")
 
         private fun loadPromptTemplate(fileName: String): String =
             requireNotNull(GeminiClient::class.java.classLoader.getResourceAsStream("prompts/$fileName")) {
@@ -224,6 +225,17 @@ class GeminiClient(
         prompt: String,
         maxOutputTokens: Int = 3000,
     ): GenerateContentResponse? = executeTextRequest(model, prompt, maxOutputTokens)
+
+    fun requestMarkdownGeneration(
+        model: GeminiModel,
+        originalContent: String,
+        maxOutputTokens: Int = 4000,
+    ): GenerateContentResponse? =
+        executeTextRequest(
+            model = model,
+            prompt = renderPrompt(MARKDOWN_GENERATION_TEMPLATE, "ORIGINAL_CONTENT" to originalContent),
+            maxOutputTokens = maxOutputTokens,
+        )
 
     private fun executeJsonRequest(
         model: GeminiModel,
