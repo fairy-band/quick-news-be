@@ -1,0 +1,147 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: newsletter-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-newsletter}
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./external/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '${DB_CPU_LIMIT:-0.5}'
+          memory: ${DB_MEM_LIMIT:-512M}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-newsletter}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - newsletter-network
+      - shared-proxy-network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: newsletter-mongodb
+    restart: always
+    ports:
+      - "127.0.0.1:27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-newsletter}
+      TZ: Asia/Seoul
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '${MONGO_CPU_LIMIT:-0.5}'
+          memory: ${MONGO_MEM_LIMIT:-512M}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://$${MONGO_INITDB_ROOT_USERNAME:-admin}:$${MONGO_INITDB_ROOT_PASSWORD:-password123}@localhost:27017/admin --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - newsletter-network
+      - shared-proxy-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: newsletter-api
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-newsletter}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      SPRING_MONGODB_URI: ${SPRING_MONGODB_URI}
+      FIREBASE_ENABLED: ${FIREBASE_ENABLED:-true}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_SERVICE_ACCOUNT_KEY_PATH: ${FIREBASE_SERVICE_ACCOUNT_KEY_PATH:-firebase-service-account.json}
+      BATCH_ENABLED: ${BATCH_ENABLED:-true}
+      APP_WARMUP_ENABLED: ${APP_WARMUP_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      ERROR_DISCORD_WEBHOOK_URI: ${ERROR_DISCORD_WEBHOOK_URI}
+      DISCORD_USER_REGISTRATION_ENABLED: ${DISCORD_USER_REGISTRATION_ENABLED:-true}
+      DISCORD_USER_REGISTRATION_WEBHOOK_URL: ${DISCORD_USER_REGISTRATION_WEBHOOK_URL}
+      OAUTH2_CLIENT_ID_GOOGLE: ${OAUTH2_CLIENT_ID_GOOGLE}
+      OAUTH2_CLIENT_SECRET_GOOGLE: ${OAUTH2_CLIENT_SECRET_GOOGLE}
+      CRAWLER_SERVICE_URL: http://crawler:8000
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '${API_CPU_LIMIT:-1.5}'
+          memory: ${API_MEM_LIMIT:-1.5G}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      crawler:
+        condition: service_healthy
+    networks:
+      - newsletter-network
+      - shared-proxy-network
+
+  crawler:
+    build:
+      context: ./crawler
+      dockerfile: Dockerfile
+    container_name: newsletter-crawler
+    restart: always
+    ports:
+      - "127.0.0.1:8081:8000"
+    environment:
+      TZ: Asia/Seoul
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - newsletter-network
+      - shared-proxy-network
+
+
+networks:
+  newsletter-network:
+    driver: bridge
+  shared-proxy-network:
+    external: true
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  mongodb_config:
+
