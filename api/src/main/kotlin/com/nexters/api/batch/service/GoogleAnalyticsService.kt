@@ -28,7 +28,7 @@ import java.time.format.DateTimeFormatter
     matchIfMissing = false
 )
 class GoogleAnalyticsService(
-    private val analyticsClient: BetaAnalyticsDataClient
+    private val analyticsClient: BetaAnalyticsDataClient? = null
 ) {
     private val logger = LoggerFactory.getLogger(GoogleAnalyticsService::class.java)
     private val contentDetailPageViewEvents =

@@ -69,6 +69,7 @@
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
+            <appender-ref ref="DISCORD"/>
         </root>
     </springProfile>
     <springProfile name = "prod">

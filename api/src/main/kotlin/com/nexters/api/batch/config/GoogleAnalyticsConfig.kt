@@ -25,7 +25,7 @@ class GoogleAnalyticsConfig {
     private lateinit var credentialsPath: String
 
     @Bean
-    fun betaAnalyticsDataClient(): BetaAnalyticsDataClient {
+    fun betaAnalyticsDataClient(): BetaAnalyticsDataClient? {
         try {
             logger.info("Google Analytics 클라이언트 초기화 중...")
 
@@ -42,8 +42,8 @@ class GoogleAnalyticsConfig {
 
             return client
         } catch (e: Exception) {
-            logger.error("Google Analytics 클라이언트 초기화 실패", e)
-            throw RuntimeException("Google Analytics 클라이언트 초기화 실패", e)
+            logger.warn("Google Analytics 클라이언트 초기화 실패 (GA 기능을 비활성화합니다): ${e.message}")
+            return null
         }
     }
 
