@@ -48,6 +48,40 @@ class OgShareController(
                 textColor = textColor
             )
 
+        return createResponseEntity(imageBytes)
+    }
+
+    @GetMapping("/insta")
+    @Operation(summary = "인스타용 이미지 생성", description = "인스타그램 피드용 1:1 이미지를 생성합니다.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "이미지 생성 성공"),
+            ApiResponse(responseCode = "404", description = "컨텐츠를 찾을 수 없음")
+        ]
+    )
+    fun generateInstaImage(
+        @Parameter(description = "노출 컨텐츠 ID", example = "1")
+        @RequestParam exposureContentId: Long,
+        @Parameter(description = "텍스트색", example = "#DCFF64")
+        @RequestParam(defaultValue = "#DCFF64") textColor: String
+    ): ResponseEntity<ByteArray> {
+        // ExposureContent 조회
+        val exposureContent = exposureContentService.getExposureContentById(exposureContentId)
+
+        // 인스타용 이미지 생성
+        val imageBytes =
+            ogImageService.generateInstaImage(
+                title = exposureContent.provocativeHeadline,
+                tag = exposureContent.provocativeKeyword,
+                newsletterName = exposureContent.content.newsletterName,
+                textColor = textColor
+            )
+
+        return createResponseEntity(imageBytes)
+    }
+
+    private fun createResponseEntity(imageBytes: ByteArray): ResponseEntity<ByteArray> {
+
         // HTTP 헤더 설정
         val headers = HttpHeaders()
         headers.contentType = MediaType.IMAGE_PNG
