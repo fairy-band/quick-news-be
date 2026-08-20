@@ -18,7 +18,7 @@ class ExposureContentMarkdownAiScheduler(
 ) {
     private val logger = LoggerFactory.getLogger(ExposureContentMarkdownAiScheduler::class.java)
 
-    @Scheduled(cron = "0 5,15,25,35,45,55 * * * *") // 매 10분 주기 중 5분 offset (05분, 15분, 25분...)
+    @Scheduled(cron = "0 */10 * * * *") // 10분마다 실행
     fun processUnprocessedMarkdowns() {
         logger.info("Starting Exposure Content Markdown AI processing scheduler")
         try {
