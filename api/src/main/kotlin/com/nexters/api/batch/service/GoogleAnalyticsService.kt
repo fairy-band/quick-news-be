@@ -86,7 +86,7 @@ class GoogleAnalyticsService(
                             .build()
                     ).build()
 
-            val todayResponse = analyticsClient.runReport(todayUserStatsRequest)
+            val todayResponse = analyticsClient!!.runReport(todayUserStatsRequest)
 
             var newUsers = 0L
             var returningUsers = 0L
@@ -191,7 +191,7 @@ class GoogleAnalyticsService(
                             .build()
                     ).build()
 
-            val response = analyticsClient.runReport(yesterdayUserRequest)
+            val response = analyticsClient!!.runReport(yesterdayUserRequest)
             val yesterdayTotalUsers =
                 response.rowsList
                     .firstOrNull()
@@ -233,7 +233,7 @@ class GoogleAnalyticsService(
                             .build()
                     ).build()
 
-            val response = analyticsClient.runReport(lastWeekUserRequest)
+            val response = analyticsClient!!.runReport(lastWeekUserRequest)
             val lastWeekTotalUsers =
                 response.rowsList
                     .firstOrNull()
@@ -300,7 +300,7 @@ class GoogleAnalyticsService(
                     ).setLimit(5)
                     .build()
 
-            val response = analyticsClient.runReport(newsletterClickRequest)
+            val response = analyticsClient!!.runReport(newsletterClickRequest)
 
             val newsletterClicks =
                 response.rowsList.map { row ->
@@ -366,7 +366,7 @@ class GoogleAnalyticsService(
                             .build()
                     ).build()
 
-            val thisWeekResponse = analyticsClient.runReport(thisWeekUserStatsRequest)
+            val thisWeekResponse = analyticsClient!!.runReport(thisWeekUserStatsRequest)
 
             var newUsers = 0L
             var returningUsers = 0L
@@ -498,7 +498,7 @@ class GoogleAnalyticsService(
                     ).setLimit(limit.toLong())
                     .build()
 
-            val response = analyticsClient.runReport(newsletterClickRequest)
+            val response = analyticsClient!!.runReport(newsletterClickRequest)
 
             val newsletterClicks =
                 response.rowsList.map { row ->
@@ -565,7 +565,7 @@ class GoogleAnalyticsService(
                     ).setLimit(limit.toLong())
                     .build()
 
-            val response = analyticsClient.runReport(newsletterCarouselPageViewRequest)
+            val response = analyticsClient!!.runReport(newsletterCarouselPageViewRequest)
 
             val newsletterPageViews =
                 response.rowsList.map { row ->
@@ -635,7 +635,7 @@ class GoogleAnalyticsService(
                         eventNameAnyFilter(contentDetailPageViewEvents.map { it.eventName })
                     ).build()
 
-            val response = analyticsClient.runReport(contentDetailPageViewCountRequest)
+            val response = analyticsClient!!.runReport(contentDetailPageViewCountRequest)
             val contentDetailPageViewCounts =
                 response.rowsList.associate { row ->
                     val eventName = row.getDimensionValues(0).value
@@ -702,7 +702,7 @@ class GoogleAnalyticsService(
                     ).setLimit(limit.toLong())
                     .build()
 
-            val response = analyticsClient.runReport(contentDetailPageViewRequest)
+            val response = analyticsClient!!.runReport(contentDetailPageViewRequest)
             val contentDetailPageViews =
                 response.rowsList.map { row ->
                     val contentTitle = row.getDimensionValues(0).value
