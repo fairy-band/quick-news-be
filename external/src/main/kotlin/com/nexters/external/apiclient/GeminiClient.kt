@@ -229,11 +229,12 @@ class GeminiClient(
     fun requestMarkdownGeneration(
         model: GeminiModel,
         originalContent: String,
+        originalUrl: String,
         maxOutputTokens: Int = 4000,
     ): GenerateContentResponse? =
         executeTextRequest(
             model = model,
-            prompt = renderPrompt(MARKDOWN_GENERATION_TEMPLATE, "ORIGINAL_CONTENT" to originalContent),
+            prompt = renderPrompt(MARKDOWN_GENERATION_TEMPLATE, "ORIGINAL_CONTENT" to originalContent, "ORIGINAL_URL" to originalUrl),
             maxOutputTokens = maxOutputTokens,
         )
 

@@ -48,7 +48,8 @@ class ExposureContentMarkdownAiService(
             contents.forEach { exposureContent ->
                 try {
                     val originalContent = exposureContent.content.content
-                    val response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent)
+                    val originalUrl = exposureContent.content.originalUrl
+                    val response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent, originalUrl)
 
                     val markdownText = response?.trim()
 

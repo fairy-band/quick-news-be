@@ -74,9 +74,10 @@ class GeminiRateLimiterService(
     fun executeMarkdownGeneration(
         model: GeminiModel,
         originalContent: String,
+        originalUrl: String,
     ): String? =
         execute(model) {
-            geminiClient.requestMarkdownGeneration(model, originalContent)
+            geminiClient.requestMarkdownGeneration(model, originalContent, originalUrl)
         }?.text()
 
     private fun execute(
