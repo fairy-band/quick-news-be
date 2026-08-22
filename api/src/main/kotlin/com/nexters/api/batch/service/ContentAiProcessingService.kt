@@ -10,6 +10,10 @@ import com.nexters.external.filter.FilterChain
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ExposureContentService
+import com.nexters.external.dto.GeminiModel
+import com.nexters.external.entity.ExposureContentMarkdown
+import com.nexters.external.repository.ExposureContentMarkdownRepository
+import com.nexters.external.service.GeminiRateLimiterService
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -27,6 +31,8 @@ class ContentAiProcessingService(
     private val newsletterProcessingService: NewsletterProcessingService,
     private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
+    private val geminiRateLimiterService: GeminiRateLimiterService,
+    private val exposureContentMarkdownRepository: ExposureContentMarkdownRepository,
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingService::class.java)
 
@@ -260,7 +266,28 @@ class ContentAiProcessingService(
         }
 
         val latestSummary = summaries.first()
-        exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
+        val exposureContent = exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
+        
+        // 마크다운 즉시 생성 및 저장 (단일 파이프라인 보장)
+        try {
+            val markdownText = geminiRateLimiterService.executeMarkdownGeneration(
+                GeminiModel.TWO_FIVE_FLASH,
+                exposureContent.content.content,
+                exposureContent.content.originalUrl
+            )?.trim()
+
+            if (!markdownText.isNullOrEmpty()) {
+                val markdownEntity = ExposureContentMarkdown(
+                    exposureContentId = exposureContent.id!!,
+                    markdownContent = markdownText
+                )
+                exposureContentMarkdownRepository.save(markdownEntity)
+                logger.info("Saved AI-generated markdown immediately for exposure content ID: ${exposureContent.id}")
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to generate immediate markdown for exposure content ID: ${exposureContent.id}", e)
+        }
+
         logger.info("Processed content (type: $providerType, ID: $contentId): ${content.title}")
         return true
     }

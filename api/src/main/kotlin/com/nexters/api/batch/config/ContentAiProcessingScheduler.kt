@@ -20,11 +20,11 @@ class ContentAiProcessingScheduler(
 
     @Scheduled(cron = "0 5,15,25,35,45,55 * * * *") // 매 10분 주기 중 5분 offset (05분, 15분, 25분...)
     fun processUnprocessedContents() {
-        logger.info("Starting content AI processing scheduler")
+        logger.info("Starting unified content AI processing pipeline (Summary + ExposureContent + Markdown)")
         try {
             val result = contentAiProcessingService.processUnprocessedContents()
             logger.info(
-                "Content AI processing completed: Processed ${result.processedCount} items, " +
+                "Unified content AI processing completed: Processed ${result.processedCount} items, " +
                     "Errors: ${result.errorCount}, Remaining: ${result.remainingCount}"
             )
         } catch (e: RateLimitExceededException) {
