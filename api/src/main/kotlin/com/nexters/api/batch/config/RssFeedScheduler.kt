@@ -28,7 +28,7 @@ class RssFeedScheduler(
     private val logger = LoggerFactory.getLogger(RssFeedScheduler::class.java)
     private var lastMediumFeedFetchStartedAt: Long = 0
 
-    @Scheduled(fixedDelayString = "\${rss.scheduler.fetch.delay:3600000}")
+    @Scheduled(cron = "\${rss.scheduler.fetch.cron:0 0 * * * *}")
     fun fetchRssFeeds() {
         if (rssFeeds.isEmpty()) {
             logger.debug("No RSS feeds configured, skipping fetch")
