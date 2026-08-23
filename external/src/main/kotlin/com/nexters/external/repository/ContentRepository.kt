@@ -81,6 +81,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
                 SELECT DISTINCT s.content_id FROM summaries s
             )
             AND CHAR_LENGTH(c.content) BETWEEN :minLength AND :maxLength
+            AND c.created_at <= :createdBefore
             GROUP BY c.id, cp.type, c.created_at
             ORDER BY provider_priority ASC, category_exposure_count ASC, c.created_at DESC, c.id DESC
             LIMIT :limit
@@ -96,6 +97,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         @Param("minLength") minLength: Int,
         @Param("maxLength") maxLength: Int,
         @Param("limit") limit: Int,
+        @Param("createdBefore") createdBefore: LocalDateTime = LocalDateTime.now().plusYears(100),
     ): List<Content>
 
     @Query(

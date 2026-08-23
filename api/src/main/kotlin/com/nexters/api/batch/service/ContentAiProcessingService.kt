@@ -36,6 +36,9 @@ class ContentAiProcessingService(
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingService::class.java)
 
+    @org.springframework.beans.factory.annotation.Value("\${batch.content.buffer-hours:2}")
+    private var bufferHours: Long = 2
+
     // 동시성 제어: 현재 배치 처리 중인지 확인
     private val isProcessing = AtomicBoolean(false)
 
@@ -62,14 +65,16 @@ class ContentAiProcessingService(
         }
 
         try {
-            logger.info("Starting unprocessed content AI batch processing")
+            val createdBefore = java.time.LocalDateTime.now().minusHours(bufferHours)
+            logger.info("Starting unprocessed content AI batch processing (createdBefore: $createdBefore, bufferHours: $bufferHours)")
 
-            // Summary가 없는 Content 조회 (BLOG 우선순위 + 카테고리 균형 고려)
+            // Summary가 없는 Content 조회 (BLOG 우선순위 + 카테고리 균형 고려, 2시간 이상 지난 콘텐츠 대상)
             val unprocessedContents =
                 contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
                     minLength = MIN_CONTENT_LENGTH,
                     maxLength = MAX_CONTENT_LENGTH,
                     limit = BATCH_SIZE,
+                    createdBefore = createdBefore,
                 )
 
             if (unprocessedContents.isEmpty()) {
@@ -94,12 +99,14 @@ class ContentAiProcessingService(
         logger.info("Attempting to process single content with length up to $MAX_TOTAL_BATCH_LENGTH")
 
         try {
-            // MAX_TOTAL_BATCH_LENGTH로 범위를 넓혀서 콘텐츠 1개 조회
+            // MAX_TOTAL_BATCH_LENGTH로 범위를 넓혀서 콘텐츠 1개 조회 (bufferHours 적용)
+            val createdBefore = java.time.LocalDateTime.now().minusHours(bufferHours)
             val unprocessedContents =
                 contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
                     minLength = MIN_CONTENT_LENGTH,
                     maxLength = MAX_TOTAL_BATCH_LENGTH,
                     limit = 1,
+                    createdBefore = createdBefore,
                 )
 
             if (unprocessedContents.isEmpty()) {
