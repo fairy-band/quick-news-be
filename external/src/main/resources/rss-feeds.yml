@@ -23,8 +23,12 @@ rss:
     - https://tech.kakao.com/feed/
     - https://github.com/naver/fe-news/commits/master.atom
     - https://www.confluent.io/blog/area/technology/rss.xml
+    - https://aws.amazon.com/blogs/aws/feed/
+    - https://engineering.fb.com/feed/
 
     # 스타트업/중견기업 기술 블로그
+    - https://toss.tech/rss.xml
+    - https://hyperconnect.github.io/feed.xml
     - https://spoqa.github.io/atom.xml
     - https://makinarocks.github.io/feed
     - https://zuminternet.github.io/feed.xml
@@ -33,7 +37,10 @@ rss:
     - https://meetup.toast.com/rss
     - https://woowabros.github.io/feed.xml
 
-    # Medium 기업 블로그
+    # Medium 기업/기술 블로그
+    - https://medium.com/feed/netflix-techblog
+    - https://medium.com/feed/airbnb-engineering
+    - https://medium.com/feed/pinterest-engineering
     - https://medium.com/feed/ssgtech
     - https://medium.com/feed/naver-place-dev
     - https://medium.com/feed/lemonbase
@@ -45,6 +52,15 @@ rss:
     - https://riiidtechblog.medium.com/feed
     - https://medium.com/feed/coupang-tech
     - https://medium.com/feed/daangn
+    - https://medium.com/feed/watcha
+    - https://medium.com/feed/class101
+    - https://medium.com/feed/prnd
+    - https://medium.com/feed/paypal-tech
+    - https://medium.com/feed/ebaytech
+    - https://medium.com/feed/square-corner-blog
+    - https://medium.com/feed/towards-data-science
+    - https://medium.com/feed/gitconnected
+    - https://medium.com/feed/javascript-in-plain-english
 
     # 기술 뉴스레터/주간지
     - http://feeds.feedburner.com/CSS-Weekly?format=xml
