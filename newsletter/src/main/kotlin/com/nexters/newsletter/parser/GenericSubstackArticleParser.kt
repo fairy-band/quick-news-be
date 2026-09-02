@@ -81,10 +81,10 @@ class GenericSubstackArticleParser : MailParser {
 
     private fun extractDescription(content: String): String =
         content
+            .substringBefore(UNSUBSCRIBE_MARKER)
             .removeViewPostLine()
             .removeBlock(STREAM_EPISODE_MARKER, BROUGHT_TO_YOU_MARKER)
             .removeBlock(BROUGHT_TO_YOU_MARKER, CONTENT_START_MARKERS)
-            .substringBefore(UNSUBSCRIBE_MARKER)
             .replace(SUBSTACK_INLINE_LINK_REGEX, "")
             .lines()
             .map { it.trim() }
