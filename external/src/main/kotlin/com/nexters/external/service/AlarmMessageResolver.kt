@@ -1,12 +1,68 @@
 package com.nexters.external.service
 
+import com.nexters.external.repository.ExposureContentRepository
+import com.nexters.external.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 
 @Service
-class AlarmMessageResolver {
+class AlarmMessageResolver(
+    private val userRepository: UserRepository,
+    private val exposureContentRepository: ExposureContentRepository,
+) {
+    private val logger = LoggerFactory.getLogger(AlarmMessageResolver::class.java)
+
+    @Transactional(readOnly = true)
     fun resolveTodayMessage(deviceToken: String): String {
-        // 공부에 대한 명언 100개 (매일 8시 발송)
-        val studyQuotes =
+        return try {
+            val user = userRepository.findByDeviceToken(deviceToken)
+            if (user == null || user.id == null) {
+                return getRandomQuote()
+            }
+
+            val categoryIds = user.categories.mapNotNull { it.id }.ifEmpty { listOf(1L, 2L, 3L, 4L, 5L) }
+            val publishedFrom = LocalDate.now().minusMonths(6)
+
+            val candidates =
+                exposureContentRepository.findNotExposedSemanticRecommendationCandidates(
+                    userId = user.id!!,
+                    categoryIds = categoryIds,
+                    publishedFrom = publishedFrom,
+                    limit = 1,
+                )
+
+            val top = candidates.firstOrNull()
+            if (top != null) {
+                val experience = user.keywords.firstOrNull { it.name in listOf("student", "junior", "mid", "senior", "expert") }?.name
+                val badge =
+                    when (experience) {
+                        "student" -> "🎓 [학생/취준생 추천]"
+                        "junior" -> "🌱 [주니어 1Pick]"
+                        "mid" -> "⚡ [미드레벨 실무 팁]"
+                        "senior" -> "🌳 [시니어 아키텍처]"
+                        "expert" -> "👑 [리드 엔지니어링]"
+                        else -> "💡 [오늘의 1Pick]"
+                    }
+                "$badge ${top.provocativeHeadline}"
+            } else {
+                getRandomQuote()
+            }
+        } catch (e: Exception) {
+            logger.warn("푸시 알림 개인화 메시지 생성 실패, 기본 명언으로 폴백: {}", e.message)
+            getRandomQuote()
+        }
+    }
+
+    private fun getRandomQuote(): String {
+        val quoteIndex = studyQuotes.indices.random()
+        return studyQuotes[quoteIndex]
+    }
+
+    companion object {
+        // 공부에 대한 명언 100개 (폴백용)
+        private val studyQuotes =
             listOf(
                 "배움은 결코 마음을 지치게 하지 않는다. - 레오나르도 다 빈치",
                 "교육은 세상을 바꾸는 가장 강력한 무기다. - 넬슨 만델라",
@@ -106,12 +162,8 @@ class AlarmMessageResolver {
                 "노력하는 자는 희망이 있다. - 한국 속담",
                 "시작이 반이다. - 한국 속담",
                 "천리 길도 한 걸음부터. - 한국 속담",
-                "꾸준함이 성공의 비결이다. - 찰스 디킨스"
+                "꾸준함이 성공의 비결이다. - 찰스 디킨스",
             )
-
-        // 매번 랜덤하게 명언 선택
-        val quoteIndex = studyQuotes.indices.random()
-
-        return studyQuotes[quoteIndex]
     }
 }
+
