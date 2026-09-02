@@ -304,29 +304,59 @@ class FreshnessRule(
 
     override fun evaluate(source: RecommendCalculateSource): List<RecommendationRuleResult> {
         val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider()).coerceAtLeast(0)
-        val score = calculateScore(daysOld)
+        val isTrendNews = isTrendNewsContent(source)
+        val score = calculateDecayScore(daysOld, isTrendNews)
+        val trackName = if (isTrendNews) "TREND_NEWS (T_half=3d)" else "EVERGREEN (T_half=60d)"
 
         return listOf(
             RecommendationRuleResult(
                 ruleName = name,
                 score = score,
-                reason = "publishedDate=${source.publishedDate}, daysOld=$daysOld",
+                reason = "publishedDate=${source.publishedDate}, daysOld=$daysOld, track=$trackName",
                 type = if (score < 0) RecommendationRuleType.PENALTY else RecommendationRuleType.BONUS,
             ),
         )
     }
 
-    companion object {
-        private const val FRESHNESS_DECAY_PER_DAY = 1.0
-        private const val MAX_FRESHNESS_PENALTY = 10.0
+    private fun isTrendNewsContent(source: RecommendCalculateSource): Boolean {
+        val text =
+            buildString {
+                append(source.title).append(' ')
+                append(source.provocativeHeadline).append(' ')
+                append(source.summaryContent).append(' ')
+                append(source.newsletterName).append(' ')
+                append(source.keywordNames.joinToString(" "))
+            }
+        return TREND_NEWS_PATTERNS.any { it.containsMatchIn(text) }
+    }
+
+    private fun calculateDecayScore(daysOld: Long, isTrendNews: Boolean): Double {
+        val (halfLifeDays, floor) =
+            if (isTrendNews) {
+                3.0 to 0.05
+            } else {
+                60.0 to 0.35
+            }
+        val decayFactor = Math.max(floor, Math.exp(-(LN_2 / halfLifeDays) * daysOld.toDouble()))
+        return -(1.0 - decayFactor) * MAX_DECAY_PENALTY
     }
 
     private fun calculateScore(source: RecommendCalculateSource): Double {
         val daysOld = ChronoUnit.DAYS.between(source.publishedDate, todayProvider()).coerceAtLeast(0)
-        return calculateScore(daysOld)
+        val isTrendNews = isTrendNewsContent(source)
+        return calculateDecayScore(daysOld, isTrendNews)
     }
 
-    private fun calculateScore(daysOld: Long): Double = -(daysOld * FRESHNESS_DECAY_PER_DAY).coerceAtMost(MAX_FRESHNESS_PENALTY)
+    companion object {
+        private const val LN_2 = 0.69314718056
+        private const val MAX_DECAY_PENALTY = 35.0
+
+        private val TREND_NEWS_PATTERNS =
+            listOf(
+                Regex("""(?ix)\b(release(?:s|d)?|launch(?:es|ed)?|version|update(?:s|d)?|v\d+(?:\.\d+)*|cve|security|weekly|issue\s*#?\d+|202[5-9])\b"""),
+                Regex("""출시|공개|발표|릴리즈|업데이트|보안\s*패치|취약점|위클리|버전|신규\s*버전"""),
+            )
+    }
 }
 
 class DuplicatePublisherPenaltyRule : RecommendationRule {
