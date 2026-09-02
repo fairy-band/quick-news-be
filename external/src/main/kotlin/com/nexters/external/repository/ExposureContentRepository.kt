@@ -729,6 +729,10 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
                 (SELECT ce2.embedding FROM user_exposed_contents_mapping u2 
                  JOIN content_embeddings ce2 ON ce2.content_id = u2.content_id 
                  WHERE u2.user_id = :userId ORDER BY u2.created_at DESC LIMIT 1),
+                (SELECT AVG(ke.embedding)::vector(1024) 
+                 FROM user_keyword_mappings ukm 
+                 JOIN keyword_embeddings ke ON ke.keyword_id = ukm.keyword_id 
+                 WHERE ukm.user_id = :userId),
                 (SELECT ce3.embedding FROM content_category_scores ccs3
                  JOIN content_embeddings ce3 ON ce3.content_id = ccs3.content_id
                  WHERE ccs3.category_id IN (:categoryIds) ORDER BY ccs3.total_score DESC LIMIT 1)
