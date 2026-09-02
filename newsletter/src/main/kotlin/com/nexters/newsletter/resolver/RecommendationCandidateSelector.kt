@@ -57,8 +57,8 @@ class RecommendationCandidateSelector(
                 .filter { it.recommendScore > 0 }
                 .map { it.candidate }
 
-        if (positiveScoreCandidates.size >= request.limit) {
-            val selectedCandidates =
+        val finalSelected =
+            if (positiveScoreCandidates.size >= request.limit) {
                 trace.measure("publisherDiversity") {
                     publisherDiversityPolicy.apply(
                         candidates = positiveScoreCandidates,
@@ -66,53 +66,71 @@ class RecommendationCandidateSelector(
                         limit = request.limit,
                     )
                 }
-            trace.logIfSlow(
-                request = request,
-                context = context,
-                filteredContext = filteredContext,
-                selectedCount = selectedCandidates.size,
-                fallbackRounds = 0,
-            )
-            return selectedCandidates
-        }
-
-        val selectedCandidates = LinkedHashSet<ExposureContentRecommendationCandidateRow>(positiveScoreCandidates)
-        var fallbackRounds = 0
-
-        for (multiplier in FALLBACK_MULTIPLIERS) {
-            if (selectedCandidates.size >= request.limit) {
-                break
+            } else {
+                val fallbackSelected = LinkedHashSet<ExposureContentRecommendationCandidateRow>(positiveScoreCandidates)
+                for (multiplier in FALLBACK_MULTIPLIERS) {
+                    if (fallbackSelected.size >= request.limit) {
+                        break
+                    }
+                    val amplifiedSourcesByCandidate =
+                        trace.measureAccumulated("fallbackCreateSources") {
+                            scoringSourceFactory.createSources(scoringContext, multiplier)
+                        }
+                    val amplifiedScoredCandidates =
+                        trace.measureAccumulated("fallbackRankCandidates") {
+                            ranker.rank(amplifiedSourcesByCandidate)
+                        }
+                    val amplifiedCandidates =
+                        amplifiedScoredCandidates
+                            .filter { it.candidate !in fallbackSelected }
+                            .filter { it.recommendScore > 0 }
+                            .map { it.candidate }
+                    val additionalNeeded = request.limit - fallbackSelected.size
+                    fallbackSelected.addAll(amplifiedCandidates.take(additionalNeeded))
+                }
+                fallbackSelected.take(request.limit)
             }
 
-            fallbackRounds++
-            val amplifiedSourcesByCandidate =
-                trace.measureAccumulated("fallbackCreateSources") {
-                    scoringSourceFactory.createSources(scoringContext, multiplier)
-                }
-            val amplifiedScoredCandidates =
-                trace.measureAccumulated("fallbackRankCandidates") {
-                    ranker.rank(amplifiedSourcesByCandidate)
-                }
-            val amplifiedCandidates =
-                amplifiedScoredCandidates
-                    .filter { it.candidate !in selectedCandidates }
-                    .filter { it.recommendScore > 0 }
-                    .map { it.candidate }
-            val additionalNeeded = request.limit - selectedCandidates.size
-            selectedCandidates.addAll(amplifiedCandidates.take(additionalNeeded))
+        // Apply 10% MAB Exploration Slot (Slot #4 / Index 3) for fresh newly published content
+        val result = interleaveMabExplorationSlot(finalSelected, filteredContext.candidates, request.limit)
+
+        trace.logIfSlow(
+            request = request,
+            context = context,
+            filteredContext = filteredContext,
+            selectedCount = result.size,
+            fallbackRounds = 0,
+        )
+        return result
+    }
+
+    private fun interleaveMabExplorationSlot(
+        selected: List<ExposureContentRecommendationCandidateRow>,
+        allCandidates: List<ExposureContentRecommendationCandidateRow>,
+        limit: Int,
+    ): List<ExposureContentRecommendationCandidateRow> {
+        if (selected.size < 4 || limit < 4) {
+            return selected
         }
 
-        return selectedCandidates
-            .take(request.limit)
-            .also {
-                trace.logIfSlow(
-                    request = request,
-                    context = context,
-                    filteredContext = filteredContext,
-                    selectedCount = it.size,
-                    fallbackRounds = fallbackRounds,
-                )
-            }
+        val selectedIds = selected.map { it.exposureContentId }.toSet()
+        val today = java.time.LocalDate.now()
+
+        // Find candidate published within last 2 days with high exploration potential
+        val explorationCandidate =
+            allCandidates
+                .filter { it.exposureContentId !in selectedIds }
+                .filter { java.time.temporal.ChronoUnit.DAYS.between(it.publishedAt, today) <= 2 }
+                .maxByOrNull { it.publishedAt }
+
+        if (explorationCandidate == null) {
+            return selected
+        }
+
+        val listWithMab = selected.toMutableList()
+        val insertIndex = minOf(3, listWithMab.size)
+        listWithMab.add(insertIndex, explorationCandidate)
+        return listWithMab.take(limit)
     }
 
     companion object {
