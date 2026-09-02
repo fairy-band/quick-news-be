@@ -695,4 +695,66 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
     """
     )
     fun findExposureContentsWithoutMarkdown(pageable: Pageable): List<ExposureContent>
+
+    @Query(
+        value = """
+        SELECT 
+            e.id AS exposureContentId,
+            c.id AS contentId,
+            cp.id AS contentProviderId,
+            cp.name AS contentProviderName,
+            c.newsletter_name AS newsletterName,
+            c.published_at AS publishedAt,
+            c.title AS title,
+            e.provocative_headline AS provocativeHeadline,
+            e.summary_content AS summaryContent
+        FROM exposure_contents e
+        JOIN contents c ON c.id = e.content_id
+        LEFT JOIN content_provider cp ON cp.id = c.content_provider_id
+        JOIN content_embeddings ce ON ce.content_id = c.id
+        WHERE c.published_at >= :publishedFrom
+        AND NOT EXISTS (
+            SELECT 1 FROM user_exposed_contents_mapping uecm 
+            WHERE uecm.content_id = c.id AND uecm.user_id = :userId
+        )
+        AND EXISTS (
+            SELECT 1 FROM content_category_scores ccs
+            WHERE ccs.content_id = c.id
+            AND ccs.category_id IN (:categoryIds)
+            AND ccs.total_score > 0
+            AND ccs.provider_mismatch = false
+        )
+        ORDER BY ce.embedding <=> (
+            COALESCE(
+                (SELECT ce2.embedding FROM user_exposed_contents_mapping u2 
+                 JOIN content_embeddings ce2 ON ce2.content_id = u2.content_id 
+                 WHERE u2.user_id = :userId ORDER BY u2.created_at DESC LIMIT 1),
+                (SELECT ce3.embedding FROM content_category_scores ccs3
+                 JOIN content_embeddings ce3 ON ce3.content_id = ccs3.content_id
+                 WHERE ccs3.category_id IN (:categoryIds) ORDER BY ccs3.total_score DESC LIMIT 1)
+            )
+        ) ASC
+        LIMIT :limit
+    """,
+        nativeQuery = true,
+    )
+    fun findNotExposedSemanticRecommendationCandidates(
+        @Param("userId") userId: Long,
+        @Param("categoryIds") categoryIds: List<Long>,
+        @Param("publishedFrom") publishedFrom: LocalDate,
+        @Param("limit") limit: Int,
+    ): List<ExposureContentRecommendationCandidateProjection>
 }
+
+interface ExposureContentRecommendationCandidateProjection {
+    val exposureContentId: Long
+    val contentId: Long
+    val contentProviderId: Long?
+    val contentProviderName: String?
+    val newsletterName: String
+    val publishedAt: LocalDate
+    val title: String
+    val provocativeHeadline: String
+    val summaryContent: String
+}
+

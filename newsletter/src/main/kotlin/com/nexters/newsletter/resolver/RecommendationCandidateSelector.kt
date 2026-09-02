@@ -91,8 +91,22 @@ class RecommendationCandidateSelector(
                 fallbackSelected.take(request.limit)
             }
 
-        // Apply 10% MAB Exploration Slot (Slot #4 / Index 3) for fresh newly published content
-        val result = interleaveMabExplorationSlot(finalSelected, filteredContext.candidates, request.limit)
+        // Extract semantic vector candidates from candidate signals
+        val semanticCandidates =
+            request.candidateSignalsByExposureContentId.entries
+                .filter { (_, signals) -> signals.any { it.source == "semantic_vector" } }
+                .mapNotNull { (exposureContentId, _) ->
+                    filteredContext.candidates.find { it.exposureContentId == exposureContentId }
+                }
+
+        // Apply 6-slot Hybrid Interleaving (Slot 1: Core, Slot 2: Semantic#1, Slot 3: Trend, Slot 4: MAB, Slot 5: Semantic#2, Slot 6: Evergreen)
+        val result =
+            interleaveHybridRecommendationSlots(
+                rankedCandidates = finalSelected,
+                semanticCandidates = semanticCandidates,
+                allCandidates = filteredContext.candidates,
+                limit = request.limit,
+            )
 
         trace.logIfSlow(
             request = request,
@@ -104,33 +118,77 @@ class RecommendationCandidateSelector(
         return result
     }
 
-    private fun interleaveMabExplorationSlot(
-        selected: List<ExposureContentRecommendationCandidateRow>,
+    private fun interleaveHybridRecommendationSlots(
+        rankedCandidates: List<ExposureContentRecommendationCandidateRow>,
+        semanticCandidates: List<ExposureContentRecommendationCandidateRow>,
         allCandidates: List<ExposureContentRecommendationCandidateRow>,
         limit: Int,
     ): List<ExposureContentRecommendationCandidateRow> {
-        if (selected.size < 4 || limit < 4) {
-            return selected
+        if (rankedCandidates.isEmpty() || limit <= 0) {
+            return emptyList()
         }
 
-        val selectedIds = selected.map { it.exposureContentId }.toSet()
+        if (limit < 3) {
+            return rankedCandidates.take(limit)
+        }
+
+        val result = LinkedHashSet<ExposureContentRecommendationCandidateRow>()
         val today = java.time.LocalDate.now()
 
-        // Find candidate published within last 2 days with high exploration potential
-        val explorationCandidate =
+        // [Slot 1 / Index 0] Core 1st rank anchor
+        val slot1 = rankedCandidates.firstOrNull()
+        if (slot1 != null) {
+            result.add(slot1)
+        }
+
+        // [Slot 2 / Index 1] Semantic Candidate #1 (Highest similarity)
+        val slot2 =
+            semanticCandidates.firstOrNull { it !in result }
+                ?: rankedCandidates.firstOrNull { it !in result }
+        if (slot2 != null) {
+            result.add(slot2)
+        }
+
+        // [Slot 3 / Index 2] Trend & Hot News / Next Highest Ranked
+        val slot3 = rankedCandidates.firstOrNull { it !in result }
+        if (slot3 != null) {
+            result.add(slot3)
+        }
+
+        // [Slot 4 / Index 3] MAB Exploration Slot (Fresh content published within last 2 days)
+        val mabCandidate =
             allCandidates
-                .filter { it.exposureContentId !in selectedIds }
+                .filter { it !in result }
                 .filter { java.time.temporal.ChronoUnit.DAYS.between(it.publishedAt, today) <= 2 }
                 .maxByOrNull { it.publishedAt }
 
-        if (explorationCandidate == null) {
-            return selected
+        if (mabCandidate != null) {
+            result.add(mabCandidate)
+        } else {
+            rankedCandidates.firstOrNull { it !in result }?.let { result.add(it) }
         }
 
-        val listWithMab = selected.toMutableList()
-        val insertIndex = minOf(3, listWithMab.size)
-        listWithMab.add(insertIndex, explorationCandidate)
-        return listWithMab.take(limit)
+        // [Slot 5 / Index 4] Semantic Candidate #2 (With publisher diversity)
+        val slot5 =
+            semanticCandidates.firstOrNull { candidate ->
+                candidate !in result && result.none { it.contentProviderId == candidate.contentProviderId && candidate.contentProviderId != null }
+            } ?: semanticCandidates.firstOrNull { it !in result }
+                ?: rankedCandidates.firstOrNull { it !in result }
+
+        if (slot5 != null) {
+            result.add(slot5)
+        }
+
+        // [Slot 6 / Index 5+] Evergreen Architecture / Fill remaining slots
+        while (result.size < limit) {
+            val nextRanked =
+                rankedCandidates.firstOrNull { it !in result }
+                    ?: allCandidates.firstOrNull { it !in result }
+                    ?: break
+            result.add(nextRanked)
+        }
+
+        return result.take(limit)
     }
 
     companion object {

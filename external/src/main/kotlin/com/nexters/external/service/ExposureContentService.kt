@@ -340,6 +340,36 @@ class ExposureContentService(
         )
     }
 
+    fun getNotExposedSemanticRecommendationCandidates(
+        userId: Long,
+        categoryIds: List<Long>,
+        publishedFrom: LocalDate,
+        limit: Int,
+    ): List<ExposureContentRecommendationCandidateRow> {
+        if (categoryIds.isEmpty() || limit <= 0) {
+            return emptyList()
+        }
+
+        return exposureContentRepository.findNotExposedSemanticRecommendationCandidates(
+            userId = userId,
+            categoryIds = categoryIds,
+            publishedFrom = publishedFrom,
+            limit = limit,
+        ).map { proj ->
+            ExposureContentRecommendationCandidateRow(
+                exposureContentId = proj.exposureContentId,
+                contentId = proj.contentId,
+                contentProviderId = proj.contentProviderId,
+                contentProviderName = proj.contentProviderName,
+                newsletterName = proj.newsletterName,
+                publishedAt = proj.publishedAt,
+                title = proj.title,
+                provocativeHeadline = proj.provocativeHeadline,
+                summaryContent = proj.summaryContent,
+            )
+        }
+    }
+
     fun getExposureContentsByIdsPreservingOrder(exposureContentIds: List<Long>): List<ExposureContent> {
         if (exposureContentIds.isEmpty()) {
             return emptyList()
