@@ -353,7 +353,7 @@ class FreshnessRule(
 
         private val TREND_NEWS_PATTERNS =
             listOf(
-                Regex("""(?ix)\b(release(?:s|d)?|launch(?:es|ed)?|version|update(?:s|d)?|v\d+(?:\.\d+)*|cve|security|weekly|issue\s*#?\d+|202[5-9])\b"""),
+                Regex("""\b(release|releases|released|launch|launches|launched|version|update|updates|updated|v\d+(\.\d+)*|cve|security|weekly|issue|2025|2026)\b""", RegexOption.IGNORE_CASE),
                 Regex("""출시|공개|발표|릴리즈|업데이트|보안\s*패치|취약점|위클리|버전|신규\s*버전"""),
             )
     }
