@@ -25,16 +25,16 @@ class PublisherDiversityPolicy(
                 .map { candidate ->
                     val source = sourcesByCandidate.getValue(candidate)
                     val publisherId = candidate.publisherName
-                    val publisherDuplicateCandidateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
-                    val adjustedSource =
-                        source.copy(
-                            publisherDuplicateCandidateCount = publisherDuplicateCandidateCount,
-                        )
+                    val duplicateCount = candidatePublisherCounts.getOrDefault(publisherId, 0)
+                    val dampingMultiplier = Math.pow(DAMPING_FACTOR, duplicateCount.toDouble())
 
-                    candidatePublisherCounts[publisherId] = publisherDuplicateCandidateCount + 1
+                    val scored = ranker.score(candidate, source)
+                    val dampedScore = scored.recommendScore * dampingMultiplier
 
-                    ranker.score(candidate, adjustedSource)
-                }.sortedWith(RecommendationCandidateRanker.SCORED_CANDIDATE_COMPARATOR)
+                    candidatePublisherCounts[publisherId] = duplicateCount + 1
+
+                    ScoredCandidateWithDamping(candidate, dampedScore)
+                }.sortedByDescending { it.dampedScore }
                 .map { it.candidate }
 
         val selectedPublisherCounts = mutableMapOf<String, Int>()
@@ -62,6 +62,15 @@ class PublisherDiversityPolicy(
 
         return selected
     }
+
+    companion object {
+        private const val DAMPING_FACTOR = 0.75
+    }
+
+    private data class ScoredCandidateWithDamping(
+        val candidate: ExposureContentRecommendationCandidateRow,
+        val dampedScore: Double,
+    )
 }
 
 internal val ExposureContentRecommendationCandidateRow.publisherName: String
