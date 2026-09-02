@@ -534,3 +534,122 @@ CREATE INDEX IF NOT EXISTS idx_user_exposed_contents_content_id
 
 ALTER TABLE fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_device_token_key;
 ALTER TABLE fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_fcm_token_key;
+
+-- PostgreSQL pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Exposure content markdowns table
+CREATE TABLE IF NOT EXISTS exposure_content_markdowns
+(
+    id                  BIGSERIAL PRIMARY KEY,
+    exposure_content_id BIGINT    NOT NULL,
+    markdown_content    TEXT      NOT NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_exposure_content_markdowns_exposure_content_id
+    ON exposure_content_markdowns (exposure_content_id);
+
+-- Content embeddings table (BGE-M3 1024-dim dense vectors)
+CREATE TABLE IF NOT EXISTS content_embeddings
+(
+    content_id BIGINT PRIMARY KEY,
+    embedding  vector(1024) NOT NULL,
+    model_name VARCHAR(64) DEFAULT 'BAAI/bge-m3',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT content_embeddings_content_id_fkey FOREIGN KEY (content_id) REFERENCES contents (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS content_embeddings_hnsw_idx
+    ON content_embeddings
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+
+-- Keyword embeddings table (Standard contextual 4-part vectors)
+CREATE TABLE IF NOT EXISTS keyword_embeddings
+(
+    keyword_id    INT PRIMARY KEY,
+    name          VARCHAR(100) NOT NULL,
+    category_id   INT,
+    category_name VARCHAR(50),
+    context_text  TEXT NOT NULL,
+    embedding     vector(1024),
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT keyword_embeddings_keyword_id_fkey FOREIGN KEY (keyword_id) REFERENCES reserved_keywords (id) ON DELETE CASCADE,
+    CONSTRAINT keyword_embeddings_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS keyword_embeddings_hnsw_idx
+    ON keyword_embeddings
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+
+-- User-Keyword mappings table (User onboarding & interest settings)
+CREATE TABLE IF NOT EXISTS user_keyword_mappings
+(
+    id         SERIAL PRIMARY KEY,
+    user_id    BIGINT    NOT NULL,
+    keyword_id BIGINT    NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, keyword_id),
+    FOREIGN KEY (user_id) REFERENCES users (id),
+    FOREIGN KEY (keyword_id) REFERENCES reserved_keywords (id)
+);
+
+-- Admin members table
+CREATE TABLE IF NOT EXISTS admin_members
+(
+    id            BIGSERIAL PRIMARY KEY,
+    email         VARCHAR(255) NOT NULL UNIQUE,
+    name          VARCHAR(255) NOT NULL,
+    _active       BOOLEAN      NOT NULL DEFAULT TRUE,
+    last_login_at TIMESTAMP,
+    created_at    TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- Walkthroughs table
+CREATE TABLE IF NOT EXISTS walkthroughs
+(
+    id                  BIGSERIAL PRIMARY KEY,
+    next_walkthrough_id BIGINT,
+    title               VARCHAR(255) NOT NULL,
+    content             TEXT         NOT NULL,
+    created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_walkthrough_next_id
+    ON walkthroughs (next_walkthrough_id);
+
+-- Walkthrough category mappings table
+CREATE TABLE IF NOT EXISTS walkthrough_category_mappings
+(
+    id             BIGSERIAL PRIMARY KEY,
+    walkthrough_id BIGINT NOT NULL,
+    category_id    BIGINT NOT NULL,
+    FOREIGN KEY (walkthrough_id) REFERENCES walkthroughs (id),
+    FOREIGN KEY (category_id) REFERENCES categories (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_walkthrough_category_mapping
+    ON walkthrough_category_mappings (walkthrough_id, category_id);
+
+-- Scheduled notifications table
+CREATE TABLE IF NOT EXISTS scheduled_notifications
+(
+    id            BIGSERIAL PRIMARY KEY,
+    config_key    VARCHAR(100) NOT NULL UNIQUE,
+    title         VARCHAR(255) NOT NULL,
+    body          TEXT         NOT NULL,
+    schedule_time VARCHAR(50)  NOT NULL,
+    is_enabled    BOOLEAN      NOT NULL DEFAULT TRUE,
+    description   TEXT,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_notifications_is_enabled
+    ON scheduled_notifications (is_enabled);
+
