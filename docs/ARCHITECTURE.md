@@ -106,24 +106,30 @@ flowchart TD
 
 ---
 
-### 3.3. 파이프라인 3: 3단계 COALESCE & 6-슬롯 황금비율 추천 엔진
-모바일 앱 메인 피드(`GET /api/newsletters/contents/{userId}`) 호출 시, **10ms 단일 쿼리**로 유저의 실시간 상태에 맞춘 타깃 벡터를 동적으로 결정합니다:
+### 3.3. 파이프라인 3: 다중 벡터 센트로이드 블렌딩 & MMR 주제 다양성 추천 엔진
+모바일 앱 메인 피드(`GET /api/newsletters/contents/{userId}`) 호출 시, **단일 열람 아티클(LIMIT 1) 편향을 완전히 극복**하고 **6.3ms 단일 쿼리**로 유저의 장단기 관심사 중심점(Geometric Centroid)을 동적으로 계산합니다:
 
 ```sql
 ORDER BY ce.embedding <=> (
     COALESCE(
-        -- ① 최근 열람 글 임베딩 (기존 유저의 실시간 동적 취향)
-        (SELECT ce2.embedding FROM user_exposed_contents_mapping u2 
-         JOIN content_embeddings ce2 ON ce2.content_id = u2.content_id 
-         WHERE u2.user_id = :userId ORDER BY u2.created_at DESC LIMIT 1),
-         
-        -- ② 유저 선택 키워드 & 연차(Experience) 중심 벡터 (Cold-Start 초개인화)
-        (SELECT AVG(ke.embedding)::vector(1024) 
-         FROM user_keyword_mappings ukm 
-         JOIN keyword_embeddings ke ON ke.keyword_id = ukm.keyword_id 
-         WHERE ukm.user_id = :userId),
-         
-        -- ③ 관심 직군 1등 대표 글 임베딩 (최종 폴백)
+        -- ① 다중 벡터 센트로이드: 최근 열람 5건(동적 관심사) + 온보딩 기술/연차 키워드(고정 앵커)
+        (
+            SELECT AVG(vec)::vector(1024)
+            FROM (
+                (SELECT ce2.embedding as vec
+                 FROM user_exposed_contents_mapping u2 
+                 JOIN content_embeddings ce2 ON ce2.content_id = u2.content_id 
+                 WHERE u2.user_id = :userId 
+                 ORDER BY u2.created_at DESC 
+                 LIMIT 5)
+                UNION ALL
+                (SELECT ke.embedding as vec
+                 FROM user_keyword_mappings ukm 
+                 JOIN keyword_embeddings ke ON ke.keyword_id = ukm.keyword_id 
+                 WHERE ukm.user_id = :userId)
+            ) combined
+        ),
+        -- ② 관심 직군 1등 대표 글 임베딩 (최종 폴백)
         (SELECT ce3.embedding FROM content_category_scores ccs3
          JOIN content_embeddings ce3 ON ce3.content_id = ccs3.content_id
          WHERE ccs3.category_id IN (:categoryIds) ORDER BY ccs3.total_score DESC LIMIT 1)
@@ -132,15 +138,17 @@ ORDER BY ce.embedding <=> (
 LIMIT 60;
 ```
 
-#### 🎰 6-슬롯 황금비율 인터리빙 구성:
-| 슬롯 | 인덱스 | 역할 및 후보군 | 동작 메커니즘 |
+#### 🎰 6-슬롯 황금비율 & MMR 주제 다양성 인터리빙:
+출처(Provider) 중복 배제뿐만 아니라 **헤드라인 키워드 토큰 중복도 검사(Topic Overlap Guard)**를 적용하여 6개 피드 카드가 특정 기술 주제(예: Kafka, Docker)에 군집화되지 않고 다양한 테크 영역을 아우르도록 분산합니다.
+
+| 슬롯 | 인덱스 | 역할 및 후보군 | 동작 메커니즘 (MMR Topic Diversity 적용) |
 |:---:|:---:|:---|:---|
 | **슬롯 1** | `Index 0` | 👑 **직군 코어 1등** | 직군 적합도 점수 1위 글 (대표 앵커) |
-| **슬롯 2** | `Index 1` | 🧠 **시맨틱 추천 #1** | pgvector 코사인 유사도 1위 글 (연차 맞춤 깊이) |
-| **슬롯 3** | `Index 2` | ⚡ **트렌드 뉴스** | 최신 릴리즈/업계 트렌드 뉴스 |
-| **슬롯 4** | `Index 3` | 🎯 **MAB 신규 탐색** | Multi-Armed Bandit (48시간 이내 신규 발행 글) |
-| **슬롯 5** | `Index 4` | 🧠 **시맨틱 추천 #2** | 슬롯 1, 2와 다른 출처 다양성을 보장한 유사도 2위 글 |
-| **슬롯 6** | `Index 5` | 🌳 **에버그린 바이블** | 주니어는 CS/기본기, 시니어는 아키텍처 딥다이브 |
+| **슬롯 2** | `Index 1` | 🧠 **시맨틱 추천 #1** | 다중 센트로이드 코사인 유사도 1위 글 (슬롯 1과 주제 중복 배제) |
+| **슬롯 3** | `Index 2` | ⚡ **트렌드 뉴스** | 최신 릴리즈/업계 트렌드 뉴스 (이전 슬롯과 주제 분산) |
+| **슬롯 4** | `Index 3` | 🎯 **MAB 신규 탐색** | Multi-Armed Bandit (48시간 이내 신규 발행 글 우선 탐색) |
+| **슬롯 5** | `Index 4` | 🧠 **시맨틱 추천 #2** | 출처 다양성 AND 주제 다양성을 동시에 보장한 유사도 2위 글 |
+| **슬롯 6** | `Index 5` | 🌳 **에버그린 바이블** | CS 기본기 / 대규모 아키텍처 딥다이브 (미선점된 신규 주제 우선) |
 
 ---
 
