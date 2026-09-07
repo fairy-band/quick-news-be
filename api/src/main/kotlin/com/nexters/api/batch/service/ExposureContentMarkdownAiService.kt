@@ -6,6 +6,7 @@ import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.ExposureContentMarkdownRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.service.GeminiRateLimiterService
+import com.nexters.external.support.MarkdownValidator
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.domain.PageRequest
@@ -43,24 +44,31 @@ class ExposureContentMarkdownAiService(
                 return
             }
 
-            logger.info("Found \${contents.size} unprocessed exposure contents for markdown generation.")
+            logger.info("Found ${contents.size} unprocessed exposure contents for markdown generation.")
 
             contents.forEach { exposureContent ->
                 try {
                     val originalContent = exposureContent.content.content
                     val originalUrl = exposureContent.content.originalUrl
-                    val response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent, originalUrl)
+                    var response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent, originalUrl)
+                    var markdownText = response?.trim()
 
-                    val markdownText = response?.trim()
+                    // 가드레일: 마크다운 구조 및 완결성 검증 실패 시 1회 재시도
+                    if (!MarkdownValidator.isValid(markdownText)) {
+                        logger.warn("Markdown validation failed for exposureContentId=${exposureContent.id} (length=${markdownText?.length ?: 0}). Retrying once...")
+                        response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent, originalUrl)
+                        markdownText = response?.trim()
+                    }
 
                     if (!markdownText.isNullOrEmpty()) {
+                        val finalMarkdown = MarkdownValidator.ensureSourceLink(markdownText, originalUrl)
                         val entity =
                             ExposureContentMarkdown(
                                 exposureContentId = exposureContent.id!!,
-                                markdownContent = markdownText
+                                markdownContent = finalMarkdown
                             )
                         exposureContentMarkdownRepository.save(entity)
-                        logger.info("Saved AI-generated markdown for exposure content ID: ${exposureContent.id}")
+                        logger.info("Saved AI-generated markdown for exposure content ID: ${exposureContent.id} (length=${finalMarkdown.length})")
                     } else {
                         logger.warn("Received empty markdown from AI for exposure content ID: ${exposureContent.id}")
                     }

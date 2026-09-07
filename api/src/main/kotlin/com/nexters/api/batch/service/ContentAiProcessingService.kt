@@ -14,6 +14,7 @@ import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.ExposureContentMarkdown
 import com.nexters.external.repository.ExposureContentMarkdownRepository
 import com.nexters.external.service.GeminiRateLimiterService
+import com.nexters.external.support.MarkdownValidator
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -275,21 +276,35 @@ class ContentAiProcessingService(
         val latestSummary = summaries.first()
         val exposureContent = exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
         
-        // 마크다운 즉시 생성 및 저장 (단일 파이프라인 보장)
+        // 마크다운 즉시 생성 및 저장 (가드레일 검증 및 완결성 보장)
         try {
-            val markdownText = geminiRateLimiterService.executeMarkdownGeneration(
+            val originalContent = exposureContent.content.content
+            val originalUrl = exposureContent.content.originalUrl
+
+            var markdownText = geminiRateLimiterService.executeMarkdownGeneration(
                 GeminiModel.TWO_FIVE_FLASH,
-                exposureContent.content.content,
-                exposureContent.content.originalUrl
+                originalContent,
+                originalUrl
             )?.trim()
 
+            // 가드레일: 완결성 검증 실패 시 1회 재시도
+            if (!MarkdownValidator.isValid(markdownText)) {
+                logger.warn("Immediate markdown validation failed for exposureContentId=${exposureContent.id} (length=${markdownText?.length ?: 0}). Retrying once...")
+                markdownText = geminiRateLimiterService.executeMarkdownGeneration(
+                    GeminiModel.TWO_FIVE_FLASH,
+                    originalContent,
+                    originalUrl
+                )?.trim()
+            }
+
             if (!markdownText.isNullOrEmpty()) {
+                val finalMarkdown = MarkdownValidator.ensureSourceLink(markdownText, originalUrl)
                 val markdownEntity = ExposureContentMarkdown(
                     exposureContentId = exposureContent.id!!,
-                    markdownContent = markdownText
+                    markdownContent = finalMarkdown
                 )
                 exposureContentMarkdownRepository.save(markdownEntity)
-                logger.info("Saved AI-generated markdown immediately for exposure content ID: ${exposureContent.id}")
+                logger.info("Saved AI-generated markdown immediately for exposure content ID: ${exposureContent.id} (length=${finalMarkdown.length})")
             }
         } catch (e: Exception) {
             logger.error("Failed to generate immediate markdown for exposure content ID: ${exposureContent.id}", e)

@@ -245,20 +245,23 @@ class GeminiClient(
         schema: Schema,
     ): GenerateContentResponse? =
         try {
-            client.models.generateContent(
-                model.modelName,
-                prompt,
-                GenerateContentConfig
-                    .builder()
-                    .temperature(0.4f)
-                    .maxOutputTokens(maxOutputTokens)
-                    .topP(0.8f)
-                    .topK(40f)
-                    .candidateCount(1)
-                    .responseMimeType("application/json")
-                    .responseSchema(schema)
-                    .build(),
-            )
+            val response =
+                client.models.generateContent(
+                    model.modelName,
+                    prompt,
+                    GenerateContentConfig
+                        .builder()
+                        .temperature(0.4f)
+                        .maxOutputTokens(maxOutputTokens)
+                        .topP(0.8f)
+                        .topK(40f)
+                        .candidateCount(1)
+                        .responseMimeType("application/json")
+                        .responseSchema(schema)
+                        .build(),
+                )
+            logFinishReason(model, response)
+            response
         } catch (e: ClientException) {
             throwIfRateLimited(model, e)
             logger.error("Model ${model.modelName} failed with ClientException: ${e.message}", e)
@@ -274,18 +277,21 @@ class GeminiClient(
         maxOutputTokens: Int,
     ): GenerateContentResponse? =
         try {
-            client.models.generateContent(
-                model.modelName,
-                prompt,
-                GenerateContentConfig
-                    .builder()
-                    .temperature(0.3f)
-                    .maxOutputTokens(maxOutputTokens)
-                    .topP(0.8f)
-                    .topK(40f)
-                    .candidateCount(1)
-                    .build(),
-            )
+            val response =
+                client.models.generateContent(
+                    model.modelName,
+                    prompt,
+                    GenerateContentConfig
+                        .builder()
+                        .temperature(0.3f)
+                        .maxOutputTokens(maxOutputTokens)
+                        .topP(0.8f)
+                        .topK(40f)
+                        .candidateCount(1)
+                        .build(),
+                )
+            logFinishReason(model, response)
+            response
         } catch (e: ClientException) {
             throwIfRateLimited(model, e)
             logger.error("Model ${model.modelName} failed with ClientException: ${e.message}", e)
@@ -294,6 +300,19 @@ class GeminiClient(
             logger.error("Model ${model.modelName} failed with exception: ${e.message}", e)
             null
         }
+
+    private fun logFinishReason(model: GeminiModel, response: GenerateContentResponse?) {
+        if (response == null) return
+        try {
+            val candidate = response.candidates()?.firstOrNull()
+            val finishReason = candidate?.finishReason()?.toString()
+            if (finishReason != null && !finishReason.contains("STOP", ignoreCase = true)) {
+                logger.warn("Model ${model.modelName} generation stopped with non-STOP reason: $finishReason")
+            }
+        } catch (e: Exception) {
+            logger.debug("Could not inspect finishReason for model ${model.modelName}: ${e.message}")
+        }
+    }
 
     private fun throwIfRateLimited(
         model: GeminiModel,
