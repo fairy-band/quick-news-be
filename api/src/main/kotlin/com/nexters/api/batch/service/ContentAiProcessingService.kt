@@ -299,10 +299,21 @@ class ContentAiProcessingService(
 
             if (!markdownText.isNullOrEmpty()) {
                 val finalMarkdown = MarkdownValidator.ensureSourceLink(markdownText, originalUrl)
-                val markdownEntity = ExposureContentMarkdown(
-                    exposureContentId = exposureContent.id!!,
-                    markdownContent = finalMarkdown
-                )
+                val existing = exposureContentMarkdownRepository.findByExposureContentId(exposureContent.id!!)
+                val markdownEntity = if (existing != null) {
+                    ExposureContentMarkdown(
+                        id = existing.id,
+                        exposureContentId = existing.exposureContentId,
+                        markdownContent = finalMarkdown,
+                        createdAt = existing.createdAt,
+                        updatedAt = java.time.LocalDateTime.now()
+                    )
+                } else {
+                    ExposureContentMarkdown(
+                        exposureContentId = exposureContent.id!!,
+                        markdownContent = finalMarkdown
+                    )
+                }
                 exposureContentMarkdownRepository.save(markdownEntity)
                 logger.info("Saved AI-generated markdown immediately for exposure content ID: ${exposureContent.id} (length=${finalMarkdown.length})")
             }
