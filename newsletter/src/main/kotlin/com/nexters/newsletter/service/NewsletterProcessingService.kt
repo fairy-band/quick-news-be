@@ -203,7 +203,7 @@ class NewsletterProcessingService(
             // Fallback: create basic exposure content
             exposureContentService.createOrUpdateExposureContent(
                 content = content,
-                provocativeKeyword = "Newsletter",
+                provocativeKeyword = "#기술뉴스 #개발인사이트",
                 provocativeHeadline = content.title,
                 summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else "",
             )

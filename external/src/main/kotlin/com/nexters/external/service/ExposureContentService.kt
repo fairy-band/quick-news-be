@@ -108,11 +108,19 @@ class ExposureContentService(
         val keywordMappings = contentKeywordMappingRepository.findByContent(content)
 
         return if (keywordMappings.isNotEmpty()) {
-            // Return the first keyword as the most provocative one
-            // In a real implementation, you might want to implement a more sophisticated algorithm
-            keywordMappings.first().keyword.name
+            val tags = keywordMappings
+                .map { it.keyword.name.trim().removePrefix("#") }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(3)
+                .map { "#$it" }
+            if (tags.isNotEmpty()) {
+                tags.joinToString(" ")
+            } else {
+                "#테크트렌드 #개발인사이트"
+            }
         } else {
-            "No Keywords"
+            "#테크트렌드 #개발인사이트"
         }
     }
 
