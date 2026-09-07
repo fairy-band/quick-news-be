@@ -230,7 +230,7 @@ class GeminiClient(
         model: GeminiModel,
         originalContent: String,
         originalUrl: String,
-        maxOutputTokens: Int = 4000,
+        maxOutputTokens: Int = 8192,
     ): GenerateContentResponse? =
         executeTextRequest(
             model = model,
