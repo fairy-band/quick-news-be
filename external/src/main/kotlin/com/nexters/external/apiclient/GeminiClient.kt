@@ -304,8 +304,8 @@ class GeminiClient(
     private fun logFinishReason(model: GeminiModel, response: GenerateContentResponse?) {
         if (response == null) return
         try {
-            val candidate = response.candidates()?.firstOrNull()
-            val finishReason = candidate?.finishReason()?.toString()
+            val candidate = response.candidates()?.orElse(emptyList())?.firstOrNull()
+            val finishReason = candidate?.finishReason()?.orElse(null)?.toString()
             if (finishReason != null && !finishReason.contains("STOP", ignoreCase = true)) {
                 logger.warn("Model ${model.modelName} generation stopped with non-STOP reason: $finishReason")
             }
