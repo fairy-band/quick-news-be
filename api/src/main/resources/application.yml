@@ -57,6 +57,11 @@ ai:
   gemini:
     key: ${AI_GEMINI_KEY:}
 
+# Embedding Service Configuration (BAAI/bge-m3 ONNX)
+embedding:
+  service:
+    url: ${EMBEDDING_SERVICE_URL:http://newsletter-embedder:8000}
+
 # Firebase Configuration
 firebase:
   enabled: ${FIREBASE_ENABLED:false}

@@ -11,6 +11,7 @@ import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.dto.GeminiModel
+import com.nexters.external.apiclient.EmbeddingServiceClient
 import com.nexters.external.entity.ExposureContentMarkdown
 import com.nexters.external.repository.ExposureContentMarkdownRepository
 import com.nexters.external.service.GeminiRateLimiterService
@@ -34,6 +35,7 @@ class ContentAiProcessingService(
     private val exposureContentService: ExposureContentService,
     private val geminiRateLimiterService: GeminiRateLimiterService,
     private val exposureContentMarkdownRepository: ExposureContentMarkdownRepository,
+    private val embeddingServiceClient: EmbeddingServiceClient,
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingService::class.java)
 
@@ -319,6 +321,13 @@ class ContentAiProcessingService(
             }
         } catch (e: Exception) {
             logger.error("Failed to generate immediate markdown for exposure content ID: ${exposureContent.id}", e)
+        }
+
+        // 임베딩 파이프라인 연동: 제목, 헤드라인, 키워드, 요약, 마크다운 기반 bge-m3 pgvector 적재
+        try {
+            embeddingServiceClient.embedContent(content.id!!)
+        } catch (e: Exception) {
+            logger.warn("Failed to generate embedding for content ID ${content.id}: ${e.message}")
         }
 
         logger.info("Processed content (type: $providerType, ID: $contentId): ${content.title}")

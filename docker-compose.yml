@@ -90,6 +90,7 @@ services:
       OAUTH2_CLIENT_ID_GOOGLE: ${OAUTH2_CLIENT_ID_GOOGLE}
       OAUTH2_CLIENT_SECRET_GOOGLE: ${OAUTH2_CLIENT_SECRET_GOOGLE}
       CRAWLER_SERVICE_URL: http://crawler:8000
+      EMBEDDING_SERVICE_URL: ${EMBEDDING_SERVICE_URL:-http://newsletter-embedder:8000}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     deploy:

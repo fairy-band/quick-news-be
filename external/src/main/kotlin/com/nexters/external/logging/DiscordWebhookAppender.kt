@@ -75,10 +75,18 @@ class DiscordWebhookAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
                 else -> 8421504 // 회색
             }
 
+        val rawDescription = "$message$throwableInfo"
+        val description =
+            if (rawDescription.length > 3900) {
+                rawDescription.take(3900) + "\n... [truncated]"
+            } else {
+                rawDescription
+            }
+
         val embed =
             mapOf(
-                "title" to "[$level] $loggerName",
-                "description" to "$message$throwableInfo",
+                "title" to "[$level] $loggerName".take(250),
+                "description" to description,
                 "color" to color,
                 "footer" to mapOf("text" to "Thread: $threadName"),
                 "timestamp" to timestamp

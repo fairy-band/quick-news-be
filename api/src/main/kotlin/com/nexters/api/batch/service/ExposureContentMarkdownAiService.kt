@@ -1,5 +1,6 @@
 package com.nexters.api.batch.service
 
+import com.nexters.external.apiclient.EmbeddingServiceClient
 import com.nexters.external.dto.GeminiModel
 import com.nexters.external.entity.ExposureContentMarkdown
 import com.nexters.external.exception.RateLimitExceededException
@@ -23,6 +24,7 @@ class ExposureContentMarkdownAiService(
     private val exposureContentRepository: ExposureContentRepository,
     private val exposureContentMarkdownRepository: ExposureContentMarkdownRepository,
     private val geminiRateLimiterService: GeminiRateLimiterService,
+    private val embeddingServiceClient: EmbeddingServiceClient,
 ) {
     private val logger = LoggerFactory.getLogger(ExposureContentMarkdownAiService::class.java)
     private val isProcessing = AtomicBoolean(false)
@@ -79,6 +81,13 @@ class ExposureContentMarkdownAiService(
                         }
                         exposureContentMarkdownRepository.save(entity)
                         logger.info("Saved AI-generated markdown for exposure content ID: ${exposureContent.id} (length=${finalMarkdown.length})")
+
+                        // 임베딩 파이프라인 연동: 마크다운이 추가/보강된 최신 텍스트로 bge-m3 임베딩 갱신
+                        try {
+                            embeddingServiceClient.embedContent(exposureContent.content.id!!)
+                        } catch (e: Exception) {
+                            logger.warn("Failed to update embedding for content ID ${exposureContent.content.id}: ${e.message}")
+                        }
                     } else {
                         logger.warn("Received empty markdown from AI for exposure content ID: ${exposureContent.id}")
                     }
