@@ -41,7 +41,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         SELECT c FROM Content c
         LEFT JOIN c.contentProvider cp
         WHERE c.id NOT IN (
-            SELECT DISTINCT s.content.id FROM Summary s
+            SELECT DISTINCT ec.content.id FROM ExposureContent ec
         )
         AND LENGTH(c.content) <= $MAX_CONTENT_LENGTH
         ORDER BY
@@ -79,7 +79,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
             LEFT JOIN category_keyword_mappings catkm ON catkm.keyword_id = ckm.keyword_id
             LEFT JOIN exposure_count_by_category ecbc ON ecbc.category_id = catkm.category_id
             WHERE c.id NOT IN (
-                SELECT DISTINCT s.content_id FROM summaries s
+                SELECT DISTINCT ec.content_id FROM exposure_contents ec
             )
             AND CHAR_LENGTH(c.content) BETWEEN :minLength AND :maxLength
             AND c.created_at <= :createdBefore
@@ -108,7 +108,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         WHERE c.content IS NOT NULL
         AND CHAR_LENGTH(c.content) BETWEEN :minLength AND :maxLength
         AND c.id NOT IN (
-            SELECT DISTINCT s.content_id FROM summaries s
+            SELECT DISTINCT ec.content_id FROM exposure_contents ec
         )
     """,
         nativeQuery = true,
@@ -125,7 +125,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         JOIN CategoryKeywordMapping catkm ON ckm.keyword.id = catkm.keyword.id
         WHERE catkm.category.id = :categoryId
         AND c.id NOT IN (
-            SELECT DISTINCT s.content.id FROM Summary s
+            SELECT DISTINCT ec.content.id FROM ExposureContent ec
         )
     """
     )
@@ -139,7 +139,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         SELECT c FROM Content c
         WHERE c.newsletterName = :newsletterName
         AND c.id NOT IN (
-            SELECT DISTINCT s.content.id FROM Summary s
+            SELECT DISTINCT ec.content.id FROM ExposureContent ec
         )
     """
     )
@@ -156,7 +156,7 @@ interface ContentRepository : JpaRepository<Content, Long> {
         WHERE catkm.category.id = :categoryId
         AND c.newsletterName = :newsletterName
         AND c.id NOT IN (
-            SELECT DISTINCT s.content.id FROM Summary s
+            SELECT DISTINCT ec.content.id FROM ExposureContent ec
         )
     """
     )

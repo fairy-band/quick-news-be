@@ -1,5 +1,6 @@
 package com.nexters.newsletter.service
 
+import com.nexters.external.apiclient.CrawlerServiceClient
 import com.nexters.external.dto.RssItem
 import com.nexters.external.dto.toContentText
 import com.nexters.external.entity.Content
@@ -30,6 +31,7 @@ class RssContentService(
     private val contentProviderService: ContentProviderService,
     private val representativeImageUrlExtractorService: RepresentativeImageUrlExtractorService,
     private val rssProcessingStatusRepository: RssProcessingStatusRepository,
+    private val crawlerServiceClient: CrawlerServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(RssContentService::class.java)
 
@@ -189,14 +191,28 @@ class RssContentService(
         feedUrl: String,
         feedTitle: String,
         item: RssItem
-    ): NewsletterSource =
-        NewsletterSource(
+    ): NewsletterSource {
+        var rawContent = item.toContentText()
+        if (rawContent.length < 500 && item.link.isNotBlank()) {
+            try {
+                val extracted = crawlerServiceClient?.extractArticle(item.link)
+                val enrichedBody = extracted?.content
+                if (extracted != null && extracted.success && !enrichedBody.isNullOrBlank()) {
+                    logger.info("Enriched short RSS snippet (${rawContent.length} chars) with full article (${extracted.length} chars) from ${item.link}")
+                    rawContent = enrichedBody
+                }
+            } catch (e: Exception) {
+                logger.warn("Failed to enrich short RSS item ${item.link}: ${e.message}")
+            }
+        }
+
+        return NewsletterSource(
             subject = item.title,
             sender = feedTitle,
             senderEmail = "rss@${item.link.extractDomainOrNull() ?: feedUrl.extractDomainOrNull() ?: FALLBACK_RSS_DOMAIN}",
             recipient = "system",
             recipientEmail = "system@newsletter.ai",
-            content = item.toContentText(),
+            content = rawContent,
             contentType = "text/html",
             receivedDate = item.publishedDate ?: LocalDateTime.now(),
             headers =
@@ -206,6 +222,7 @@ class RssContentService(
                     "RSS-Categories" to item.categories.joinToString(","),
                 ),
         )
+    }
 
     private fun createContentFromNewsletterSource(
         newsletterSource: NewsletterSource,
