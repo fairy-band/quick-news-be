@@ -26,7 +26,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Sort
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -101,10 +103,15 @@ class NewsletterApiController(
                 )
         )
         @RequestParam(required = false) categoryIds: List<Long>?,
-    ): ExposureContentListApiResponse =
-        newsletterExploreService
-            .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED, direction, categoryIds)
-            .toApiResponse()
+    ): ResponseEntity<ExposureContentListApiResponse> {
+        val result =
+            newsletterExploreService
+                .getExploreContents(lastSeenOffset, size, sort ?: ExploreSortType.REGISTERED, direction, categoryIds)
+                .toApiResponse()
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, stale-while-revalidate=120")
+            .body(result)
+    }
 
     @PostMapping("/contents")
     @ResponseStatus(HttpStatus.CREATED)
@@ -153,12 +160,16 @@ class NewsletterApiController(
     @Operation(summary = "노출 콘텐츠 마크다운 조회", description = "노출 콘텐츠의 마크다운 내용을 조회합니다.")
     fun getExposureContentMarkdown(
         @PathVariable exposureContentId: Long,
-    ): com.nexters.api.dto.ExposureContentMarkdownApiResponse {
+    ): ResponseEntity<com.nexters.api.dto.ExposureContentMarkdownApiResponse> {
         val markdown = exposureContentService.getMarkdownByExposureContentId(exposureContentId)
-        return com.nexters.api.dto.ExposureContentMarkdownApiResponse(
-            exposureContentId = markdown.exposureContentId,
-            markdownContent = markdown.markdownContent
-        )
+        val response =
+            com.nexters.api.dto.ExposureContentMarkdownApiResponse(
+                exposureContentId = markdown.exposureContentId,
+                markdownContent = markdown.markdownContent,
+            )
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300, stale-while-revalidate=600")
+            .body(response)
     }
 
     @GetMapping("/content-providers")
@@ -174,22 +185,26 @@ class NewsletterApiController(
     )
     fun getContentProviders(
         @RequestHeader("Access-Token") accessToken: String,
-    ): List<ContentProviderApiResponse> {
+    ): ResponseEntity<List<ContentProviderApiResponse>> {
         try {
             tokenUtil.validateAndGetEmail(accessToken)
         } catch (e: Exception) {
             throw UnauthorizedException("Invalid access token: ${e.message}")
         }
 
-        return contentService.getAllContentProviders().map { provider ->
-            ContentProviderApiResponse(
-                id = provider.id!!,
-                name = provider.name,
-                channel = provider.channel,
-                language = provider.language,
-                type = provider.type,
-            )
-        }
+        val providers =
+            contentService.getAllContentProviders().map { provider ->
+                ContentProviderApiResponse(
+                    id = provider.id!!,
+                    name = provider.name,
+                    channel = provider.channel,
+                    language = provider.language,
+                    type = provider.type,
+                )
+            }
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CACHE_CONTROL, "private, max-age=300")
+            .body(providers)
     }
 
     @PostMapping("/content-provider-requests")

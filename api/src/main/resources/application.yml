@@ -1,8 +1,13 @@
 spring:
+  threads:
+    virtual:
+      enabled: true
   profiles:
     active: dev
   application:
     name: api
+  jpa:
+    open-in-view: false
   http:
     converters:
       preferred-json-mapper: jackson2
@@ -61,6 +66,11 @@ ai:
 embedding:
   service:
     url: ${EMBEDDING_SERVICE_URL:http://newsletter-embedder:8000}
+
+# Crawler Service Configuration (Article Body Extractor)
+crawler:
+  service:
+    url: ${CRAWLER_SERVICE_URL:http://crawler:8000}
 
 # Firebase Configuration
 firebase:
