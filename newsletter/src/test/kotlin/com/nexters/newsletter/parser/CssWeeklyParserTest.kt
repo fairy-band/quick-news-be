@@ -510,6 +510,8 @@ Another stunning, realistic demo created by Jhey Tompkins. _(Speaking of AI, hav
     @Test
     fun `supports 테스트`() {
         assertTrue(parser.supports("css-weekly@beehiiv.com", null))
+        assertTrue(parser.supports("newsletter@css-weekly.com", null))
+        assertTrue(parser.supports("info@css-weekly.com", null))
         assertTrue(parser.supports("CSS Weekly", null))
     }
 }

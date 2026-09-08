@@ -5,7 +5,8 @@ class CssWeeklyParser : MailParser {
         sender: String,
         subject: String?,
     ): Boolean =
-        sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
+        sender.contains("css-weekly", ignoreCase = true) ||
+            sender.contains(NEWSLETTER_NAME, ignoreCase = true) ||
             sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
     override fun parse(context: MailParseContext): List<MailContent> {
