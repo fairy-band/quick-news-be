@@ -7,6 +7,7 @@ import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.NewsletterSource
 import com.nexters.external.entity.RssProcessingStatus
+import com.nexters.external.filter.AdAndPromotionalFilter
 import com.nexters.external.repository.RssProcessingStatusRepository
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
@@ -159,6 +160,11 @@ class RssContentService(
         feedTitle: String,
         item: RssItem
     ) {
+        if (AdAndPromotionalFilter.isPromotional(item.title, item.description)) {
+            logger.info("Skipping promotional RSS item. feedTitle={}, itemTitle={}", feedTitle, item.title)
+            return
+        }
+
         try {
             val newsletterSource = createNewsletterSource(feedUrl, feedTitle, item)
             val savedSource = newsletterSourceService.save(newsletterSource)

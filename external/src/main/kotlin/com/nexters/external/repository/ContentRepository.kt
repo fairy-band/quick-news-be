@@ -135,6 +135,24 @@ interface ContentRepository : JpaRepository<Content, Long> {
     ): Page<Content>
 
     @Query(
+        value = """
+        SELECT c.id
+        FROM contents c
+        JOIN exposure_contents ec ON ec.content_id = c.id
+        WHERE c.id NOT IN (
+            SELECT ce.content_id FROM content_embeddings ce
+        )
+        ORDER BY c.id DESC
+        LIMIT :limit
+    """,
+        nativeQuery = true,
+    )
+    fun findExposureContentsMissingEmbedding(
+        @Param("limit") limit: Int = 50
+    ): List<Long>
+
+
+    @Query(
         """
         SELECT c FROM Content c
         WHERE c.newsletterName = :newsletterName

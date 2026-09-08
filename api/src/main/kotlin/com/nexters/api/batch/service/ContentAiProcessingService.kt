@@ -6,6 +6,7 @@ import com.nexters.external.constants.ContentConstants.MAX_TOTAL_BATCH_LENGTH
 import com.nexters.external.entity.Content
 import com.nexters.external.exception.AiProcessingException
 import com.nexters.external.exception.RateLimitExceededException
+import com.nexters.external.filter.AdAndPromotionalFilter
 import com.nexters.external.filter.FilterChain
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentAnalysisService
@@ -49,6 +50,7 @@ class ContentAiProcessingService(
     private val filterChain =
         FilterChain
             .builder()
+            .addFilter(AdAndPromotionalFilter())
             .addLengthFilter(
                 minLength = MIN_CONTENT_LENGTH,
                 maxLength = MAX_CONTENT_LENGTH

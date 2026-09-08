@@ -9,6 +9,7 @@ import com.nexters.external.entity.NewsletterSourceEnrichment
 import com.nexters.external.entity.WebPageEnrichment
 import com.nexters.external.entity.WebPageEnrichmentItem
 import com.nexters.external.exception.RateLimitExceededException
+import com.nexters.external.filter.AdAndPromotionalFilter
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
@@ -132,7 +133,12 @@ class NewsletterProcessingService(
         val newsletterName = resolveNewsletterName(newsletterSource)
         val contentProvider = resolveContentProvider(newsletterName)
 
-        return parsedContents.map { mailContent ->
+        return parsedContents.mapNotNull { mailContent ->
+            if (AdAndPromotionalFilter.isPromotional(mailContent.title, mailContent.content)) {
+                logger.info("Skipping promotional newsletter mail content. newsletterName={}, title={}", newsletterName, mailContent.title)
+                return@mapNotNull null
+            }
+
             val originalUrl = mailContent.link.trim().ifBlank { newsletterSource.headers["RSS-Item-URL"].orEmpty().trim() }
             val enrichmentItem =
                 parseContext.webPageEnrichment.findSuccessfulContentItem(
