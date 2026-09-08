@@ -264,6 +264,50 @@ class RecommendationCandidateSelectorTest {
         assertThat(result).containsExactly(candidate)
     }
 
+    @Test
+    fun `select should apply topic deduplication so duplicate topic articles are not repeated in daily recommendation`() {
+        val topic1A = candidate(exposureContentId = 1L).copy(title = "React 19 정식 출시 안내", provocativeHeadline = "React 19 정식 출시")
+        val topic1B = candidate(exposureContentId = 2L).copy(title = "React 19 신규 기능과 마이그레이션", provocativeHeadline = "React 19 신규 기능")
+        val topic2 = candidate(exposureContentId = 3L).copy(title = "Spring Boot 3.3 업데이트 가이드", provocativeHeadline = "Spring Boot 3.3 업데이트")
+        val topic3 = candidate(exposureContentId = 4L).copy(title = "PostgreSQL 트랜잭션 튜닝 노하우", provocativeHeadline = "PostgreSQL 트랜잭션")
+        val topic4 = candidate(exposureContentId = 5L).copy(title = "Kafka 파티션 분산 아키텍처", provocativeHeadline = "Kafka 파티션 분산")
+        val topic5 = candidate(exposureContentId = 6L).copy(title = "Docker 보안 베스트 프랙티스", provocativeHeadline = "Docker 보안 가이드")
+        val topic6 = candidate(exposureContentId = 7L).copy(title = "Redis 캐시 무효화 전략", provocativeHeadline = "Redis 캐시 전략")
+
+        val allCandidates = listOf(topic1A, topic1B, topic2, topic3, topic4, topic5, topic6)
+        val context = context(allCandidates)
+        val sources = sourcesByCandidate("sources", *allCandidates.toTypedArray())
+
+        every { scoringSourceFactory.createContext(any(), any(), any(), any()) } returns context
+        every { scoringSourceFactory.createSources(match { it.candidates == allCandidates }, 1.0) } returns sources
+        every { ranker.rank(sources) } returns allCandidates.mapIndexed { idx, cand ->
+            ScoredRecommendationCandidate(cand, 100.0 - idx * 5.0)
+        }
+        every {
+            publisherDiversityPolicy.apply(
+                candidates = allCandidates,
+                sourcesByCandidate = sources,
+                limit = 6,
+            )
+        } returns listOf(topic1A, topic1B, topic2, topic3, topic4, topic5)
+
+        val result =
+            selector.select(
+                RecommendationCandidateSelectionRequest(
+                    candidates = allCandidates,
+                    candidateSignalsByExposureContentId = emptyMap(),
+                    keywordWeightsByKeyword = emptyMap(),
+                    categoryIds = listOf(10L),
+                    limit = 6,
+                ),
+            )
+
+        assertThat(result).hasSize(6)
+        assertThat(result).contains(topic1A)
+        assertThat(result).doesNotContain(topic1B)
+        assertThat(result).contains(topic2, topic3, topic4, topic5, topic6)
+    }
+
     private fun context(candidates: List<ExposureContentRecommendationCandidateRow>): CandidateScoringSourceContext =
         CandidateScoringSourceContext(
             candidates = candidates,

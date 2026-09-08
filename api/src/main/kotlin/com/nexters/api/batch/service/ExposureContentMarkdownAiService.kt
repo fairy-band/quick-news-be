@@ -63,7 +63,7 @@ class ExposureContentMarkdownAiService(
                     }
 
                     if (!markdownText.isNullOrEmpty()) {
-                        val finalMarkdown = MarkdownValidator.ensureSourceLink(markdownText, originalUrl)
+                        val finalMarkdown = MarkdownValidator.standardizeMarkdown(markdownText, originalUrl)
                         val existing = exposureContentMarkdownRepository.findByExposureContentId(exposureContent.id!!)
                         val entity = if (existing != null) {
                             ExposureContentMarkdown(

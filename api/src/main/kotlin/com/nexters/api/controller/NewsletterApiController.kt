@@ -162,10 +162,15 @@ class NewsletterApiController(
         @PathVariable exposureContentId: Long,
     ): ResponseEntity<com.nexters.api.dto.ExposureContentMarkdownApiResponse> {
         val markdown = exposureContentService.getMarkdownByExposureContentId(exposureContentId)
+        val exposureContent = exposureContentService.getExposureContentById(exposureContentId)
+        val standardized = com.nexters.external.support.MarkdownValidator.standardizeMarkdown(
+            markdown.markdownContent,
+            exposureContent.content.originalUrl,
+        )
         val response =
             com.nexters.api.dto.ExposureContentMarkdownApiResponse(
                 exposureContentId = markdown.exposureContentId,
-                markdownContent = markdown.markdownContent,
+                markdownContent = standardized,
             )
         return ResponseEntity.ok()
             .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300, stale-while-revalidate=600")

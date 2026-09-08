@@ -406,6 +406,29 @@ class ExposureContentService(
         }
     }
 
+    fun findSimilarContentPairs(
+        contentIds: Collection<Long>,
+        minSimilarity: Double = 0.80,
+    ): Map<Long, Map<Long, Double>> {
+        val distinctContentIds = contentIds.distinct()
+        if (distinctContentIds.size < 2) {
+            return emptyMap()
+        }
+
+        return try {
+            val pairs = exposureContentRepository.findSimilarContentPairs(distinctContentIds, minSimilarity)
+            val similarityMap = mutableMapOf<Long, MutableMap<Long, Double>>()
+            for (pair in pairs) {
+                similarityMap.computeIfAbsent(pair.contentId1) { mutableMapOf() }[pair.contentId2] = pair.similarity
+                similarityMap.computeIfAbsent(pair.contentId2) { mutableMapOf() }[pair.contentId1] = pair.similarity
+            }
+            similarityMap
+        } catch (e: Exception) {
+            logger.warn("콘텐츠 간 임베딩 유사도 쌍 조회 중 오류 발생 (어휘적 중복 제거로 폴백): ${e.message}")
+            emptyMap()
+        }
+    }
+
     fun countAllExposureContents(): Long = exposureContentRepository.count()
 
     private fun ExposureContentArchiveRow.toArchiveSnapshot(): DailyContentArchive.ExposureContentSnapshot =

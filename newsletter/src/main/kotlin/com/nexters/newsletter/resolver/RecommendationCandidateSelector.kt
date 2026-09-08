@@ -13,6 +13,8 @@ class RecommendationCandidateSelector(
     private val scoringSourceFactory: CandidateScoringSourceFactory,
     private val ranker: RecommendationCandidateRanker,
     private val publisherDiversityPolicy: PublisherDiversityPolicy,
+    private val topicDeduplicationPolicy: TopicDeduplicationPolicy = TopicDeduplicationPolicy(),
+    private val exposureContentService: com.nexters.external.service.ExposureContentService? = null,
 ) {
     fun select(request: RecommendationCandidateSelectionRequest): List<ExposureContentRecommendationCandidateRow> {
         if (request.candidates.isEmpty() || request.limit <= 0) {
@@ -99,12 +101,23 @@ class RecommendationCandidateSelector(
                     filteredContext.candidates.find { it.exposureContentId == exposureContentId }
                 }
 
-        // Apply 6-slot Hybrid Interleaving (Slot 1: Core, Slot 2: Semantic#1, Slot 3: Trend, Slot 4: MAB, Slot 5: Semantic#2, Slot 6: Evergreen)
+        // Load embedding cosine similarity pairs for candidate pool
+        val contentIds = filteredContext.candidates.map { it.contentId }.distinct()
+        val similarityMap =
+            trace.measure("loadSimilarityPairs") {
+                exposureContentService?.findSimilarContentPairs(
+                    contentIds = contentIds,
+                    minSimilarity = TopicDeduplicationPolicy.SIMILARITY_THRESHOLD,
+                ) ?: emptyMap()
+            }
+
+        // Apply 6-slot Hybrid Interleaving with Topic Deduplication MMR
         val result =
             interleaveHybridRecommendationSlots(
                 rankedCandidates = finalSelected,
                 semanticCandidates = semanticCandidates,
                 allCandidates = filteredContext.candidates,
+                similarityMap = similarityMap,
                 limit = request.limit,
             )
 
@@ -122,6 +135,7 @@ class RecommendationCandidateSelector(
         rankedCandidates: List<ExposureContentRecommendationCandidateRow>,
         semanticCandidates: List<ExposureContentRecommendationCandidateRow>,
         allCandidates: List<ExposureContentRecommendationCandidateRow>,
+        similarityMap: Map<Long, Map<Long, Double>>,
         limit: Int,
     ): List<ExposureContentRecommendationCandidateRow> {
         if (rankedCandidates.isEmpty() || limit <= 0) {
@@ -143,9 +157,14 @@ class RecommendationCandidateSelector(
 
         // [Slot 2 / Index 1] Semantic Candidate #1 (Highest similarity with topic diversity)
         val slot2 =
-            semanticCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
-                ?: semanticCandidates.firstOrNull { it !in result }
-                ?: rankedCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
+            semanticCandidates
+                .filter { it !in result }
+                .maxByOrNull { candidate ->
+                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
+                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                    if (isDuplicate) damping * 0.05 else damping
+                }
+                ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
                 ?: rankedCandidates.firstOrNull { it !in result }
         if (slot2 != null) {
             result.add(slot2)
@@ -153,40 +172,50 @@ class RecommendationCandidateSelector(
 
         // [Slot 3 / Index 2] Trend & Hot News / Next Highest Ranked (with topic diversity)
         val slot3 =
-            rankedCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
+            rankedCandidates
+                .filter { it !in result }
+                .maxByOrNull { candidate ->
+                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
+                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                    if (isDuplicate) damping * 0.05 else damping
+                }
+                ?: allCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
                 ?: rankedCandidates.firstOrNull { it !in result }
         if (slot3 != null) {
             result.add(slot3)
         }
 
         // [Slot 4 / Index 3] MAB Exploration Slot (Fresh content published within last 2 days)
-        val mabCandidate =
+        val mabCandidates =
             allCandidates
                 .filter { it !in result }
                 .filter { java.time.temporal.ChronoUnit.DAYS.between(it.publishedAt, today) <= 2 }
-                .let { candidates ->
-                    candidates.firstOrNull { !hasTopicOverlap(it, result) } ?: candidates.firstOrNull()
-                }
+
+        val mabCandidate =
+            mabCandidates.maxByOrNull { candidate ->
+                val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
+                val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                if (isDuplicate) damping * 0.05 else damping
+            } ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+            ?: rankedCandidates.firstOrNull { it !in result }
 
         if (mabCandidate != null) {
             result.add(mabCandidate)
-        } else {
-            val slot4Fallback =
-                rankedCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
-                    ?: rankedCandidates.firstOrNull { it !in result }
-            slot4Fallback?.let { result.add(it) }
         }
 
         // [Slot 5 / Index 4] Semantic Candidate #2 (With publisher AND topic diversity)
         val slot5 =
-            semanticCandidates.firstOrNull { candidate ->
-                candidate !in result &&
-                    !hasTopicOverlap(candidate, result) &&
-                    result.none { it.contentProviderId == candidate.contentProviderId && candidate.contentProviderId != null }
-            } ?: semanticCandidates.firstOrNull { candidate ->
-                candidate !in result && result.none { it.contentProviderId == candidate.contentProviderId && candidate.contentProviderId != null }
-            } ?: semanticCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
-                ?: semanticCandidates.firstOrNull { it !in result }
+            semanticCandidates
+                .filter { it !in result }
+                .maxByOrNull { candidate ->
+                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
+                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                    val publisherOverlap = result.any { it.contentProviderId == candidate.contentProviderId && candidate.contentProviderId != null }
+                    var score = if (isDuplicate) damping * 0.05 else damping
+                    if (publisherOverlap) score *= 0.5
+                    score
+                }
+                ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
                 ?: rankedCandidates.firstOrNull { it !in result }
 
         if (slot5 != null) {
@@ -196,8 +225,8 @@ class RecommendationCandidateSelector(
         // [Slot 6 / Index 5+] Evergreen Architecture / Fill remaining slots with diversity priority
         while (result.size < limit) {
             val nextDiverse =
-                rankedCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
-                    ?: allCandidates.firstOrNull { it !in result && !hasTopicOverlap(it, result) }
+                rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+                    ?: allCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
                     ?: rankedCandidates.firstOrNull { it !in result }
                     ?: allCandidates.firstOrNull { it !in result }
                     ?: break
@@ -207,38 +236,8 @@ class RecommendationCandidateSelector(
         return result.take(limit)
     }
 
-    private fun hasTopicOverlap(
-        candidate: ExposureContentRecommendationCandidateRow,
-        selected: Collection<ExposureContentRecommendationCandidateRow>,
-        overlapThreshold: Int = 2,
-    ): Boolean {
-        val candidateTokens = extractKeyTokens("${candidate.title} ${candidate.provocativeHeadline}")
-        if (candidateTokens.isEmpty()) return false
-
-        for (item in selected) {
-            val itemTokens = extractKeyTokens("${item.title} ${item.provocativeHeadline}")
-            val intersection = candidateTokens.intersect(itemTokens)
-            if (intersection.size >= overlapThreshold) {
-                return true
-            }
-        }
-        return false
-    }
-
-    private fun extractKeyTokens(text: String): Set<String> {
-        return text.lowercase()
-            .replace(Regex("[^a-zA-Z0-9가-힣\\s]"), " ")
-            .split(Regex("\\s+"))
-            .filter { it.length >= 2 && it !in STOP_WORDS }
-            .toSet()
-    }
-
     companion object {
         private val FALLBACK_MULTIPLIERS = listOf(2.0, 3.0, 4.0)
-        private val STOP_WORDS = setOf(
-            "개발", "위한", "어떻게", "하는", "방법", "정리", "가이드", "소개", "알아보기", "이유",
-            "with", "the", "and", "for", "how", "what", "from", "into", "that", "this"
-        )
     }
 
     private fun CandidateScoringSourceContext.filterByCategoryFit(): CandidateScoringSourceContext {

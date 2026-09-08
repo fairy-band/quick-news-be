@@ -760,6 +760,24 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         @Param("publishedFrom") publishedFrom: LocalDate,
         @Param("limit") limit: Int,
     ): List<ExposureContentRecommendationCandidateProjection>
+    @Query(
+        value = """
+        SELECT 
+            ce1.content_id AS contentId1,
+            ce2.content_id AS contentId2,
+            CAST(1.0 - (ce1.embedding <=> ce2.embedding) AS DOUBLE PRECISION) AS similarity
+        FROM content_embeddings ce1
+        JOIN content_embeddings ce2 ON ce1.content_id < ce2.content_id
+        WHERE ce1.content_id IN (:contentIds)
+          AND ce2.content_id IN (:contentIds)
+          AND (1.0 - (ce1.embedding <=> ce2.embedding)) >= :minSimilarity
+    """,
+        nativeQuery = true,
+    )
+    fun findSimilarContentPairs(
+        @Param("contentIds") contentIds: Collection<Long>,
+        @Param("minSimilarity") minSimilarity: Double = 0.80,
+    ): List<ContentSimilarityPairProjection>
 }
 
 interface ExposureContentRecommendationCandidateProjection {
@@ -772,5 +790,11 @@ interface ExposureContentRecommendationCandidateProjection {
     val title: String
     val provocativeHeadline: String
     val summaryContent: String
+}
+
+interface ContentSimilarityPairProjection {
+    val contentId1: Long
+    val contentId2: Long
+    val similarity: Double
 }
 
