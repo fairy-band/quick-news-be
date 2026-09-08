@@ -1,13 +1,16 @@
 package com.nexters.api.batch.config
 
 import com.nexters.external.config.RssFeedProperties
+import com.nexters.external.repository.RssFeedRepository
 import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.URI
+import java.time.LocalDateTime
 
 @Component
 @ConditionalOnProperty(
@@ -18,27 +21,44 @@ import java.net.URI
 class RssFeedScheduler(
     private val rssContentService: RssContentService,
     private val rssFeedProperties: RssFeedProperties,
+    @Autowired(required = false)
+    private val rssFeedRepository: RssFeedRepository? = null,
 ) {
     @Value("\${rss.scheduler.fetch.medium-delay-ms:15000}")
     private var mediumFeedDelayMs: Long = 15_000
 
-    private val rssFeeds: List<String>
-        get() = rssFeedProperties.feeds
-
     private val logger = LoggerFactory.getLogger(RssFeedScheduler::class.java)
     private var lastMediumFeedFetchStartedAt: Long = 0
 
+    private fun resolveTargetFeeds(): List<String> {
+        val dbFeeds = try {
+            rssFeedRepository?.findByIsActiveTrueOrderByPriorityDesc()
+        } catch (e: Exception) {
+            logger.warn("Failed to query active RSS feeds from DB, falling back to properties: {}", e.message)
+            null
+        }
+
+        if (!dbFeeds.isNullOrEmpty()) {
+            logger.info("Loaded {} active RSS feeds from database", dbFeeds.size)
+            return dbFeeds.map { it.feedUrl }
+        }
+
+        logger.info("Using {} RSS feeds from static configuration", rssFeedProperties.feeds.size)
+        return rssFeedProperties.feeds
+    }
+
     @Scheduled(cron = "\${rss.scheduler.fetch.cron:0 0 * * * *}")
     fun fetchRssFeeds() {
-        if (rssFeeds.isEmpty()) {
+        val targetFeeds = resolveTargetFeeds()
+        if (targetFeeds.isEmpty()) {
             logger.debug("No RSS feeds configured, skipping fetch")
             return
         }
 
-        logger.info("Starting scheduled RSS feed fetch for ${rssFeeds.size} feeds")
+        logger.info("Starting scheduled RSS feed fetch for ${targetFeeds.size} feeds")
 
         val results = linkedMapOf<String, Int>()
-        rssFeeds.forEach { feedUrl ->
+        targetFeeds.forEach { feedUrl ->
             waitForMediumRateLimit(feedUrl)
             results[feedUrl] = rssContentService.fetchAndSaveRssFeed(feedUrl)[feedUrl] ?: -1
         }
@@ -46,13 +66,33 @@ class RssFeedScheduler(
         results.forEach { (feedUrl, count) ->
             if (count >= 0) {
                 logger.info("Fetched $count new items from: $feedUrl")
+                updateFeedStatus(feedUrl, count, null)
             } else {
                 logger.error("Failed to fetch feed: $feedUrl")
+                updateFeedStatus(feedUrl, count, "Failed to fetch or parse feed")
             }
         }
 
         val totalNewItems = results.values.filter { it >= 0 }.sum()
         logger.info("Completed RSS feed fetch. Total new items: $totalNewItems")
+    }
+
+    private fun updateFeedStatus(feedUrl: String, count: Int, error: String?) {
+        try {
+            val feed = rssFeedRepository?.findByFeedUrl(feedUrl) ?: return
+            feed.lastFetchedAt = LocalDateTime.now()
+            feed.updatedAt = LocalDateTime.now()
+            if (error == null) {
+                feed.status = "HEALTHY"
+                feed.errorMessage = null
+            } else {
+                feed.status = "ERROR"
+                feed.errorMessage = error
+            }
+            rssFeedRepository.save(feed)
+        } catch (e: Exception) {
+            logger.warn("Failed to update feed status for $feedUrl: ${e.message}")
+        }
     }
 
     private fun waitForMediumRateLimit(feedUrl: String) {

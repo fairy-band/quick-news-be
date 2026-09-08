@@ -12,14 +12,12 @@ rss:
 
     # 한국 기술 미디어
     - https://www.44bits.io/ko/feed/all
-    - http://hacks.mozilla.or.kr/feed/
-    - https://kofearticle.substack.com/feed
 
     # 대기업 기술 블로그
     - https://www.samsungsds.com/kr/insights/insight_ko_rss.xml
     - https://tech.cloud.nongshim.co.kr/feed/
     - https://d2.naver.com/d2.atom
-    - https://engineering.linecorp.com/ko/feed/index.html
+    - https://techblog.lycorp.co.jp/ko/feed/index.html
     - https://tech.kakao.com/feed/
     - https://github.com/naver/fe-news/commits/master.atom
     - https://www.confluent.io/blog/area/technology/rss.xml
@@ -34,8 +32,8 @@ rss:
     - https://zuminternet.github.io/feed.xml
     - https://techblog.gccompany.co.kr/feed
     - https://techblog.yogiyo.co.kr/feed
-    - https://meetup.toast.com/rss
-    - https://woowabros.github.io/feed.xml
+    - https://meetup.nhncloud.com/rss
+    - https://techblog.woowahan.com/feed/
 
     # Medium 기업/기술 블로그
     - https://medium.com/feed/netflix-techblog
@@ -63,11 +61,7 @@ rss:
     - https://medium.com/feed/javascript-in-plain-english
 
     # 기술 뉴스레터/주간지
-    - http://feeds.feedburner.com/CSS-Weekly?format=xml
     - https://vuejsdevelopers.com/feed.xml
-    - http://react.statuscode.com/rss
-    - https://cprss.s3.amazonaws.com/frontendfoc.us.xml
-    - https://cprss.s3.amazonaws.com/javascriptweekly.com.xml
 
     # 개발 도구/언어 공식 블로그
     - https://devblogs.microsoft.com/typescript/feed/
