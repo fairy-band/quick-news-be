@@ -2,6 +2,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg15
     container_name: newsletter-postgres
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -15,8 +16,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '${DB_CPU_LIMIT:-0.5}'
-          memory: ${DB_MEM_LIMIT:-512M}
+          cpus: '${DB_CPU_LIMIT:-1.0}'
+          memory: ${DB_MEM_LIMIT:-1G}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-newsletter}"]
       interval: 5s
@@ -45,8 +46,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '${MONGO_CPU_LIMIT:-0.5}'
-          memory: ${MONGO_MEM_LIMIT:-512M}
+          cpus: '${MONGO_CPU_LIMIT:-1.0}'
+          memory: ${MONGO_MEM_LIMIT:-1G}
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb://$${MONGO_INITDB_ROOT_USERNAME:-admin}:$${MONGO_INITDB_ROOT_PASSWORD:-password123}@localhost:27017/admin --quiet
       interval: 10s
@@ -98,6 +99,12 @@ services:
         limits:
           cpus: '${API_CPU_LIMIT:-1.5}'
           memory: ${API_MEM_LIMIT:-1.5G}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
