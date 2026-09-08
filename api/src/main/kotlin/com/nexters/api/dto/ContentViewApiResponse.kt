@@ -19,5 +19,6 @@ data class ContentViewApiResponse(
         val newsletterName: String,
         val language: Language,
         val cardType: ContentProviderType,
+        val estimatedReadingTime: Int = 2,
     )
 }

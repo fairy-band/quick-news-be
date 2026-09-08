@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface ExposureContentMarkdownRepository : JpaRepository<ExposureContentMarkdown, Long> {
     fun findByExposureContentId(exposureContentId: Long): ExposureContentMarkdown?
+    fun findAllByExposureContentIdIn(exposureContentIds: Collection<Long>): List<ExposureContentMarkdown>
 }

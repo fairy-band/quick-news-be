@@ -52,6 +52,28 @@ object MarkdownValidator {
     }
 
     /**
+     * 마크다운 본문의 길이를 기반으로 예상 완독 시간을 정수(분 단위)로 계산합니다. (최소 1분)
+     * 마크다운 본문에 이미 예상 완독 시간 표기가 존재하는 경우 해당 숫자를 우선 추출합니다.
+     */
+    fun estimateReadingTimeMinutes(markdown: String?): Int {
+        if (markdown.isNullOrBlank()) return 1
+
+        val match = Regex("""예상 완독 시간[^\d]*(\d+)분""").find(markdown)
+        if (match != null) {
+            val parsed = match.groupValues[1].toIntOrNull()
+            if (parsed != null && parsed > 0) return parsed
+        }
+
+        val plainTextLength = markdown
+            .replace(Regex("```[a-zA-Z]*\\n[\\s\\S]*?\\n```"), " ")
+            .replace(Regex("[#>*`\\[\\]\\(\\)-]"), " ")
+            .trim()
+            .length
+
+        return maxOf(1, (plainTextLength + 225) / CHARACTERS_PER_MINUTE)
+    }
+
+    /**
      * 마크다운 본문에 원문 링크가 누락된 경우, 안전하게 하단에 원문 링크를 보강합니다.
      */
     fun ensureSourceLink(markdown: String, originalUrl: String): String {

@@ -21,5 +21,6 @@ data class ExposureContentApiResponse(
     val newsletterName: String,
     val language: Language,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    val estimatedReadingTime: Int = 2,
 )

@@ -239,6 +239,7 @@ class NewsletterApiControllerTest {
             .andExpect(jsonPath("$.trendingCard.imageUrl").value("https://example.com/featured-image.png"))
             .andExpect(jsonPath("$.trendingCard.newsletterName").value("프론트엔드 위클리"))
             .andExpect(jsonPath("$.trendingCard.language").value("ENGLISH"))
+            .andExpect(jsonPath("$.trendingCard.estimatedReadingTime").value(1))
             .andExpect(jsonPath("$.cards[0].id").value(11L))
             .andExpect(jsonPath("$.cards[0].title").value("후킹 제목"))
             .andExpect(jsonPath("$.cards[0].topKeyword").value("Kotlin"))
@@ -247,6 +248,7 @@ class NewsletterApiControllerTest {
             .andExpect(jsonPath("$.cards[0].imageUrl").value("https://example.com/image-1.png"))
             .andExpect(jsonPath("$.cards[0].newsletterName").value("안드로이드 위클리"))
             .andExpect(jsonPath("$.cards[0].language").value("KOREAN"))
+            .andExpect(jsonPath("$.cards[0].estimatedReadingTime").value(2))
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.nexters.external.entity.ExposureContent
 import com.nexters.external.enums.ContentProviderType
 import com.nexters.external.repository.UserExposedContentMappingRepository
 import com.nexters.external.service.PopularNewsletterSnapshotService
+import com.nexters.external.support.MarkdownValidator
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -65,7 +66,8 @@ class NewsletterContentsService(
             imageUrl = this.content.imageUrl,
             newsletterName = this.content.newsletterName,
             language = Language.fromString(this.content.contentProvider?.language),
-            cardType = this.content.contentProvider?.type ?: ContentProviderType.UNKNOWN
+            cardType = this.content.contentProvider?.type ?: ContentProviderType.UNKNOWN,
+            estimatedReadingTime = MarkdownValidator.estimateReadingTimeMinutes(this.content.content),
         )
 
     private fun DailyContentArchive.ExposureContentSnapshot.toCard(): ContentViewApiResponse.ContentCardApiResponse =
@@ -78,6 +80,7 @@ class NewsletterContentsService(
             imageUrl = content.imageUrl,
             newsletterName = content.newsletterName,
             language = Language.fromString(content.contentProvider?.language),
-            cardType = content.contentProvider?.type ?: ContentProviderType.UNKNOWN
+            cardType = content.contentProvider?.type ?: ContentProviderType.UNKNOWN,
+            estimatedReadingTime = estimatedReadingTime,
         )
 }

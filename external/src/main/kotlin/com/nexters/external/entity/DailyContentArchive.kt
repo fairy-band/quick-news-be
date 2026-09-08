@@ -53,6 +53,7 @@ data class DailyContentArchive(
         val summaryContent: String,
         val createdAt: LocalDateTime,
         val updatedAt: LocalDateTime,
+        val estimatedReadingTime: Int = 2,
     )
 
     data class ContentSnapshot(

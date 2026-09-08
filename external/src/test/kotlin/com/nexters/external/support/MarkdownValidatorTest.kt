@@ -80,6 +80,25 @@ class MarkdownValidatorTest {
     }
 
     @Test
+    fun `estimateReadingTimeMinutes는 정수(분 단위)로 올바른 완독 시간을 반환해야 한다`() {
+        val shortText = "짧은 텍스트 ".repeat(10)
+        assertThat(MarkdownValidator.estimateReadingTimeMinutes(shortText)).isEqualTo(1)
+
+        val mediumText = "기술 블로그 본문 내용 테스트입니다. ".repeat(40) // ~800자
+        assertThat(MarkdownValidator.estimateReadingTimeMinutes(mediumText)).isEqualTo(2)
+
+        val longText = "기술 블로그 본문 내용 테스트입니다. ".repeat(80) // ~1600자
+        assertThat(MarkdownValidator.estimateReadingTimeMinutes(longText)).isEqualTo(4)
+
+        val markdownWithCallout = """
+            # 제목
+            > ⏱️ **예상 완독 시간**: 약 3분
+            본문 내용
+        """.trimIndent()
+        assertThat(MarkdownValidator.estimateReadingTimeMinutes(markdownWithCallout)).isEqualTo(3)
+    }
+
+    @Test
     fun `standardizeMarkdown은 레거시 마크다운에 완독 시간과 원문 링크를 자동으로 보강해야 한다`() {
         val legacyWithoutTime = """
             # Kafka 파티션 설계 원칙

@@ -167,10 +167,12 @@ class NewsletterApiController(
             markdown.markdownContent,
             exposureContent.content.originalUrl,
         )
+        val readingTime = com.nexters.external.support.MarkdownValidator.estimateReadingTimeMinutes(standardized)
         val response =
             com.nexters.api.dto.ExposureContentMarkdownApiResponse(
                 exposureContentId = markdown.exposureContentId,
                 markdownContent = standardized,
+                estimatedReadingTime = readingTime,
             )
         return ResponseEntity.ok()
             .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300, stale-while-revalidate=600")

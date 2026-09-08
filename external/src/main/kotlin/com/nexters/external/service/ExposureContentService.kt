@@ -13,6 +13,7 @@ import com.nexters.external.repository.ExposureContentRecommendationCandidateRow
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.repository.SummaryRepository
 import com.nexters.external.service.category.ContentCategoryScoreService
+import com.nexters.external.support.MarkdownValidator
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -401,8 +402,16 @@ class ExposureContentService(
                 .findArchiveRowsByIds(exposureContentIds)
                 .associateBy { it.exposureContentId }
 
+        val markdownsByExposureContentId =
+            exposureContentMarkdownRepository
+                .findAllByExposureContentIdIn(exposureContentIds)
+                .associateBy { it.exposureContentId }
+
         return exposureContentIds.mapNotNull { exposureContentId ->
-            archiveRowsById[exposureContentId]?.toArchiveSnapshot()
+            val row = archiveRowsById[exposureContentId] ?: return@mapNotNull null
+            val markdown = markdownsByExposureContentId[exposureContentId]?.markdownContent
+            val readingTime = MarkdownValidator.estimateReadingTimeMinutes(markdown)
+            row.toArchiveSnapshot(estimatedReadingTime = readingTime)
         }
     }
 
@@ -431,7 +440,7 @@ class ExposureContentService(
 
     fun countAllExposureContents(): Long = exposureContentRepository.count()
 
-    private fun ExposureContentArchiveRow.toArchiveSnapshot(): DailyContentArchive.ExposureContentSnapshot =
+    private fun ExposureContentArchiveRow.toArchiveSnapshot(estimatedReadingTime: Int = 2): DailyContentArchive.ExposureContentSnapshot =
         DailyContentArchive.ExposureContentSnapshot(
             id = exposureContentId,
             content =
@@ -454,6 +463,7 @@ class ExposureContentService(
             summaryContent = summaryContent,
             createdAt = createdAt,
             updatedAt = updatedAt,
+            estimatedReadingTime = estimatedReadingTime,
         )
 
     companion object {
