@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository
 interface ContentProviderRepository : JpaRepository<ContentProvider, Long> {
     fun findByName(name: String): ContentProvider?
 
+    fun findFirstByName(name: String): ContentProvider?
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     fun findFirstByNameOrderByIdAsc(name: String): ContentProvider?
 }

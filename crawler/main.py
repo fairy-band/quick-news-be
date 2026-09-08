@@ -25,25 +25,31 @@ def health_check():
 async def extract_article(url: str = Query(..., description="Target URL to extract article text from")):
     logger.info(f"Received extraction request for URL: {url}")
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
-        }) as client:
-            resp = await client.get(url)
-
+        resp = None
         extracted_text = None
-        if resp.status_code == 200:
-            extracted_text = trafilatura.extract(
-                resp.text,
-                include_links=False,
-                include_images=False,
-                include_formatting=False,
-                no_fallback=False
-            )
+        status_code = 0
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True, headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
+            }) as client:
+                resp = await client.get(url)
+                status_code = resp.status_code
+
+            if resp and resp.status_code == 200:
+                extracted_text = trafilatura.extract(
+                    resp.text,
+                    include_links=False,
+                    include_images=False,
+                    include_formatting=False,
+                    no_fallback=False
+                )
+        except Exception as de:
+            logger.info(f"Direct request failed for {url}: {de}. Will attempt Jina fallback.")
 
         # Fallback to Jina reader proxy if direct extraction failed, blocked (e.g. 403), or yielded very short content (<300 chars)
         if not extracted_text or len(extracted_text.strip()) < 300:
-            logger.info(f"Direct extraction insufficient (status={resp.status_code}, len={len(extracted_text) if extracted_text else 0}). Trying Jina reader fallback for: {url}")
+            logger.info(f"Direct extraction insufficient (status={status_code}, len={len(extracted_text) if extracted_text else 0}). Trying Jina reader fallback for: {url}")
             try:
                 async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as jina_client:
                     jina_resp = await jina_client.get(
@@ -70,7 +76,7 @@ async def extract_article(url: str = Query(..., description="Target URL to extra
             return ArticleExtractResponse(
                 url=url,
                 success=False,
-                error=f"Extraction failed (status={resp.status_code}, no body found)"
+                error=f"Extraction failed (status={status_code}, no body found)"
             )
 
         logger.info(f"Successfully extracted {len(extracted_text)} chars from URL: {url}")

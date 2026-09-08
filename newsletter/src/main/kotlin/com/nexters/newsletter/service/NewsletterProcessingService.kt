@@ -1,9 +1,13 @@
 package com.nexters.newsletter.service
 
+import com.nexters.external.apiclient.CrawlerServiceClient
 import com.nexters.external.entity.Content
 import com.nexters.external.entity.ContentProvider
 import com.nexters.external.entity.ExposureContent
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.entity.NewsletterSourceEnrichment
+import com.nexters.external.entity.WebPageEnrichment
+import com.nexters.external.entity.WebPageEnrichmentItem
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
@@ -29,9 +33,10 @@ class NewsletterProcessingService(
     private val exposureContentService: ExposureContentService,
     private val representativeImageUrlExtractorService: RepresentativeImageUrlExtractorService,
     private val newsletterContentGroupingServiceProvider: ObjectProvider<NewsletterContentGroupingService>,
+    private val crawlerServiceClient: CrawlerServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(NewsletterProcessingService::class.java)
-    private val mailParserFactory = MailParserFactory()
+    private val mailParserFactory = MailParserFactory(crawlerServiceClient)
 
     @Transactional
     fun processExistingContent(content: Content): ExposureContent {
@@ -72,7 +77,6 @@ class NewsletterProcessingService(
         }
     }
 
-    @Transactional
     fun processNewsletter(newsletterSourceId: String): List<ExposureContent> {
         try {
             val newsletterSource = newsletterSourceService.findById(newsletterSourceId)!!
@@ -100,8 +104,17 @@ class NewsletterProcessingService(
             val createdContents = parseContents(newsletterSource, parseContext, parsedContents)
             val contentsForProcessing = groupContentsForProcessing(newsletterSourceId, createdContents)
 
+            persistEnrichmentIfNewlyExtracted(newsletterSource, parsedContents)
+
             logger.info("End complete newsletter processing for source ID: $newsletterSourceId")
-            return contentsForProcessing.map { processExistingContent(it) }
+            return contentsForProcessing.mapNotNull { content ->
+                try {
+                    processExistingContent(content)
+                } catch (e: Exception) {
+                    logger.warn("Skipping AI processing for content ID ${content.id}: ${e.message}")
+                    null
+                }
+            }
         } catch (e: Exception) {
             logger.error("Failed to process newsletter source ID: $newsletterSourceId", e)
         }
@@ -207,6 +220,49 @@ class NewsletterProcessingService(
                 provocativeHeadline = content.title,
                 summaryContent = content.content.take(500) + if (content.content.length > 500) "..." else "",
             )
+        }
+    }
+
+    private fun persistEnrichmentIfNewlyExtracted(
+        source: NewsletterSource,
+        parsedContents: List<MailContent>,
+    ) {
+        if (source.enrichment?.webPage?.items.isNullOrEmpty() && parsedContents.any { it.enrichmentKey != null }) {
+            try {
+                val enrichmentItems =
+                    parsedContents.mapNotNull { mailContent ->
+                        mailContent.enrichmentKey?.let {
+                            WebPageEnrichmentItem(
+                                url = mailContent.link,
+                                normalizedUrl = mailContent.link,
+                                title = mailContent.title,
+                                content = mailContent.content,
+                                imageUrl = mailContent.imageUrl,
+                                status = "success",
+                                fetchedAt = LocalDateTime.now(),
+                            )
+                        }
+                    }
+                if (enrichmentItems.isNotEmpty()) {
+                    val updated =
+                        source.copy(
+                            enrichment =
+                                NewsletterSourceEnrichment(
+                                    webPage =
+                                        WebPageEnrichment(
+                                            version = 1,
+                                            status = "success",
+                                            processedAt = LocalDateTime.now(),
+                                            items = enrichmentItems,
+                                        ),
+                                ),
+                        )
+                    newsletterSourceService.save(updated)
+                    logger.info("Persisted new webPage enrichment to MongoDB source: ${source.id}")
+                }
+            } catch (e: Exception) {
+                logger.warn("Failed to persist enrichment to MongoDB source ${source.id}: ${e.message}")
+            }
         }
     }
 

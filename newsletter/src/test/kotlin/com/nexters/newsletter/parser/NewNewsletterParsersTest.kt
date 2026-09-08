@@ -37,6 +37,69 @@ class NewNewsletterParsersTest {
     }
 
     @Test
+    fun `Maeil Mail parser should use CrawlerServiceClient fallback when enrichment is empty and crawler succeeds`() {
+        val content =
+            """
+            오늘의 질문이 도착했습니다.
+            자세히 보기: https://www.maeil-mail.kr/question/123
+            """.trimIndent()
+
+        val mockCrawler =
+            object : com.nexters.external.apiclient.CrawlerServiceClient() {
+                override fun extractArticle(url: String): com.nexters.external.apiclient.ArticleExtractResponse {
+                    return com.nexters.external.apiclient.ArticleExtractResponse(
+                        url = url,
+                        success = true,
+                        title = "이벤트 루프 동작 원리",
+                        content = "이벤트 루프는 콜 스택과 태스크 큐를 조율합니다.",
+                        length = 30,
+                    )
+                }
+            }
+
+        val result =
+            MaeilMailParser(mockCrawler).parse(
+                MailParseContext(
+                    content = content,
+                    subject = "[매일메일] 자바스크립트 이벤트 루프는 어떻게 동작하나요?",
+                    htmlContent = null,
+                ),
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("자바스크립트 이벤트 루프는 어떻게 동작하나요?", result[0].title)
+        assertEquals("이벤트 루프는 콜 스택과 태스크 큐를 조율합니다.", result[0].content)
+        assertEquals("https://www.maeil-mail.kr/question/123", result[0].link)
+    }
+
+    @Test
+    fun `Maeil Mail parser should safely return emptyList when crawler fails`() {
+        val content = "자세히 보기: https://www.maeil-mail.kr/question/999"
+
+        val failingCrawler =
+            object : com.nexters.external.apiclient.CrawlerServiceClient() {
+                override fun extractArticle(url: String): com.nexters.external.apiclient.ArticleExtractResponse {
+                    return com.nexters.external.apiclient.ArticleExtractResponse(
+                        url = url,
+                        success = false,
+                        error = "HTTP 404",
+                    )
+                }
+            }
+
+        val result =
+            MaeilMailParser(failingCrawler).parse(
+                MailParseContext(
+                    content = content,
+                    subject = "[매일메일] 없는 질문",
+                    htmlContent = null,
+                ),
+            )
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
     fun `Maeil Mail parser should create contents from successful enrichment only`() {
         val result =
             MaeilMailParser().parse(

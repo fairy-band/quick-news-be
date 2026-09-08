@@ -9,6 +9,7 @@ import com.nexters.external.enums.ContentProviderType
 import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentService
 import com.nexters.external.service.NewsletterSourceService
+import com.nexters.external.apiclient.CrawlerServiceClient
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParseContext
 import com.nexters.newsletter.parser.MailParser
@@ -22,9 +23,10 @@ class NewsletterParseOnlyBackfillService(
     private val newsletterSourceService: NewsletterSourceService,
     private val contentRepository: ContentRepository,
     private val contentService: ContentService,
+    private val crawlerServiceClient: CrawlerServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val mailParserFactory = MailParserFactory()
+    private val mailParserFactory = MailParserFactory(crawlerServiceClient)
 
     fun createContents(request: NewsletterParseOnlyBackfillRequest): NewsletterParseOnlyBackfillResponse {
         val targetSenders = request.normalizedTargetSenders()

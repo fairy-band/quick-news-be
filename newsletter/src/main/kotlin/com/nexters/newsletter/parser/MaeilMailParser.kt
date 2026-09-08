@@ -1,15 +1,64 @@
 package com.nexters.newsletter.parser
 
-class MaeilMailParser : MailParser {
+import com.nexters.external.apiclient.CrawlerServiceClient
+import org.slf4j.LoggerFactory
+
+class MaeilMailParser(
+    private val crawlerServiceClient: CrawlerServiceClient? = null,
+) : MailParser {
+    private val logger = LoggerFactory.getLogger(MaeilMailParser::class.java)
+
     override fun supports(
         sender: String,
         subject: String?,
     ): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
-    override fun parse(context: MailParseContext): List<MailContent> =
-        context.webPageEnrichment
-            .successfulContentItems()
-            .map { enrichmentItem -> enrichmentItem.toMailContent(context) }
+    override fun parse(context: MailParseContext): List<MailContent> {
+        val existingItems = context.webPageEnrichment.successfulContentItems()
+        if (existingItems.isNotEmpty()) {
+            return existingItems.map { enrichmentItem -> enrichmentItem.toMailContent(context) }
+        }
+
+        val questionUrl = extractQuestionUrl(context) ?: run {
+            logger.debug("No Maeil Mail question URL found in content or htmlContent")
+            return emptyList()
+        }
+
+        if (crawlerServiceClient == null) {
+            logger.debug("No CrawlerServiceClient configured for MaeilMailParser; skipping enrichment")
+            return emptyList()
+        }
+
+        return try {
+            logger.info("Extracting Maeil Mail content in real-time from crawler: $questionUrl")
+            val extractResult = crawlerServiceClient.extractArticle(questionUrl)
+            val extractedContent = extractResult?.content
+            if (extractResult != null && extractResult.success && !extractedContent.isNullOrBlank()) {
+                logger.info("Successfully extracted Maeil Mail question (${extractResult.length} chars) from $questionUrl")
+                listOf(
+                    MailContent(
+                        title = context.subject.cleanTitle() ?: extractResult.title.cleanTitle() ?: "Untitled",
+                        content = extractedContent.trim(),
+                        link = questionUrl,
+                        section = SECTION_INTERVIEW,
+                        imageUrl = null,
+                        enrichmentKey = questionUrl,
+                    ),
+                )
+            } else {
+                logger.warn("Crawler extraction failed or empty for Maeil Mail ($questionUrl): ${extractResult?.error}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            logger.warn("Exception during Maeil Mail crawler extraction for $questionUrl: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun extractQuestionUrl(context: MailParseContext): String? {
+        val body = context.htmlContent?.takeIf { it.isNotBlank() } ?: context.content
+        return QUESTION_URL_REGEX.find(body)?.value
+    }
 
     private fun MailWebPageEnrichmentItem.toMailContent(context: MailParseContext): MailContent =
         MailContent(
@@ -48,5 +97,6 @@ class MaeilMailParser : MailParser {
 
         private val SUBJECT_PREFIX_REGEX = Regex("""^\s*\[매일메일]\s*""")
         private val TITLE_WHITESPACE_REGEX = Regex("\\s+")
+        private val QUESTION_URL_REGEX = Regex("""https?://(?:www\.)?maeil-mail\.kr/question/\d+""")
     }
 }

@@ -10,7 +10,7 @@ class ContentProviderService(
     private val contentProviderRepository: ContentProviderRepository,
     private val contentProviderCategoryMappingRepository: ContentProviderCategoryMappingRepository,
 ) {
-    fun findByName(name: String): ContentProvider? = contentProviderRepository.findByName(name)
+    fun findByName(name: String): ContentProvider? = contentProviderRepository.findFirstByName(name)
 
     /**
      * ContentProvider와 Category 매핑의 가중치를 조회합니다.

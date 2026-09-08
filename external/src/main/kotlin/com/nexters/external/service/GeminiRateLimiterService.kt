@@ -139,7 +139,7 @@ class DailyLimitService(
 ) {
     private val logger = LoggerFactory.getLogger(DailyLimitService::class.java)
 
-    @Transactional
+    @Transactional(noRollbackFor = [RateLimitExceededException::class])
     fun incrementDailyLimit(model: GeminiModel) {
         val today = LocalDate.now()
 

@@ -1,13 +1,17 @@
 package com.nexters.newsletter.parser
 
-class MailParserFactory {
+import com.nexters.external.apiclient.CrawlerServiceClient
+
+class MailParserFactory(
+    private val crawlerServiceClient: CrawlerServiceClient? = null,
+) {
     private val parsers =
         listOf(
             JSWeeklyParser(),
             LibHuntWeeklyParser(),
             KotlinWeeklyParser(),
             GeeknewsWeeklyParser(),
-            MaeilMailParser(),
+            MaeilMailParser(crawlerServiceClient),
             KoreanFeArticleParser(),
             TLDRNewsletterParser(),
             BaeldungParser(),
