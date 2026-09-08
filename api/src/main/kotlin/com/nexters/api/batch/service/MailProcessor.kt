@@ -1,7 +1,9 @@
 package com.nexters.api.batch.service
 
 import com.nexters.api.batch.dto.EmailMessage
+import com.nexters.external.entity.EmailSource
 import com.nexters.external.entity.NewsletterSource
+import com.nexters.external.repository.EmailSourceRepository
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.newsletter.parser.MailParserFactory
 import com.nexters.newsletter.service.NewsletterProcessingService
@@ -28,21 +30,37 @@ data class MailProcessingResult(
 class MailProcessor(
     private val newsletterSourceService: NewsletterSourceService,
     private val newsletterProcessingService: NewsletterProcessingService,
+    private val emailSourceRepository: EmailSourceRepository,
 ) {
     private val mailParserFactory = MailParserFactory()
 
     fun shouldProcess(emailMessage: EmailMessage): Boolean {
         val senderInfo = parseSenderInfo(emailMessage.from.firstOrNull() ?: "Unknown")
-        val parser = mailParserFactory.findParser(senderInfo.second, emailMessage.subject)
-        if (parser == null) {
+        val senderEmail = senderInfo.second
+
+        // 1. Email Source Whitelist & Active Status Check
+        val emailSource = emailSourceRepository.findBySenderEmail(senderEmail)
+        if (emailSource != null && !emailSource.isActive) {
             logger.info(
-                "Skipping unsupported newsletter mail. senderEmail={}, subject={}",
-                senderInfo.second,
+                "Skipping deactivated email source. senderEmail={}, subject={}",
+                senderEmail,
                 emailMessage.subject,
             )
             return false
         }
 
+        // 2. Mail Parser Support Check
+        val parser = mailParserFactory.findParser(senderEmail, emailMessage.subject)
+        if (parser == null) {
+            logger.info(
+                "Skipping unsupported newsletter mail. senderEmail={}, subject={}",
+                senderEmail,
+                emailMessage.subject,
+            )
+            return false
+        }
+
+        // 3. Duplicate Newsletter Source Check
         val newsletterSource = convertToNewsletterSource(emailMessage)
         val existingNewsletter =
             newsletterSourceService.findBySenderEmailAndSubjectAndReceivedDate(
@@ -85,6 +103,29 @@ class MailProcessor(
 
         val savedNewsletter = newsletterSourceService.save(newsletterSource)
         logger.info("Newsletter saved successfully with ID: ${savedNewsletter.id}")
+
+        // Update lastReceivedAt or auto-register email source
+        runCatching {
+            val emailSource = emailSourceRepository.findBySenderEmail(newsletterSource.senderEmail)
+            if (emailSource != null) {
+                emailSource.lastReceivedAt = LocalDateTime.now()
+                emailSourceRepository.save(emailSource)
+            } else {
+                val parser = mailParserFactory.findParser(newsletterSource.senderEmail, newsletterSource.subject)
+                emailSourceRepository.save(
+                    EmailSource(
+                        name = newsletterSource.sender,
+                        senderEmail = newsletterSource.senderEmail,
+                        parserName = parser?.let { it::class.simpleName },
+                        isActive = true,
+                        lastReceivedAt = LocalDateTime.now(),
+                    )
+                )
+            }
+        }.onFailure { e ->
+            logger.warn("Failed to update email source status for {}: {}", newsletterSource.senderEmail, e.message)
+        }
+
         return savedNewsletter
     }
 

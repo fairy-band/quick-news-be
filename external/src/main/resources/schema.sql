@@ -675,4 +675,27 @@ CREATE INDEX IF NOT EXISTS idx_rss_sources_is_active_priority
 CREATE INDEX IF NOT EXISTS idx_rss_sources_feed_url
     ON rss_sources (feed_url);
 
+-- Email Sources registry table
+CREATE TABLE IF NOT EXISTS email_sources
+(
+    id               BIGSERIAL PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL,
+    sender_email     VARCHAR(255) NOT NULL UNIQUE,
+    parser_name      VARCHAR(100),
+    is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
+    category_id      BIGINT,
+    priority         INTEGER      NOT NULL DEFAULT 5,
+    last_received_at TIMESTAMP,
+    status           VARCHAR(50)  NOT NULL DEFAULT 'HEALTHY',
+    error_message    TEXT,
+    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_sources_is_active_priority
+    ON email_sources (is_active, priority DESC);
+
+CREATE INDEX IF NOT EXISTS idx_email_sources_sender_email
+    ON email_sources (sender_email);
+
 
