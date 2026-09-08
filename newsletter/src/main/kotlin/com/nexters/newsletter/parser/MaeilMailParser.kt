@@ -41,7 +41,7 @@ class MaeilMailParser(
                         content = extractedContent.trim(),
                         link = questionUrl,
                         section = SECTION_INTERVIEW,
-                        imageUrl = null,
+                        imageUrl = extractResult.imageUrl?.takeIf { it.isNotBlank() },
                         enrichmentKey = questionUrl,
                     ),
                 )

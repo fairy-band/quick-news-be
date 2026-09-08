@@ -1,4 +1,5 @@
 import logging
+import re
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 import trafilatura
@@ -14,8 +15,38 @@ class ArticleExtractResponse(BaseModel):
     success: bool
     title: str | None = None
     content: str | None = None
+    image_url: str | None = None
     length: int = 0
     error: str | None = None
+
+def extract_meta_image(html: str) -> str | None:
+    patterns = [
+        r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+        r'<meta[^>]+name=["\']twitter:image(?::src)?["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']twitter:image(?::src)?["\']',
+    ]
+    for pat in patterns:
+        m = re.search(pat, html, re.IGNORECASE)
+        if m:
+            val = m.group(1).strip()
+            if val.startswith("http://") or val.startswith("https://"):
+                return val
+    return None
+
+def extract_meta_title(html: str) -> str | None:
+    patterns = [
+        r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:title["\']',
+        r'<title[^>]*>([^<]+)</title>',
+    ]
+    for pat in patterns:
+        m = re.search(pat, html, re.IGNORECASE)
+        if m:
+            val = m.group(1).strip()
+            if val:
+                return val
+    return None
 
 @app.get("/health")
 def health_check():
@@ -27,6 +58,8 @@ async def extract_article(url: str = Query(..., description="Target URL to extra
     try:
         resp = None
         extracted_text = None
+        extracted_title = None
+        extracted_image = None
         status_code = 0
         try:
             async with httpx.AsyncClient(timeout=15.0, follow_redirects=True, headers={
@@ -37,8 +70,11 @@ async def extract_article(url: str = Query(..., description="Target URL to extra
                 status_code = resp.status_code
 
             if resp and resp.status_code == 200:
+                html_body = resp.text
+                extracted_image = extract_meta_image(html_body)
+                extracted_title = extract_meta_title(html_body)
                 extracted_text = trafilatura.extract(
-                    resp.text,
+                    html_body,
                     include_links=False,
                     include_images=False,
                     include_formatting=False,
@@ -62,10 +98,17 @@ async def extract_article(url: str = Query(..., description="Target URL to extra
                     if jina_resp.status_code == 200 and len(jina_resp.text.strip()) >= 300:
                         jina_content = jina_resp.text.strip()
                         logger.info(f"Jina reader successfully extracted {len(jina_content)} chars from URL: {url}")
+                        if not extracted_image:
+                            img_match = re.search(r'!\[.*?\]\((https?://[^\s\)]+)\)', jina_content)
+                            if img_match:
+                                extracted_image = img_match.group(1).strip()
+
                         return ArticleExtractResponse(
                             url=url,
                             success=True,
+                            title=extracted_title,
                             content=jina_content,
+                            image_url=extracted_image,
                             length=len(jina_content)
                         )
             except Exception as je:
@@ -83,7 +126,9 @@ async def extract_article(url: str = Query(..., description="Target URL to extra
         return ArticleExtractResponse(
             url=url,
             success=True,
+            title=extracted_title,
             content=extracted_text.strip(),
+            image_url=extracted_image,
             length=len(extracted_text.strip())
         )
 
