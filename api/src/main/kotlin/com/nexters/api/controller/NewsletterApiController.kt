@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -50,8 +51,10 @@ class NewsletterApiController(
     private val contentService: ContentService,
     private val contentProviderRequestService: ContentProviderRequestService,
     private val exposureContentService: com.nexters.external.service.ExposureContentService,
+    private val userReadContentService: com.nexters.external.service.UserReadContentService,
     private val tokenUtil: TokenUtil,
 ) {
+    private val logger = LoggerFactory.getLogger(NewsletterApiController::class.java)
     @GetMapping("/contents/{userId}")
     fun getNewsletterContents(
         @PathVariable userId: Long,
@@ -157,12 +160,26 @@ class NewsletterApiController(
     }
 
     @GetMapping("/exposure-contents/{exposureContentId}/markdown")
-    @Operation(summary = "노출 콘텐츠 마크다운 조회", description = "노출 콘텐츠의 마크다운 내용을 조회합니다.")
+    @Operation(summary = "노출 콘텐츠 마크다운 조회", description = "노출 콘텐츠의 마크다운 내용을 조회하고, userId가 주어지면 읽음 처리합니다.")
     fun getExposureContentMarkdown(
         @PathVariable exposureContentId: Long,
+        @RequestParam(required = false) userId: Long? = null,
     ): ResponseEntity<com.nexters.api.dto.ExposureContentMarkdownApiResponse> {
         val markdown = exposureContentService.getMarkdownByExposureContentId(exposureContentId)
         val exposureContent = exposureContentService.getExposureContentById(exposureContentId)
+
+        if (userId != null) {
+            try {
+                userReadContentService.recordRead(
+                    userId = userId,
+                    exposureContentId = exposureContentId,
+                    contentId = exposureContent.content.id!!,
+                )
+            } catch (e: Exception) {
+                logger.warn("유저 읽음 기록 저장 실패 (userId: $userId, exposureContentId: $exposureContentId): ${e.message}")
+            }
+        }
+
         val standardized = com.nexters.external.support.MarkdownValidator.standardizeMarkdown(
             markdown.markdownContent,
             exposureContent.content.originalUrl,

@@ -7,6 +7,7 @@ import com.nexters.external.entity.ExposureContent
 import com.nexters.external.enums.ContentProviderType
 import com.nexters.external.repository.UserExposedContentMappingRepository
 import com.nexters.external.service.PopularNewsletterSnapshotService
+import com.nexters.external.service.UserReadContentService
 import com.nexters.external.support.MarkdownValidator
 import com.nexters.newsletter.resolver.DailyContentArchiveResolver
 import org.springframework.stereotype.Service
@@ -17,6 +18,7 @@ class NewsletterContentsService(
     private val dayArchiveResolver: DailyContentArchiveResolver,
     private val popularNewsletterSnapshotService: PopularNewsletterSnapshotService,
     private val userExposedContentMappingRepository: UserExposedContentMappingRepository,
+    private val userReadContentService: UserReadContentService,
 ) {
     fun getNewsletterContents(
         userId: Long,
@@ -49,10 +51,16 @@ class NewsletterContentsService(
                 cards.filter { it.id != trending.id }
             } ?: cards
 
+        val allCardExposureIds = (filteredCards.map { it.id } + listOfNotNull(trendingCard?.id)).distinct()
+        val readCardIds = userReadContentService.getReadExposureContentIds(userId, allCardExposureIds)
+
+        val cardsWithReadStatus = filteredCards.map { it.copy(isRead = it.id in readCardIds) }
+        val trendingWithReadStatus = trendingCard?.copy(isRead = trendingCard.id in readCardIds)
+
         return ContentViewApiResponse(
             publishedDate = publishedDate,
-            trendingCard = trendingCard,
-            cards = filteredCards,
+            trendingCard = trendingWithReadStatus,
+            cards = cardsWithReadStatus,
         )
     }
 

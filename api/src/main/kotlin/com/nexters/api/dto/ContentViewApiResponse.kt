@@ -20,5 +20,6 @@ data class ContentViewApiResponse(
         val language: Language,
         val cardType: ContentProviderType,
         val estimatedReadingTime: Int = 2,
+        val isRead: Boolean = false,
     )
 }

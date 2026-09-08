@@ -698,4 +698,24 @@ CREATE INDEX IF NOT EXISTS idx_email_sources_is_active_priority
 CREATE INDEX IF NOT EXISTS idx_email_sources_sender_email
     ON email_sources (sender_email);
 
+-- User Read Contents tracking table (without foreign keys)
+CREATE TABLE IF NOT EXISTS user_read_contents
+(
+    id                  BIGSERIAL PRIMARY KEY,
+    user_id             BIGINT    NOT NULL,
+    exposure_content_id BIGINT    NOT NULL,
+    content_id          BIGINT    NOT NULL,
+    read_count          INTEGER   NOT NULL DEFAULT 1,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_user_read_contents_user_exposure UNIQUE (user_id, exposure_content_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_read_contents_user_id_created_at
+    ON user_read_contents (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_user_read_contents_content_id
+    ON user_read_contents (content_id);
+
+
 
