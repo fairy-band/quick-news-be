@@ -102,9 +102,11 @@ services:
       OAUTH2_CLIENT_SECRET_GOOGLE: ${OAUTH2_CLIENT_SECRET_GOOGLE}
       CRAWLER_SERVICE_URL: http://crawler:8000
       EMBEDDING_SERVICE_URL: ${EMBEDDING_SERVICE_URL:-http://newsletter-embedder:8000}
+      LOGGING_CONFIG: /app/logback-spring.xml
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - ./logs:/app/logs
+      - ./api/src/main/resources/logback-spring.xml:/app/logback-spring.xml:ro
     deploy:
       resources:
         limits:
