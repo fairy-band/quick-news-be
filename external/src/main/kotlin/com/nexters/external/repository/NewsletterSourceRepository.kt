@@ -34,4 +34,6 @@ interface NewsletterSourceRepository : MongoRepository<NewsletterSource, String>
         sender: String,
         subject: String
     ): NewsletterSource?
+
+    fun findBySenderEmailStartingWith(prefix: String): List<NewsletterSource>
 }

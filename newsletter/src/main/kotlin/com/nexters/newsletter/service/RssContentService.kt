@@ -262,7 +262,7 @@ class RssContentService(
             priority = feedTitle.calculateFeedPriority(),
         )
 
-    private fun getRssSources(): List<NewsletterSource> = newsletterSourceService.findAll().filter { it.senderEmail.startsWith("rss@") }
+    private fun getRssSources(): List<NewsletterSource> = newsletterSourceService.findBySenderEmailStartingWith("rss@")
 
     private fun resolveContentProvider(newsletterName: String): ContentProvider? =
         try {

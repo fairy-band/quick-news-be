@@ -16,13 +16,20 @@ spring:
       - gemini.yml
       - rss-feeds.yml
   mail:
-    host: pop.gmail.com
-    port: 995
+    host: ${MAIL_HOST:imap.gmail.com}
+    port: ${MAIL_PORT:993}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
-    protocol: pop3s
+    protocol: ${MAIL_PROTOCOL:imaps}
     properties:
       mail:
+        imaps:
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
+            port: 993
         pop3s:
           ssl:
             enable: true
@@ -30,8 +37,6 @@ spring:
             class: javax.net.ssl.SSLSocketFactory
             fallback: false
             port: 995
-        store:
-          protocol: pop3s
         debug: false
 
 management:

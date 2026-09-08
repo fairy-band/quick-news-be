@@ -20,9 +20,9 @@ class MailTriggerService(
     private val logger = LoggerFactory.getLogger(MailTriggerService::class.java)
 
     /**
-     * 매일 아침 8시에 메일 읽기 작업 트리거
+     * 메일 읽기 작업 트리거 (fixedDelay: 이전 작업 완료 후 10분 대기, initialDelay: 기동 10초 후 첫 실행)
      */
-    @Scheduled(fixedRate = 5 * 60 * 1000) // 5분마다 실행
+    @Scheduled(fixedDelay = 10 * 60 * 1000, initialDelay = 10 * 1000)
     fun triggerDailyMailReading() {
         logger.info("메일 읽기 시작")
 

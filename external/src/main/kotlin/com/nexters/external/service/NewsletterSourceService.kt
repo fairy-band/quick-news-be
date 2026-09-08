@@ -60,4 +60,7 @@ class NewsletterSourceService(
     fun count(): Long = newsletterSourceRepository.count()
 
     fun findAll(): List<NewsletterSource> = newsletterSourceRepository.findAll()
+
+    fun findBySenderEmailStartingWith(prefix: String): List<NewsletterSource> =
+        newsletterSourceRepository.findBySenderEmailStartingWith(prefix)
 }

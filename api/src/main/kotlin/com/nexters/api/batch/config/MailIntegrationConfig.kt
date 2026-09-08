@@ -17,7 +17,9 @@ import org.springframework.integration.dsl.IntegrationFlow
 import org.springframework.integration.dsl.IntegrationFlow.from
 import org.springframework.integration.dsl.integrationFlow
 import org.springframework.integration.mail.MailReceivingMessageSource
-import org.springframework.integration.mail.Pop3MailReceiver
+import org.springframework.integration.mail.inbound.AbstractMailReceiver
+import org.springframework.integration.mail.inbound.ImapMailReceiver
+import org.springframework.integration.mail.inbound.Pop3MailReceiver
 import org.springframework.integration.support.MessageBuilder
 import org.springframework.messaging.MessageChannel
 import java.net.URLEncoder
@@ -170,7 +172,11 @@ class MailIntegrationConfig(
             handle<NewsletterSource> { payload, headers ->
                 val subject = headers["savedSubject"] ?: "알 수 없는 제목"
                 logger.info("메일 저장 완료: $subject")
-                mailProcessor.processNewsletterSource(payload.id!!)
+                try {
+                    mailProcessor.processNewsletterSource(payload.id!!)
+                } catch (e: Exception) {
+                    logger.warn("메일 후속 처리 중 오류 발생 (원문은 안전하게 저장됨): ${e.message}")
+                }
                 payload
             }
 
@@ -207,34 +213,52 @@ class MailIntegrationConfig(
 
     private fun mailProperties(): Properties =
         Properties().apply {
-            setProperty("mail.store.protocol", "pop3s")
-            setProperty("mail.pop3s.host", mailProperties.host)
-            setProperty("mail.pop3s.port", mailProperties.port.toString())
-            setProperty("mail.pop3s.ssl.enable", "true")
-            setProperty("mail.pop3s.ssl.trust", "*")
-            setProperty("mail.pop3s.ssl.protocols", "TLSv1.2")
-            setProperty("mail.pop3s.connectiontimeout", "10000")
-            setProperty("mail.pop3s.timeout", "10000")
-            setProperty("mail.pop3s.writetimeout", "10000")
+            val isImap = mailProperties.protocol.lowercase().startsWith("imap")
+            val proto = if (isImap) "imaps" else "pop3s"
+            setProperty("mail.store.protocol", proto)
+            setProperty("mail.$proto.host", mailProperties.host)
+            setProperty("mail.$proto.port", mailProperties.port.toString())
+            setProperty("mail.$proto.ssl.enable", "true")
+            setProperty("mail.$proto.ssl.trust", "*")
+            setProperty("mail.$proto.ssl.protocols", "TLSv1.2 TLSv1.3")
+            setProperty("mail.$proto.connectiontimeout", "10000")
+            setProperty("mail.$proto.timeout", "10000")
+            setProperty("mail.$proto.writetimeout", "10000")
             setProperty("mail.debug", "false")
         }
 
-    // Configuration 내부의 빈 생성 메서드 호출은 프록시에 의해 재사용됨
     @Bean
-    fun mailReader(): MailReader = MailReader(mailMessageSource())
-
-    @Bean
-    fun mailMessageSource() =
-        MailReceivingMessageSource(
+    fun mailReceiver(): AbstractMailReceiver {
+        val isImap = mailProperties.protocol.lowercase().startsWith("imap")
+        return if (isImap) {
+            logger.info("Initializing IMAPS Mail Receiver (${mailProperties.host}:${mailProperties.port})")
+            ImapMailReceiver(mailReceiverUrl()).apply {
+                setShouldDeleteMessages(false)
+                setShouldMarkMessagesAsRead(true)
+                setMaxFetchSize(MAX_FETCH_SIZE)
+                setJavaMailAuthenticator(mailAuthenticator())
+                setJavaMailProperties(mailProperties())
+            }
+        } else {
+            logger.info("Initializing POP3S Mail Receiver (${mailProperties.host}:${mailProperties.port})")
             Pop3MailReceiver(mailReceiverUrl()).apply {
                 setShouldDeleteMessages(false)
                 setMaxFetchSize(MAX_FETCH_SIZE)
                 setJavaMailAuthenticator(mailAuthenticator())
                 setJavaMailProperties(mailProperties())
-            },
-        )
+            }
+        }
+    }
+
+    @Bean
+    fun mailMessageSource(mailReceiver: AbstractMailReceiver) =
+        MailReceivingMessageSource(mailReceiver)
+
+    @Bean
+    fun mailReader(mailMessageSource: MailReceivingMessageSource): MailReader =
+        MailReader(mailMessageSource)
 
     companion object {
-        private const val MAX_FETCH_SIZE = 10
+        private const val MAX_FETCH_SIZE = 30
     }
 }

@@ -10,12 +10,6 @@ import org.springframework.stereotype.Service
 /**
  * 메일 수신 및 처리를 담당하는 서비스
  */
-@Service
-@ConditionalOnProperty(
-    name = ["batch.enabled"],
-    havingValue = "true",
-    matchIfMissing = false
-)
 class MailReader(
     private val mailMessageSource: MessageSource<*>
 ) {
@@ -25,24 +19,33 @@ class MailReader(
         logger.info("메일 수신 시작")
         val messages = mutableListOf<EmailMessage>()
 
-        repeat(MAX_FETCH_SIZE) { index ->
-            val message = mailMessageSource.receive() ?: return messages
-
-            try {
-                val payload = message.payload
-                when (payload) {
-                    is MimeMessage -> {
-                        logger.info("[${index + 1}] 메일 변환: ${payload.subject}")
-                        val emailMessage = EmailMessage.fromMimeMessage(payload)
-                        messages.add(emailMessage)
-                    }
-                    else -> {
-                        logger.warn("[${index + 1}] 지원하지 않는 메시지 타입: ${payload.javaClass.name}")
-                    }
+        try {
+            for (index in 0 until MAX_FETCH_SIZE) {
+                val message = try {
+                    mailMessageSource.receive() ?: break
+                } catch (e: Exception) {
+                    logger.error("메일 수신 중 예외 발생: ${e.message}", e)
+                    break
                 }
-            } catch (e: Exception) {
-                logger.error("[${index + 1}] 메일 변환 중 오류 발생: ${e.message}", e)
+
+                try {
+                    val payload = message.payload
+                    when (payload) {
+                        is MimeMessage -> {
+                            logger.info("[${index + 1}] 메일 변환: ${payload.subject}")
+                            val emailMessage = EmailMessage.fromMimeMessage(payload)
+                            messages.add(emailMessage)
+                        }
+                        else -> {
+                            logger.warn("[${index + 1}] 지원하지 않는 메시지 타입: ${payload.javaClass.name}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger.error("[${index + 1}] 메일 변환 중 오류 발생: ${e.message}", e)
+                }
             }
+        } catch (e: Exception) {
+            logger.error("메일 읽기 배치 중 예상치 못한 오류 발생: ${e.message}", e)
         }
 
         logger.info("총 ${messages.size}개 메일 수신됨")
@@ -50,6 +53,6 @@ class MailReader(
     }
 
     companion object {
-        const val MAX_FETCH_SIZE = 10
+        const val MAX_FETCH_SIZE = 30
     }
 }
