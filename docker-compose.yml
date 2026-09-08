@@ -104,6 +104,7 @@ services:
       EMBEDDING_SERVICE_URL: ${EMBEDDING_SERVICE_URL:-http://newsletter-embedder:8000}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+      - ./logs:/app/logs
     deploy:
       resources:
         limits:

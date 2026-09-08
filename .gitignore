@@ -15,6 +15,7 @@ out/
 
 # Logs
 *.log
+logs/
 
 # 환경설정
 batch/.env
