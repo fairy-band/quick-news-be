@@ -653,8 +653,8 @@ CREATE TABLE IF NOT EXISTS scheduled_notifications
 CREATE INDEX IF NOT EXISTS idx_scheduled_notifications_is_enabled
     ON scheduled_notifications (is_enabled);
 
--- RSS Feeds registry table
-CREATE TABLE IF NOT EXISTS rss_feeds
+-- RSS Sources registry table
+CREATE TABLE IF NOT EXISTS rss_sources
 (
     id              BIGSERIAL PRIMARY KEY,
     name            VARCHAR(255) NOT NULL,
@@ -669,10 +669,10 @@ CREATE TABLE IF NOT EXISTS rss_feeds
     updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_rss_feeds_is_active_priority
-    ON rss_feeds (is_active, priority DESC);
+CREATE INDEX IF NOT EXISTS idx_rss_sources_is_active_priority
+    ON rss_sources (is_active, priority DESC);
 
-CREATE INDEX IF NOT EXISTS idx_rss_feeds_feed_url
-    ON rss_feeds (feed_url);
+CREATE INDEX IF NOT EXISTS idx_rss_sources_feed_url
+    ON rss_sources (feed_url);
 
 

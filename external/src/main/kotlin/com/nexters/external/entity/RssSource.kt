@@ -9,8 +9,8 @@ import jakarta.persistence.Table
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "rss_feeds")
-class RssFeed(
+@Table(name = "rss_sources")
+class RssSource(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,

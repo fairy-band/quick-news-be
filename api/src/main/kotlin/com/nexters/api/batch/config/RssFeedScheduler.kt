@@ -1,7 +1,7 @@
 package com.nexters.api.batch.config
 
 import com.nexters.external.config.RssFeedProperties
-import com.nexters.external.repository.RssFeedRepository
+import com.nexters.external.repository.RssSourceRepository
 import com.nexters.newsletter.service.RssContentService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,7 +22,7 @@ class RssFeedScheduler(
     private val rssContentService: RssContentService,
     private val rssFeedProperties: RssFeedProperties,
     @Autowired(required = false)
-    private val rssFeedRepository: RssFeedRepository? = null,
+    private val rssSourceRepository: RssSourceRepository? = null,
 ) {
     @Value("\${rss.scheduler.fetch.medium-delay-ms:15000}")
     private var mediumFeedDelayMs: Long = 15_000
@@ -31,16 +31,16 @@ class RssFeedScheduler(
     private var lastMediumFeedFetchStartedAt: Long = 0
 
     private fun resolveTargetFeeds(): List<String> {
-        val dbFeeds = try {
-            rssFeedRepository?.findByIsActiveTrueOrderByPriorityDesc()
+        val dbSources = try {
+            rssSourceRepository?.findByIsActiveTrueOrderByPriorityDesc()
         } catch (e: Exception) {
-            logger.warn("Failed to query active RSS feeds from DB, falling back to properties: {}", e.message)
+            logger.warn("Failed to query active RSS sources from DB, falling back to properties: {}", e.message)
             null
         }
 
-        if (!dbFeeds.isNullOrEmpty()) {
-            logger.info("Loaded {} active RSS feeds from database", dbFeeds.size)
-            return dbFeeds.map { it.feedUrl }
+        if (!dbSources.isNullOrEmpty()) {
+            logger.info("Loaded {} active RSS sources from database", dbSources.size)
+            return dbSources.map { it.feedUrl }
         }
 
         logger.info("Using {} RSS feeds from static configuration", rssFeedProperties.feeds.size)
@@ -79,19 +79,19 @@ class RssFeedScheduler(
 
     private fun updateFeedStatus(feedUrl: String, count: Int, error: String?) {
         try {
-            val feed = rssFeedRepository?.findByFeedUrl(feedUrl) ?: return
-            feed.lastFetchedAt = LocalDateTime.now()
-            feed.updatedAt = LocalDateTime.now()
+            val source = rssSourceRepository?.findByFeedUrl(feedUrl) ?: return
+            source.lastFetchedAt = LocalDateTime.now()
+            source.updatedAt = LocalDateTime.now()
             if (error == null) {
-                feed.status = "HEALTHY"
-                feed.errorMessage = null
+                source.status = "HEALTHY"
+                source.errorMessage = null
             } else {
-                feed.status = "ERROR"
-                feed.errorMessage = error
+                source.status = "ERROR"
+                source.errorMessage = error
             }
-            rssFeedRepository.save(feed)
+            rssSourceRepository.save(source)
         } catch (e: Exception) {
-            logger.warn("Failed to update feed status for $feedUrl: ${e.message}")
+            logger.warn("Failed to update source status for $feedUrl: ${e.message}")
         }
     }
 
