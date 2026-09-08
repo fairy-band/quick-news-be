@@ -43,4 +43,21 @@ class CrawlerServiceClientTest {
         verify(exactly = 1) { cacheRepository.findByUrl(targetUrl) }
         verify(exactly = 0) { cacheRepository.save(any()) }
     }
+
+    @Test
+    fun `extractArticle should skip crawl for unverified source`() {
+        val verificationService = com.nexters.external.service.CrawlerSourceVerificationService()
+        val unverifiedUrl = "https://links.tldrnewsletter.com/zZrZ2P"
+
+        val client = CrawlerServiceClient(
+            crawlerServiceUrl = "http://localhost:9999",
+            webPageCrawlCacheRepository = cacheRepository,
+            crawlerSourceVerificationService = verificationService,
+        )
+
+        val result = client.extractArticle(unverifiedUrl)
+
+        assertThat(result).isNull()
+        verify(exactly = 0) { cacheRepository.findByUrl(unverifiedUrl) }
+    }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.nexters.external.entity.WebPageCrawlCache
 import com.nexters.external.repository.WebPageCrawlCacheRepository
+import com.nexters.external.service.CrawlerSourceVerificationService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -31,6 +32,8 @@ open class CrawlerServiceClient(
     private val crawlerServiceUrl: String = "http://crawler:8000",
     @Autowired(required = false)
     private val webPageCrawlCacheRepository: WebPageCrawlCacheRepository? = null,
+    @Autowired(required = false)
+    private val crawlerSourceVerificationService: CrawlerSourceVerificationService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(CrawlerServiceClient::class.java)
 
@@ -47,14 +50,20 @@ open class CrawlerServiceClient(
 
     /**
      * URL로부터 아티클 전문 본문을 추출합니다.
-     * MongoDB 캐시에 유효한 결과가 존재할 경우 외부 네트워크 요청 없이 즉시 반환하며,
-     * 캐시 미스 시 Python 크롤러 서비스를 호출하여 7일 TTL 캐시에 저장 후 반환합니다.
+     * 사전 검증된 소스(Verified Source)에 한해서만 동작하며, 미검증/차단 소스는 안전하게 스킵합니다.
+     * 검증된 소스의 경우 MongoDB 캐시를 우선 조회하고(0~1ms), 캐시 미스 시 크롤러를 호출하여 7일 TTL 캐시에 저장합니다.
      *
      * @param url 추출 대상 아티클 원문 URL
      * @return 추출 결과 (성공 여부, 본문 텍스트, 대표 이미지 URL 등)
      */
     open fun extractArticle(url: String): ArticleExtractResponse? {
         val normalizedUrl = url.trim()
+
+        // 0. Verified Source Check
+        if (crawlerSourceVerificationService != null && !crawlerSourceVerificationService.isVerifiedForCrawl(normalizedUrl)) {
+            logger.info("Skipping crawler extraction for unverified source: {}", normalizedUrl)
+            return null
+        }
 
         // 1. Cache hit check
         try {
