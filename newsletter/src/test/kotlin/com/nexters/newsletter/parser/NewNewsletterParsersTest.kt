@@ -139,6 +139,44 @@ class NewNewsletterParsersTest {
     }
 
     @Test
+    fun `Maeil Mail parser should ignore homepage enrichment and fetch the question URL`() {
+        val crawler =
+            object : com.nexters.external.apiclient.CrawlerServiceClient() {
+                override fun extractArticle(url: String): com.nexters.external.apiclient.ArticleExtractResponse =
+                    com.nexters.external.apiclient.ArticleExtractResponse(
+                        url = url,
+                        success = true,
+                        content = "질문 페이지에서 읽은 실제 원문",
+                        length = 14,
+                    )
+            }
+
+        val result =
+            MaeilMailParser(crawler).parse(
+                MailParseContext(
+                    content = "자세히 보기: https://www.maeil-mail.kr/question/321",
+                    subject = "[매일메일] 홈페이지 보강 데이터 검증",
+                    htmlContent = null,
+                    webPageEnrichment =
+                        MailWebPageEnrichment(
+                            items =
+                                listOf(
+                                    MailWebPageEnrichmentItem(
+                                        url = "https://www.maeil-mail.kr/",
+                                        content = "홈페이지 HTML이 저장되면 안 됩니다.",
+                                        status = "success",
+                                    ),
+                                ),
+                        ),
+                ),
+            )
+
+        assertEquals(1, result.size)
+        assertEquals("https://www.maeil-mail.kr/question/321", result[0].link)
+        assertEquals("질문 페이지에서 읽은 실제 원문", result[0].content)
+    }
+
+    @Test
     fun `MailParseContext should include web page enrichment from newsletter source`() {
         val source =
             NewsletterSource(

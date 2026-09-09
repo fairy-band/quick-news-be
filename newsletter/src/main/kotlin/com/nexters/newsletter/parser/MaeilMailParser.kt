@@ -14,7 +14,10 @@ class MaeilMailParser(
     ): Boolean = sender.contains(NEWSLETTER_MAIL_ADDRESS, ignoreCase = true)
 
     override fun parse(context: MailParseContext): List<MailContent> {
-        val existingItems = context.webPageEnrichment.successfulContentItems()
+        val existingItems =
+            context.webPageEnrichment
+                .successfulContentItems()
+                .filter { enrichmentItem -> enrichmentItem.hasQuestionUrl() }
         if (existingItems.isNotEmpty()) {
             return existingItems.map { enrichmentItem -> enrichmentItem.toMailContent(context) }
         }
@@ -70,6 +73,10 @@ class MaeilMailParser(
             enrichmentKey = enrichmentKey,
         )
 
+    private fun MailWebPageEnrichmentItem.hasQuestionUrl(): Boolean =
+        QUESTION_URL_REGEX.matches(url.trim()) ||
+            (normalizedUrl?.let { normalized -> QUESTION_URL_REGEX.matches(normalized.trim()) } == true)
+
     private fun MailWebPageEnrichmentItem.titleFromEnrichment(context: MailParseContext): String {
         val titleCandidates =
             sequenceOf(
@@ -97,6 +104,7 @@ class MaeilMailParser(
 
         private val SUBJECT_PREFIX_REGEX = Regex("""^\s*\[매일메일]\s*""")
         private val TITLE_WHITESPACE_REGEX = Regex("\\s+")
-        private val QUESTION_URL_REGEX = Regex("""https?://(?:www\.)?maeil-mail\.kr/question/\d+""")
+        private val QUESTION_URL_REGEX =
+            Regex("""https?://(?:www\.)?maeil-mail\.kr/question/\d+(?:[/?#].*)?""")
     }
 }
