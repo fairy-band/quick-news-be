@@ -43,6 +43,10 @@ class ExposureContentService(
                 .findById(summaryId)
                 .orElseThrow { NoSuchElementException("Summary not found with ID: $summaryId") }
 
+        require(!ContentSourceValidator.isInvalidSource(summary.content.content)) {
+            "Cannot expose content with an invalid source placeholder: ${summary.content.id}"
+        }
+
         // Check if exposure content already exists for this content
         val existingExposureContent = exposureContentRepository.findByContent(summary.content)
 
@@ -79,6 +83,10 @@ class ExposureContentService(
             summaryRepository
                 .findById(summaryId)
                 .orElseThrow { NoSuchElementException("Summary not found with ID: $summaryId") }
+
+        require(!ContentSourceValidator.isInvalidSource(summary.content.content)) {
+            "Cannot expose content with an invalid source placeholder: ${summary.content.id}"
+        }
 
         // Delete any existing exposure content for this content
         exposureContentRepository
@@ -268,6 +276,10 @@ class ExposureContentService(
         provocativeHeadline: String,
         summaryContent: String
     ): ExposureContent {
+        require(!ContentSourceValidator.isInvalidSource(content.content)) {
+            "Cannot expose content with an invalid source placeholder: ${content.id}"
+        }
+
         // Check if exposure content already exists for this content
         val existingExposureContent = exposureContentRepository.findByContent(content)
 

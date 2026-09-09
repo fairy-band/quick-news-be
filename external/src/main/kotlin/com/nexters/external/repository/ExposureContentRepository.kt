@@ -538,6 +538,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
         WHERE c.publishedAt >= :publishedFrom
+        AND TRIM(c.content) NOT LIKE '(cat /tmp/trans_%'
         AND EXISTS (
             SELECT 1 FROM ContentKeywordMapping ckm
             WHERE ckm.content = c
@@ -576,6 +577,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         LEFT JOIN c.contentProvider cp
         WHERE cp.id IN :contentProviderIds
         AND c.publishedAt >= :publishedFrom
+        AND TRIM(c.content) NOT LIKE '(cat /tmp/trans_%'
         AND NOT EXISTS (
             SELECT 1 FROM UserExposedContentMapping uecm
             WHERE uecm.contentId = c.id
@@ -608,6 +610,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         JOIN e.content c
         LEFT JOIN c.contentProvider cp
         WHERE c.publishedAt >= :publishedFrom
+        AND TRIM(c.content) NOT LIKE '(cat /tmp/trans_%'
         AND EXISTS (
             SELECT 1 FROM ContentCategoryScore ccs
             WHERE ccs.contentId = c.id
@@ -713,6 +716,7 @@ interface ExposureContentRepository : JpaRepository<ExposureContent, Long> {
         LEFT JOIN content_provider cp ON cp.id = c.content_provider_id
         JOIN content_embeddings ce ON ce.content_id = c.id
         WHERE c.published_at >= :publishedFrom
+        AND btrim(c.content) NOT LIKE '(cat /tmp/trans_%'
         AND NOT EXISTS (
             SELECT 1 FROM user_exposed_contents_mapping uecm 
             WHERE uecm.content_id = c.id AND uecm.user_id = :userId
@@ -797,4 +801,3 @@ interface ContentSimilarityPairProjection {
     val contentId2: Long
     val similarity: Double
 }
-

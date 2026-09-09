@@ -30,6 +30,10 @@ class ContentService(
         imageUrl: String? = null,
         contentProviderType: ContentProviderType? = null,
     ): Content {
+        require(!ContentSourceValidator.isInvalidSource(content)) {
+            "Invalid source content: transient file placeholder was supplied"
+        }
+
         val contentProvider =
             contentProviderName.let { name ->
                 val existing = contentProviderRepository.findFirstByNameOrderByIdAsc(name)
