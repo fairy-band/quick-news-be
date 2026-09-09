@@ -67,23 +67,13 @@ class CooperpressWeeklyParser : MailParser {
     private fun String.cleanDescription(): String =
         lines()
             .map { it.trim() }
-            .takeWhile { line -> !line.isSectionBoundary() }
+            .takeWhile { line -> !line.matches(HORIZONTAL_RULE_REGEX) && !line.startsWith("Curated by") }
             .filter { line -> line.isNotBlank() }
             .filterNot { line -> line.startsWith("--") }
             .filterNot { line -> line.startsWith("→") }
             .joinToString(" ")
             .cleanInlineText()
             .take(MAX_DESCRIPTION_LENGTH)
-
-    private fun String.isSectionBoundary(): Boolean {
-        val upper = uppercase()
-        return upper == "IN BRIEF:" ||
-            upper.startsWith("JOBS") ||
-            upper.startsWith("CODE, TOOLS") ||
-            upper.startsWith("TOOLS") ||
-            upper.startsWith("ELSEWHERE") ||
-            matches(HORIZONTAL_RULE_REGEX)
-    }
 
     private fun String.normalizeNewsletterText(): String =
         replace("\r\n", "\n")
@@ -108,12 +98,14 @@ class CooperpressWeeklyParser : MailParser {
                 "postgres@cooperpress.com",
                 "react@cooperpress.com",
                 "peter@golangweekly.com",
+                "jsw@peterc.org",
+                "rss@javascriptweekly.com",
             )
 
         private val ISSUE_REGEX = Regex("""#\s*(\d+)\s+—\s+([A-Za-z]+ \d{1,2}, \d{4})""")
         private val ARTICLE_BLOCK_REGEX =
             Regex(
-                """(?ms)^\*\s+([^\n]+?)\s*\n\s*\(\s*(https?://[^)\s]+)\s*\)\s*(.*?)(?=^\*\s+|^\s*(?:⚡️\s*)?IN BRIEF:?|^\s*[📙🛠📢].*$|^\s*-{5,}\s*$|\z)""",
+                """(?ms)^\s*\*\s+([^\n]+?)\s*\n\s*\(\s*(https?://[^\)\s]+)\s*\)\s*(.*?)(?=^\s*\*|\z)""",
             )
         private val HORIZONTAL_RULE_REGEX = Regex("""^-{5,}$""")
         private val SPONSOR_REGEX = Regex("""\bSPONSOR\b|\bSponsored\b""", RegexOption.IGNORE_CASE)

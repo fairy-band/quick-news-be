@@ -27,7 +27,7 @@ class SwiftVincentParser : MailParser {
 
         // HTML 파싱
         val document = Jsoup.parse(htmlContent)
-        return extractArticles(document)
+        return extractArticles(document, context.subject)
     }
 
     private fun extractHtmlContent(content: String): String? {
@@ -80,11 +80,11 @@ class SwiftVincentParser : MailParser {
         return content
     }
 
-    private fun extractArticles(document: Document): List<MailContent> {
+    private fun extractArticles(document: Document, subject: String? = null): List<MailContent> {
         val results = mutableListOf<MailContent>()
 
         // 이메일 제목 추출
-        val emailTitle = findTitle(document)
+        val emailTitle = findTitle(document, subject)
 
         // 내용을 담을 StringBuilder
         val contentBuilder = StringBuilder()
@@ -188,7 +188,12 @@ class SwiftVincentParser : MailParser {
         return DEFAULT_LINK
     }
 
-    private fun findTitle(document: Document): String = document.select("td.section-text-area h2").firstOrNull()?.text() ?: "No Title Found"
+    private fun findTitle(document: Document, subject: String? = null): String {
+        val h2 = document.select("td.section-text-area h2, h2, h1").firstOrNull()?.text()?.trim()
+        if (!h2.isNullOrBlank() && h2 != "No Title Found") return h2
+        val cleaned = subject?.replace(Regex("^(?:\\[[^\\]]+\\]|Fwd:|Re:)\\s*", RegexOption.IGNORE_CASE), "")?.trim()
+        return if (!cleaned.isNullOrBlank()) cleaned else "No Title Found"
+    }
 
     companion object {
         private const val NEWSLETTER_NAME = "Swift with Vincent"

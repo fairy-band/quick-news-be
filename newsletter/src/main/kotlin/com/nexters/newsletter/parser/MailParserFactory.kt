@@ -7,6 +7,7 @@ class MailParserFactory(
 ) {
     private val parsers =
         listOf(
+            CooperpressWeeklyParser(),
             JSWeeklyParser(),
             LibHuntWeeklyParser(),
             KotlinWeeklyParser(),
@@ -19,14 +20,19 @@ class MailParserFactory(
             BytesDevParser(),
             WebToolsWeeklyParser(),
             VSCodeEmailParser(),
+            JVMWeeklyParser(),
+            ByteByteGoParser(),
+            SmashingMagazineParser(),
+            MicroservicesIOParser(),
             GenericSubstackArticleParser(),
             ReactStatusParser(),
-            CooperpressWeeklyParser(),
             PythonWeeklyParser(),
             AndroidWeeklyParser(),
             ItWorldKoreaParser(),
             CssWeeklyParser(),
             SwiftVincentParser(),
+            IOSDevWeeklyParser(),
+            SwiftUIWeeklyParser(),
             IlbunParser(),
         )
 
