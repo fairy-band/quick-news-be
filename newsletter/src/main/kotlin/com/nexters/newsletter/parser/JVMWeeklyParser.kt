@@ -30,6 +30,7 @@ class JVMWeeklyParser : MailParser {
     ): List<MailContent> {
         val results = mutableListOf<MailContent>()
         val canonicalLink = findCanonicalLink(document)
+        val seenUrls = mutableSetOf<String>()
 
         val headings = document.select("h2, h3")
         for (h in headings) {
@@ -68,6 +69,10 @@ class JVMWeeklyParser : MailParser {
             }
 
             val finalUrl = resolveRedirect(link ?: canonicalLink ?: "https://jvm-weekly.com")
+            val normalizedUrl = finalUrl.substringBefore("#").lowercase()
+            if (!seenUrls.add(normalizedUrl)) {
+                continue
+            }
             val imageUrl = MailImageUrlExtractor.findNearestCardImageUrl(h, finalUrl)
 
             results.add(
@@ -81,7 +86,7 @@ class JVMWeeklyParser : MailParser {
             )
         }
 
-        return results.distinctBy { it.title.lowercase() }
+        return results
     }
 
     private fun findCanonicalLink(document: Document): String? {
