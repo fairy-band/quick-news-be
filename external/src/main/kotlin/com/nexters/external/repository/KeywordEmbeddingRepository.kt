@@ -28,11 +28,37 @@ interface KeywordEmbeddingRepository : JpaRepository<ReservedKeyword, Long> {
         @Param("minSimilarity") minSimilarity: Double,
         @Param("limit") limit: Int,
     ): List<KeywordEmbeddingMatchProjection>
+
+    @Query(
+        value = """
+        WITH cat_centroids AS (
+            SELECT category_id, AVG(embedding)::vector(1024) as centroid
+            FROM keyword_embeddings
+            WHERE category_id IS NOT NULL
+            GROUP BY category_id
+        )
+        SELECT 
+            cc.category_id AS categoryId,
+            CAST(1.0 - (ce.embedding <=> cc.centroid) AS DOUBLE PRECISION) AS similarity
+        FROM content_embeddings ce
+        CROSS JOIN cat_centroids cc
+        WHERE ce.content_id = :contentId
+    """,
+        nativeQuery = true,
+    )
+    fun findCategorySimilaritiesByContentId(
+        @Param("contentId") contentId: Long,
+    ): List<CategorySimilarityProjection>
 }
 
 interface KeywordEmbeddingMatchProjection {
     val keywordId: Long
     val keywordName: String
     val categoryName: String?
+    val similarity: Double
+}
+
+interface CategorySimilarityProjection {
+    val categoryId: Long
     val similarity: Double
 }

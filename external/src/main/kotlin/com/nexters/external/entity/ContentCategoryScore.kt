@@ -30,6 +30,8 @@ class ContentCategoryScore(
     val keywordScore: Double,
     @Column(name = "provider_score", nullable = false)
     val providerScore: Double,
+    @Column(name = "semantic_score", nullable = false)
+    val semanticScore: Double = 0.0,
     @Column(name = "total_score", nullable = false)
     val totalScore: Double,
     @Column(name = "competing_category_id")

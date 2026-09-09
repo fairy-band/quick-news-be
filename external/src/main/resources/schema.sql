@@ -264,6 +264,7 @@ CREATE TABLE IF NOT EXISTS content_category_scores
     category_id                 BIGINT           NOT NULL,
     keyword_score               DOUBLE PRECISION NOT NULL DEFAULT 0,
     provider_score              DOUBLE PRECISION NOT NULL DEFAULT 0,
+    semantic_score              DOUBLE PRECISION NOT NULL DEFAULT 0,
     total_score                 DOUBLE PRECISION NOT NULL DEFAULT 0,
     competing_category_id       BIGINT,
     competing_score             DOUBLE PRECISION NOT NULL DEFAULT 0,

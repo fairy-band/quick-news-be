@@ -6,10 +6,12 @@ import com.nexters.external.repository.CategoryRepository
 import com.nexters.external.repository.ContentCategoryScoreRepository
 import com.nexters.external.repository.ContentKeywordMappingRepository
 import com.nexters.external.repository.ContentProviderCategoryMappingRepository
+import com.nexters.external.repository.KeywordEmbeddingRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import kotlin.math.round
 
 @Service
 class ContentCategoryScoreService(
@@ -17,6 +19,7 @@ class ContentCategoryScoreService(
     private val categoryRepository: CategoryRepository,
     private val contentProviderCategoryMappingRepository: ContentProviderCategoryMappingRepository,
     private val contentCategoryScoreRepository: ContentCategoryScoreRepository,
+    private val keywordEmbeddingRepository: KeywordEmbeddingRepository? = null,
 ) {
     private val logger = LoggerFactory.getLogger(ContentCategoryScoreService::class.java)
 
@@ -36,8 +39,22 @@ class ContentCategoryScoreService(
         val keywordScoresByCategoryId = calculateKeywordScoresByCategoryId(keywordIds)
         val providerScoresByCategoryId = calculateProviderScoresByCategoryId(content)
         val providerCategoryIds = providerScoresByCategoryId.keys
-        val categoryScores = mergeCategoryScores(keywordScoresByCategoryId, providerScoresByCategoryId)
         val calculatedAt = LocalDateTime.now()
+
+        val categorySimilarities = try {
+            keywordEmbeddingRepository?.findCategorySimilaritiesByContentId(contentId)
+                ?.associate { it.categoryId to it.similarity }
+                .orEmpty()
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch category centroid similarities for contentId {}: {}", contentId, e.message)
+            emptyMap()
+        }
+
+        val categoryScores = calculateCategoryScores(
+            keywordScoresByCategoryId = keywordScoresByCategoryId,
+            providerScoresByCategoryId = providerScoresByCategoryId,
+            categorySimilarities = categorySimilarities,
+        )
 
         contentCategoryScoreRepository.deleteByContentId(contentId)
         if (categoryScores.isEmpty()) {
@@ -68,6 +85,7 @@ class ContentCategoryScoreService(
                         categoryId = categoryId,
                         keywordScore = score.keywordScore,
                         providerScore = score.providerScore,
+                        semanticScore = score.semanticScore,
                         totalScore = score.totalScore,
                         competingCategoryId = competingCategoryId,
                         competingScore = competingScore,
@@ -101,6 +119,7 @@ class ContentCategoryScoreService(
                     keywordScore = score.keywordScore,
                     providerScore = score.providerScore,
                     totalScore = score.totalScore,
+                    semanticScore = score.semanticScore,
                 )
             }.groupBy { it.contentId }
     }
@@ -135,30 +154,74 @@ class ContentCategoryScoreService(
             .mapValues { (_, weights) -> weights.sum() }
     }
 
-    private fun mergeCategoryScores(
+    private fun calculateCategoryScores(
         keywordScoresByCategoryId: Map<Long, Double>,
         providerScoresByCategoryId: Map<Long, Double>,
-    ): Map<Long, MutableCategoryScore> {
-        val categoryScores = mutableMapOf<Long, MutableCategoryScore>()
-        keywordScoresByCategoryId.forEach { (categoryId, score) ->
-            categoryScores.getOrPut(categoryId) { MutableCategoryScore() }.keywordScore += score
+        categorySimilarities: Map<Long, Double>,
+    ): Map<Long, ComputedCategoryScore> {
+        val candidateCategoryIds = (keywordScoresByCategoryId.keys + providerScoresByCategoryId.keys).distinct()
+        if (candidateCategoryIds.isEmpty()) {
+            return emptyMap()
         }
-        providerScoresByCategoryId.forEach { (categoryId, score) ->
-            categoryScores.getOrPut(categoryId) { MutableCategoryScore() }.providerScore += score
+
+        val maxRawKw = keywordScoresByCategoryId.values.maxOrNull() ?: 0.0
+        val maxSim = categorySimilarities.values.maxOrNull() ?: 0.0
+
+        val result = mutableMapOf<Long, ComputedCategoryScore>()
+
+        for (categoryId in candidateCategoryIds) {
+            val rawKw = keywordScoresByCategoryId[categoryId] ?: 0.0
+            val rawProv = providerScoresByCategoryId[categoryId] ?: 0.0
+
+            // 1. Competing keyword penalty (deduction)
+            val kwPenalty = COMPETING_KEYWORD_PENALTY_RATE * maxOf(0.0, maxRawKw - rawKw)
+            val effectiveKw = maxOf(0.0, rawKw - kwPenalty)
+
+            // 2. Embedding centroid cosine similarity score
+            val sim = categorySimilarities[categoryId]
+            val semanticScore = if (sim != null && maxSim > 0.0) {
+                (sim - maxSim) * SEMANTIC_DISTANCE_MULTIPLIER
+            } else {
+                0.0
+            }
+
+            // 3. Provider bonus guardrail
+            val passesProviderGuardrail = if (sim != null && maxSim > 0.0) {
+                sim >= maxSim - PROVIDER_SIMILARITY_TOLERANCE && (maxRawKw <= 0.0 || rawKw >= 0.5 * maxRawKw)
+            } else {
+                maxRawKw <= 0.0 || rawKw >= 0.5 * maxRawKw
+            }
+            val effectiveProv = if (passesProviderGuardrail) rawProv else 0.0
+
+            // 4. Combined total score (non-negative)
+            val totalScore = maxOf(0.0, effectiveKw + semanticScore + effectiveProv)
+
+            result[categoryId] = ComputedCategoryScore(
+                keywordScore = roundToOneDecimal(effectiveKw),
+                providerScore = roundToOneDecimal(effectiveProv),
+                semanticScore = roundToOneDecimal(semanticScore),
+                totalScore = roundToOneDecimal(totalScore),
+            )
         }
-        return categoryScores
+
+        return result
     }
 
-    private data class MutableCategoryScore(
-        var keywordScore: Double = 0.0,
-        var providerScore: Double = 0.0,
-    ) {
-        val totalScore: Double
-            get() = keywordScore + providerScore
-    }
+    private fun roundToOneDecimal(value: Double): Double =
+        round(value * 10.0) / 10.0
+
+    private data class ComputedCategoryScore(
+        val keywordScore: Double,
+        val providerScore: Double,
+        val semanticScore: Double,
+        val totalScore: Double,
+    )
 
     companion object {
-        const val CALCULATION_VERSION = "category-fit-v1"
+        const val CALCULATION_VERSION = "category-fit-v2-semantic"
+        private const val COMPETING_KEYWORD_PENALTY_RATE = 0.4
+        private const val SEMANTIC_DISTANCE_MULTIPLIER = 40.0
+        private const val PROVIDER_SIMILARITY_TOLERANCE = 0.03
     }
 }
 
@@ -168,4 +231,5 @@ data class ContentCategoryScoreSnapshot(
     val keywordScore: Double,
     val providerScore: Double,
     val totalScore: Double,
+    val semanticScore: Double = 0.0,
 )
