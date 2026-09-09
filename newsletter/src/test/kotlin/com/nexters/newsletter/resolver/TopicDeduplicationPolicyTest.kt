@@ -62,6 +62,44 @@ class TopicDeduplicationPolicyTest {
         assertThat(policy.calculateDampingMultiplier(candidate, selected, emptyMap())).isEqualTo(1.0)
     }
 
+    @Test
+    fun `한국어 조사가 붙어있는 세부 기술 키워드(Compose의 vs Compose)도 정상 정규화되어 중복 감지되어야 한다`() {
+        val selected = listOf(createCandidate(contentId = 300L, title = "Compose 완전 정복 가이드"))
+        val candidate = createCandidate(contentId = 301L, title = "Compose의 상태 관리 노하우와 변경점")
+
+        assertThat(policy.isTopicDuplicate(candidate, selected, emptyMap())).isTrue()
+        assertThat(policy.calculateDampingMultiplier(candidate, selected, emptyMap())).isEqualTo(0.20)
+    }
+
+    @Test
+    fun `세부 기술(Tuist) 1건만 일치해도 피드 다양성을 위해 중복으로 감지되어야 한다`() {
+        val selected = listOf(createCandidate(contentId = 400L, title = "대규모 모듈 분리와 Tuist 도입기"))
+        val candidate = createCandidate(contentId = 401L, title = "Tuist 4 마이그레이션 경험 공유")
+
+        assertThat(policy.isTopicDuplicate(candidate, selected, emptyMap())).isTrue()
+    }
+
+    @Test
+    fun `한글 영문 별칭(Zustand vs 주스탠드)이 달라도 동일 토픽으로 감지되어야 한다`() {
+        val selected = listOf(createCandidate(contentId = 500L, title = "Zustand 상태 추적 도구 개발기"))
+        val candidate = createCandidate(contentId = 501L, title = "리덕스 대신 주스탠드 도입한 후기")
+
+        assertThat(policy.isTopicDuplicate(candidate, selected, emptyMap())).isTrue()
+    }
+
+    @Test
+    fun `제목에 기술명이 모호해도 contentKeywordsMap의 세부 스택이 일치하면 중복으로 감지되어야 한다`() {
+        val selected = listOf(createCandidate(contentId = 600L, title = "10년 차 개발자의 완벽한 모듈 설계 전략"))
+        val candidate = createCandidate(contentId = 601L, title = "복잡한 대규모 프로젝트 구조를 풀어내는 법")
+
+        val contentKeywordsMap = mapOf(
+            600L to setOf("iOS", "Tuist", "Architecture"),
+            601L to setOf("iOS", "Tuist", "모듈화")
+        )
+
+        assertThat(policy.isTopicDuplicate(candidate, selected, emptyMap(), contentKeywordsMap)).isTrue()
+    }
+
     private fun createCandidate(contentId: Long, title: String): ExposureContentRecommendationCandidateRow =
         ExposureContentRecommendationCandidateRow(
             exposureContentId = contentId * 10,

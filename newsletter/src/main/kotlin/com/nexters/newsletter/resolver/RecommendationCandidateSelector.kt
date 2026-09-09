@@ -111,6 +111,11 @@ class RecommendationCandidateSelector(
                 ) ?: emptyMap()
             }
 
+        val contentKeywordsMap =
+            scoringContext.keywordsByContentId.mapValues { (_, features) ->
+                features.map { it.name }.toSet()
+            }
+
         // Apply 6-slot Hybrid Interleaving with Topic Deduplication MMR
         val result =
             interleaveHybridRecommendationSlots(
@@ -118,6 +123,7 @@ class RecommendationCandidateSelector(
                 semanticCandidates = semanticCandidates,
                 allCandidates = filteredContext.candidates,
                 similarityMap = similarityMap,
+                contentKeywordsMap = contentKeywordsMap,
                 limit = request.limit,
             )
 
@@ -136,6 +142,7 @@ class RecommendationCandidateSelector(
         semanticCandidates: List<ExposureContentRecommendationCandidateRow>,
         allCandidates: List<ExposureContentRecommendationCandidateRow>,
         similarityMap: Map<Long, Map<Long, Double>>,
+        contentKeywordsMap: Map<Long, Set<String>> = emptyMap(),
         limit: Int,
     ): List<ExposureContentRecommendationCandidateRow> {
         if (rankedCandidates.isEmpty() || limit <= 0) {
@@ -160,11 +167,11 @@ class RecommendationCandidateSelector(
             semanticCandidates
                 .filter { it !in result }
                 .maxByOrNull { candidate ->
-                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
-                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap, contentKeywordsMap)
+                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap, contentKeywordsMap)
                     if (isDuplicate) damping * 0.05 else damping
                 }
-                ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+                ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap, contentKeywordsMap) }
                 ?: rankedCandidates.firstOrNull { it !in result }
         if (slot2 != null) {
             result.add(slot2)
@@ -175,11 +182,11 @@ class RecommendationCandidateSelector(
             rankedCandidates
                 .filter { it !in result }
                 .maxByOrNull { candidate ->
-                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
-                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap, contentKeywordsMap)
+                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap, contentKeywordsMap)
                     if (isDuplicate) damping * 0.05 else damping
                 }
-                ?: allCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+                ?: allCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap, contentKeywordsMap) }
                 ?: rankedCandidates.firstOrNull { it !in result }
         if (slot3 != null) {
             result.add(slot3)
@@ -193,10 +200,10 @@ class RecommendationCandidateSelector(
 
         val mabCandidate =
             mabCandidates.maxByOrNull { candidate ->
-                val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
-                val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap, contentKeywordsMap)
+                val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap, contentKeywordsMap)
                 if (isDuplicate) damping * 0.05 else damping
-            } ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+            } ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap, contentKeywordsMap) }
             ?: rankedCandidates.firstOrNull { it !in result }
 
         if (mabCandidate != null) {
@@ -208,14 +215,14 @@ class RecommendationCandidateSelector(
             semanticCandidates
                 .filter { it !in result }
                 .maxByOrNull { candidate ->
-                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap)
-                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap)
+                    val damping = topicDeduplicationPolicy.calculateDampingMultiplier(candidate, result, similarityMap, contentKeywordsMap)
+                    val isDuplicate = topicDeduplicationPolicy.isTopicDuplicate(candidate, result, similarityMap, contentKeywordsMap)
                     val publisherOverlap = result.any { it.contentProviderId == candidate.contentProviderId && candidate.contentProviderId != null }
                     var score = if (isDuplicate) damping * 0.05 else damping
                     if (publisherOverlap) score *= 0.5
                     score
                 }
-                ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+                ?: rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap, contentKeywordsMap) }
                 ?: rankedCandidates.firstOrNull { it !in result }
 
         if (slot5 != null) {
@@ -225,8 +232,8 @@ class RecommendationCandidateSelector(
         // [Slot 6 / Index 5+] Evergreen Architecture / Fill remaining slots with diversity priority
         while (result.size < limit) {
             val nextDiverse =
-                rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
-                    ?: allCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap) }
+                rankedCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap, contentKeywordsMap) }
+                    ?: allCandidates.firstOrNull { it !in result && !topicDeduplicationPolicy.isTopicDuplicate(it, result, similarityMap, contentKeywordsMap) }
                     ?: rankedCandidates.firstOrNull { it !in result }
                     ?: allCandidates.firstOrNull { it !in result }
                     ?: break
