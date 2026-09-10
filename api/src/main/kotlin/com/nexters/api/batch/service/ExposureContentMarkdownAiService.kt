@@ -2,11 +2,13 @@ package com.nexters.api.batch.service
 
 import com.nexters.external.apiclient.EmbeddingServiceClient
 import com.nexters.external.dto.GeminiModel
+import com.nexters.external.enums.ContentProcessingStage
 import com.nexters.external.entity.ExposureContentMarkdown
 import com.nexters.external.exception.RateLimitExceededException
 import com.nexters.external.repository.ExposureContentMarkdownRepository
 import com.nexters.external.repository.ExposureContentRepository
 import com.nexters.external.service.GeminiRateLimiterService
+import com.nexters.external.service.ContentProcessingStateService
 import com.nexters.external.support.MarkdownValidator
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -25,6 +27,7 @@ class ExposureContentMarkdownAiService(
     private val exposureContentMarkdownRepository: ExposureContentMarkdownRepository,
     private val geminiRateLimiterService: GeminiRateLimiterService,
     private val embeddingServiceClient: EmbeddingServiceClient,
+    private val processingStateService: ContentProcessingStateService,
 ) {
     private val logger = LoggerFactory.getLogger(ExposureContentMarkdownAiService::class.java)
     private val isProcessing = AtomicBoolean(false)
@@ -39,7 +42,10 @@ class ExposureContentMarkdownAiService(
             logger.info("Starting unprocessed markdown AI batch processing")
 
             // 마크다운이 없는 항목을 조회
-            val contents = exposureContentRepository.findExposureContentsWithoutMarkdown(PageRequest.of(0, BATCH_SIZE))
+            val candidates = exposureContentRepository.findExposureContentsWithoutMarkdown(PageRequest.of(0, BATCH_SIZE * CANDIDATE_FETCH_FACTOR))
+            val contents = processingStateService.eligible(candidates.map { it.content }, ContentProcessingStage.MARKDOWN)
+                .mapNotNull { content -> candidates.find { it.content.id == content.id } }
+                .take(BATCH_SIZE)
 
             if (contents.isEmpty()) {
                 logger.info("No unprocessed exposure contents found for markdown generation.")
@@ -50,6 +56,7 @@ class ExposureContentMarkdownAiService(
 
             contents.forEach { exposureContent ->
                 try {
+                    processingStateService.processing(listOf(exposureContent.content), ContentProcessingStage.MARKDOWN)
                     val originalContent = exposureContent.content.content
                     val originalUrl = exposureContent.content.originalUrl
                     var response = geminiRateLimiterService.executeMarkdownGeneration(GeminiModel.TWO_FIVE_FLASH, originalContent, originalUrl)
@@ -80,6 +87,7 @@ class ExposureContentMarkdownAiService(
                             )
                         }
                         exposureContentMarkdownRepository.save(entity)
+                        processingStateService.ready(exposureContent.content.id!!, ContentProcessingStage.MARKDOWN)
                         logger.info("Saved AI-generated markdown for exposure content ID: ${exposureContent.id} (length=${finalMarkdown.length})")
 
                         // 임베딩 파이프라인 연동: 마크다운이 추가/보강된 최신 텍스트로 bge-m3 임베딩 갱신
@@ -89,12 +97,15 @@ class ExposureContentMarkdownAiService(
                             logger.warn("Failed to update embedding for content ID ${exposureContent.content.id}: ${e.message}")
                         }
                     } else {
+                        processingStateService.retry(listOf(exposureContent.content), ContentProcessingStage.MARKDOWN, null, IllegalStateException("Markdown generation returned empty content"))
                         logger.warn("Received empty markdown from AI for exposure content ID: ${exposureContent.id}")
                     }
                 } catch (e: RateLimitExceededException) {
+                    processingStateService.retry(listOf(exposureContent.content), ContentProcessingStage.MARKDOWN, e.retryAt, e)
                     logger.error("Rate limit exceeded during markdown generation. Halting batch.", e)
                     throw e
                 } catch (e: Exception) {
+                    processingStateService.retry(listOf(exposureContent.content), ContentProcessingStage.MARKDOWN, null, e)
                     logger.error("Failed to generate markdown for exposure content ID: ${exposureContent.id}", e)
                 }
             }
@@ -106,5 +117,6 @@ class ExposureContentMarkdownAiService(
 
     companion object {
         private const val BATCH_SIZE = 5
+        private const val CANDIDATE_FETCH_FACTOR = 3
     }
 }

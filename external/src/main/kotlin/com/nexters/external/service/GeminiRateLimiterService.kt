@@ -23,6 +23,7 @@ class GeminiRateLimiterService(
     private val rateLimitRepository: GeminiRateLimitRepository,
     private val geminiClient: GeminiClient,
     private val dailyLimitService: DailyLimitService,
+    private val geminiBackoffService: GeminiBackoffService,
 ) {
     private val logger = LoggerFactory.getLogger(GeminiRateLimiterService::class.java)
 
@@ -84,10 +85,20 @@ class GeminiRateLimiterService(
         model: GeminiModel,
         block: () -> GenerateContentResponse?,
     ): GenerateContentResponse? {
-        checkRpmLimit(model)
-        dailyLimitService.incrementDailyLimit(model)
-        return block()
+        geminiBackoffService.throwIfBlocked(model)
+        try {
+            checkRpmLimit(model)
+            dailyLimitService.incrementDailyLimit(model)
+            return block().also { geminiBackoffService.recordSuccess(model) }
+        } catch (e: RateLimitExceededException) {
+            geminiBackoffService.recordRateLimit(e)
+            throw e
+        }
     }
+
+    fun isBlocked(model: GeminiModel): Boolean = geminiBackoffService.isBlocked(model)
+
+    fun areAllModelsBlocked(): Boolean = GeminiModel.entries.all(::isBlocked)
 
     private fun checkRpmLimit(model: GeminiModel) {
         val rateLimiter =

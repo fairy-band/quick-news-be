@@ -12,10 +12,12 @@ import com.nexters.external.repository.ContentRepository
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.dto.GeminiModel
+import com.nexters.external.enums.ContentProcessingStage
 import com.nexters.external.apiclient.EmbeddingServiceClient
 import com.nexters.external.entity.ExposureContentMarkdown
 import com.nexters.external.repository.ExposureContentMarkdownRepository
 import com.nexters.external.service.GeminiRateLimiterService
+import com.nexters.external.service.ContentProcessingStateService
 import com.nexters.external.support.MarkdownValidator
 import com.nexters.newsletter.service.NewsletterProcessingService
 import org.slf4j.LoggerFactory
@@ -37,6 +39,7 @@ class ContentAiProcessingService(
     private val geminiRateLimiterService: GeminiRateLimiterService,
     private val exposureContentMarkdownRepository: ExposureContentMarkdownRepository,
     private val embeddingServiceClient: EmbeddingServiceClient,
+    private val processingStateService: ContentProcessingStateService,
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingService::class.java)
 
@@ -78,18 +81,19 @@ class ContentAiProcessingService(
                 contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
                     minLength = MIN_CONTENT_LENGTH,
                     maxLength = MAX_CONTENT_LENGTH,
-                    limit = BATCH_SIZE,
+                    limit = BATCH_SIZE * CANDIDATE_FETCH_FACTOR,
                     createdBefore = createdBefore,
                 )
 
-            if (unprocessedContents.isEmpty()) {
+            val eligibleContents = processingStateService.eligible(unprocessedContents, ContentProcessingStage.AI).take(BATCH_SIZE)
+            if (eligibleContents.isEmpty()) {
                 logger.info("No unprocessed contents found in batch size $BATCH_SIZE, trying extended search with MAX_TOTAL_BATCH_LENGTH")
                 return processSingleLargeContent()
             }
 
-            logger.info("Found ${unprocessedContents.size} unprocessed contents to process in batch")
+            logger.info("Found ${eligibleContents.size} eligible contents to process in batch")
 
-            return processContentsBatch(unprocessedContents)
+            return processContentsBatch(eligibleContents)
         } finally {
             // 처리 완료 후 플래그 해제
             isProcessing.set(false)
@@ -110,7 +114,7 @@ class ContentAiProcessingService(
                 contentRepository.findContentsWithoutSummaryOrderedByCategoryBalance(
                     minLength = MIN_CONTENT_LENGTH,
                     maxLength = MAX_TOTAL_BATCH_LENGTH,
-                    limit = 1,
+                    limit = CANDIDATE_FETCH_FACTOR,
                     createdBefore = createdBefore,
                 )
 
@@ -119,7 +123,8 @@ class ContentAiProcessingService(
                 return ProcessingResult(0, 0, 0)
             }
 
-            val singleContent = unprocessedContents.first()
+            val singleContent = processingStateService.eligible(unprocessedContents, ContentProcessingStage.AI).firstOrNull()
+                ?: return ProcessingResult(0, 0, getRemainingCount())
             logger.info("Processing single content (ID: ${singleContent.id}, length: ${singleContent.content.length})")
             return processContentsBatch(listOf(singleContent))
         } catch (e: Exception) {
@@ -156,7 +161,7 @@ class ContentAiProcessingService(
         return try {
             executeBatchProcessing(validatedContents)
         } catch (e: RateLimitExceededException) {
-            handleRateLimitException(e)
+            handleRateLimitException(e, validatedContents)
         } catch (e: Exception) {
             handleBatchProcessingException(e, validatedContents)
         }
@@ -167,6 +172,7 @@ class ContentAiProcessingService(
      */
     private fun executeBatchProcessing(validatedContents: List<Content>): ProcessingResult {
         logger.info("Processing ${validatedContents.size} contents in single batch API call")
+        processingStateService.processing(validatedContents, ContentProcessingStage.AI)
 
         // AI 배치 분석 (1회 API 호출)
         val batchResults = contentAnalysisService.analyzeBatchAndSave(validatedContents)
@@ -190,8 +196,9 @@ class ContentAiProcessingService(
     /**
      * Rate Limit 초과 예외를 처리합니다.
      */
-    private fun handleRateLimitException(e: RateLimitExceededException): Nothing {
+    private fun handleRateLimitException(e: RateLimitExceededException, contents: List<Content>): Nothing {
         logger.error("Rate limit exceeded. Halting batch without fallback to preserve API quota.", e)
+        processingStateService.retry(contents, ContentProcessingStage.AI, e.retryAt, e)
         throw e
     }
 
@@ -242,11 +249,14 @@ class ContentAiProcessingService(
                 val result = processContentAndCreateExposure(content, batchResults)
                 if (result) {
                     processedCount++
+                    processingStateService.ready(content.id!!, ContentProcessingStage.AI)
                 } else {
                     errorCount++
+                    processingStateService.retry(listOf(content), ContentProcessingStage.AI, null, IllegalStateException("AI batch result was incomplete"))
                 }
             } catch (e: Exception) {
                 errorCount++
+                processingStateService.retry(listOf(content), ContentProcessingStage.AI, null, e)
                 logger.error("Failed to create ExposureContent for content ID ${content.id}: ${content.title}", e)
             }
         }
@@ -279,6 +289,7 @@ class ContentAiProcessingService(
 
         val latestSummary = summaries.first()
         val exposureContent = exposureContentService.createExposureContentFromSummary(latestSummary.id!!)
+        processingStateService.processing(listOf(content), ContentProcessingStage.MARKDOWN)
         
         // 마크다운 즉시 생성 및 저장 (가드레일 검증 및 완결성 보장)
         try {
@@ -319,9 +330,13 @@ class ContentAiProcessingService(
                     )
                 }
                 exposureContentMarkdownRepository.save(markdownEntity)
+                processingStateService.ready(content.id!!, ContentProcessingStage.MARKDOWN)
                 logger.info("Saved AI-generated markdown immediately for exposure content ID: ${exposureContent.id} (length=${finalMarkdown.length})")
+            } else {
+                processingStateService.retry(listOf(content), ContentProcessingStage.MARKDOWN, null, IllegalStateException("Markdown generation returned empty content"))
             }
         } catch (e: Exception) {
+            processingStateService.retry(listOf(content), ContentProcessingStage.MARKDOWN, (e as? RateLimitExceededException)?.retryAt, e)
             logger.error("Failed to generate immediate markdown for exposure content ID: ${exposureContent.id}", e)
         }
 
@@ -457,6 +472,7 @@ class ContentAiProcessingService(
 
     companion object {
         private const val BATCH_SIZE = 5
+        private const val CANDIDATE_FETCH_FACTOR = 3
         private const val MIN_CONTENT_LENGTH = 500 // 최소 500자
     }
 }

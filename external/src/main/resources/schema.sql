@@ -129,6 +129,25 @@ CREATE TABLE IF NOT EXISTS content_generation_attempts
 CREATE INDEX IF NOT EXISTS idx_content_generation_attempt_content_created
     ON content_generation_attempts (content_id, created_at DESC);
 
+-- Per-content durable processing state. A model-wide backoff pauses calls,
+-- while this table records exactly which content should wait, retry, or be reviewed.
+CREATE TABLE IF NOT EXISTS content_processing_states
+(
+    id            BIGSERIAL PRIMARY KEY,
+    content_id    BIGINT       NOT NULL,
+    stage         VARCHAR(20)  NOT NULL CHECK (stage IN ('AI', 'MARKDOWN')),
+    status        VARCHAR(20)  NOT NULL CHECK (status IN ('PENDING', 'PROCESSING', 'RETRY_AT', 'READY', 'FAILED')),
+    attempt_count INTEGER      NOT NULL DEFAULT 0,
+    retry_at      TIMESTAMP,
+    last_error    TEXT,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_content_processing_state UNIQUE (content_id, stage),
+    CONSTRAINT fk_content_processing_state_content FOREIGN KEY (content_id) REFERENCES contents (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_processing_states_stage_status_retry
+    ON content_processing_states (stage, status, retry_at);
+
 -- Summaries table
 CREATE TABLE IF NOT EXISTS summaries
 (
@@ -425,6 +444,24 @@ CREATE TABLE IF NOT EXISTS gemini_rate_limit
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_model_date ON gemini_rate_limit (model_name, limit_date);
 
+-- Persistent Gemini backoff state. Prevents scheduled jobs from retrying a known exhausted quota.
+CREATE TABLE IF NOT EXISTS gemini_backoff_state
+(
+    id                   SERIAL PRIMARY KEY,
+    model_name           VARCHAR(100) NOT NULL,
+    limit_type           VARCHAR(50)  NOT NULL,
+    consecutive_failures INTEGER      NOT NULL DEFAULT 0,
+    blocked_until        TIMESTAMP,
+    last_error           TEXT,
+    updated_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gemini_backoff_model_type
+    ON gemini_backoff_state (model_name, limit_type);
+
+CREATE INDEX IF NOT EXISTS idx_gemini_backoff_until
+    ON gemini_backoff_state (blocked_until);
+
 CREATE TABLE IF NOT EXISTS content_provider_requests
 (
     id                    SERIAL PRIMARY KEY,
@@ -717,6 +754,3 @@ CREATE INDEX IF NOT EXISTS idx_user_read_contents_user_id_created_at
 
 CREATE INDEX IF NOT EXISTS idx_user_read_contents_content_id
     ON user_read_contents (content_id);
-
-
-

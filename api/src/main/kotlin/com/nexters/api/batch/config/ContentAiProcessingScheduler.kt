@@ -2,6 +2,7 @@ package com.nexters.api.batch.config
 
 import com.nexters.api.batch.service.ContentAiProcessingService
 import com.nexters.external.exception.RateLimitExceededException
+import com.nexters.external.service.GeminiRateLimiterService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
@@ -14,12 +15,18 @@ import org.springframework.stereotype.Component
     matchIfMissing = false
 )
 class ContentAiProcessingScheduler(
-    private val contentAiProcessingService: ContentAiProcessingService
+    private val contentAiProcessingService: ContentAiProcessingService,
+    private val geminiRateLimiterService: GeminiRateLimiterService,
 ) {
     private val logger = LoggerFactory.getLogger(ContentAiProcessingScheduler::class.java)
 
     @Scheduled(cron = "0 5,15,25,35,45,55 * * * *") // 매 10분 주기 중 5분 offset (05분, 15분, 25분...)
     fun processUnprocessedContents() {
+        if (geminiRateLimiterService.areAllModelsBlocked()) {
+            logger.info("Skipping content AI processing: every configured Gemini model is in backoff.")
+            return
+        }
+
         logger.info("Starting unified content AI processing pipeline (Summary + ExposureContent + Markdown)")
         try {
             val result = contentAiProcessingService.processUnprocessedContents()
