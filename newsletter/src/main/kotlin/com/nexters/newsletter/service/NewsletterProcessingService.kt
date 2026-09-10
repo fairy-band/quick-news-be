@@ -13,9 +13,12 @@ import com.nexters.external.filter.AdAndPromotionalFilter
 import com.nexters.external.service.ContentAnalysisService
 import com.nexters.external.service.ContentProviderService
 import com.nexters.external.service.ContentService
+import com.nexters.external.service.ContentProcessingStateService
+import com.nexters.external.service.ContentSourceValidator
 import com.nexters.external.service.ExposureContentService
 import com.nexters.external.service.NewsletterSourceService
 import com.nexters.external.service.RepresentativeImageUrlExtractorService
+import com.nexters.external.enums.ContentProcessingStage
 import com.nexters.newsletter.parser.MailContent
 import com.nexters.newsletter.parser.MailParseContext
 import com.nexters.newsletter.parser.MailParserFactory
@@ -33,6 +36,8 @@ class NewsletterProcessingService(
     private val contentAnalysisService: ContentAnalysisService,
     private val exposureContentService: ExposureContentService,
     private val representativeImageUrlExtractorService: RepresentativeImageUrlExtractorService,
+    private val processingStateService: ContentProcessingStateService,
+    private val newsletterIngestionIntegrityService: NewsletterIngestionIntegrityService,
     private val newsletterContentGroupingServiceProvider: ObjectProvider<NewsletterContentGroupingService>,
     private val crawlerServiceClient: CrawlerServiceClient? = null,
 ) {
@@ -43,6 +48,7 @@ class NewsletterProcessingService(
     fun processExistingContent(content: Content): ExposureContent {
         try {
             logger.info("Starting complete processing for existing content ID: ${content.id}")
+            processingStateService.processing(listOf(content), ContentProcessingStage.AI)
 
             // 콘텐츠 길이 검증
             val contentLength = content.content.length
@@ -58,10 +64,14 @@ class NewsletterProcessingService(
 
             // Create exposure content
             val exposureContent = createExposureContent(content)
+            val contentId = requireNotNull(content.id)
+            processingStateService.ready(contentId, ContentProcessingStage.AI)
+            processingStateService.pending(contentId, ContentProcessingStage.MARKDOWN)
 
             logger.info("End complete processing for existing content ID: ${content.id}")
             return exposureContent
         } catch (e: RateLimitExceededException) {
+            processingStateService.retry(listOf(content), ContentProcessingStage.AI, e.retryAt, e)
             logger.error(
                 "Rate limit exceeded for content ID: ${content.id}. " +
                     "LimitType: ${e.limitType}, Model: ${e.modelName}",
@@ -69,10 +79,12 @@ class NewsletterProcessingService(
             )
             throw e
         } catch (e: IllegalArgumentException) {
+            processingStateService.failed(content.id!!, ContentProcessingStage.AI, e)
             // 콘텐츠 길이 초과 등의 검증 오류
             logger.error("Validation failed for content ID: ${content.id}", e)
             throw e
         } catch (e: Exception) {
+            processingStateService.retry(listOf(content), ContentProcessingStage.AI, null, e)
             logger.error("Failed to process existing content ID: ${content.id}", e)
             throw e
         }
@@ -103,6 +115,15 @@ class NewsletterProcessingService(
             }
 
             val createdContents = parseContents(newsletterSource, parseContext, parsedContents)
+            if (!newsletterIngestionIntegrityService.verify(
+                    sourceId = newsletterSourceId,
+                    parsed = parsedContents,
+                    stored = createdContents,
+                    fallbackUrl = newsletterSource.headers["RSS-Item-URL"].orEmpty(),
+                )
+            ) {
+                return listOf()
+            }
             val contentsForProcessing = groupContentsForProcessing(newsletterSourceId, createdContents)
 
             persistEnrichmentIfNewlyExtracted(newsletterSource, parsedContents)
@@ -150,6 +171,10 @@ class NewsletterProcessingService(
                     ?: enrichmentItem?.imageUrl?.takeIf { imageUrl -> imageUrl.isNotBlank() }
                     ?: representativeImageUrlExtractorService.extractFromPage(originalUrl)
             val contentText = enrichmentItem?.content?.takeIf { content -> content.isNotBlank() } ?: mailContent.content
+            if (ContentSourceValidator.isInvalidSource(contentText)) {
+                logger.error("Skipping invalid transient source content. newsletterName={}, title={}", newsletterName, mailContent.title)
+                return@mapNotNull null
+            }
 
             val content =
                 Content(

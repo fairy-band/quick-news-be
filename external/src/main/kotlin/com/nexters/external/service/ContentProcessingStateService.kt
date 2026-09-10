@@ -34,6 +34,15 @@ class ContentProcessingStateService(
     }
 
     @Transactional
+    fun pending(contentId: Long, stage: ContentProcessingStage) = update(contentId, stage) { state ->
+        if (state.status != ContentProcessingStatus.READY) {
+            state.status = ContentProcessingStatus.PENDING
+            state.retryAt = null
+            state.lastError = null
+        }
+    }
+
+    @Transactional
     fun ready(contentId: Long, stage: ContentProcessingStage) = update(contentId, stage) { state ->
         state.status = ContentProcessingStatus.READY
         state.retryAt = null
